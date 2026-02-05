@@ -3,7 +3,7 @@ import { Save, Globe, Key, Cpu, Sparkles, CheckCircle2, Zap } from 'lucide-react
 import { AppSettings, DEFAULT_SETTINGS, ProviderConfig, DEFAULT_PROVIDER_CONFIGS } from '../../common/types/settings';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { McpSettingsSection } from '../features/settings/McpSettingsSection';
+import { McpSettingsSection } from '../components/McpSettingsSection';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
