@@ -40,7 +40,8 @@ export class SkillLoader {
                         name: name,
                         description: description,
                         path: folderPath,
-                        trustLevel: 'Ask' // 默认设为 Ask 模式，保障安全
+                        enabled: true,
+                        trustLevel: 'Ask'
                     });
                 }
             }

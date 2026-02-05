@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { SkillLoader } from './services/SkillLoader.js'
+import { Skill } from '../common/types/skill'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -25,7 +27,23 @@ function createWindow() {
     }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+    const skillsDir = path.join(__dirname, '../../skills')
+    const loader = new SkillLoader(skillsDir)
+    let skills: Skill[] = await loader.loadSkills()
+
+    ipcMain.handle('get-skills', () => skills)
+
+    ipcMain.handle('toggle-skill', (_, id: string) => {
+        skills = skills.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
+        return skills
+    })
+
+    ipcMain.handle('set-trust-level', (_, id: string, level: 'Ask' | 'Auto') => {
+        skills = skills.map(s => s.id === id ? { ...s, trustLevel: level } : s)
+        return skills
+    })
+
     createWindow()
 
     app.on('activate', () => {

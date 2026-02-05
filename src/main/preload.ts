@@ -2,4 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
     ping: () => ipcRenderer.invoke('ping'),
+    getSkills: () => ipcRenderer.invoke('get-skills'),
+    toggleSkill: (id: string) => ipcRenderer.invoke('toggle-skill', id),
+    setTrustLevel: (id: string, level: string) => ipcRenderer.invoke('set-trust-level', id, level),
 })

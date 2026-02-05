@@ -3,6 +3,7 @@ export interface Skill {
     name: string;
     description: string;
     path: string;
+    enabled: boolean;
     trustLevel: 'Ask' | 'Auto';
 }
 
