@@ -1,67 +1,43 @@
-# AI Assistant Core - 桌面智能助手设计方案
+# AI Assistant Core - 增强型设计方案 (Claude Skills 兼容)
 
-## 1. 项目概述
-本项目旨在开发一个功能类似 Claude Cowork 的桌面智能助手。它不局限于简单的对话，而是一个基于 **ReAct** 模式的智能代理 (Agent)，能够通过 **Python Bridge** 调用本地扩展技能 (Skills)，并具备可视化的技能管理界面。
+## 1. 核心愿景
+打造一个桌面端的“个人技能中枢”，完美兼容 Claude 技能定义规范，通过 ReAct 模式赋予 AI 逻辑推理与工具调用能力。
 
-## 2. 核心技术栈
-- **框架**: Electron (桌面外壳)
-- **UI 层**: React + Tailwind CSS (现代化界面)
-- **调度层**: Node.js (系统调用与进程管理)
-- **执行引擎**: Python (本地脚本执行与逻辑扩展)
-- **通信**: IPC (进程间通信) + SSE/JSON (LLM 流式通信)
+## 2. 技能系统架构 (Claude Skills Interop)
 
-## 3. 关键特性
-
-### 3.1 ReAct 智能代理 (Reasoning & Acting)
-- **思维闭环**: 助手遵循 `Thought -> Action -> Observation` 循环。
-- **思维可视化**: UI 实时展示助手的“思考过程”，增强交互透明度。
-- **自我纠错**: 助手能根据子进程执行的错误反馈 (Observation) 自动修正并重试。
-
-### 3.2 技能系统 (Visual Skill Hub)
-- **可视化管理**: 提供独立的 Skills 管理面板，支持一键开关。
-- **配置化**: 允许用户为每个技能独立配置参数（如 API Key）和信任级别。
-- **安全模式**:
-    - **手动确认**: 敏感操作需用户点击确认。
-    - **自动处理**: 信任常用技能，由 LLM 自主决定执行。
-
-### 3.3 Python 执行器 (Code Interpreter)
-- **动态运行**: 支持实时生成、执行 Python 脚本并捕获输出。
-- **本地扩展**: 许多复杂技能（如 Excel 处理、文件搜索）将直接通过 Python 实现。
-
-## 4. 架构设计
-
-### 4.1 进程模型
-1. **Renderer Process (React)**: 
-   - 聊天界面
-   - Skills 管理界面 (Skill Hub)
-   - 代码查看与结果展示状态
-2. **Main Process (Electron/Node.js)**:
-   - 管理 LLM 的 Context 与对话记录
-   - 动态装载 `manifest.json` 形式的技能定义
-   - 调度 Python 执行环境
-3. **Execution Layer (Python)**:
-   - 具体的技能执行脚本
-   - 自动化任务处理器
-
-### 4.2 技能定义格式 (Skill Manifest)
-```json
-{
-  "id": "python-executor",
-  "name": "Python 代码解释器",
-  "description": "允许助手直接运行 Python 脚本处理本地数据",
-  "version": "1.0.0",
-  "trustLevel": "AskEverytime",
-  "parameters": {
-    "code": "string"
-  }
-}
+### 2.1 技能定义规范
+所有的技能将严格遵循以下目录结构：
+```text
+skills/
+  └── my-skill/
+      ├── SKILL.md      # 包含 YAML Frontmatter (name, description)
+      ├── handler.py    # Python 逻辑实现 (可选)
+      └── handler.js    # JS/Node 逻辑实现 (可选)
 ```
 
-## 5. 安全与隐私
-- **本地优先**: 脚本执行在用户本地进行。
-- **权限管控**: 所有的系统级操作均绑定至 Skills 权限系统。
+### 2.2 技能加载流程 (Engine)
+1.  **扫描**: Node.js 主进程递归扫描 `skills/` 目录。
+2.  **解析**: 利用 `gray-matter` 支持，实时解析 `SKILL.md` 中的元数据。
+3.  **Prompt 注入**: 在 LLM 调用时，自动根据当前启用的技能列表，将 `name` 和 `description` 转化为 `Tools` 系统提示。
 
-## 6. 后续规划
-- 完善插件市场 (Plugin Store)
-- 支持多模态交互（屏幕识别）
-- 本地 RAG 知识库集成
+## 3. 核心子系统设计
+
+### 3.1 信任等级管理 (Trust System)
+- **Ask (默认)**: 每次调用技能前需在 UI 确认。
+- **Auto**: 允许特定技能在当前对话中自动运行，适合处理数据。
+
+### 3.2 代理引擎 (ReAct Agent)
+- **输入**: 用户 Query + 启用的技能集。
+- **循环**: 
+    1.  **Thinking**: 模型分析用户意图，决定调用的技能。
+    2.  **Acting**: 执行 Python 或 Shell 指令。
+    3.  **Observing**: 捕获输出并返回给模型。
+- **结果**: 生成最终答案。
+
+### 3.3 UI 组件化设计 (Atomic UI)
+- **ThoughtPanel**: 类似于代码块的卡片，展示思维链。
+- **SkillRegistry**: 列表卡片展示所有技能，支持快速开关。
+
+## 4. 安全性
+- **沙箱模拟**: 虽然运行在本地，但通过超时控制和权限标记 (Manifest Flags) 进行限制。
+- **明文审计**: 所有生成的 Python 脚本在执行前均可在日志中审计。

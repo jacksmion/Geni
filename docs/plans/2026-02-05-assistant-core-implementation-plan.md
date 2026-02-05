@@ -1,100 +1,98 @@
-# AI Assistant Core Implementation Plan
+# AI Assistant Core Implementation Plan (Optimized)
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 开发一个具备 ReAct 模式、可视化技能管理和 Python 执行能力的桌面端 AI 智能助手。
+**Goal:** 开发一个完美兼容 Claude Skills 标准、支持 ReAct 模式及可视化管理的桌面端 AI 智能助手。
 
-**Architecture:** 基于 Electron 的多进程架构。渲染进程 (React) 负责 UI 和交互，主进程 (Node.js) 负责调度 LLM、解析 ReAct 逻辑并管理 Python 代码执行环境。
+**Architecture:** Electron (Shell) + React (UI) + Node.js (Skill Management & Agent Engine) + Python (Local Execution).
+- **Skill Engine**: 模拟 Claude Code 的技能加载机制，支持 YAML frontmatter 解析和工具化转换。
+- **Agent Loop**: 基于 ReAct 模式，将 Skills 转换为 LLM 可调用的 Tools。
 
-**Tech Stack:** Electron, React (Vite), Tailwind CSS, Node.js, Python 3, IPC.
+**Tech Stack:** Electron, React, Vite, Tailwind CSS, Node.js (`gray-matter` for YAML), Python 3.
 
 ---
 
-### Task 1: 项目初始化 (Init & Setup)
+### Task 1: 项目基础搭建 (Electron + Vite + React)
 
 **Files:**
 - Create: `package.json`
 - Create: `vite.config.ts`
-- Create: `src/main.ts` (Electron Main)
-- Create: `src/index.html`
+- Create: `src/main/main.ts`
+- Create: `src/main/preload.ts`
+- Create: `src/renderer/index.html`
+- Create: `src/renderer/main.tsx`
 
-**Step 1: 初始化工程结构**
-初始化 Electron + Vite + React 的基础结构。
+**Step 1: 初始化项目结构**
+按照现代 Electron + Vite 最佳实践搭建工程。
 
-**Step 2: 配置 Tailwind CSS**
-运行: `npx tailwindcss init -p`
+**Step 2: 安装核心依赖**
+`npm install lucide-react gray-matter clsx tailwind-merge`
 
-**Step 2: 提交代码**
+**Step 3: 提交代码**
 ```bash
-git init
 git add .
-git commit -m "chore: initial project setup"
+git commit -m "chore: scaffold electron vite project"
 ```
 
 ---
 
-### Task 2: 核心桥接与窗口管理 (Core Shell & IPC)
+### Task 2: Claude 兼容的技能加载器 (Skill Loader)
 
 **Files:**
-- Modify: `src/main.ts`
-- Create: `src/preload.ts`
-- Create: `src/renderer/App.tsx`
+- Create: `src/main/services/SkillLoader.ts`
+- Create: `src/common/types/skill.ts`
 
-**Step 1: 建立安全 IPC 桥梁**
-在 `preload.ts` 中定义 `window.electronAPI`，支持文件读取和子进程状态监听。
+**Step 1: 实现 YAML Frontmatter 解析**
+使用 `gray-matter` 读取 `skills/*/SKILL.md`，提取 `name` 和 `description`。
+**Why:** 确保助手能像 Claude 一样通过描述发现技能。
 
-**Step 2: 实现基础 Chat 布局**
-使用 Tailwind 编写侧边栏（Skills）与主对话区。
+**Step 2: 技能到工具的转换逻辑 (Skill to Tool)**
+编写逻辑将 Skill 的定义（及配套的 Python 入口）转换为 OpenAI/Claude 格式的 Tool Definition。
 
 ---
 
-### Task 3: Python 执行引擎 (Python Bridge)
+### Task 3: 可视化技能管理中心 (Skill Hub UI)
 
 **Files:**
-- Create: `src/services/pythonManager.ts` (Node.js)
-- Create: `scripts/test_script.py`
-
-**Step 1: 实现异步进程执行器**
-编写一个能够启动 Python 子进程、实时捕获 `stdout/stderr` 并通过 IPC 回传渲染进程的模块。
-
-**Step 2: 编写测试脚本验证**
-Run: `python scripts/test_script.py` 并由 Node.js 捕获结果。
-
----
-
-### Task 4: ReAct 代理逻辑 (Agent Thinking & Loop)
-
-**Files:**
-- Create: `src/services/agentEngine.ts`
-- Create: `src/renderer/components/ThoughtBox.tsx`
-
-**Step 1: 定义思考模式 (Thought/Action/Observation)**
-在前端或主进程中实现解析器，正则解析 LLM 返回的 Thought 和 Tool Call 指令。
-
-**Step 2: 实现思维链可视化组件**
-在对话历史中插入一个 `ThoughtBox`，支持折叠展示助手的“思考过程”。
-
----
-
-### Task 5: 技能管理中心 (Skill Hub)
-
-**Files:**
+- Create: `src/renderer/components/SkillCard.tsx`
 - Create: `src/renderer/pages/SkillHub.tsx`
-- Create: `src/services/skillLoader.ts`
-- Create: `skills/manifest.json` (Example)
 
-**Step 1: 扫描并加载本地 Skills**
-主进程扫描 `skills/` 目录下的所有 `manifest.json`，并将信息传递给前端。
+**Step 1: 构建技能列表界面**
+展示技能名称、描述及其启用状态。
 
-**Step 2: 实现 Skill 开关与信任度配置界面**
-在 Skill Hub 中允许用户修改 `trustLevel`（自动执行 vs 需确认）。
+**Step 2: 实现信任级别选择器 (Trust Levels)**
+支持 `Ask` 和 `Auto` 模式的切换，对应不同的 IPC 调用策略。
 
 ---
 
-### Task 6: 最终集成与测试
+### Task 4: ReAct Agent 引擎与 UI 反馈
 
 **Files:**
-- Modify: `src/main.ts`
+- Create: `src/main/services/AgentEngine.ts`
+- Create: `src/renderer/components/ThoughtTrace.tsx`
 
-**Step 1: 集成全流程测试**
-模拟一次“读取 Excel 数据并分析”的 ReAct 流程，测试从 Thought -> Python -> Observation -> 回答的完整闭环。
+**Step 1: 构建 ReAct 提示词模板**
+参考 Claude 官方最佳实践，强制模型输出 `Thought`, `Action`, `Observation` 结构。
+
+**Step 2: 思考链可视化**
+在对话历史中，以优雅的微动画展示助手的思考步进。
+
+---
+
+### Task 5: Python 运行环境桥接 (Code Interpreter)
+
+**Files:**
+- Create: `src/main/services/PythonBridge.ts`
+- Create: `skills/python-exec/SKILL.md`
+- Create: `skills/python-exec/handler.py`
+
+**Step 1: 实现带超时的进程控制器**
+确保 Python 脚本运行不会导致应用挂起，实时流式输出 stdout。
+
+**Step 2: 验证首个 Skill**
+通过助手调用 `python-exec` 技能完成一个简单的数学计算或文件读取任务。
+
+---
+
+### Task 6: 最终集成与冒烟测试
+集成 LLM API，验证从“用户提问 -> 思路分析 -> 技能调用 -> 结果返回”的完整闭环。
