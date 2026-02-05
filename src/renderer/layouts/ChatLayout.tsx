@@ -35,7 +35,7 @@ export function ChatLayout() {
             </header>
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-auto scroll-smooth relative">
+            <div className="flex-1 overflow-auto relative">
                 <MessageList />
             </div>
 

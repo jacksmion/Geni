@@ -18,15 +18,16 @@ export function MessageList() {
     const endRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, messages.length, messages[messages.length - 1]?.content])
+        // 增加对 steps 的监听，确保思考过程更新时也能滚动到底部
+        endRef.current?.scrollIntoView({ behavior: 'auto' })
+    }, [messages, messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.steps])
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-32 space-y-8">
+        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-96 space-y-8">
             {messages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
-            <div ref={endRef} />
+            <div ref={endRef} className="h-4" />
         </div>
     )
 }
