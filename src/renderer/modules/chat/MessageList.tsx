@@ -23,7 +23,7 @@ export function MessageList() {
     }, [messages, messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.steps])
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-96 space-y-8">
+        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-[50vh] space-y-8">
             {messages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
@@ -62,15 +62,20 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
                 {/* Message Bubble */}
                 <div className={cn(
-                    "p-5 rounded-3xl shadow-sm backdrop-blur-md border leading-relaxed text-[15px] overflow-hidden",
+                    "p-6 rounded-3xl shadow-md backdrop-blur-md border leading-relaxed text-[15px] overflow-hidden",
                     isUser
                         ? "bg-gradient-to-br from-indigo-600/90 to-violet-600/90 border-indigo-500/30 rounded-tr-none text-white shadow-indigo-900/10"
-                        : "bg-white/5 border-white/5 rounded-tl-none text-gray-200"
+                        : "bg-[#1A1A1A]/80 border-white/5 rounded-tl-none text-gray-200 shadow-black/20"
                 )}>
                     {isUser ? (
-                        <div className="whitespace-pre-wrap font-sans">{message.content}</div>
+                        <div className="whitespace-pre-wrap font-sans tracking-wide">{message.content}</div>
                     ) : (
-                        <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent">
+                        <div className="prose prose-invert max-w-none 
+                            prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-gray-100 prose-headings:mt-6 prose-headings:mb-3 
+                            prose-p:leading-7 prose-p:text-gray-300 prose-p:mb-4
+                            prose-li:text-gray-300 prose-li:my-1
+                            prose-strong:text-indigo-300 prose-strong:font-semibold
+                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:my-4 prose-pre:border-none">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
