@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { SkillLoader } from './services/SkillLoader.js'
 import { AgentEngine } from './services/AgentEngine.js'
+import { PythonBridge } from './services/PythonBridge.js'
 import { Skill } from '../common/types/skill'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -46,6 +47,7 @@ app.whenReady().then(async () => {
     })
 
     const agent = new AgentEngine()
+    const pyBridge = new PythonBridge()
 
     ipcMain.handle('send-message', async (_, text: string) => {
         // 构建系统提示词
@@ -53,23 +55,36 @@ app.whenReady().then(async () => {
         console.log('--- System Prompt ---')
         console.log(systemPrompt)
 
-        // 模拟 ReAct 响应过程 (实际开发中这里对接 LLM API)
+        // 这里模拟 ReAct 决策过程
+        // 实际上这部分应该由 LLM 模型返回，这里我们手动模拟它决定运行 python-exec
+        const thought1 = `用户输入: "${text}"。我看了一下可用技能，发现 python-exec 可以处理它。我将编写一个 Python 脚本来计算。`
+        const pythonCode = `import sys\nprint("Hello from real Python runtime!")\nprint(f"I received: ${text}")\nprint(f"Platform: {sys.platform}")`
+
+        // 执行真实 Python 代码
+        let observation = ''
+        try {
+            const result = await pyBridge.executeCode(pythonCode)
+            observation = result.stdout || result.stderr
+        } catch (err: any) {
+            observation = `Error: ${err.message}`
+        }
+
         const mockSteps = [
             {
-                thought: `用户想要执行 Python 代码。我需要调用 python-exec 技能。`,
+                thought: thought1,
                 action: 'python-exec',
-                actionInput: JSON.stringify({ code: 'print("Hello from Agent Core!")' }),
-                observation: 'Hello from Agent Core!',
+                actionInput: JSON.stringify({ code: pythonCode }),
+                observation: observation,
                 isComplete: false
             },
             {
-                thought: 'Python 脚本执行成功。用户已收到问候。',
+                thought: 'Python 脚本执行成功，我得到了运行环境的真实反馈。',
                 isComplete: true
             }
         ]
 
         return {
-            finalAnswer: '我已经运行了 Python 脚本。输出结果是：Hello from Agent Core!',
+            finalAnswer: `我已经运行了真实的 Python 脚本。反馈结果是：\n${observation}`,
             steps: mockSteps
         }
     })
