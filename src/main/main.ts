@@ -60,44 +60,92 @@ app.whenReady().then(async () => {
         return true
     })
 
+    const { OpenAI } = await import('openai')
+
     ipcMain.handle('send-message', async (_, text: string) => {
-        // 构建系统提示词
+        const client = new OpenAI({
+            apiKey: appSettings.llm.apiKey,
+            baseURL: appSettings.llm.baseUrl,
+            dangerouslyAllowBrowser: true // 虽然是在主进程，但为了防范一些环境问题
+        })
+
         const systemPrompt = agent.generateSystemPrompt(skills)
-        console.log('--- System Prompt ---')
-        console.log(systemPrompt)
-
-        // 这里模拟 ReAct 决策过程
-        // 实际上这部分应该由 LLM 模型返回，这里我们手动模拟它决定运行 python-exec
-        const thought1 = `用户输入: "${text}"。我看了一下可用技能，发现 python-exec 可以处理它。我将编写一个 Python 脚本来计算。`
-        const pythonCode = `import sys\nprint("Hello from real Python runtime!")\nprint(f"I received: ${text}")\nprint(f"Platform: {sys.platform}")`
-
-        // 执行真实 Python 代码
-        let observation = ''
-        try {
-            const result = await pyBridge.executeCode(pythonCode)
-            observation = result.stdout || result.stderr
-        } catch (err: any) {
-            observation = `Error: ${err.message}`
-        }
-
-        const mockSteps = [
-            {
-                thought: thought1,
-                action: 'python-exec',
-                actionInput: JSON.stringify({ code: pythonCode }),
-                observation: observation,
-                isComplete: false
-            },
-            {
-                thought: 'Python 脚本执行成功，我得到了运行环境的真实反馈。',
-                isComplete: true
-            }
+        const messages: any[] = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: text }
         ]
 
-        return {
-            finalAnswer: `我已经运行了真实的 Python 脚本。反馈结果是：\n${observation}`,
-            steps: mockSteps
+        const steps: any[] = []
+        let lastResponse = ''
+        let iteration = 0
+        const maxIterations = 5
+
+        try {
+            while (iteration < maxIterations) {
+                iteration++
+                const completion = await client.chat.completions.create({
+                    model: appSettings.llm.model,
+                    messages: messages,
+                    temperature: appSettings.llm.temperature
+                })
+
+                const responseText = completion.choices[0].message.content || ''
+                lastResponse = responseText
+                const parsed = agent.parseResponse(responseText)
+
+                // 记录当前模型的思考和预定行动
+                steps.push({
+                    thought: parsed.thought,
+                    action: parsed.action,
+                    actionInput: parsed.actionInput,
+                    isComplete: !!parsed.finalAnswer
+                })
+
+                if (parsed.finalAnswer) {
+                    return { finalAnswer: parsed.finalAnswer, steps }
+                }
+
+                if (parsed.action) {
+                    messages.push({ role: 'assistant', content: responseText })
+
+                    let observation = ''
+                    if (parsed.action === 'python-exec') {
+                        try {
+                            // 尝试解析 Action Input 中的代码
+                            let code = ''
+                            try {
+                                const input = JSON.parse(parsed.actionInput || '{}')
+                                code = input.code || parsed.actionInput || ''
+                            } catch {
+                                code = parsed.actionInput || ''
+                            }
+
+                            const result = await pyBridge.executeCode(code)
+                            observation = result.stdout || result.stderr || '执行完成，无输出。'
+                        } catch (err: any) {
+                            observation = `执行出错: ${err.message}`
+                        }
+                    } else {
+                        observation = `Error: 技能 ${parsed.action} 尚未在 Assistant Core 中实现。`
+                    }
+
+                    // 更新当前步骤的观察结果
+                    steps[steps.length - 1].observation = observation
+                    messages.push({ role: 'user', content: `Observation: ${observation}` })
+                } else {
+                    // LLM 既没给 Final Answer 也没给 Action，可能格式错误或直接回答了
+                    return { finalAnswer: responseText, steps }
+                }
+            }
+        } catch (error: any) {
+            console.error('LLM API Error:', error)
+            return {
+                finalAnswer: `抱歉，在与模型通信时发生了错误：${error.message}`,
+                steps: steps.length > 0 ? steps : [{ thought: 'API 调用失败', isComplete: true }]
+            }
         }
+
+        return { finalAnswer: lastResponse, steps }
     })
 
     createWindow()

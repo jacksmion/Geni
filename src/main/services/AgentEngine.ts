@@ -18,7 +18,7 @@ export class AgentEngine {
 
 Thought: [你的思考过程，分析用户意图及下一步行动]
 Action: [调用的技能名称，必须是以下可用列表中的一个]
-Action Input: [传递给技能的参数，通常是 JSON 格式]
+Action Input: [传递给技能的参数，必须是一个有效的 JSON 对象]
 
 发送 Action 后，你会收到一个 Observation。
 Observation: [技能执行的结果]
