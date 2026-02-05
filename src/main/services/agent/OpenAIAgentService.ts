@@ -50,24 +50,17 @@ export class OpenAIAgentService implements IAgentService {
         if (options?.skills && options.skills.length > 0) {
             const enabledSkills = options.skills.filter(s => s.enabled);
             if (enabledSkills.length > 0) {
-                // 技能摘要列表
+                // 仅注入技能摘要（渐进式加载，不注入完整内容避免上下文爆炸）
                 const skillSummary = enabledSkills
-                    .map(s => `- **${s.name}**: ${s.description}`)
+                    .map(s => `- **${s.id}**: ${s.description}`)
                     .join('\n');
 
-                // 技能详细内容
-                const skillContents = enabledSkills
-                    .map(s => `## Skill: ${s.name}\n\n${s.content}`)
-                    .join('\n\n---\n\n');
-
                 systemPrompt += `\n\n<skills>
-You have access to the following skills. Use them when appropriate:
+You have access to the following skills:
 
 ${skillSummary}
 
-### Skill Details
-
-${skillContents}
+**Important**: When you need to apply a skill's methodology, use the \`read_skill\` tool to load its full instructions first.
 </skills>`;
             }
         }

@@ -16,6 +16,7 @@ import { FileSystemTool } from './services/tools/builtin/FileSystemTool.js'
 import { BashTool } from './services/tools/builtin/BashTool.js'
 import { FileEditTool } from './services/tools/builtin/FileEditTool.js'
 import { FileSearchTool } from './services/tools/builtin/FileSearchTool.js'
+import { SkillReaderTool } from './services/tools/builtin/SkillReaderTool.js'
 import { McpManager } from './services/mcp/McpManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -52,23 +53,13 @@ app.whenReady().then(async () => {
 
     ipcMain.handle('get-skills', () => skills)
 
-    ipcMain.handle('toggle-skill', (_, id: string) => {
-        skills = skills.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
-        return skills
-    })
-
-    ipcMain.handle('set-trust-level', (_, id: string, level: 'Ask' | 'Auto') => {
-        skills = skills.map(s => s.id === id ? { ...s, trustLevel: level } : s)
-        return skills
-    })
-
     // Services Init
     const configManager = new ConfigManager()
     let appSettings = configManager.load()
 
     // Tools & Agent
     const toolRegistry = new ToolRegistry()
-    const mcpManager = new McpManager(toolRegistry) // Pass registry to MCP manager
+    const mcpManager = new McpManager(toolRegistry)
 
     // 1. Register Built-in Tools
     toolRegistry.register(new PythonExecTool())
@@ -77,8 +68,26 @@ app.whenReady().then(async () => {
     toolRegistry.register(new FileEditTool(process.cwd()))
     toolRegistry.register(new FileSearchTool(process.cwd()))
 
-    // 2. Initialize Agent with current settings
+    // 2. Register SkillReaderTool (渐进式技能加载)
+    const skillReaderTool = new SkillReaderTool()
+    skillReaderTool.setSkills(skills)
+    toolRegistry.register(skillReaderTool)
+
+    // 3. Initialize Agent
     const agentService = new OpenAIAgentService(appSettings, toolRegistry)
+
+    // IPC: Skills (需要在 skillReaderTool 创建后定义，以便同步更新)
+    ipcMain.handle('toggle-skill', (_, id: string) => {
+        skills = skills.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
+        skillReaderTool.setSkills(skills) // 同步更新 SkillReaderTool
+        return skills
+    })
+
+    ipcMain.handle('set-trust-level', (_, id: string, level: 'Ask' | 'Auto') => {
+        skills = skills.map(s => s.id === id ? { ...s, trustLevel: level } : s)
+        skillReaderTool.setSkills(skills)
+        return skills
+    })
 
     // IPC: Settings
     ipcMain.handle('get-settings', () => appSettings)
