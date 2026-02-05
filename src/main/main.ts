@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url'
 import { SkillLoader } from './services/SkillLoader.js'
 import { AgentEngine } from './services/AgentEngine.js'
 import { PythonBridge } from './services/PythonBridge.js'
+import { ConfigManager } from './services/ConfigManager.js'
 import { Skill } from '../common/types/skill'
+import { AppSettings } from '../common/types/settings'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -48,6 +50,15 @@ app.whenReady().then(async () => {
 
     const agent = new AgentEngine()
     const pyBridge = new PythonBridge()
+    const configManager = new ConfigManager()
+    let appSettings = configManager.load()
+
+    ipcMain.handle('get-settings', () => appSettings)
+    ipcMain.handle('save-settings', (_, settings: AppSettings) => {
+        appSettings = settings
+        configManager.save(settings)
+        return true
+    })
 
     ipcMain.handle('send-message', async (_, text: string) => {
         // 构建系统提示词

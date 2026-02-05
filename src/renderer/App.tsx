@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { Bot, Settings, ToyBrick as Brick, MessageSquare, Send, User } from 'lucide-react'
+import { Bot, Settings as SettingsIcon, ToyBrick as Brick, MessageSquare, Send, User } from 'lucide-react'
 import SkillHub from './pages/SkillHub'
+import Settings from './pages/Settings'
 import ThoughtTrace from './components/ThoughtTrace'
 
 interface ChatMessage {
@@ -9,8 +10,10 @@ interface ChatMessage {
     steps?: any[];
 }
 
+type Tab = 'chat' | 'skills' | 'settings';
+
 function App() {
-    const [activeTab, setActiveTab] = useState<'chat' | 'skills'>('chat')
+    const [activeTab, setActiveTab] = useState<Tab>('chat')
     const [input, setInput] = useState('')
     const [messages, setMessages] = useState<ChatMessage[]>([
         { role: 'assistant', content: '你好！我是基于 ReAct 模式驱动的本地智能代理。你可以通过技能中心配置我的能力。' }
@@ -64,21 +67,28 @@ function App() {
                     </button>
                 </nav>
 
-                <button className="p-2 text-gray-500 hover:text-gray-300 transition-colors">
-                    <Settings size={22} />
+                <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`p-2 rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-[#37373d] text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                >
+                    <SettingsIcon size={22} />
                 </button>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col">
+            <main className="flex-1 flex flex-col overflow-hidden">
                 <header className="h-12 border-b border-[#333] flex items-center px-6 draggable shrink-0">
                     <h1 className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                        Assistant Core / <span className="text-gray-300">{activeTab === 'chat' ? 'Agent Chat' : 'Skill Hub'}</span>
+                        Assistant Core / <span className="text-gray-300">
+                            {activeTab === 'chat' && 'Agent Chat'}
+                            {activeTab === 'skills' && 'Skill Hub'}
+                            {activeTab === 'settings' && 'Settings'}
+                        </span>
                     </h1>
                 </header>
 
                 <div className="flex-1 p-8 overflow-auto">
-                    {activeTab === 'chat' ? (
+                    {activeTab === 'chat' && (
                         <div className="max-w-3xl mx-auto space-y-8 pb-12">
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -108,13 +118,13 @@ function App() {
                                 </div>
                             )}
                         </div>
-                    ) : (
-                        <SkillHub />
                     )}
+                    {activeTab === 'skills' && <SkillHub />}
+                    {activeTab === 'settings' && <Settings />}
                 </div>
 
                 {activeTab === 'chat' && (
-                    <footer className="p-6 bg-gradient-to-t from-[#1e1e1e] to-transparent">
+                    <footer className="p-6 bg-gradient-to-t from-[#1e1e1e] to-transparent shrink-0">
                         <div className="max-w-3xl mx-auto relative group">
                             <textarea
                                 value={input}
