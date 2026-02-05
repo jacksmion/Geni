@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown } from 'lucide-react'
+import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -12,7 +12,16 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 export function Composer() {
     const [input, setInput] = useState('')
     const [workspacePath, setWorkspacePath] = useState('')
-    const { isSending, addMessage, updateLastMessage, setSending } = useChatStore()
+    const {
+        isSending,
+        addMessage,
+        updateLastMessage,
+        setSending,
+        pendingAttachments,
+        addPendingAttachment,
+        removePendingAttachment,
+        clearPendingAttachments
+    } = useChatStore()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     // Load initial settings
@@ -37,14 +46,20 @@ export function Composer() {
     const handleSelectFile = async () => {
         const path = await window.electronAPI.selectFile()
         if (path) {
-            // Placeholder: currently just adding a notice to input or similar
-            // For now, let's just prefix the input with the file path
-            setInput(prev => `[附件: ${path}]\n${prev}`)
+            addPendingAttachment(path)
         }
     }
 
     const handleSend = async () => {
         if (!input.trim() || isSending) return
+
+        let finalPrompt = input
+
+        // 如果有附件，在 Prompt 前面追加上下文说明
+        if (pendingAttachments.length > 0) {
+            const attachmentInfo = pendingAttachments.map(p => `- ${p}`).join('\n')
+            finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`
+        }
 
         const userInput = input
         setInput('')
@@ -55,6 +70,7 @@ export function Composer() {
         // 2. Add Placeholder for Assistant
         setSending(true)
         addMessage({ role: 'assistant', content: '' })
+        clearPendingAttachments()
 
         // 3. Setup Stream Listeners
         const cleanupStream = window.electronAPI.onReplyStream((chunk: string) => {
@@ -72,7 +88,7 @@ export function Composer() {
         })
 
         try {
-            const response = await window.electronAPI.sendMessage(userInput)
+            const response = await window.electronAPI.sendMessage(finalPrompt)
 
             // 4. Update with final structured data (thoughts, steps)
             updateLastMessage((msg) => ({
@@ -113,6 +129,28 @@ export function Composer() {
                 <div className="absolute inset-0 bg-indigo-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-1000 -z-10" />
 
                 <div className="relative bg-[#1A1A1A]/80 border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl transition-all focus-within:bg-[#222222]/90 focus-within:border-white/20">
+
+                    {/* Attachment List */}
+                    {pendingAttachments.length > 0 && (
+                        <div className="px-4 pt-4 flex flex-wrap gap-2">
+                            {pendingAttachments.map((path, idx) => {
+                                const fileName = path.split(/[\\/]/).pop()
+                                return (
+                                    <div key={idx} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 group/file animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <FileText size={14} className="text-gray-400" />
+                                        <span className="text-xs text-gray-300 font-medium">{fileName}</span>
+                                        <button
+                                            onClick={() => removePendingAttachment(path)}
+                                            className="p-1 hover:bg-white/10 rounded-full text-gray-500 hover:text-red-400 transition-colors"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+
                     <textarea
                         ref={textareaRef}
                         value={input}

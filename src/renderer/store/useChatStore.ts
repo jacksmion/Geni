@@ -24,12 +24,16 @@ interface ChatState {
     messages: ChatMessage[]
     isSending: boolean
     activeTab: 'chat' | 'skills' | 'settings'
+    pendingAttachments: string[] // 待发送的文件路径
 
     // Actions
     addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
     setSending: (sending: boolean) => void
     setActiveTab: (tab: 'chat' | 'skills' | 'settings') => void
+    addPendingAttachment: (path: string) => void
+    removePendingAttachment: (path: string) => void
+    clearPendingAttachments: () => void
     clearMessages: () => void
     startNewChat: () => void
 }
@@ -45,6 +49,7 @@ export const useChatStore = create<ChatState>((set) => ({
     ],
     isSending: false,
     activeTab: 'chat',
+    pendingAttachments: [],
 
     addMessage: (msg) => set((state) => ({
         messages: [
@@ -68,8 +73,22 @@ export const useChatStore = create<ChatState>((set) => ({
 
     setSending: (isSending) => set({ isSending }),
     setActiveTab: (activeTab) => set({ activeTab }),
-    clearMessages: () => set({ messages: [] }),
+
+    addPendingAttachment: (path) => set((state) => ({
+        pendingAttachments: state.pendingAttachments.includes(path)
+            ? state.pendingAttachments
+            : [...state.pendingAttachments, path]
+    })),
+
+    removePendingAttachment: (path) => set((state) => ({
+        pendingAttachments: state.pendingAttachments.filter(p => p !== path)
+    })),
+
+    clearPendingAttachments: () => set({ pendingAttachments: [] }),
+
+    clearMessages: () => set({ messages: [], pendingAttachments: [] }),
     startNewChat: () => set({
+        pendingAttachments: [],
         messages: [
             {
                 id: crypto.randomUUID(),
