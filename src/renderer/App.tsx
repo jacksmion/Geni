@@ -1,12 +1,22 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import SkillHub from './pages/SkillHub'
 import Settings from './pages/Settings'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
 import { useChatStore } from './store/useChatStore'
+import { applyTheme } from './utils/theme'
 
 function App() {
     const { activeTab } = useChatStore()
+
+    useEffect(() => {
+        // Load initial theme settings
+        window.electronAPI.getAppSettings().then(settings => {
+            if (settings?.accentColor) {
+                applyTheme(settings.accentColor);
+            }
+        }).catch(console.error);
+    }, []);
 
     // Check for Electron Env
     if (!window.electronAPI) {

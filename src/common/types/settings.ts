@@ -23,6 +23,7 @@ export interface AppSettings {
     skillSettings: Record<string, SkillState>; // 技能ID -> 状态
     workspacePath: string; // 当前工作空间路径
     theme: 'dark' | 'light' | 'system';
+    accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
 }
 
 // 默认的提供商配置
@@ -61,4 +62,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     skillSettings: {}, // 技能状态默认为空，将在加载技能时填充
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'dark',
+    accentColor: 'indigo',
 };

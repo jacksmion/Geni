@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Save, Globe, Key, Cpu, Sparkles, CheckCircle2, Zap } from 'lucide-react';
+import { Save, Globe, Key, Cpu, Sparkles, CheckCircle2, Zap, Palette } from 'lucide-react';
 import { AppSettings, DEFAULT_SETTINGS, ProviderConfig, DEFAULT_PROVIDER_CONFIGS } from '../../common/types/settings';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { McpSettingsSection } from '../components/McpSettingsSection';
+import { ACCENT_COLORS, AccentColor, applyTheme } from '../utils/theme';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -50,6 +51,11 @@ const Settings: React.FC = () => {
                             providers: mergedProviders
                         }
                     });
+
+                    // Apply theme immediately on load if set
+                    if (data.accentColor) {
+                        applyTheme(data.accentColor);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to load settings:", err);
@@ -72,6 +78,13 @@ const Settings: React.FC = () => {
             console.error('Failed to save settings:', error);
             alert('保存配置失败，请检查控制台日志');
         }
+    };
+
+    // Handle Accent Color Change
+    const handleAccentChange = (color: AccentColor) => {
+        setSettings(prev => ({ ...prev, accentColor: color }));
+        // Apply immediately for preview
+        applyTheme(color);
     };
 
     // 切换提供商（仅切换 activeProvider，不改变配置）
@@ -126,6 +139,43 @@ const Settings: React.FC = () => {
             </div>
 
             <div className="space-y-8">
+                {/* Theme Section */}
+                <section className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+                    <div className="px-8 py-5 border-b border-white/5 bg-white/5 flex items-center gap-3">
+                        <div className="p-2 bg-indigo-500/20 rounded-lg">
+                            <Palette size={18} className="text-indigo-400" />
+                        </div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">界面主题 (Interface)</h3>
+                    </div>
+
+                    <div className="p-8">
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4">
+                            主题色 (Accent Color)
+                        </label>
+                        <div className="flex flex-wrap gap-4">
+                            {Object.keys(ACCENT_COLORS).map((colorKey) => {
+                                const color = colorKey as AccentColor;
+                                const isSelected = settings.accentColor === color;
+                                // Use the 500 shade for the button background
+                                const bgStyle = { backgroundColor: `rgb(${ACCENT_COLORS[color][500]})` };
+
+                                return (
+                                    <button
+                                        key={color}
+                                        onClick={() => handleAccentChange(color)}
+                                        className={cn(
+                                            "w-12 h-12 rounded-full ring-2 ring-offset-2 ring-offset-[#1a1a1a] transition-all transform hover:scale-110",
+                                            isSelected ? "ring-white scale-110" : "ring-transparent hover:ring-white/20"
+                                        )}
+                                        style={bgStyle}
+                                        title={color}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+                </section>
+
                 {/* LLM Section */}
                 <section className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
                     <div className="px-8 py-5 border-b border-white/5 bg-white/5 flex items-center gap-3">
