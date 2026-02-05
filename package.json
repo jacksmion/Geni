@@ -17,6 +17,7 @@
   "type": "module",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.31",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@tailwindcss/postcss": "^4.1.18",
     "clsx": "^2.1.1",
     "gray-matter": "^4.0.3",
@@ -24,7 +25,9 @@
     "openai": "^6.17.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",

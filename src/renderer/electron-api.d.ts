@@ -6,9 +6,13 @@ export interface IElectronAPI {
     toggleSkill: (id: string) => Promise<Skill[]>;
     setTrustLevel: (id: string, level: 'Ask' | 'Auto') => Promise<Skill[]>;
     sendMessage: (text: string) => Promise<{ finalAnswer: string, steps: any[] }>;
+    abortRequest: () => Promise<boolean>;
     getAppSettings: () => Promise<any>;
     saveAppSettings: (settings: any) => Promise<boolean>;
+    mcpConnect: (config: { id: string, command: string, args: string[] }) => Promise<{ success: boolean, error?: string }>;
+    mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
     onReplyStream: (callback: (chunk: string) => void) => () => void;
+    onReplyTrace: (callback: (steps: any[]) => void) => () => void;
 }
 
 declare global {

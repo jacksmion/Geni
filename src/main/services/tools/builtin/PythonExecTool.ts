@@ -1,15 +1,10 @@
+import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
 
-export interface PythonExecutionResult {
-    stdout: string;
-    stderr: string;
-    exitCode: number | null;
-}
-
-export class PythonBridge {
+export class PythonExecTool implements ITool {
     private tempDir: string;
 
     constructor() {
@@ -19,10 +14,45 @@ export class PythonBridge {
         }
     }
 
-    /**
-     * 执行 Python 代码并返回结果
-     */
-    public async executeCode(code: string, timeout = 30000): Promise<PythonExecutionResult> {
+    getDefinition(): ToolDefinition {
+        return {
+            name: 'python_exec',
+            description: 'Execute Python code. Use this for data analysis, math processing, or any task requiring Python libraries.',
+            input_schema: {
+                type: 'object',
+                properties: {
+                    code: {
+                        type: 'string',
+                        description: 'The Python code to execute. Print the final result to stdout.'
+                    }
+                },
+                required: ['code']
+            }
+        };
+    }
+
+    async execute(args: any): Promise<ToolExecutionResult> {
+        try {
+            const code = args.code;
+            if (!code) throw new Error('No code provided');
+
+            const result = await this.executePythonCode(code);
+
+            return {
+                toolName: 'python_exec',
+                isError: result.exitCode !== 0,
+                result: result.stdout || result.stderr || 'Code executed successfully (no output).',
+            };
+        } catch (error: any) {
+            return {
+                toolName: 'python_exec',
+                isError: true,
+                result: error.message
+            };
+        }
+    }
+
+    private async executePythonCode(code: string, timeout = 30000): Promise<{ stdout: string, stderr: string, exitCode: number | null }> {
         const scriptPath = path.join(this.tempDir, `script_${Date.now()}.py`);
         fs.writeFileSync(scriptPath, code);
 
@@ -47,7 +77,7 @@ export class PythonBridge {
 
             pyProcess.on('close', (code) => {
                 clearTimeout(timer);
-                // 清理临时文件
+                // Clean up temp file
                 try { if (fs.existsSync(scriptPath)) fs.unlinkSync(scriptPath); } catch (e) { }
 
                 resolve({

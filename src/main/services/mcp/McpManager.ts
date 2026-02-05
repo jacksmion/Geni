@@ -1,0 +1,84 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ToolRegistry } from "../tools/ToolRegistry";
+import { McpToolAdapter } from "./McpToolAdapter";
+
+// Configuration for an MCP Server (e.g. "sqlite": { command: "uvx", args: ["mcp-server-sqlite"] })
+export interface McpServerConfig {
+    id: string;
+    command: string;
+    args: string[];
+    env?: Record<string, string>;
+}
+
+export class McpManager {
+    private clients: Map<string, Client> = new Map();
+    private registry: ToolRegistry;
+
+    constructor(registry: ToolRegistry) {
+        this.registry = registry;
+    }
+
+    async connectToServer(config: McpServerConfig) {
+        console.log(`[McpManager] Connecting to ${config.id}...`);
+
+        const transport = new StdioClientTransport({
+            command: config.command,
+            args: config.args,
+            env: { ...process.env, ...(config.env || {}) } as Record<string, string>
+        });
+
+        const client = new Client(
+            { name: "assistant-core-client", version: "1.0.0" },
+            { capabilities: {} }
+        );
+
+        try {
+            await client.connect(transport);
+            this.clients.set(config.id, client);
+            console.log(`[McpManager] Connected to ${config.id}`);
+
+            // Discover Actions
+            await this.refreshTools(config.id);
+
+        } catch (error: any) {
+            console.error(`[McpManager] Failed to connect to ${config.id}:`, error);
+            throw error;
+        }
+    }
+
+    async refreshTools(serverId: string) {
+        const client = this.clients.get(serverId);
+        if (!client) return;
+
+        console.log(`[McpManager] Listing tools for ${serverId}...`);
+        const result = await client.listTools();
+
+        for (const tool of result.tools) {
+            // Register each tool into our global registry
+            // We prefix name to avoid conflicts? e.g. "sqlite_query"
+            // For now, let's keep original name but handle with care
+            const schema = tool.inputSchema;
+            const adapter = new McpToolAdapter(
+                client,
+                tool.name,
+                schema,
+                tool.description || ''
+            );
+
+            this.registry.register(adapter);
+            console.log(`[McpManager] Registered tool: ${tool.name} (from ${serverId})`);
+        }
+    }
+
+    async disconnectAll() {
+        for (const [id, client] of this.clients) {
+            try {
+                await client.close();
+            } catch (e) {
+                console.error(`Error closing mcp client ${id}`, e);
+            }
+        }
+        this.clients.clear();
+    }
+}

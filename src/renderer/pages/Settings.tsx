@@ -3,6 +3,7 @@ import { Save, Globe, Key, Cpu, Sparkles, CheckCircle2, Zap } from 'lucide-react
 import { AppSettings, DEFAULT_SETTINGS } from '../../common/types/settings';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { McpSettingsSection } from '../features/settings/McpSettingsSection';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -227,8 +228,11 @@ const Settings: React.FC = () => {
                     </div>
                 </section>
 
+                {/* MCP Section */}
+                <McpSettingsSection />
+
                 {/* Action Bar */}
-                <div className="flex justify-end pt-4">
+                <div className="flex justify-end pt-4 pb-8">
                     <button
                         onClick={handleSave}
                         className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-indigo-600/30 font-medium tracking-wide group"
