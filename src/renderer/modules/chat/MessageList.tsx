@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { Bot, User, CheckCircle2, Terminal } from 'lucide-react'
-import { useChatStore, ChatMessage } from '../../store/useChatStore'
+import { useChatStore } from '../../store/useChatStore'
+import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -14,7 +15,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export function MessageList() {
-    const { messages } = useChatStore()
+    const { sessions, activeSessionId } = useChatStore()
+    const messages = sessions[activeSessionId]?.messages || []
     const endRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {

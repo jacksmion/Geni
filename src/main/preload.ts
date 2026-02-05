@@ -22,5 +22,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('reply-trace', subscription)
     },
     selectDirectory: () => ipcRenderer.invoke('select-directory'),
-    selectFile: () => ipcRenderer.invoke('select-file')
+    selectFile: () => ipcRenderer.invoke('select-file'),
+
+    // Chat History (Granular)
+    getSessionList: () => ipcRenderer.invoke('get-session-list'),
+    getSessionMessages: (id: string) => ipcRenderer.invoke('get-session-messages', id),
+    saveSession: (session: any) => ipcRenderer.invoke('save-session', session),
+    deleteSession: (id: string) => ipcRenderer.invoke('delete-session', id)
 })

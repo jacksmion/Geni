@@ -17,6 +17,7 @@ import { FileEditTool } from './services/tools/builtin/FileEditTool.js'
 import { FileSearchTool } from './services/tools/builtin/FileSearchTool.js'
 import { SkillReaderTool } from './services/tools/builtin/SkillReaderTool.js'
 import { McpManager } from './services/mcp/McpManager.js'
+import { ChatHistoryManager } from './services/storage/ChatHistoryManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -196,6 +197,7 @@ app.whenReady().then(async () => {
 
     // IPC: Chat
     ipcMain.handle('send-message', async (event, text: string) => {
+        // ... (existing implementation)
         console.log(`[Main] Agent Request: ${text}`)
 
         const onStream = (chunk: string, reset?: boolean) => {
@@ -239,6 +241,17 @@ app.whenReady().then(async () => {
             return { finalAnswer: `System Error: ${error.message}`, steps: [] }
         }
     })
+
+    // IPC: Chat History
+    const chatHistoryManager = new ChatHistoryManager();
+
+    ipcMain.handle('get-session-list', () => chatHistoryManager.getSessionList());
+
+    ipcMain.handle('get-session-messages', (_, id: string) => chatHistoryManager.getSessionMessages(id));
+
+    ipcMain.handle('save-session', (_, session: any) => chatHistoryManager.saveSession(session));
+
+    ipcMain.handle('delete-session', (_, id: string) => chatHistoryManager.deleteSession(id));
 
     createWindow()
 })

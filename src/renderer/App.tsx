@@ -9,10 +9,12 @@ import { useSettingsStore } from './store/useSettingsStore'
 function App() {
     const { activeTab } = useChatStore()
     const { loadSettings } = useSettingsStore()
+    const { loadHistory } = useChatStore()
 
     useEffect(() => {
         loadSettings()
-    }, [loadSettings])
+        loadHistory()
+    }, [loadSettings, loadHistory])
 
     // Check for Electron Env
     if (!window.electronAPI) {
@@ -37,7 +39,6 @@ function App() {
                 <ChatLayout />
             ) : (
                 <main className="flex-1 overflow-auto bg-transparent">
-                    {activeTab === 'skills' && <SkillHub />}
                     {activeTab === 'settings' && <Settings />}
                 </main>
             )}

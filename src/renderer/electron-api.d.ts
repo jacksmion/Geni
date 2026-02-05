@@ -15,6 +15,11 @@ export interface IElectronAPI {
     onReplyTrace: (callback: (steps: any[]) => void) => () => void;
     selectDirectory: () => Promise<string | null>;
     selectFile: () => Promise<string | null>;
+
+    getSessionList: () => Promise<any[]>;
+    getSessionMessages: (id: string) => Promise<any[]>;
+    saveSession: (session: any) => Promise<boolean>;
+    deleteSession: (id: string) => Promise<boolean>;
 }
 
 declare global {

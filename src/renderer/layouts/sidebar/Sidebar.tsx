@@ -9,14 +9,12 @@ export function Sidebar() {
 
     const navItems = [
         { id: 'chat', icon: MessageSquare, label: 'Chat' },
-        { id: 'skills', icon: ToyBrick, label: 'Skills' },
     ] as const
 
     return (
-        <aside className="w-18 flex flex-col items-center py-6 backdrop-blur-xl border-r shrink-0 z-20 h-full transition-colors duration-300"
-            style={{ backgroundColor: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
+        <aside className="w-18 flex flex-col items-center py-6 bg-slate-50 border-r border-slate-200 dark:bg-[#18181b] dark:border-white/5 shrink-0 z-20 h-full transition-colors duration-300">
             {/* Brand Icon */}
-            <div className="mb-8 p-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20 ring-1 ring-white/10">
+            <div className="mb-8 p-3 rounded-2xl bg-indigo-600 shadow-sm shadow-indigo-500/30">
                 <Bot size={24} className="text-white" />
             </div>
 
@@ -70,14 +68,11 @@ function NavButton({ isActive, onClick, icon: Icon }: { isActive: boolean, onCli
             className={clsx(
                 "p-3 w-full flex justify-center rounded-xl transition-all duration-300 group relative",
                 isActive
-                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
-                    : "text-slate-500 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
+                    : "text-slate-500 hover:bg-slate-200 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5"
             )}
         >
-            <Icon size={22} strokeWidth={1.5} />
-            {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3 bg-indigo-500 rounded-r-full" />
-            )}
+            <Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
         </button>
     )
 }

@@ -39,21 +39,20 @@ const SkillHub: React.FC = () => {
     );
 
     return (
-        <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="animate-in fade-in duration-500 space-y-6">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-white mb-1.5 tracking-tight">技能管理中心</h2>
-                    <p className="text-sm text-gray-400">管理助手的能力集、信任授权与运行配置</p>
+                    <h2 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-1">技能管理</h2>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">管理助手的能力集、信任授权与运行配置</p>
                 </div>
-
-                <div className="relative w-full md:w-72 group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors" size={16} />
+                <div className="relative w-64 group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500" size={14} />
                     <input
                         type="text"
-                        placeholder="搜索已有技能..."
+                        placeholder="搜索技能..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-white/5 transition-all shadow-inner text-gray-200"
+                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-700 dark:text-gray-200"
                     />
                 </div>
             </div>
