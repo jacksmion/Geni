@@ -177,14 +177,6 @@ export function Composer() {
                             <Paperclip size={18} />
                         </button>
 
-                        {/* Settings/Context Toggle */}
-                        <button
-                            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-gray-400 hover:text-white transition-all shadow-sm"
-                            title="模型设置"
-                        >
-                            <Settings2 size={18} />
-                        </button>
-
                         {/* Workspace Path Picker */}
                         <button
                             onClick={handleSelectDirectory}

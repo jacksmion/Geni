@@ -1,5 +1,6 @@
 import { ITool } from '../../../common/types/tool';
 import { Skill } from '../../../common/types/skill';
+import { AppSettings } from '../../../common/types/settings';
 
 export interface AgentRunOptions {
     model?: string;
@@ -26,4 +27,9 @@ export interface IAgentService {
         onStream?: (chunk: string) => void,
         onStepUpdate?: (steps: any[]) => void
     ): Promise<AgentRunResult>;
+
+    /**
+     * Update settings dynamically
+     */
+    updateSettings(settings: AppSettings): void;
 }

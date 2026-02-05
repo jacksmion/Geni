@@ -13,6 +13,10 @@ export class OpenAIAgentService implements IAgentService {
         this.toolRegistry = toolRegistry;
     }
 
+    public updateSettings(settings: AppSettings) {
+        this.settings = settings;
+    }
+
     async run(
         prompt: string,
         tools: ITool[],
@@ -44,8 +48,12 @@ export class OpenAIAgentService implements IAgentService {
             };
         });
 
-        // 2. 构建 System Prompt，注入启用的 Skills
+        // 2. 构建 System Prompt
         let systemPrompt = options?.systemPrompt || 'You are a helpful assistant capable of using tools.';
+
+        // 注入当前工作目录信息，让 AI 意识到环境变化
+        const currentCwd = this.settings.workspacePath || process.cwd();
+        systemPrompt += `\n\n[Current Working Directory]: ${currentCwd}\nFiles you see or operations you do will be relative to this directory.`;
 
         if (options?.skills && options.skills.length > 0) {
             const enabledSkills = options.skills.filter(s => s.enabled);

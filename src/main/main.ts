@@ -133,6 +133,7 @@ app.whenReady().then(async () => {
         }
 
         appSettings = { ...appSettings, ...settings }
+        agentService.updateSettings(appSettings)
         configManager.save(appSettings)
         return true
     })
