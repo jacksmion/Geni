@@ -30,6 +30,7 @@ interface ChatState {
     setSending: (sending: boolean) => void
     setActiveTab: (tab: 'chat' | 'skills' | 'settings') => void
     clearMessages: () => void
+    startNewChat: () => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -66,5 +67,15 @@ export const useChatStore = create<ChatState>((set) => ({
 
     setSending: (isSending) => set({ isSending }),
     setActiveTab: (activeTab) => set({ activeTab }),
-    clearMessages: () => set({ messages: [] })
+    clearMessages: () => set({ messages: [] }),
+    startNewChat: () => set({
+        messages: [
+            {
+                id: crypto.randomUUID(),
+                role: 'assistant',
+                content: '你好！我是基于 Tool-Use 架构的新一代智能代理。\n我现在支持更复杂的任务拆解及工具调用。',
+                timestamp: Date.now()
+            }
+        ]
+    })
 }))

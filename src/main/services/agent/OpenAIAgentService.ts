@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { IAgentService, AgentRunOptions, AgentRunResult } from './IAgentService';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
-import { AppSettings } from '../../../common/types/settings';
+import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings';
 
 export class OpenAIAgentService implements IAgentService {
     private settings: AppSettings;
@@ -20,9 +20,14 @@ export class OpenAIAgentService implements IAgentService {
         onStream?: (chunk: string) => void,
         onStepUpdate?: (steps: any[]) => void
     ): Promise<AgentRunResult> {
+        // 获取当前激活的提供商配置（兼容旧配置结构）
+        const activeProvider = this.settings.llm.activeProvider || 'OpenAI';
+        const providers = this.settings.llm.providers || {};
+        const providerConfig = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
+
         const client = new OpenAI({
-            apiKey: this.settings.llm.apiKey,
-            baseURL: this.settings.llm.baseUrl,
+            apiKey: providerConfig.apiKey || '',
+            baseURL: providerConfig.baseUrl || 'https://api.openai.com/v1',
             dangerouslyAllowBrowser: true // Running in Electron Node process
         });
 
@@ -60,7 +65,7 @@ export class OpenAIAgentService implements IAgentService {
 
                 // --- Step 1: Call LLM ---
                 const stream = await client.chat.completions.create({
-                    model: options?.model || this.settings.llm.model,
+                    model: options?.model || providerConfig.model,
                     messages: messages,
                     tools: openaiTools.length > 0 ? openaiTools : undefined,
                     tool_choice: 'auto', // Let model decide

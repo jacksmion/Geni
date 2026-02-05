@@ -4,6 +4,10 @@ import { useChatStore, ChatMessage } from '../../store/useChatStore'
 import ThoughtTrace from '../../components/ThoughtTrace'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -15,7 +19,7 @@ export function MessageList() {
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+    }, [messages, messages.length, messages[messages.length - 1]?.content])
 
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-8 pb-32 space-y-8">
@@ -46,24 +50,63 @@ function MessageItem({ message }: { message: ChatMessage }) {
             </div>
 
             {/* Content */}
-            <div className={cn("max-w-[85%] space-y-2", isUser && "items-end flex flex-col")}>
+            <div className={cn("max-w-[85%] space-y-2 min-w-0", isUser && "items-end flex flex-col")}>
 
                 {/* Helper for Assistant: Thoughts/Tools */}
                 {!isUser && message.steps && message.steps.length > 0 && (
                     <div className="w-full mb-2">
-                        {/* We can use the existing ThoughtTrace here, or build a better one */}
                         <ThoughtTrace steps={message.steps} />
                     </div>
                 )}
 
                 {/* Message Bubble */}
                 <div className={cn(
-                    "p-5 rounded-3xl shadow-sm backdrop-blur-md border leading-relaxed text-[15px]",
+                    "p-5 rounded-3xl shadow-sm backdrop-blur-md border leading-relaxed text-[15px] overflow-hidden",
                     isUser
                         ? "bg-gradient-to-br from-indigo-600/90 to-violet-600/90 border-indigo-500/30 rounded-tr-none text-white shadow-indigo-900/10"
                         : "bg-white/5 border-white/5 rounded-tl-none text-gray-200"
                 )}>
-                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    {isUser ? (
+                        <div className="whitespace-pre-wrap font-sans">{message.content}</div>
+                    ) : (
+                        <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:p-0 prose-pre:bg-transparent">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    code({ node, inline, className, children, ...props }: any) {
+                                        const match = /language-(\w+)/.exec(className || '')
+                                        return !inline && match ? (
+                                            <div className="rounded-lg overflow-hidden my-2 border border-white/10 shadow-lg bg-[#1e1e1e]">
+                                                <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5">
+                                                    <span className="text-xs text-gray-400 font-mono">{match[1]}</span>
+                                                    <div className="flex gap-1.5">
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20" />
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/20" />
+                                                    </div>
+                                                </div>
+                                                <SyntaxHighlighter
+                                                    style={vscDarkPlus}
+                                                    language={match[1]}
+                                                    PreTag="div"
+                                                    customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
+                                                    {...props}
+                                                >
+                                                    {String(children).replace(/\n$/, '')}
+                                                </SyntaxHighlighter>
+                                            </div>
+                                        ) : (
+                                            <code className={cn("bg-white/10 px-1.5 py-0.5 rounded text-amber-200 font-mono text-[0.9em]", className)} {...props}>
+                                                {children}
+                                            </code>
+                                        )
+                                    }
+                                }}
+                            >
+                                {message.content}
+                            </ReactMarkdown>
+                        </div>
+                    )}
                 </div>
 
                 {/* Meta Info */}

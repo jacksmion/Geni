@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Save, Globe, Key, Cpu, Sparkles, CheckCircle2, Zap } from 'lucide-react';
-import { AppSettings, DEFAULT_SETTINGS } from '../../common/types/settings';
+import { AppSettings, DEFAULT_SETTINGS, ProviderConfig, DEFAULT_PROVIDER_CONFIGS } from '../../common/types/settings';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { McpSettingsSection } from '../features/settings/McpSettingsSection';
@@ -9,26 +9,22 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// 预设配置数据
-const PROVIDER_CONFIGS: Record<string, { label: string; baseUrl: string; models: string[] }> = {
+// 预设模型列表（用于快捷选择）
+const PROVIDER_MODELS: Record<string, { label: string; models: string[] }> = {
     'OpenAI': {
         label: 'OpenAI',
-        baseUrl: 'https://api.openai.com/v1',
         models: ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo']
     },
     'Anthropic': {
         label: 'Anthropic',
-        baseUrl: 'https://api.anthropic.com/v1',
         models: ['claude-3-5-sonnet-latest', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229']
     },
     'DeepSeek': {
         label: 'DeepSeek',
-        baseUrl: 'https://api.deepseek.com',
         models: ['deepseek-chat', 'deepseek-coder']
     },
     'Local': {
         label: 'Local (Ollama)',
-        baseUrl: 'http://localhost:11434/v1',
         models: ['llama3:latest', 'qwen2.5:latest', 'mistral:latest']
     }
 };
@@ -42,7 +38,19 @@ const Settings: React.FC = () => {
         const fetchSettings = async () => {
             try {
                 const data = await window.electronAPI.getAppSettings();
-                if (data) setSettings(data);
+                if (data) {
+                    // 合并默认配置，确保新增的提供商也有默认值
+                    const mergedProviders = { ...DEFAULT_PROVIDER_CONFIGS, ...data.llm?.providers };
+                    setSettings({
+                        ...DEFAULT_SETTINGS,
+                        ...data,
+                        llm: {
+                            ...DEFAULT_SETTINGS.llm,
+                            ...data.llm,
+                            providers: mergedProviders
+                        }
+                    });
+                }
             } catch (err) {
                 console.error("Failed to load settings:", err);
             } finally {
@@ -58,7 +66,6 @@ const Settings: React.FC = () => {
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
 
-            // 可选：触发一个全局事件或重新拉取最新配置以确保一致性
             const remoteSettings = await window.electronAPI.getAppSettings();
             setSettings(remoteSettings);
         } catch (error) {
@@ -67,29 +74,38 @@ const Settings: React.FC = () => {
         }
     };
 
-    // 切换提供商时，自动填充 Base URL（如果当前为空或为默认值）
+    // 切换提供商（仅切换 activeProvider，不改变配置）
     const handleProviderChange = (newProvider: string) => {
-        const config = PROVIDER_CONFIGS[newProvider];
-        const oldConfig = PROVIDER_CONFIGS[settings.llm.provider];
-
-        let newBaseUrl = settings.llm.baseUrl;
-
-        // 如果当前 BaseUrl 是空的，或者是旧提供商的默认 URL，则切换到新提供商的默认 URL
-        if (!newBaseUrl || (oldConfig && newBaseUrl === oldConfig.baseUrl)) {
-            newBaseUrl = config?.baseUrl || '';
-        }
-
         setSettings({
             ...settings,
             llm: {
                 ...settings.llm,
-                provider: newProvider,
-                baseUrl: newBaseUrl
+                activeProvider: newProvider
             }
         });
     };
 
-    const currentProviderConfig = PROVIDER_CONFIGS[settings.llm.provider];
+    // 更新当前提供商的配置
+    const updateCurrentProviderConfig = (field: keyof ProviderConfig, value: string | number) => {
+        const activeProvider = settings.llm.activeProvider;
+        setSettings({
+            ...settings,
+            llm: {
+                ...settings.llm,
+                providers: {
+                    ...settings.llm.providers,
+                    [activeProvider]: {
+                        ...settings.llm.providers[activeProvider],
+                        [field]: value
+                    }
+                }
+            }
+        });
+    };
+
+    const activeProvider = settings.llm.activeProvider;
+    const currentConfig = settings.llm.providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider];
+    const currentProviderModels = PROVIDER_MODELS[activeProvider];
 
     if (loading) {
         return (
@@ -125,25 +141,27 @@ const Settings: React.FC = () => {
                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <Globe size={12} /> 提供商 (Provider)
                             </label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {Object.keys(PROVIDER_CONFIGS).map((key) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => handleProviderChange(key)}
-                                        className={cn(
-                                            "relative px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 text-left overflow-hidden group",
-                                            settings.llm.provider === key
-                                                ? "bg-indigo-600/20 border-indigo-500/50 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)]"
-                                                : "bg-black/20 border-white/5 text-gray-400 hover:bg-white/5 hover:text-gray-200"
-                                        )}
-                                    >
-                                        <span className="relative z-10">{PROVIDER_CONFIGS[key].label}</span>
-                                        {settings.llm.provider === key && (
-                                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent" />
-                                        )}
-                                    </button>
-                                ))}
+                            <div className="relative">
+                                <select
+                                    value={activeProvider}
+                                    onChange={(e) => handleProviderChange(e.target.value)}
+                                    className="w-full appearance-none bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-10 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-black/30 transition-all text-gray-200 cursor-pointer"
+                                >
+                                    {Object.keys(PROVIDER_MODELS).map((key) => (
+                                        <option key={key} value={key} className="bg-[#1a1a1a] text-gray-200">
+                                            {PROVIDER_MODELS[key].label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
+                            <p className="text-[10px] text-gray-600 mt-1.5 ml-1">
+                                每个提供商的配置独立保存，切换时会自动加载对应配置
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -154,15 +172,15 @@ const Settings: React.FC = () => {
                                 </label>
 
                                 {/* Quick Select Chips */}
-                                {currentProviderConfig && (
+                                {currentProviderModels && (
                                     <div className="flex flex-wrap gap-2 mb-1">
-                                        {currentProviderConfig.models.map(model => (
+                                        {currentProviderModels.models.map(model => (
                                             <button
                                                 key={model}
-                                                onClick={() => setSettings({ ...settings, llm: { ...settings.llm, model } })}
+                                                onClick={() => updateCurrentProviderConfig('model', model)}
                                                 className={cn(
                                                     "px-2.5 py-1 rounded-lg text-[10px] border transition-all",
-                                                    settings.llm.model === model
+                                                    currentConfig.model === model
                                                         ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
                                                         : "bg-white/5 border-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-200"
                                                 )}
@@ -176,8 +194,8 @@ const Settings: React.FC = () => {
                                 <div className="relative group">
                                     <input
                                         type="text"
-                                        value={settings.llm.model}
-                                        onChange={(e) => setSettings({ ...settings, llm: { ...settings.llm, model: e.target.value } })}
+                                        value={currentConfig.model}
+                                        onChange={(e) => updateCurrentProviderConfig('model', e.target.value)}
                                         placeholder="输入自定义模型..."
                                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pl-10 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-black/30 transition-all text-gray-200 placeholder:text-gray-600"
                                     />
@@ -196,9 +214,9 @@ const Settings: React.FC = () => {
                                 <div className="h-[26px] mb-1" /> {/* Spacer to align with chips */}
                                 <input
                                     type="password"
-                                    value={settings.llm.apiKey}
-                                    onChange={(e) => setSettings({ ...settings, llm: { ...settings.llm, apiKey: e.target.value } })}
-                                    placeholder={settings.llm.provider === 'Local' ? "本地模式通常无需 Key" : "sk-..."}
+                                    value={currentConfig.apiKey}
+                                    onChange={(e) => updateCurrentProviderConfig('apiKey', e.target.value)}
+                                    placeholder={activeProvider === 'Local' ? "本地模式通常无需 Key" : "sk-..."}
                                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-black/30 transition-all text-gray-200 placeholder:text-gray-600 font-mono tracking-wide"
                                 />
                                 <p className="text-[10px] text-gray-600 ml-1">
@@ -214,12 +232,12 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.llm.baseUrl}
-                                onChange={(e) => setSettings({ ...settings, llm: { ...settings.llm, baseUrl: e.target.value } })}
+                                value={currentConfig.baseUrl}
+                                onChange={(e) => updateCurrentProviderConfig('baseUrl', e.target.value)}
                                 placeholder="https://api.openai.com/v1"
                                 className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-black/30 transition-all text-gray-200 placeholder:text-gray-600 font-mono"
                             />
-                            {settings.llm.provider === 'Local' && (
+                            {activeProvider === 'Local' && (
                                 <p className="text-[10px] text-amber-500/80 mt-1.5 ml-1">
                                     提示: 也可以尝试 http://127.0.0.1:11434/v1 或本机 IP
                                 </p>
