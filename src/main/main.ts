@@ -11,7 +11,6 @@ import { AppSettings } from '../common/types/settings'
 
 import { ToolRegistry } from './services/tools/ToolRegistry.js'
 import { OpenAIAgentService } from './services/agent/OpenAIAgentService.js'
-import { PythonExecTool } from './services/tools/builtin/PythonExecTool.js'
 import { FileSystemTool } from './services/tools/builtin/FileSystemTool.js'
 import { BashTool } from './services/tools/builtin/BashTool.js'
 import { FileEditTool } from './services/tools/builtin/FileEditTool.js'
@@ -77,14 +76,12 @@ app.whenReady().then(async () => {
     const mcpManager = new McpManager(toolRegistry)
 
     // 1. Register Built-in Tools
-    const pyTool = new PythonExecTool(appSettings.workspacePath);
     const fsTool = new FileSystemTool(appSettings.workspacePath);
     const editTool = new FileEditTool(appSettings.workspacePath);
     const searchTool = new FileSearchTool(appSettings.workspacePath);
     const bashTool = new BashTool(appSettings.workspacePath);
-    const fileTools = [pyTool, fsTool, editTool, searchTool, bashTool];
+    const fileTools = [fsTool, editTool, searchTool, bashTool];
 
-    toolRegistry.register(pyTool)
     toolRegistry.register(fsTool)
     toolRegistry.register(bashTool)
     toolRegistry.register(editTool)
