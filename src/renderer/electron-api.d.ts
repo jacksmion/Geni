@@ -8,6 +8,7 @@ export interface IElectronAPI {
     sendMessage: (text: string) => Promise<{ finalAnswer: string, steps: any[] }>;
     getAppSettings: () => Promise<any>;
     saveAppSettings: (settings: any) => Promise<boolean>;
+    onReplyStream: (callback: (chunk: string) => void) => () => void;
 }
 
 declare global {

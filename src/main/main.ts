@@ -1,3 +1,4 @@
+
 import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -5,19 +6,24 @@ import { SkillLoader } from './services/SkillLoader.js'
 import { AgentEngine } from './services/AgentEngine.js'
 import { PythonBridge } from './services/PythonBridge.js'
 import { ConfigManager } from './services/ConfigManager.js'
+import { ClaudeAgentService } from './services/ClaudeAgentService.js'
 import { Skill } from '../common/types/skill'
 import { AppSettings } from '../common/types/settings'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 function createWindow() {
+    const preloadPath = path.join(__dirname, 'preload.js')
+    console.log('[Main] Preload path:', preloadPath)
+
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.mjs'),
+            preload: preloadPath,
             nodeIntegration: false,
             contextIsolation: true,
+            sandbox: false, // 禁用沙箱以避免权限问题，确保 preload 正确加载
         },
         titleBarStyle: 'hidden',
         titleBarOverlay: true,
@@ -32,7 +38,7 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-    const skillsDir = path.join(__dirname, '../../skills')
+    const skillsDir = path.join(__dirname, '../skills')
     const loader = new SkillLoader(skillsDir)
     let skills: Skill[] = await loader.loadSkills()
 
@@ -51,18 +57,45 @@ app.whenReady().then(async () => {
     const agent = new AgentEngine()
     const pyBridge = new PythonBridge()
     const configManager = new ConfigManager()
+    const claudeAgent = new ClaudeAgentService()
     let appSettings = configManager.load()
 
     ipcMain.handle('get-settings', () => appSettings)
     ipcMain.handle('save-settings', (_, settings: AppSettings) => {
-        appSettings = settings
-        configManager.save(settings)
+        console.log('[Main] Receiving new settings:', JSON.stringify(settings, null, 2))
+        // 深度合并以防止部分字段丢失
+        appSettings = { ...appSettings, ...settings }
+        configManager.save(appSettings)
+        console.log('[Main] Settings saved successfully.')
         return true
     })
 
     const { OpenAI } = await import('openai')
 
-    ipcMain.handle('send-message', async (_, text: string) => {
+    ipcMain.handle('send-message', async (event, text: string) => {
+        console.log(`[Main] Sending message using Provider: ${appSettings.llm.provider}, Model: ${appSettings.llm.model}, BaseURL: ${appSettings.llm.baseUrl}`)
+
+        const onStream = (chunk: string) => {
+            event.sender.send('reply-stream', chunk);
+        }
+
+        // 如果是 Anthropic，使用 SDK 接管
+        if (appSettings.llm.provider === 'Anthropic') {
+            try {
+                // 调用 Claude Agent SDK
+                const result = await claudeAgent.runAgent(text, skills, appSettings.llm.apiKey, onStream)
+                // 确保返回合法的结构
+                if (!result.finalAnswer && result.steps.length === 0) {
+                    return { finalAnswer: "Claude Agent SDK 已运行，但没有捕获到输出。请检查控制台日志以调试流式消息。", steps: [] }
+                }
+                return result
+            } catch (error: any) {
+                console.error('[Main] Claude Agent Execution Failed:', error)
+                return { finalAnswer: `Claude Agent Error: ${error.message}`, steps: [] }
+            }
+        }
+
+        // 下面是原有的 OpenAI/OpenAI-compatible 逻辑
         const client = new OpenAI({
             apiKey: appSettings.llm.apiKey,
             baseURL: appSettings.llm.baseUrl,
@@ -83,13 +116,21 @@ app.whenReady().then(async () => {
         try {
             while (iteration < maxIterations) {
                 iteration++
-                const completion = await client.chat.completions.create({
+                const stream = await client.chat.completions.create({
                     model: appSettings.llm.model,
                     messages: messages,
-                    temperature: appSettings.llm.temperature
+                    temperature: appSettings.llm.temperature,
+                    stream: true
                 })
 
-                const responseText = completion.choices[0].message.content || ''
+                let responseText = ''
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || ''
+                    if (content) {
+                        responseText += content
+                        onStream(content)
+                    }
+                }
                 lastResponse = responseText
                 const parsed = agent.parseResponse(responseText)
 
@@ -126,7 +167,20 @@ app.whenReady().then(async () => {
                             observation = `执行出错: ${err.message}`
                         }
                     } else {
-                        observation = `Error: 技能 ${parsed.action} 尚未在 Assistant Core 中实现。`
+                        // 尝试匹配通用技能
+                        const skill = skills.find(s => s.id === parsed.action)
+                        if (skill) {
+                            // 如果是已启用的技能，尝试通过 PythonBridge 执行 (假设所有技能实质都是 Python 脚本)
+                            // 这里可以扩展为支持其他类型的技能
+                            try {
+                                const result = await pyBridge.executeCode(parsed.actionInput || '')
+                                observation = result.stdout || result.stderr || 'Skill executed.'
+                            } catch (err: any) {
+                                observation = `Skill execution failed: ${err.message}`
+                            }
+                        } else {
+                            observation = `Error: 技能 ${parsed.action} 尚未在 Assistant Core 中实现或未启用。`
+                        }
                     }
 
                     // 更新当前步骤的观察结果

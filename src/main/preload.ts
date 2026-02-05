@@ -8,4 +8,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     sendMessage: (text: string) => ipcRenderer.invoke('send-message', text),
     getAppSettings: () => ipcRenderer.invoke('get-settings'),
     saveAppSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
+    onReplyStream: (callback: (chunk: string) => void) => {
+        const subscription = (_: any, chunk: string) => callback(chunk)
+        ipcRenderer.on('reply-stream', subscription)
+        return () => ipcRenderer.removeListener('reply-stream', subscription)
+    }
 })

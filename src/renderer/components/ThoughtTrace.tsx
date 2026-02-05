@@ -25,7 +25,7 @@ const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps }) => {
     if (steps.length === 0) return null;
 
     return (
-        <div className="my-4 border border-indigo-500/20 bg-indigo-500/5 rounded-xl overflow-hidden transition-all duration-300">
+        <div className="my-2 border border-indigo-500/20 bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden transition-all duration-300">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center justify-between px-4 py-2 hover:bg-indigo-500/10 transition-colors"
