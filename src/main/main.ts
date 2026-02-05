@@ -147,10 +147,13 @@ app.whenReady().then(async () => {
             // Get all available tools
             const tools = toolRegistry.getTools();
 
+            // 获取启用的技能
+            const enabledSkills = skills.filter(s => s.enabled);
+
             // Run Agent
             // TODO: In future, select service based on appSettings.llm.provider
             const result = await agentService.run(text, tools, {
-                model: appSettings.llm.model,
+                skills: enabledSkills,
                 signal: controller.signal // Pass signal
             }, onStream, onStepUpdate);
 

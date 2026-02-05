@@ -1,9 +1,11 @@
 import { ITool } from '../../../common/types/tool';
+import { Skill } from '../../../common/types/skill';
 
 export interface AgentRunOptions {
     model?: string;
     temperature?: number;
     systemPrompt?: string;
+    skills?: Skill[]; // 启用的技能列表，其内容将注入 System Prompt
     signal?: AbortSignal;
 }
 

@@ -44,8 +44,36 @@ export class OpenAIAgentService implements IAgentService {
             };
         });
 
+        // 2. 构建 System Prompt，注入启用的 Skills
+        let systemPrompt = options?.systemPrompt || 'You are a helpful assistant capable of using tools.';
+
+        if (options?.skills && options.skills.length > 0) {
+            const enabledSkills = options.skills.filter(s => s.enabled);
+            if (enabledSkills.length > 0) {
+                // 技能摘要列表
+                const skillSummary = enabledSkills
+                    .map(s => `- **${s.name}**: ${s.description}`)
+                    .join('\n');
+
+                // 技能详细内容
+                const skillContents = enabledSkills
+                    .map(s => `## Skill: ${s.name}\n\n${s.content}`)
+                    .join('\n\n---\n\n');
+
+                systemPrompt += `\n\n<skills>
+You have access to the following skills. Use them when appropriate:
+
+${skillSummary}
+
+### Skill Details
+
+${skillContents}
+</skills>`;
+            }
+        }
+
         const messages: any[] = [
-            { role: 'system', content: options?.systemPrompt || 'You are a helpful assistant capable of using tools.' },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: prompt }
         ];
 

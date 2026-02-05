@@ -9,8 +9,8 @@ function cn(...inputs: ClassValue[]) {
 
 interface ThoughtStep {
     thought?: string;
-    action?: string;
-    actionInput?: string;
+    tool?: string;
+    toolInput?: string;
     observation?: string;
     isComplete?: boolean;
 }

@@ -39,6 +39,7 @@ export class SkillLoader {
                         id: folder,
                         name: name,
                         description: description,
+                        content: parsed.content.trim(), // Markdown 内容（不含 frontmatter）
                         path: folderPath,
                         enabled: true,
                         trustLevel: 'Ask'

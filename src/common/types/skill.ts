@@ -2,6 +2,7 @@ export interface Skill {
     id: string; // Directory name
     name: string;
     description: string;
+    content: string; // Full markdown content (without frontmatter)
     path: string;
     enabled: boolean;
     trustLevel: 'Ask' | 'Auto';

@@ -10,9 +10,6 @@ export class BashTool implements ITool {
         const shellName = isWindows ? 'PowerShell' : 'Bash';
 
         return {
-            name: 'shell_exec', // Renamed from 'bash' to be more generic, but keeping 'bash' as alias if needed? adhering to request I'll keep it 'bash' or widely understood name. Let's keep name 'bash' for minimal friction but update desc. Actually 'shell' is better.
-            // Wait, if I change name, existing prompt might break? The prompts currently use 'bash'.
-            // I will keep the name 'bash' but update description.
             name: 'bash',
             description: `Execute a shell command. 
 Environment: ${isWindows ? 'Windows PowerShell' : 'Linux/Mac Bash'}.
