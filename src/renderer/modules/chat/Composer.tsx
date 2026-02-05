@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText } from 'lucide-react'
+import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText, ArrowUp } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -123,25 +123,23 @@ export function Composer() {
         : workspacePath
 
     return (
-        <div className="w-full p-6 z-10 bg-white dark:bg-[#09090b] border-t border-slate-200 dark:border-white/5 shrink-0">
-            <div className="max-w-4xl mx-auto relative group">
-                {/* Glow Effect */}
-                <div className="absolute inset-0 bg-indigo-500/5 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 -z-10" />
+        <div className="w-full px-4 pb-6 z-10 bg-transparent shrink-0">
+            <div className="max-w-4xl mx-auto relative">
+                {/* Main Composer Box */}
+                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-shadow focus-within:shadow-lg focus-within:border-indigo-500/30 dark:focus-within:border-white/20 overflow-hidden">
 
-                <div className="relative bg-white/80 dark:bg-[#1A1A1A]/80 border border-slate-200 dark:border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl transition-all focus-within:ring-1 focus-within:ring-indigo-500/20 dark:focus-within:bg-[#222222]/90 dark:focus-within:border-white/20">
-
-                    {/* Attachment List */}
+                    {/* Attachment Preview */}
                     {pendingAttachments.length > 0 && (
-                        <div className="px-4 pt-4 flex flex-wrap gap-2">
+                        <div className="px-4 pt-3 flex flex-wrap gap-2">
                             {pendingAttachments.map((path, idx) => {
                                 const fileName = path.split(/[\\/]/).pop()
                                 return (
-                                    <div key={idx} className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 group/file animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <FileText size={14} className="text-slate-500 dark:text-gray-400" />
-                                        <span className="text-xs text-slate-700 dark:text-gray-300 font-medium">{fileName}</span>
+                                    <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-lg px-2.5 py-1.5 text-xs group/file">
+                                        <FileText size={13} className="text-indigo-500" />
+                                        <span className="text-slate-600 dark:text-gray-300 max-w-[150px] truncate">{fileName}</span>
                                         <button
                                             onClick={() => removePendingAttachment(path)}
-                                            className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                                            className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
                                         >
                                             <X size={12} />
                                         </button>
@@ -151,6 +149,7 @@ export function Composer() {
                         </div>
                     )}
 
+                    {/* TextArea */}
                     <textarea
                         ref={textareaRef}
                         value={input}
@@ -161,60 +160,75 @@ export function Composer() {
                                 handleSend()
                             }
                         }}
-                        placeholder="给 Assistant Core 发送消息"
-                        className="w-full bg-transparent p-5 pb-14 text-base focus:outline-none text-slate-900 dark:text-gray-100 placeholder:text-slate-400 dark:placeholder:text-gray-500 resize-none max-h-64 min-h-[80px] leading-relaxed"
+                        placeholder="Message Assistant Core..."
+                        className="w-full bg-transparent px-5 py-4 min-h-[56px] max-h-64 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
                         rows={1}
+                        style={{ lineHeight: '1.5' }}
                     />
 
-                    {/* Bottom Controls */}
-                    <div className="absolute left-4 bottom-3 flex items-center gap-2">
-                        {/* File Upload */}
-                        <button
-                            onClick={handleSelectFile}
-                            className="p-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/5 dark:hover:border-white/10 text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white transition-all shadow-sm"
-                            title="上传文件"
-                        >
-                            <Paperclip size={18} />
-                        </button>
+                    {/* Toolbar & Send Actions */}
+                    <div className="flex items-center justify-between px-3 pb-3 pt-1">
 
-                        {/* Workspace Path Picker */}
+                        {/* Left Tools */}
+                        <div className="flex items-center gap-1">
+
+                            {/* Attach File */}
+                            <TooltipButton icon={Paperclip} label="Add Attachment" onClick={handleSelectFile} />
+
+                            {/* Directory Picker */}
+                            <button
+                                onClick={handleSelectDirectory}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5 transition-colors ml-1"
+                                title="Set Working Directory"
+                            >
+                                <Folder size={14} />
+                                <span className="max-w-[120px] truncate">{displayPath}</span>
+                            </button>
+
+                        </div>
+
+                        {/* Right: Send Button */}
                         <button
-                            onClick={handleSelectDirectory}
-                            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/5 dark:hover:border-white/10 text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white transition-all shadow-sm group/path"
+                            onClick={() => isSending ? window.electronAPI.abortRequest() : handleSend()}
+                            disabled={!isSending && !input.trim()}
+                            className={cn(
+                                "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
+                                isSending
+                                    ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/20 dark:text-red-400"
+                                    : input.trim()
+                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 hover:bg-indigo-700"
+                                        : "bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-zinc-500 cursor-not-allowed"
+                            )}
                         >
-                            <Folder size={16} className="text-slate-400 dark:text-gray-500 group-hover/path:text-indigo-500 dark:group-hover/path:text-indigo-400 transition-colors" />
-                            <span className="text-xs font-medium tracking-wide font-mono truncate max-w-[200px]">
-                                {displayPath}
-                            </span>
-                            <ChevronDown size={14} className="text-slate-400 dark:text-gray-600" />
+                            {isSending ? <Square size={14} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
                         </button>
                     </div>
+                </div>
 
-                    {/* Send Button */}
-                    <button
-                        onClick={() => {
-                            if (isSending) {
-                                window.electronAPI.abortRequest();
-                            } else {
-                                handleSend();
-                            }
-                        }}
-                        disabled={!isSending && !input.trim()}
-                        className={cn(
-                            "absolute right-4 bottom-3 p-2.5 rounded-2xl transition-all disabled:opacity-0 disabled:scale-90 shadow-lg",
-                            isSending
-                                ? "bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white dark:bg-red-500/20 dark:text-red-400"
-                                : "bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-white dark:text-black dark:hover:bg-gray-200"
-                        )}
-                    >
-                        {isSending ? (
-                            <Square size={18} fill="currentColor" />
-                        ) : (
-                            <Send size={18} />
-                        )}
-                    </button>
+                {/* Footer Text */}
+                <div className="text-center mt-3">
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-600">
+                        AI can make mistakes. Please verify important information.
+                    </p>
                 </div>
             </div>
         </div>
+    )
+}
+
+function TooltipButton({ icon: Icon, label, onClick, active }: { icon: any, label: string, onClick?: () => void, active?: boolean }) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "p-2 rounded-lg transition-colors group relative",
+                active
+                    ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                    : "text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5"
+            )}
+            title={label}
+        >
+            <Icon size={18} strokeWidth={1.5} />
+        </button>
     )
 }

@@ -6,7 +6,8 @@ import { Composer } from '../modules/chat/Composer'
 import { SessionSidebar } from './sidebar/SessionSidebar'
 
 export function ChatLayout() {
-    const { activeTab, startNewChat, isSending } = useChatStore()
+    const { activeTab, sessions, activeSessionId } = useChatStore()
+    const currentSession = sessions[activeSessionId]
 
     return (
         <div className="flex h-full w-full overflow-hidden">
@@ -15,27 +16,31 @@ export function ChatLayout() {
 
             <main className="flex-1 flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#09090b]">
                 {/* Header */}
-                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">
-                        <span className="text-indigo-500 dark:text-indigo-400">Assistant Core</span>
-                        <ChevronRight size={12} className="text-slate-400 dark:text-zinc-600" />
-                        <span className="text-slate-700 dark:text-zinc-200">
-                            {activeTab === 'chat' && 'Agent Chat'}
-                            {activeTab === 'settings' && 'System Settings'}
-                        </span>
+                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                    {/* Left: Title */}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                        {currentSession ? (
+                            <>
+                                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                    <div className="i-lucide-star text-amber-500 w-4 h-4 text-xs font-bold leading-none">★</div>
+                                    {/* Using text star for simplicity or import lucide Star if preferred. Let's use text for now or Star icon. I'll import Star. */}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100 truncate max-w-md">
+                                        {currentSession.title || '新对话'}
+                                    </h1>
+                                    <div className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium truncate">
+                                        {new Date(currentSession.updatedAt).toLocaleString()}
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-sm text-slate-400 dark:text-zinc-600 italic">Select a conversation...</div>
+                        )}
                     </div>
 
-                    {/* New Chat Button - now handled in sidebar, maybe keep as alternative or remove? Keeping for now but maybe redundant */}
-                    {activeTab === 'chat' && (
-                        <button
-                            onClick={startNewChat}
-                            disabled={isSending}
-                            className="no-drag flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-indigo-600 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:border-indigo-500/30 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm dark:shadow-none"
-                        >
-                            <Plus size={14} />
-                            <span>新对话</span>
-                        </button>
-                    )}
+
+
                 </header>
 
                 {/* Main Content Area */}

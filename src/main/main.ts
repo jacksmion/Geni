@@ -36,7 +36,11 @@ function createWindow() {
             sandbox: false, // 禁用沙箱以避免权限问题，确保 preload 正确加载
         },
         titleBarStyle: 'hidden',
-        titleBarOverlay: true,
+        titleBarOverlay: {
+            color: '#ffffff', // HEADER_BG (Light) - 适配浅色模式，深色模式下可能需要通过 IPC 更新 (Electron 29+ 支持 setOverlayIconColor 已有改善，这里先设默认)
+            symbolColor: '#71717a', // Slate-500
+            height: 56 // h-14
+        },
     })
 
     // 这里的 path 会根据 vite-plugin-electron 的输出自动调整
