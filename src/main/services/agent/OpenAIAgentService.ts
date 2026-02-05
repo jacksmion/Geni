@@ -59,8 +59,11 @@ export class OpenAIAgentService implements IAgentService {
 4. **Reflect**: If an error occurs, analyze why and correct your approach.`;
 
         // 注入当前工作目录信息，让 AI 意识到环境变化
+        /* [已移除] 不再强行注入目录，改为由 AI 自行通过 get_env_info 获取
         const currentCwd = this.settings.workspacePath || process.cwd();
         systemPrompt += `\n\n[Current Working Directory]: ${currentCwd}\nFiles you see or operations you do will be relative to this directory.`;
+        */
+        systemPrompt += `\n\n[Environment]: If you need to know the current date, time, OS, or working directory (CWD) to perform a task, use the \`get_env_info\` tool first. Do NOT assume the current directory unless you have checked it.`;
 
         if (options?.skills && options.skills.length > 0) {
             const enabledSkills = options.skills.filter(s => s.enabled);

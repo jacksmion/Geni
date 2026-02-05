@@ -16,6 +16,7 @@ import { BashTool } from './services/tools/builtin/BashTool.js'
 import { FileEditTool } from './services/tools/builtin/FileEditTool.js'
 import { FileSearchTool } from './services/tools/builtin/FileSearchTool.js'
 import { SkillReaderTool } from './services/tools/builtin/SkillReaderTool.js'
+import { EnvironmentInfoTool } from './services/tools/builtin/EnvironmentInfoTool.js'
 import { McpManager } from './services/mcp/McpManager.js'
 import { ChatHistoryManager } from './services/storage/ChatHistoryManager.js'
 
@@ -81,12 +82,14 @@ app.whenReady().then(async () => {
     const editTool = new FileEditTool(appSettings.workspacePath);
     const searchTool = new FileSearchTool(appSettings.workspacePath);
     const bashTool = new BashTool(appSettings.workspacePath);
+    const envTool = new EnvironmentInfoTool(appSettings.workspacePath);
     const fileTools = [fsTool, editTool, searchTool, bashTool];
 
     toolRegistry.register(fsTool)
     toolRegistry.register(bashTool)
     toolRegistry.register(editTool)
     toolRegistry.register(searchTool)
+    toolRegistry.register(envTool)
 
     // 2. Register SkillReaderTool (渐进式技能加载)
     const skillReaderTool = new SkillReaderTool()
