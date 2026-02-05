@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { SkillLoader } from './services/SkillLoader.js'
+import { AgentEngine } from './services/AgentEngine.js'
 import { Skill } from '../common/types/skill'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -42,6 +43,35 @@ app.whenReady().then(async () => {
     ipcMain.handle('set-trust-level', (_, id: string, level: 'Ask' | 'Auto') => {
         skills = skills.map(s => s.id === id ? { ...s, trustLevel: level } : s)
         return skills
+    })
+
+    const agent = new AgentEngine()
+
+    ipcMain.handle('send-message', async (_, text: string) => {
+        // 构建系统提示词
+        const systemPrompt = agent.generateSystemPrompt(skills)
+        console.log('--- System Prompt ---')
+        console.log(systemPrompt)
+
+        // 模拟 ReAct 响应过程 (实际开发中这里对接 LLM API)
+        const mockSteps = [
+            {
+                thought: `用户想要执行 Python 代码。我需要调用 python-exec 技能。`,
+                action: 'python-exec',
+                actionInput: JSON.stringify({ code: 'print("Hello from Agent Core!")' }),
+                observation: 'Hello from Agent Core!',
+                isComplete: false
+            },
+            {
+                thought: 'Python 脚本执行成功。用户已收到问候。',
+                isComplete: true
+            }
+        ]
+
+        return {
+            finalAnswer: '我已经运行了 Python 脚本。输出结果是：Hello from Agent Core!',
+            steps: mockSteps
+        }
     })
 
     createWindow()
