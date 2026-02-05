@@ -103,10 +103,22 @@ ${skillSummary}
 
                 loopCount++;
 
+                // --- Context Sliding Window ---
+                // 保留 System Prompt (index 0) + 最近 N 轮对话
+                // 确保不截断最后的 User Prompt，也不破坏 Tool Call 结构
+                const MAX_HISTORY_ROUNDS = 20; // 这里的 Round 指的是 Message 对象数量，根据需要调整
+                let contextMessages = messages;
+
+                if (messages.length > MAX_HISTORY_ROUNDS) {
+                    const systemMsg = messages[0];
+                    const recentMessages = messages.slice(-(MAX_HISTORY_ROUNDS - 1));
+                    contextMessages = [systemMsg, ...recentMessages];
+                }
+
                 // --- Step 1: Call LLM ---
                 const stream = await client.chat.completions.create({
                     model: options?.model || providerConfig.model,
-                    messages: messages,
+                    messages: contextMessages,
                     tools: openaiTools.length > 0 ? openaiTools : undefined,
                     tool_choice: 'auto', // Let model decide
                     stream: true
