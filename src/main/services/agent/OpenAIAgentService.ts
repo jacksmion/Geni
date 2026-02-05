@@ -51,6 +51,13 @@ export class OpenAIAgentService implements IAgentService {
         // 2. 构建 System Prompt
         let systemPrompt = options?.systemPrompt || 'You are a helpful assistant capable of using tools.';
 
+        // [增强] 强制思考步骤 (Chain of Thought)
+        systemPrompt += `\n\n[Methodology]:
+1. **Think**: Before using any tool, you MUST explain your reasoning and plan in a brief thought.
+2. **Act**: Call the appropriate tool.
+3. **Observe**: Analyze the tool output.
+4. **Reflect**: If an error occurs, analyze why and correct your approach.`;
+
         // 注入当前工作目录信息，让 AI 意识到环境变化
         const currentCwd = this.settings.workspacePath || process.cwd();
         systemPrompt += `\n\n[Current Working Directory]: ${currentCwd}\nFiles you see or operations you do will be relative to this directory.`;
@@ -185,14 +192,29 @@ ${skillSummary}
                         // 计算耗时
                         const duration = Date.now() - startTime;
 
+                        // [增强] 观察结果截断 (Observation Truncation)
+                        // 防止大文件读取导致 Context 爆炸
+                        const MAX_OUTPUT_LENGTH = 2000;
+                        let observation = result.result;
+                        if (observation && observation.length > MAX_OUTPUT_LENGTH) {
+                            observation = observation.substring(0, MAX_OUTPUT_LENGTH) +
+                                `\n... [Content truncated (length: ${observation.length}). Output is too large to fit in context. Please use specific search tools (grep/find) or read partial content to locate what you need.]`;
+                        }
+
+                        // [增强] 反思机制 (Self-Correction)
+                        // 如果工具执行失败，强制追加反思提示
+                        if (result.isError) {
+                            observation += `\n\n[System Note]: The previous tool execution failed. Please analyze the error message above, reflect on why it failed, and try a different approach. Do NOT repeat the same invalid command or arguments.`;
+                        }
+
                         // Feed back to LLM
                         messages.push({
                             role: 'tool',
                             tool_call_id: tc.id,
-                            content: result.result
+                            content: observation
                         });
 
-                        steps[steps.length - 1].observation = result.result;
+                        steps[steps.length - 1].observation = observation; // Use truncated/modified observation for UI too
                         steps[steps.length - 1].isComplete = true;
                         steps[steps.length - 1].duration = duration; // 记录耗时
                         onStepUpdate?.([...steps]);
