@@ -203,9 +203,9 @@ app.whenReady().then(async () => {
     });
 
     // IPC: Chat
-    ipcMain.handle('send-message', async (event, text: string) => {
+    ipcMain.handle('send-message', async (event, text: string, history?: any[]) => {
         // ... (existing implementation)
-        console.log(`[Main] Agent Request: ${text}`)
+        console.log(`[Main] Agent Request: ${text}, History Rounds: ${history?.length || 0}`)
 
         const onStream = (chunk: string, reset?: boolean) => {
             event.sender.send('reply-stream', chunk, reset);
@@ -228,9 +228,9 @@ app.whenReady().then(async () => {
             const enabledSkills = skills.filter(s => s.enabled);
 
             // Run Agent
-            // TODO: In future, select service based on appSettings.llm.provider
             const result = await agentService.run(text, tools, {
                 skills: enabledSkills,
+                history: history, // Pass history here!
                 signal: controller.signal // Pass signal
             }, onStream, onStepUpdate);
 

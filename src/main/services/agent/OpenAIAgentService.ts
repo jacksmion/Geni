@@ -84,14 +84,26 @@ ${skillSummary}
         }
 
         const messages: any[] = [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: prompt }
+            { role: 'system', content: systemPrompt }
         ];
+
+        // 注入历史记录
+        if (options?.history && options.history.length > 0) {
+            options.history.forEach((h: any) => {
+                messages.push({
+                    role: h.role,
+                    content: h.content
+                });
+            });
+        }
+
+        // 添加当前用户输入
+        messages.push({ role: 'user', content: prompt });
 
         const steps: any[] = [];
         let finalAnswer = '';
         let loopCount = 0;
-        const MAX_LOOPS = 50; // Increased to allow more complex tasks
+        const MAX_LOOPS = 50;
 
         try {
             while (loopCount < MAX_LOOPS) {

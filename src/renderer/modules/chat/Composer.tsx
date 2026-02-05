@@ -14,6 +14,8 @@ export function Composer() {
     const [workspacePath, setWorkspacePath] = useState('')
     const {
         isSending,
+        sessions,
+        activeSessionId,
         addMessage,
         updateLastMessage,
         setSending,
@@ -53,6 +55,13 @@ export function Composer() {
     const handleSend = async () => {
         if (!input.trim() || isSending) return
 
+        const currentSession = sessions[activeSessionId]
+        if (!currentSession) return
+
+        // Get history (excluding system messages or special cases if needed)
+        // We pass the existing messages as history
+        const history = currentSession.messages
+
         let finalPrompt = input
 
         // 如果有附件，在 Prompt 前面追加上下文说明
@@ -88,7 +97,8 @@ export function Composer() {
         })
 
         try {
-            const response = await window.electronAPI.sendMessage(finalPrompt)
+            // Pass history to backend
+            const response = await window.electronAPI.sendMessage(finalPrompt, history)
 
             // 4. Update with final structured data (thoughts, steps)
             updateLastMessage((msg) => ({
