@@ -91,7 +91,7 @@ ${skillSummary}
         const steps: any[] = [];
         let finalAnswer = '';
         let loopCount = 0;
-        const MAX_LOOPS = 10;
+        const MAX_LOOPS = 50; // Increased to allow more complex tasks
 
         try {
             while (loopCount < MAX_LOOPS) {
@@ -101,15 +101,12 @@ ${skillSummary}
                 }
 
                 // 每个回合开始时，通知渲染进程重置内容缓冲区
-                // 这样思考过程（Thought）就不会和最终结果（Final Answer）堆积在主输入框里
                 onStream?.('', true);
 
                 loopCount++;
 
                 // --- Context Sliding Window ---
-                // 保留 System Prompt (index 0) + 最近 N 轮对话
-                // 确保不截断最后的 User Prompt，也不破坏 Tool Call 结构
-                const MAX_HISTORY_ROUNDS = 20; // 这里的 Round 指的是 Message 对象数量，根据需要调整
+                const MAX_HISTORY_ROUNDS = 20;
                 let contextMessages = messages;
 
                 if (messages.length > MAX_HISTORY_ROUNDS) {
@@ -123,30 +120,24 @@ ${skillSummary}
                     model: options?.model || providerConfig.model,
                     messages: contextMessages,
                     tools: openaiTools.length > 0 ? openaiTools : undefined,
-                    tool_choice: 'auto', // Let model decide
+                    tool_choice: 'auto',
                     stream: true
                 }, {
-                    signal: options?.signal // Pass abort signal to OpenAI client
+                    signal: options?.signal
                 });
 
                 let currentContent = '';
-                let toolCallBuffer: any = null; // Buffer to assemble streaming tool calls
+                let toolCallBuffer: any = null;
                 let toolCalls: any[] = [];
 
                 for await (const chunk of stream) {
                     const delta = chunk.choices[0]?.delta;
-
-                    // A. Content Stream
                     if (delta?.content) {
                         currentContent += delta.content;
                         onStream?.(delta.content);
                     }
-
-                    // B. Tool Call Stream (Complex!)
-                    // OpenAI streams tool calls in chunks. We need to assemble them.
                     if (delta?.tool_calls) {
                         const tcChunk = delta.tool_calls[0];
-
                         if (!toolCallBuffer) {
                             toolCallBuffer = {
                                 index: tcChunk.index,
@@ -155,22 +146,16 @@ ${skillSummary}
                                 function: { name: tcChunk.function?.name || '', arguments: '' }
                             };
                         }
-
-                        // Append arguments
                         if (tcChunk.function?.arguments) {
                             toolCallBuffer.function.arguments += tcChunk.function.arguments;
                         }
                     }
                 }
 
-                // If we finished a stream and had a buffered tool call, push it to our list
-                // NOTE: Real robust implementation should handle multiple tool calls in parallel. 
-                // For simplified V2, we handle the buffered one.
                 if (toolCallBuffer) {
                     toolCalls.push(toolCallBuffer);
                 }
 
-                // Append assistant response to history
                 const assistantMsg = {
                     role: 'assistant',
                     content: currentContent || null,
@@ -189,10 +174,8 @@ ${skillSummary}
                             console.error('Failed to parse tool args JSON:', tc.function.arguments);
                         }
 
-                        // 开始计时
                         const startTime = Date.now();
 
-                        // Record Step
                         steps.push({
                             thought: currentContent,
                             tool: fnName,
@@ -201,45 +184,43 @@ ${skillSummary}
                         });
                         onStepUpdate?.([...steps]);
 
-                        // Execute
                         const result = await this.toolRegistry.executeTool(fnName, fnArgs);
-
-                        // 计算耗时
                         const duration = Date.now() - startTime;
 
-                        // [增强] 观察结果截断 (Observation Truncation)
-                        // 防止大文件读取导致 Context 爆炸
                         const MAX_OUTPUT_LENGTH = 2000;
                         let observation = result.result;
                         if (observation && observation.length > MAX_OUTPUT_LENGTH) {
                             observation = observation.substring(0, MAX_OUTPUT_LENGTH) +
-                                `\n... [Content truncated (length: ${observation.length}). Output is too large to fit in context. Please use specific search tools (grep/find) or read partial content to locate what you need.]`;
+                                `\n... [Content truncated (length: ${observation.length}). Output is too large to fit in context.]`;
                         }
 
-                        // [增强] 反思机制 (Self-Correction)
-                        // 如果工具执行失败，强制追加反思提示
                         if (result.isError) {
-                            observation += `\n\n[System Note]: The previous tool execution failed. Please analyze the error message above, reflect on why it failed, and try a different approach. Do NOT repeat the same invalid command or arguments.`;
+                            observation += `\n\n[System Note]: The previous tool execution failed. Please analyze the error and try a different approach.`;
                         }
 
-                        // Feed back to LLM
                         messages.push({
                             role: 'tool',
                             tool_call_id: tc.id,
                             content: observation
                         });
 
-                        steps[steps.length - 1].observation = observation; // Use truncated/modified observation for UI too
-                        steps[steps.length - 1].isComplete = true;
-                        steps[steps.length - 1].duration = duration; // 记录耗时
+                        const lastStep = steps[steps.length - 1];
+                        lastStep.observation = observation;
+                        lastStep.isComplete = true;
+                        lastStep.duration = duration;
                         onStepUpdate?.([...steps]);
                     }
-                    // Loop continues to let LLM see the result and respond
                 } else {
-                    // No tool calls -> We are done!
+                    // No tool calls -> Done!
                     finalAnswer = currentContent;
                     break;
                 }
+            }
+
+            if (loopCount >= MAX_LOOPS) {
+                const warningMsg = `\n\n---\n⚠️ **Agent 达到最大执行步数限制 (${MAX_LOOPS} 步)**\n请发送消息让 Agent 继续。`;
+                finalAnswer = (finalAnswer || '') + warningMsg;
+                onStream?.(warningMsg);
             }
 
         } catch (error: any) {

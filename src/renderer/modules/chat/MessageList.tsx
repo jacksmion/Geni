@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react'
-import { Bot, User, CheckCircle2, Terminal } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import { Bot, User, CheckCircle2, Terminal, Copy, Check } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
@@ -31,6 +31,29 @@ export function MessageList() {
             ))}
             <div ref={endRef} className="h-4" />
         </div>
+    )
+}
+
+function CopyButton({ text, className }: { text: string, className?: string }) {
+    const [copied, setCopied] = useState(false)
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+
+    return (
+        <button
+            onClick={handleCopy}
+            className={cn(
+                "p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-white/10 transition-colors text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300",
+                className
+            )}
+            title="Copy"
+        >
+            {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+        </button>
     )
 }
 
@@ -83,15 +106,12 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                 components={{
                                     code({ node, inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
+                                        const codeString = String(children).replace(/\n$/, '')
                                         return !inline && match ? (
                                             <div className="rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-white/10 shadow-sm bg-slate-50 dark:bg-[#1e1e1e]">
                                                 <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                                                     <span className="text-xs text-slate-500 dark:text-gray-400 font-mono">{match[1]}</span>
-                                                    <div className="flex gap-1.5">
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
-                                                    </div>
+                                                    <CopyButton text={codeString} className="p-1" />
                                                 </div>
                                                 <SyntaxHighlighter
                                                     style={vscDarkPlus}
@@ -100,7 +120,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                                     customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
                                                     {...props}
                                                 >
-                                                    {String(children).replace(/\n$/, '')}
+                                                    {codeString}
                                                 </SyntaxHighlighter>
                                             </div>
                                         ) : (
@@ -119,12 +139,15 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
                 {/* Meta Info */}
                 <div className={cn(
-                    "text-[10px] text-gray-600 font-medium px-1 opacity-0 group-hover:opacity-100 transition-opacity",
-                    isUser ? "text-right" : ""
+                    "flex items-center gap-2 text-[10px] text-gray-500 font-medium px-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                    isUser ? "flex-reverse justify-end" : ""
                 )}>
-                    {new Date(message.timestamp).toLocaleTimeString()} · {isUser ? 'You' : 'AI Assistant'}
+                    {!isUser && <span>AI Assistant · {new Date(message.timestamp).toLocaleTimeString()}</span>}
+                    <CopyButton text={message.content} className="p-0.5" />
+                    {isUser && <span>{new Date(message.timestamp).toLocaleTimeString()} · You</span>}
                 </div>
             </div>
         </div>
     )
 }
+

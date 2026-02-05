@@ -22,6 +22,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/react-syntax-highlighter": "^15.5.13",
     "clsx": "^2.1.1",
+    "docx": "^9.5.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.563.0",
     "openai": "^6.17.0",
