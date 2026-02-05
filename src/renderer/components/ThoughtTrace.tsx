@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, BrainCircuit, Activity, CheckCircle2, Terminal } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,134 +13,124 @@ interface ThoughtStep {
     toolInput?: string;
     observation?: string;
     isComplete?: boolean;
+    duration?: number; // 耗时(毫秒)
 }
 
 interface ThoughtTraceProps {
     steps: ThoughtStep[];
 }
 
-const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps }) => {
-    // Auto-expand if the last step is incomplete (still running)
-    const isRunning = steps.length > 0 && !steps[steps.length - 1].isComplete;
-    const [isExpanded, setIsExpanded] = useState(true);
+// 格式化工具输入为简洁命令
+const formatToolCommand = (tool: string, input?: string): string => {
+    if (!input) return tool;
 
-    // Effect to auto-expand when new steps arrive or when running
-    React.useEffect(() => {
-        if (isRunning) {
-            setIsExpanded(true);
+    try {
+        const parsed = JSON.parse(input);
+        // 根据工具类型格式化显示
+        if (tool === 'bash' && parsed.command) {
+            return parsed.command;
         }
-    }, [steps.length, isRunning]);
+        if (tool === 'file_system' && parsed.operation) {
+            return `${parsed.operation} ${parsed.path || ''}`.trim();
+        }
+        if (tool === 'python_exec') {
+            return 'Python 代码执行';
+        }
+        if (tool === 'read_skill') {
+            return `读取技能: ${parsed.skill_id}`;
+        }
+        // 默认返回工具名
+        return tool;
+    } catch {
+        // 如果不是JSON，直接返回input的前50个字符
+        return input.length > 50 ? input.slice(0, 50) + '...' : input;
+    }
+};
 
+// 单个步骤组件
+const StepItem: React.FC<{ step: ThoughtStep; index: number }> = ({ step, index }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const durationText = step.duration
+        ? `${(step.duration / 1000).toFixed(2)}s`
+        : step.isComplete ? '完成' : '处理中';
+
+    // 如果只有工具调用，显示紧凑格式
+    if (step.tool && !step.thought) {
+        return (
+            <div className="flex items-center gap-2 py-1.5 text-sm">
+                {step.isComplete ? (
+                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                ) : (
+                    <Loader2 size={14} className="text-amber-500 animate-spin shrink-0" />
+                )}
+                <span className="text-gray-400">
+                    {step.isComplete ? '已完成' : '执行中'}
+                </span>
+                <span className="text-indigo-400 font-medium">命令行执行</span>
+                <code className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded font-mono truncate max-w-[400px]">
+                    {formatToolCommand(step.tool, step.toolInput)}
+                </code>
+            </div>
+        );
+    }
+
+    // 有思考内容时，显示可展开格式
+    return (
+        <div className="py-1">
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-2 text-sm hover:bg-white/5 rounded px-1 -ml-1 transition-colors w-full text-left"
+            >
+                <ChevronRight
+                    size={14}
+                    className={cn(
+                        "text-gray-500 transition-transform shrink-0",
+                        isExpanded && "rotate-90"
+                    )}
+                />
+                <span className="text-indigo-400">已思考</span>
+                <span className="text-gray-500 text-xs">{durationText}</span>
+                {!step.isComplete && (
+                    <Loader2 size={12} className="text-amber-500 animate-spin" />
+                )}
+            </button>
+
+            {isExpanded && step.thought && (
+                <div className="ml-5 mt-2 mb-3 text-sm text-gray-300 leading-relaxed border-l-2 border-indigo-500/30 pl-3">
+                    {step.thought}
+                </div>
+            )}
+
+            {/* 工具调用（如果有） */}
+            {step.tool && (
+                <div className="ml-5 flex items-center gap-2 py-1 text-sm">
+                    {step.isComplete && step.observation ? (
+                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    ) : (
+                        <Loader2 size={14} className="text-amber-500 animate-spin shrink-0" />
+                    )}
+                    <span className="text-gray-400">
+                        {step.observation ? '已完成' : '执行中'}
+                    </span>
+                    <span className="text-indigo-400 font-medium">命令行执行</span>
+                    <code className="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded font-mono truncate max-w-[400px]">
+                        {formatToolCommand(step.tool, step.toolInput)}
+                    </code>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps }) => {
     if (steps.length === 0) return null;
 
     return (
-        <div className="my-3 border border-indigo-500/30 bg-black/40 backdrop-blur-md rounded-xl overflow-hidden transition-all duration-300 shadow-lg shadow-indigo-900/20">
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors",
-                    isRunning && "bg-indigo-500/10"
-                )}
-            >
-                <div className="flex items-center gap-3">
-                    <div className={cn(
-                        "flex items-center justify-center w-6 h-6 rounded-md",
-                        isRunning ? "bg-indigo-500 text-white animate-pulse" : "bg-indigo-900/50 text-indigo-300"
-                    )}>
-                        <BrainCircuit size={14} />
-                    </div>
-
-                    <div className="flex flex-col items-start">
-                        <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider flex items-center gap-2">
-                            Agent Reasoning
-                            {isRunning && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
-                        </span>
-                        {isRunning && (
-                            <span className="text-[10px] text-indigo-400 font-mono">Executing Step {steps.length}...</span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-gray-400 font-mono border border-white/5">
-                        {steps.length} Actions
-                    </span>
-                    {isExpanded ? <ChevronDown size={14} className="text-gray-500" /> : <ChevronRight size={14} className="text-gray-500" />}
-                </div>
-            </button>
-
-            {isExpanded && (
-                <div className="px-4 pb-4 space-y-4 mt-2 border-t border-white/5 pt-4">
-                    {steps.map((step, idx) => (
-                        <div key={idx} className="relative pl-6 border-l border-indigo-500/20 last:border-transparent pb-2 group">
-                            {/* Timeline Dot */}
-                            <div className={cn(
-                                "absolute left-[-5px] top-1 w-2.5 h-2.5 rounded-full ring-2 ring-[#1e1e1e]",
-                                !step.isComplete ? "bg-amber-500 animate-pulse" : "bg-indigo-500"
-                            )} />
-
-                            {step.thought && (
-                                <div className="mb-3">
-                                    <div className="text-[10px] text-indigo-300/70 uppercase font-bold mb-1.5 flex items-center gap-1.5">
-                                        <Activity size={10} /> Thought Process
-                                    </div>
-                                    <p className="text-sm text-gray-300 leading-relaxed font-light tracking-wide bg-white/5 p-3 rounded-lg border border-white/5">
-                                        {step.thought}
-                                    </p>
-                                </div>
-                            )}
-
-                            {step.tool && (
-                                <div className="mb-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="text-[10px] text-amber-500 uppercase font-bold flex items-center gap-1.5">
-                                            <Terminal size={10} /> Executing Tool
-                                        </div>
-                                        <span className="text-[10px] font-mono text-gray-500">{step.tool}</span>
-                                    </div>
-
-                                    <div className="bg-[#0d0d0d] rounded-lg border border-white/10 overflow-hidden">
-                                        <div className="px-3 py-1.5 border-b border-white/5 bg-white/5 flex items-center gap-2">
-                                            <div className="flex gap-1">
-                                                <div className="w-2 h-2 rounded-full bg-red-500/20" />
-                                                <div className="w-2 h-2 rounded-full bg-yellow-500/20" />
-                                                <div className="w-2 h-2 rounded-full bg-green-500/20" />
-                                            </div>
-                                            <span className="text-[10px] text-gray-500 font-mono">Input Arguments</span>
-                                        </div>
-                                        <pre className="text-[11px] text-emerald-400 font-mono overflow-x-auto p-3 custom-scrollbar">
-                                            {step.toolInput}
-                                        </pre>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step.observation && (
-                                <div className="mt-2 animate-in fade-in zoom-in-95 duration-300">
-                                    <div className="text-[10px] text-emerald-500/70 uppercase font-bold mb-1.5 flex items-center gap-1.5">
-                                        <CheckCircle2 size={10} /> Tool Output
-                                    </div>
-                                    <div className="bg-[#1a1b26] p-3 rounded-lg border border-emerald-500/20 relative overflow-hidden group-hover:border-emerald-500/40 transition-colors">
-                                        <div className="absolute top-0 right-0 p-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50" />
-                                        </div>
-                                        <p className="font-mono text-[11px] text-gray-300 leading-tight whitespace-pre-wrap">
-                                            {step.observation.length > 300
-                                                ? step.observation.slice(0, 300) + '...'
-                                                : step.observation}
-                                        </p>
-                                        {step.observation.length > 300 && (
-                                            <button className="text-[10px] text-indigo-400 mt-2 hover:underline">
-                                                See full output
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
+        <div className="my-2 space-y-0.5">
+            {steps.map((step, idx) => (
+                <StepItem key={idx} step={step} index={idx} />
+            ))}
         </div>
     );
 };

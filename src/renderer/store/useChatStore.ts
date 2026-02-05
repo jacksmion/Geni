@@ -8,6 +8,7 @@ export interface AgentStep {
     toolInput?: string
     observation?: string
     isComplete: boolean
+    duration?: number // 耗时(毫秒)
 }
 
 export interface ChatMessage {

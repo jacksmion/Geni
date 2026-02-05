@@ -155,17 +155,23 @@ ${skillSummary}
                             console.error('Failed to parse tool args JSON:', tc.function.arguments);
                         }
 
+                        // 开始计时
+                        const startTime = Date.now();
+
                         // Record Step
                         steps.push({
-                            thought: currentContent, // Usually empty or brief context before tool call
+                            thought: currentContent,
                             tool: fnName,
                             toolInput: JSON.stringify(fnArgs),
                             isComplete: false
                         });
-                        onStepUpdate?.([...steps]); // Notify
+                        onStepUpdate?.([...steps]);
 
                         // Execute
                         const result = await this.toolRegistry.executeTool(fnName, fnArgs);
+
+                        // 计算耗时
+                        const duration = Date.now() - startTime;
 
                         // Feed back to LLM
                         messages.push({
@@ -175,8 +181,9 @@ ${skillSummary}
                         });
 
                         steps[steps.length - 1].observation = result.result;
-                        steps[steps.length - 1].isComplete = true; // Mark complete
-                        onStepUpdate?.([...steps]); // Notify again
+                        steps[steps.length - 1].isComplete = true;
+                        steps[steps.length - 1].duration = duration; // 记录耗时
+                        onStepUpdate?.([...steps]);
                     }
                     // Loop continues to let LLM see the result and respond
                 } else {
