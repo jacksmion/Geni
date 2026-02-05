@@ -20,5 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const subscription = (_: any, steps: any[]) => callback(steps)
         ipcRenderer.on('reply-trace', subscription)
         return () => ipcRenderer.removeListener('reply-trace', subscription)
-    }
+    },
+    selectDirectory: () => ipcRenderer.invoke('select-directory'),
+    selectFile: () => ipcRenderer.invoke('select-file')
 })

@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { SkillLoader } from './services/SkillLoader.js'
@@ -55,6 +55,11 @@ app.whenReady().then(async () => {
     const configManager = new ConfigManager()
     let appSettings = configManager.load()
 
+    // 初始化工作目录
+    if (!appSettings.workspacePath) {
+        appSettings.workspacePath = process.cwd()
+    }
+
     // 从配置中恢复技能状态
     const savedSkillSettings = appSettings.skillSettings || {}
     skills = skills.map(s => {
@@ -72,11 +77,16 @@ app.whenReady().then(async () => {
     const mcpManager = new McpManager(toolRegistry)
 
     // 1. Register Built-in Tools
+    const fsTool = new FileSystemTool(appSettings.workspacePath);
+    const editTool = new FileEditTool(appSettings.workspacePath);
+    const searchTool = new FileSearchTool(appSettings.workspacePath);
+    const fileTools = [fsTool, editTool, searchTool];
+
     toolRegistry.register(new PythonExecTool())
-    toolRegistry.register(new FileSystemTool(process.cwd()))
+    toolRegistry.register(fsTool)
     toolRegistry.register(new BashTool())
-    toolRegistry.register(new FileEditTool(process.cwd()))
-    toolRegistry.register(new FileSearchTool(process.cwd()))
+    toolRegistry.register(editTool)
+    toolRegistry.register(searchTool)
 
     // 2. Register SkillReaderTool (渐进式技能加载)
     const skillReaderTool = new SkillReaderTool()
@@ -115,6 +125,13 @@ app.whenReady().then(async () => {
     ipcMain.handle('get-settings', () => appSettings)
     ipcMain.handle('save-settings', (_, settings: AppSettings) => {
         console.log('[Main] Receiving new settings:', JSON.stringify(settings, null, 2))
+
+        // Check if workspacePath changed
+        if (settings.workspacePath && settings.workspacePath !== appSettings.workspacePath) {
+            console.log(`[Main] Workspace path changed to: ${settings.workspacePath}`);
+            fileTools.forEach(tool => tool.setRoot(settings.workspacePath));
+        }
+
         appSettings = { ...appSettings, ...settings }
         configManager.save(appSettings)
         return true
@@ -155,6 +172,26 @@ app.whenReady().then(async () => {
             return true;
         }
         return false;
+    });
+
+    ipcMain.handle('select-directory', async () => {
+        const result = await dialog.showOpenDialog({
+            properties: ['openDirectory']
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+            return result.filePaths[0];
+        }
+        return null;
+    });
+
+    ipcMain.handle('select-file', async () => {
+        const result = await dialog.showOpenDialog({
+            properties: ['openFile']
+        });
+        if (!result.canceled && result.filePaths.length > 0) {
+            return result.filePaths[0];
+        }
+        return null;
     });
 
     // IPC: Chat

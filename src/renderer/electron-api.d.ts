@@ -13,6 +13,8 @@ export interface IElectronAPI {
     mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
     onReplyStream: (callback: (chunk: string) => void) => () => void;
     onReplyTrace: (callback: (steps: any[]) => void) => () => void;
+    selectDirectory: () => Promise<string | null>;
+    selectFile: () => Promise<string | null>;
 }
 
 declare global {
