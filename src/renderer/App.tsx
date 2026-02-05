@@ -4,19 +4,15 @@ import Settings from './pages/Settings'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
 import { useChatStore } from './store/useChatStore'
-import { applyTheme } from './utils/theme'
+import { useSettingsStore } from './store/useSettingsStore'
 
 function App() {
     const { activeTab } = useChatStore()
+    const { loadSettings } = useSettingsStore()
 
     useEffect(() => {
-        // Load initial theme settings
-        window.electronAPI.getAppSettings().then(settings => {
-            if (settings?.accentColor) {
-                applyTheme(settings.accentColor);
-            }
-        }).catch(console.error);
-    }, []);
+        loadSettings()
+    }, [loadSettings])
 
     // Check for Electron Env
     if (!window.electronAPI) {
@@ -40,7 +36,7 @@ function App() {
             {activeTab === 'chat' ? (
                 <ChatLayout />
             ) : (
-                <main className="flex-1 overflow-auto bg-[#1e1e1e]/50">
+                <main className="flex-1 overflow-auto bg-transparent">
                     {activeTab === 'skills' && <SkillHub />}
                     {activeTab === 'settings' && <Settings />}
                 </main>

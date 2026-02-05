@@ -1,6 +1,7 @@
 import React from 'react'
-import { Bot, Settings, ToyBrick, MessageSquare } from 'lucide-react'
+import { Bot, Settings, ToyBrick, MessageSquare, Sun, Moon } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { clsx } from 'clsx'
 
 export function Sidebar() {
@@ -12,7 +13,8 @@ export function Sidebar() {
     ] as const
 
     return (
-        <aside className="w-18 flex flex-col items-center py-6 bg-black/20 backdrop-blur-xl border-r border-white/5 shrink-0 z-20 h-full">
+        <aside className="w-18 flex flex-col items-center py-6 backdrop-blur-xl border-r shrink-0 z-20 h-full transition-colors duration-300"
+            style={{ backgroundColor: 'var(--sidebar-bg)', borderColor: 'var(--sidebar-border)' }}>
             {/* Brand Icon */}
             <div className="mb-8 p-3 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20 ring-1 ring-white/10">
                 <Bot size={24} className="text-white" />
@@ -30,8 +32,10 @@ export function Sidebar() {
                 ))}
             </nav>
 
-            {/* Settings at Bottom */}
-            <div className="px-3 w-full">
+            {/* Bottom Actions */}
+            <div className="px-3 w-full flex flex-col gap-2">
+                <ThemeToggle />
+
                 <NavButton
                     isActive={activeTab === 'settings'}
                     onClick={() => setActiveTab('settings')}
@@ -42,6 +46,23 @@ export function Sidebar() {
     )
 }
 
+function ThemeToggle() {
+    const { settings, setTheme } = useSettingsStore()
+    const isDark = settings.theme === 'dark'
+
+    return (
+        <button
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            className="p-3 w-full flex justify-center rounded-xl transition-all duration-300 text-slate-500 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+            {isDark ? <Sun size={22} strokeWidth={1.5} /> : <Moon size={22} strokeWidth={1.5} />}
+        </button>
+    )
+}
+
+
+
 function NavButton({ isActive, onClick, icon: Icon }: { isActive: boolean, onClick: () => void, icon: any }) {
     return (
         <button
@@ -49,8 +70,8 @@ function NavButton({ isActive, onClick, icon: Icon }: { isActive: boolean, onCli
             className={clsx(
                 "p-3 w-full flex justify-center rounded-xl transition-all duration-300 group relative",
                 isActive
-                    ? "bg-white/10 text-white shadow-inner"
-                    : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
+                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
+                    : "text-slate-500 hover:bg-black/5 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5"
             )}
         >
             <Icon size={22} strokeWidth={1.5} />

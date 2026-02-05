@@ -23,7 +23,7 @@ export function MessageList() {
     }, [messages, messages.length, messages[messages.length - 1]?.content, messages[messages.length - 1]?.steps])
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-[50vh] space-y-8">
+        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-4 space-y-8">
             {messages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
@@ -42,12 +42,12 @@ function MessageItem({ message }: { message: ChatMessage }) {
         )}>
             {/* Avatar */}
             <div className={cn(
-                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-white/10",
+                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10",
                 isUser
-                    ? "bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-500/20"
-                    : "bg-gradient-to-br from-[#2d2d2d] to-[#1a1a1a] shadow-black/40"
+                    ? "bg-indigo-600 shadow-indigo-500/20"
+                    : "bg-white dark:bg-zinc-800 shadow-sm"
             )}>
-                {isUser ? <User size={20} className="text-white" /> : <Bot size={20} className="text-indigo-400" />}
+                {isUser ? <User size={20} className="text-white" /> : <Bot size={20} className="text-indigo-600 dark:text-indigo-400" />}
             </div>
 
             {/* Content */}
@@ -62,19 +62,19 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
                 {/* Message Bubble */}
                 <div className={cn(
-                    "p-6 rounded-3xl shadow-md backdrop-blur-md border leading-relaxed text-[15px] overflow-hidden",
+                    "p-6 rounded-3xl shadow-sm border leading-relaxed text-[15px] overflow-hidden",
                     isUser
-                        ? "bg-gradient-to-br from-indigo-600/90 to-violet-600/90 border-indigo-500/30 rounded-tr-none text-white shadow-indigo-900/10"
-                        : "bg-[#1A1A1A]/80 border-white/5 rounded-tl-none text-gray-200 shadow-black/20"
+                        ? "bg-indigo-600 border-indigo-500 rounded-tr-none text-white shadow-indigo-900/10"
+                        : "bg-white dark:bg-[#1A1A1A]/80 border-slate-200 dark:border-white/5 rounded-tl-none text-slate-700 dark:text-gray-200 shadow-black/5"
                 )}>
                     {isUser ? (
-                        <div className="whitespace-pre-wrap font-sans tracking-wide">{message.content}</div>
+                        <div className="whitespace-pre-wrap font-sans tracking-wide text-white/95">{message.content}</div>
                     ) : (
-                        <div className="prose prose-invert max-w-none 
-                            prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-gray-100 prose-headings:mt-6 prose-headings:mb-3 
-                            prose-p:leading-7 prose-p:text-gray-300 prose-p:mb-4
-                            prose-li:text-gray-300 prose-li:my-1
-                            prose-strong:text-indigo-300 prose-strong:font-semibold
+                        <div className="prose prose-slate dark:prose-invert max-w-none 
+                            prose-headings:font-semibold prose-headings:tracking-tight 
+                            prose-p:leading-7 prose-p:mb-4
+                            prose-li:my-1
+                            prose-strong:font-semibold
                             prose-pre:p-0 prose-pre:bg-transparent prose-pre:my-4 prose-pre:border-none">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
@@ -82,13 +82,13 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                     code({ node, inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
                                         return !inline && match ? (
-                                            <div className="rounded-lg overflow-hidden my-2 border border-white/10 shadow-lg bg-[#1e1e1e]">
-                                                <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5">
-                                                    <span className="text-xs text-gray-400 font-mono">{match[1]}</span>
+                                            <div className="rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-white/10 shadow-sm bg-slate-50 dark:bg-[#1e1e1e]">
+                                                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                                                    <span className="text-xs text-slate-500 dark:text-gray-400 font-mono">{match[1]}</span>
                                                     <div className="flex gap-1.5">
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20" />
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20" />
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/20" />
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/10" />
                                                     </div>
                                                 </div>
                                                 <SyntaxHighlighter
@@ -102,7 +102,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                                 </SyntaxHighlighter>
                                             </div>
                                         ) : (
-                                            <code className={cn("bg-white/10 px-1.5 py-0.5 rounded text-amber-200 font-mono text-[0.9em]", className)} {...props}>
+                                            <code className={cn("bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-rose-500 dark:text-amber-200 font-mono text-[0.9em]", className)} {...props}>
                                                 {children}
                                             </code>
                                         )
