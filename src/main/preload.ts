@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveAppSettings: (settings: any) => ipcRenderer.invoke('save-settings', settings),
     mcpConnect: (config: any) => ipcRenderer.invoke('mcp-connect', config),
     mcpListTools: () => ipcRenderer.invoke('mcp-list-tools'),
-    onReplyStream: (callback: (chunk: string) => void) => {
-        const subscription = (_: any, chunk: string) => callback(chunk)
+    onReplyStream: (callback: (chunk: string, reset?: boolean) => void) => {
+        const subscription = (_: any, chunk: string, reset?: boolean) => callback(chunk, reset)
         ipcRenderer.on('reply-stream', subscription)
         return () => ipcRenderer.removeListener('reply-stream', subscription)
     },

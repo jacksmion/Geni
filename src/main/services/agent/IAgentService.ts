@@ -24,7 +24,7 @@ export interface IAgentService {
         prompt: string,
         tools: ITool[],
         options?: AgentRunOptions,
-        onStream?: (chunk: string) => void,
+        onStream?: (chunk: string, reset?: boolean) => void,
         onStepUpdate?: (steps: any[]) => void
     ): Promise<AgentRunResult>;
 

@@ -77,14 +77,16 @@ app.whenReady().then(async () => {
     const mcpManager = new McpManager(toolRegistry)
 
     // 1. Register Built-in Tools
+    const pyTool = new PythonExecTool(appSettings.workspacePath);
     const fsTool = new FileSystemTool(appSettings.workspacePath);
     const editTool = new FileEditTool(appSettings.workspacePath);
     const searchTool = new FileSearchTool(appSettings.workspacePath);
-    const fileTools = [fsTool, editTool, searchTool];
+    const bashTool = new BashTool(appSettings.workspacePath);
+    const fileTools = [pyTool, fsTool, editTool, searchTool, bashTool];
 
-    toolRegistry.register(new PythonExecTool())
+    toolRegistry.register(pyTool)
     toolRegistry.register(fsTool)
-    toolRegistry.register(new BashTool())
+    toolRegistry.register(bashTool)
     toolRegistry.register(editTool)
     toolRegistry.register(searchTool)
 
@@ -199,8 +201,8 @@ app.whenReady().then(async () => {
     ipcMain.handle('send-message', async (event, text: string) => {
         console.log(`[Main] Agent Request: ${text}`)
 
-        const onStream = (chunk: string) => {
-            event.sender.send('reply-stream', chunk);
+        const onStream = (chunk: string, reset?: boolean) => {
+            event.sender.send('reply-stream', chunk, reset);
         }
 
         const onStepUpdate = (steps: any[]) => {

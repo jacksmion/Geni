@@ -73,10 +73,10 @@ export function Composer() {
         clearPendingAttachments()
 
         // 3. Setup Stream Listeners
-        const cleanupStream = window.electronAPI.onReplyStream((chunk: string) => {
+        const cleanupStream = window.electronAPI.onReplyStream((chunk: string, reset?: boolean) => {
             updateLastMessage((msg) => ({
                 ...msg,
-                content: msg.content + chunk
+                content: reset ? chunk : msg.content + chunk
             }))
         })
 

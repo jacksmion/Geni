@@ -4,6 +4,15 @@ import os from 'os';
 
 export class BashTool implements ITool {
     requireConfirmation = true;
+    private allowedRoot: string;
+
+    constructor(rootPath: string = process.cwd()) {
+        this.allowedRoot = rootPath;
+    }
+
+    public setRoot(newRoot: string) {
+        this.allowedRoot = newRoot;
+    }
 
     getDefinition(): ToolDefinition {
         const isWindows = os.platform() === 'win32';
@@ -34,7 +43,7 @@ Use this to run system tools, git commands, or npm scripts.`,
     async execute(args: any): Promise<ToolExecutionResult> {
         return new Promise((resolve) => {
             const command = args.command;
-            const cwd = args.cwd || process.cwd();
+            const cwd = args.cwd || this.allowedRoot;
 
             // Detect OS and select appropriate shell
             const isWindows = os.platform() === 'win32';

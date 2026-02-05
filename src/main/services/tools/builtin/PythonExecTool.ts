@@ -6,12 +6,18 @@ import os from 'os';
 
 export class PythonExecTool implements ITool {
     private tempDir: string;
+    private rootPath: string;
 
-    constructor() {
+    constructor(rootPath: string = process.cwd()) {
+        this.rootPath = rootPath;
         this.tempDir = path.join(os.tmpdir(), 'assistant-core-scripts');
         if (!fs.existsSync(this.tempDir)) {
             fs.mkdirSync(this.tempDir, { recursive: true });
         }
+    }
+
+    public setRoot(newRoot: string) {
+        this.rootPath = newRoot;
     }
 
     getDefinition(): ToolDefinition {
@@ -57,7 +63,9 @@ export class PythonExecTool implements ITool {
         fs.writeFileSync(scriptPath, code);
 
         return new Promise((resolve, reject) => {
-            const pyProcess = spawn('python', [scriptPath]);
+            const pyProcess = spawn('python', [scriptPath], {
+                cwd: this.rootPath
+            });
 
             let stdout = '';
             let stderr = '';

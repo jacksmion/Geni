@@ -21,7 +21,7 @@ export class OpenAIAgentService implements IAgentService {
         prompt: string,
         tools: ITool[],
         options?: AgentRunOptions,
-        onStream?: (chunk: string) => void,
+        onStream?: (chunk: string, reset?: boolean) => void,
         onStepUpdate?: (steps: any[]) => void
     ): Promise<AgentRunResult> {
         // 获取当前激活的提供商配置（兼容旧配置结构）
@@ -89,6 +89,10 @@ ${skillSummary}
                 if (options?.signal?.aborted) {
                     throw new Error('Agent execution aborted by user.');
                 }
+
+                // 每个回合开始时，通知渲染进程重置内容缓冲区
+                // 这样思考过程（Thought）就不会和最终结果（Final Answer）堆积在主输入框里
+                onStream?.('', true);
 
                 loopCount++;
 
