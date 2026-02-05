@@ -51,11 +51,21 @@ app.whenReady().then(async () => {
     const loader = new SkillLoader(skillsDir)
     let skills: Skill[] = await loader.loadSkills()
 
-    ipcMain.handle('get-skills', () => skills)
-
     // Services Init
     const configManager = new ConfigManager()
     let appSettings = configManager.load()
+
+    // 从配置中恢复技能状态
+    const savedSkillSettings = appSettings.skillSettings || {}
+    skills = skills.map(s => {
+        const saved = savedSkillSettings[s.id]
+        if (saved) {
+            return { ...s, enabled: saved.enabled, trustLevel: saved.trustLevel }
+        }
+        return s
+    })
+
+    ipcMain.handle('get-skills', () => skills)
 
     // Tools & Agent
     const toolRegistry = new ToolRegistry()
@@ -76,16 +86,28 @@ app.whenReady().then(async () => {
     // 3. Initialize Agent
     const agentService = new OpenAIAgentService(appSettings, toolRegistry)
 
-    // IPC: Skills (需要在 skillReaderTool 创建后定义，以便同步更新)
+    // 辅助函数：保存技能状态到配置
+    const saveSkillSettings = () => {
+        const skillSettings: Record<string, { enabled: boolean; trustLevel: 'Ask' | 'Auto' }> = {}
+        skills.forEach(s => {
+            skillSettings[s.id] = { enabled: s.enabled, trustLevel: s.trustLevel }
+        })
+        appSettings = { ...appSettings, skillSettings }
+        configManager.save(appSettings)
+    }
+
+    // IPC: Skills
     ipcMain.handle('toggle-skill', (_, id: string) => {
         skills = skills.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s)
-        skillReaderTool.setSkills(skills) // 同步更新 SkillReaderTool
+        skillReaderTool.setSkills(skills)
+        saveSkillSettings()
         return skills
     })
 
     ipcMain.handle('set-trust-level', (_, id: string, level: 'Ask' | 'Auto') => {
         skills = skills.map(s => s.id === id ? { ...s, trustLevel: level } : s)
         skillReaderTool.setSkills(skills)
+        saveSkillSettings()
         return skills
     })
 

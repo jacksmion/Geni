@@ -12,8 +12,15 @@ export interface LLMSettings {
     providers: Record<string, ProviderConfig>;
 }
 
+// 技能状态配置
+export interface SkillState {
+    enabled: boolean;
+    trustLevel: 'Ask' | 'Auto';
+}
+
 export interface AppSettings {
     llm: LLMSettings;
+    skillSettings: Record<string, SkillState>; // 技能ID -> 状态
     theme: 'dark' | 'light' | 'system';
 }
 
@@ -50,5 +57,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
         activeProvider: 'OpenAI',
         providers: { ...DEFAULT_PROVIDER_CONFIGS },
     },
+    skillSettings: {}, // 技能状态默认为空，将在加载技能时填充
     theme: 'dark',
 };
