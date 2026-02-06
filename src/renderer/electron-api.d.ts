@@ -21,6 +21,7 @@ export interface IElectronAPI {
     saveSession: (session: any) => Promise<boolean>;
     deleteSession: (id: string) => Promise<boolean>;
     openExplorer: (path: string) => Promise<void>;
+    testLLMConnection: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
 }
 
 

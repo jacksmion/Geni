@@ -300,6 +300,44 @@ app.whenReady().then(async () => {
         }
     })
 
+    // IPC: LLM Test Connection
+    ipcMain.handle('llm-test-connection', async (_, config: { apiKey: string, baseUrl: string, model: string }) => {
+        try {
+            console.log('[Main] Testing LLM Connection:', { ...config, apiKey: '***' });
+
+            // Dynamic import to avoid top-level dependency issues if not needed elsewhere, 
+            // though OpenAI is likely already imported. 
+            // Since we need to instantiate it:
+            const { OpenAI } = await import('openai');
+
+            const client = new OpenAI({
+                apiKey: config.apiKey || 'sk-dummy', // Some local providers require non-empty key
+                baseURL: config.baseUrl,
+                dangerouslyAllowBrowser: true
+            });
+
+            // Attempt to list models as a lightweight connectivity check
+            try {
+                await client.models.list();
+                return { success: true, message: 'Connection successful! (Model list accessible)' };
+            } catch (e: any) {
+                // If list models fails (some providers might not support it), try a minimal completion
+                console.warn('[Main] Model list failed, trying completion:', e.message);
+
+                await client.chat.completions.create({
+                    model: config.model || 'gpt-3.5-turbo',
+                    messages: [{ role: 'user', content: 'Hi' }],
+                    max_tokens: 1
+                });
+                return { success: true, message: 'Connection successful! (Chat completion works)' };
+            }
+
+        } catch (error: any) {
+            console.error('[Main] LLM Test Failed:', error);
+            return { success: false, message: error.message || 'Connection failed' };
+        }
+    })
+
     // IPC: Chat History
     const chatHistoryManager = new ChatHistoryManager();
 

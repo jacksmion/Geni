@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSessionMessages: (id: string) => ipcRenderer.invoke('get-session-messages', id),
     saveSession: (session: any) => ipcRenderer.invoke('save-session', session),
     deleteSession: (id: string) => ipcRenderer.invoke('delete-session', id),
-    openExplorer: (path: string) => ipcRenderer.invoke('open-explorer', path)
+    openExplorer: (path: string) => ipcRenderer.invoke('open-explorer', path),
+    testLLMConnection: (config: any) => ipcRenderer.invoke('llm-test-connection', config)
 })
 
