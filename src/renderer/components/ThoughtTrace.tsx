@@ -32,7 +32,25 @@ const getToolIcon = (toolName: string) => {
 
 // Format tool display name
 const formatToolName = (tool: string): string => {
-    // Make it look like a namespace: @builtin/tool_name
+    // Check for MCP signature (double underscore)
+    if (tool.includes('__')) {
+        const parts = tool.split('__');
+        if (parts.length >= 3 && parts[0] === 'mcp') {
+            const serverId = parts[1];
+            const actualToolName = parts.slice(2).join('__'); // Handle cases if tool name has __
+            return `@${serverId}/${actualToolName}`;
+        }
+    }
+
+    // Check for "old" style MCP (single underscore prefix from previous step)
+    // We can't perfectly distinguish without the explicit 'mcp__' prefix, 
+    // but we can try to handle the previous safePrefix format if needed. 
+    // For now, let's assume 'tool' names with no slashes are built-in or legacy.
+
+    // If it already has a slash (unlikely from OpenAI, but maybe from internal mapping), return as is
+    if (tool.includes('/')) return tool;
+
+    // Default: Assume built-in if no special prefix found
     return `@builtin/${tool}`;
 };
 

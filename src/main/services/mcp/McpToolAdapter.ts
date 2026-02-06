@@ -7,14 +7,19 @@ export class McpToolAdapter implements ITool {
     private mcpToolName: string;
     private definition: ToolDefinition;
 
-    constructor(client: Client, mcpToolName: string, mcpSchema: any, description: string) {
+    constructor(serverId: string, client: Client, mcpToolName: string, mcpSchema: any, description: string) {
         this.client = client;
         this.mcpToolName = mcpToolName;
 
+        // Sanitize serverId (only alphanumeric + underscore)
+        const safePrefix = serverId.replace(/[^a-zA-Z0-9_]/g, '_');
+
         // Map MCP Schema to our ToolDefinition
+        // Name format: mcp__{serverId}__{toolName}
+        // This convention allows the UI to parse it back to @serverId/toolName
         this.definition = {
-            name: mcpToolName, // You might want to prefix this (e.g. "mcp_server_sql_query")
-            description: description || "Imported MCP Tool",
+            name: `mcp__${safePrefix}__${mcpToolName}`,
+            description: description || `Tool from MCP server: ${serverId}`,
             input_schema: mcpSchema
         };
     }

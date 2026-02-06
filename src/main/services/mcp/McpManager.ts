@@ -60,6 +60,7 @@ export class McpManager {
             // For now, let's keep original name but handle with care
             const schema = tool.inputSchema;
             const adapter = new McpToolAdapter(
+                serverId,
                 client,
                 tool.name,
                 schema,

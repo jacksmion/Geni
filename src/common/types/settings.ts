@@ -18,9 +18,19 @@ export interface SkillState {
     trustLevel: 'Ask' | 'Auto';
 }
 
+// MCP Server Configuration
+export interface IMcpServerConfig {
+    id: string;
+    command: string;
+    args: string[];
+    env?: Record<string, string>;
+    enabled: boolean;
+}
+
 export interface AppSettings {
     llm: LLMSettings;
     skillSettings: Record<string, SkillState>; // 技能ID -> 状态
+    mcpServers: IMcpServerConfig[]; // Added MCP servers list
     workspacePath: string; // 当前工作空间路径
     theme: 'dark' | 'light' | 'system';
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
@@ -31,7 +41,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     'OpenAI': {
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
-        model: 'gpt-4o',
+        model: 'gpt-3.5-turbo',
         temperature: 0.7,
     },
     'Anthropic': {
@@ -60,6 +70,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
         providers: { ...DEFAULT_PROVIDER_CONFIGS },
     },
     skillSettings: {}, // 技能状态默认为空，将在加载技能时填充
+    mcpServers: [], // Default empty list
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'dark',
     accentColor: 'indigo',

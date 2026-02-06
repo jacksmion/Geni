@@ -103,6 +103,27 @@ app.whenReady().then(async () => {
     // 3. Initialize Agent
     const agentService = new OpenAIAgentService(appSettings, toolRegistry)
 
+    // 4. Initialize MCP from Settings
+    const initMcpServers = async () => {
+        if (appSettings.mcpServers) {
+            for (const server of appSettings.mcpServers) {
+                if (server.enabled) {
+                    try {
+                        await mcpManager.connectToServer({
+                            id: server.id,
+                            command: server.command,
+                            args: server.args,
+                            env: server.env
+                        });
+                    } catch (e) {
+                        console.error(`[Main] Failed to auto-connect MCP server ${server.id}:`, e);
+                    }
+                }
+            }
+        }
+    };
+    initMcpServers(); // Initial Load
+
     // 辅助函数：保存技能状态到配置
     const saveSkillSettings = () => {
         const skillSettings: Record<string, { enabled: boolean; trustLevel: 'Ask' | 'Auto' }> = {}
@@ -130,13 +151,35 @@ app.whenReady().then(async () => {
 
     // IPC: Settings
     ipcMain.handle('get-settings', () => appSettings)
-    ipcMain.handle('save-settings', (_, settings: AppSettings) => {
+    ipcMain.handle('save-settings', async (_, settings: AppSettings) => {
         console.log('[Main] Receiving new settings:', JSON.stringify(settings, null, 2))
 
         // Check if workspacePath changed
         if (settings.workspacePath && settings.workspacePath !== appSettings.workspacePath) {
             console.log(`[Main] Workspace path changed to: ${settings.workspacePath}`);
             fileTools.forEach(tool => tool.setRoot(settings.workspacePath));
+        }
+
+        // Handle MCP Server Changes (Simple Approach: Disconnect All -> Reconnect Enabled)
+        // Optimization: In a real app, diff changes. For now, full safety reset is easier implies cleanliness.
+        if (settings.mcpServers && JSON.stringify(settings.mcpServers) !== JSON.stringify(appSettings.mcpServers)) {
+            console.log('[Main] MCP Config changed, reloading connections...');
+            await mcpManager.disconnectAll();
+
+            for (const server of settings.mcpServers) {
+                if (server.enabled) {
+                    try {
+                        await mcpManager.connectToServer({
+                            id: server.id,
+                            command: server.command,
+                            args: server.args,
+                            env: server.env
+                        });
+                    } catch (e) {
+                        console.error(`[Main] Failed to reconnect MCP server ${server.id}:`, e);
+                    }
+                }
+            }
         }
 
         appSettings = { ...appSettings, ...settings }
