@@ -16,6 +16,7 @@ export interface AgentStartRequest {
 
 export interface AgentStartResponse {
     success: boolean;
+    sessionId?: string; // Add this
     error?: string;
 }
 
@@ -34,5 +35,5 @@ export interface AgentStreamEventPayload {
 }
 
 export interface AgentStepEventPayload {
-    steps: AgentStep[]; // TODO: Define AgentStep in common types if not already
+    steps: any[]; // Changed back
 }

@@ -84,7 +84,7 @@ export class AgentController {
             this.currentSessionId = sid;
 
             // 2. Prepare Context from Session
-            const history = this.sessionManager.getHistory(sid);
+            const history = await this.sessionManager.getHistory(sid);
 
             // 3. Setup AbortController
             const controller = new AbortController();
@@ -128,11 +128,11 @@ export class AgentController {
             // 7. Update Session History
             if (result.newMessages) {
                 for (const msg of result.newMessages) {
-                    this.sessionManager.addMessage(sid, msg);
+                    await this.sessionManager.addMessage(sid, msg as any);
                 }
             }
 
-            return { success: true };
+            return { success: true, sessionId: sid };
 
         } catch (error: any) {
             console.error('Agent execution failed:', error);
