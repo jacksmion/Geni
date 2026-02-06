@@ -117,18 +117,18 @@
         - 支持 OpenAI、Anthropic、DeepSeek、Local (Ollama) 等提供商
         - DeepSeek/Local 使用 OpenAI 兼容接口
 
-## Phase 3: Skill 系统重构 (Skill System 2.0)
+## Phase 3: Skill 系统重构 (Skill System 2.0) ✅ COMPLETED
 
 > **目标**: 实现 "Skill as Data" 理念，区分 Tool (函数) 和 Skill (知识)。
 
-- [ ] **3.1 实现 SkillObject 模型与 Parser**
+- [x] **3.1 实现 SkillObject 模型与 Parser**
     - **文件**: `src/main/services/skills/core/SkillParser.ts`
     - **设计**:
         - 解析 `SKILL.md` 的 Frontmatter (yaml)。
         - 验证必填字段: `id`, `name`, `description`, `version`。
         - 读取 Markdown 正文作为 `instruction`。
 
-- [ ] **3.2 实现 SkillRegistry (注册中心)**
+- [x] **3.2 实现 SkillRegistry (注册中心)**
     - **文件**: `src/main/services/skills/core/SkillRegistry.ts`
     - **功能**:
         - `register(skill: SkillObject)`
@@ -136,7 +136,7 @@
         - `getAll(): SkillObject[]`
         - 支持从文件系统扫描 (`Repository` 模式)。
 
-- [ ] **3.3 改造 SkillReader (运行时注入)**
+- [x] **3.3 改造 SkillReader (运行时注入)**
     - **文件**: `src/main/services/skills/runtime/SkillReader.ts` (原 SkillReaderTool)
     - **逻辑变更**:
         - 这是一个原子工具 (`tool_type: function`)。
