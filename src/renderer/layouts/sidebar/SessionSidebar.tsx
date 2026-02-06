@@ -72,21 +72,17 @@ export function SessionSidebar() {
             {/* Header: Title + Actions & Search */}
             <div className="px-4 pt-5 pb-3 space-y-4">
                 {/* Section Header */}
-                <div className="flex items-center justify-between group/header">
+                <div className="flex items-center justify-between">
                     <h2 className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-zinc-600 select-none">
                         Recent Chats
                     </h2>
                     <button
                         onClick={() => createSession()}
-                        className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-all opacity-0 group-hover/header:opacity-100 focus:opacity-100"
+                        className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
                         title="新建话题"
                     >
                         <Plus size={16} strokeWidth={2.5} />
                     </button>
-                    {/* Visual cue for new chat - non-interactive placeholder that fades out on hover */}
-                    <div className="group-hover/header:hidden">
-                        <Plus size={14} className="text-slate-200 dark:text-zinc-800" />
-                    </div>
                 </div>
 
                 {/* Search Bar - More integrated */}
