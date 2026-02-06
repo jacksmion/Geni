@@ -13,7 +13,7 @@
 import { ITool } from '../../../common/types/tool';
 import { Skill } from '../../../common/types/skill';
 import { AppSettings } from '../../../common/types/settings';
-import { ChatMessage } from '../../../common/types/chat';
+import { ChatMessage } from '../llm/IChatModel';
 
 export interface AgentRunOptions {
     model?: string;
@@ -24,9 +24,18 @@ export interface AgentRunOptions {
     signal?: AbortSignal;
 }
 
+export interface AgentStep {
+    thought: string;
+    tool: string;
+    toolInput: string;
+    observation?: string;
+    isComplete: boolean;
+    duration?: number;
+}
+
 export interface AgentRunResult {
     finalAnswer: string;
-    steps: any[]; // To be rigorously typed later
+    steps: AgentStep[];
 }
 
 export interface IAgentService {

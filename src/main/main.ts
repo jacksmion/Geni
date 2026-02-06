@@ -29,6 +29,7 @@ import { McpManager } from './services/tools/mcp/McpManager.js'
 
 // Storage
 import { ChatHistoryManager } from './services/storage/ChatHistoryManager.js'
+import { AppRouter } from './router.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -111,7 +112,12 @@ app.whenReady().then(async () => {
     toolRegistry.register(skillReaderTool)
 
     // 3. Initialize Agent
-    const agentService = new AgentRuntime(appSettings, toolRegistry)
+    const agentService = new AgentRuntime(appSettings, toolRegistry) // Legacy instance (keep for now if needed by old IPC)
+
+    // Phase 5: Initialize AppRouter
+    const appRouter = new AppRouter(appSettings, toolRegistry);
+    appRouter.initialize();
+
 
     // 4. Initialize MCP from Settings
     const initMcpServers = async () => {

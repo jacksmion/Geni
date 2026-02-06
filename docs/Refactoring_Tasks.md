@@ -172,3 +172,35 @@
     - **功能**:
         - 当上下文超过阈值（如 80% Token Limit），触发后台摘要任务。
         - 使用模型将旧对话压缩为摘要，替换原始历史记录。
+
+## Phase 5: 应用层对接 (Application Layer)
+
+> **目标**: 构建 Electron IPC 通信层，将 Agent 能力暴露给前端 UI。
+
+- [x] **5.1 设计 IPC 通信协议**
+    - **文件**: `src/common/ipc/channels.ts` & `src/common/types/agentEvents.ts`
+    - **内容**:
+        - 定义 Channel 常量 (e.g., `AGENT_START`, `AGENT_STOP`, `SESSION_CREATE`).
+        - 定义 Request/Response 类型接口.
+        - 定义 Event 类型 (e.g., `token`, `state`, `step`).
+
+- [x] **5.2 实现 AgentController**
+    - **文件**: `src/main/controllers/AgentController.ts`
+    - **职责**:
+        - 接收 IPC 请求。
+        - 实例化或复用 `AgentRuntime`。
+        - 桥接 `onStream` / `onStepUpdate` 回调到 `WebContents.send`。
+        - 处理错误并返回标准化响应。
+
+- [x] **5.3 实现 SessionController**
+    - **文件**: `src/main/controllers/SessionController.ts`
+    - **职责**:
+        - 处理会话的创建、列出、删除。
+        - 获取会话历史记录。
+
+- [x] **5.4 注册主进程路由 (AppRouter)**
+    - **文件**: `src/main/router.ts` (或 `src/main/ipc.ts`)
+    - **职责**:
+        - 统一注册所有 Controller 的 `ipcMain.handle`。
+        - 确保单例模式的依赖注入 (Service Container)。
+
