@@ -4,6 +4,11 @@ import { ToolRegistry } from './services/tools/ToolRegistry';
 import { SessionManager } from './services/session';
 import { AgentController } from './controllers/AgentController';
 import { SessionController } from './controllers/SessionController';
+import { SystemController } from './controllers/SystemController';
+import { ToolController } from './controllers/ToolController';
+import { ConfigManager } from './services/ConfigManager';
+import { SkillRegistry } from './services/skills/core/SkillRegistry';
+import { McpManager } from './services/tools/mcp/McpManager';
 
 /**
  * App Router
@@ -14,20 +19,46 @@ import { SessionController } from './controllers/SessionController';
 export class AppRouter {
     private agentController: AgentController;
     private sessionController: SessionController;
+    private systemController: SystemController;
+    private toolController: ToolController;
+
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
+    private skillRegistry: SkillRegistry;
+    private mcpManager: McpManager;
+    private configManager: ConfigManager;
 
     constructor(
-        settings: AppSettings,
-        toolRegistry: ToolRegistry
+        configManager: ConfigManager,
+        toolRegistry: ToolRegistry,
+        skillRegistry: SkillRegistry,
+        mcpManager: McpManager
     ) {
-        // Initialize Core Services
-        this.sessionManager = new SessionManager();
+        // Services
+        this.configManager = configManager;
         this.toolRegistry = toolRegistry;
+        this.skillRegistry = skillRegistry;
+        this.mcpManager = mcpManager;
+        this.sessionManager = new SessionManager();
 
-        // Initialize Controllers
-        this.agentController = new AgentController(settings, this.toolRegistry, this.sessionManager);
+        const settings = this.configManager.load();
+
+        // Controllers
+        this.systemController = new SystemController(this.configManager);
+        this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager);
+
+        this.agentController = new AgentController(
+            settings,
+            this.toolRegistry,
+            this.sessionManager,
+            this.toolController
+        );
         this.sessionController = new SessionController(this.sessionManager);
+
+        // Wiring
+        this.systemController.setSettingsChangeCallback((newSettings) => {
+            this.agentController.updateSettings(newSettings);
+        });
     }
 
     /**
@@ -36,6 +67,9 @@ export class AppRouter {
     public initialize(): void {
         this.agentController.registerHandlers();
         this.sessionController.registerHandlers();
+        this.systemController.registerHandlers();
+        this.toolController.registerHandlers();
+
         console.log('[AppRouter] IPC handlers registered.');
     }
 }

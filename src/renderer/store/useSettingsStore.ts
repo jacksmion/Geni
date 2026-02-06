@@ -19,7 +19,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     loadSettings: async () => {
         try {
-            const data = await window.electronAPI.getAppSettings();
+            const data = await window.electronAPI.system.getSettings();
             if (data) {
                 set({ settings: data, isLoading: false });
 
@@ -56,7 +56,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         }
 
         // Persist
-        await window.electronAPI.saveAppSettings(newSettings);
+        await window.electronAPI.system.saveSettings(newSettings);
     },
 
     setAccentColor: async (color) => {
@@ -66,7 +66,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         set({ settings: newSettings });
         applyTheme(color);
 
-        await window.electronAPI.saveAppSettings(newSettings);
+        await window.electronAPI.system.saveSettings(newSettings);
     },
 
     updateSettings: async (partial) => {
@@ -74,6 +74,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const newSettings = { ...settings, ...partial };
 
         set({ settings: newSettings });
-        await window.electronAPI.saveAppSettings(newSettings);
+        await window.electronAPI.system.saveSettings(newSettings);
     }
 }));

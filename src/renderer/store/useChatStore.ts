@@ -7,6 +7,7 @@ interface ChatState {
     isSending: boolean
     activeTab: 'chat' | 'skills' | 'settings'
     pendingAttachments: string[]
+    currentAgentEvent: any | null
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -17,6 +18,7 @@ interface ChatState {
     addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
     setSending: (sending: boolean) => void
+    setAgentEvent: (event: any | null) => void
     setActiveTab: (tab: 'chat' | 'skills' | 'settings') => void
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
@@ -47,11 +49,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     isSending: false,
     activeTab: 'chat',
     pendingAttachments: [],
+    currentAgentEvent: null,
 
     loadHistory: async () => {
         try {
             // Load list (metadata only)
-            const list = await window.electronAPI.getSessionList();
+            const list = await window.electronAPI.session.list();
 
             // Convert to Record
             const sessions: Record<string, ChatSession> = {};
@@ -65,7 +68,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 set({ sessions, activeSessionId: activeId });
 
                 // Lazy load active session messages
-                const messages = await window.electronAPI.getSessionMessages(activeId);
+                const messages = await window.electronAPI.session.getHistory(activeId);
                 set(state => ({
                     sessions: {
                         ...state.sessions,
@@ -74,8 +77,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }));
             } else {
                 // Init default if empty
-                const defaultSes = createDefaultSession();
-                await window.electronAPI.saveSession(defaultSes);
+                // Create via backend
+                const newSes = await window.electronAPI.session.create();
+                // Save title/defaults
+                const defaultSes: ChatSession = {
+                    id: newSes.id,
+                    title: '新对话',
+                    createdAt: newSes.createdAt,
+                    updatedAt: newSes.createdAt,
+                    messages: [{
+                        id: 'init-1',
+                        role: 'assistant',
+                        content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
+                        timestamp: Date.now()
+                    }]
+                };
+
+                // We need to save the initial message to backend? 
+                // SessionManager.createSession initializes empty history.
+                // We want the welcome message.
+                // Backend assumes empty.
+                // We can't easily push a message via API without "running" agent or using a "addMessage" API?
+                // For now, let's just set it in local state. Backend will sync when user sends a message.
+                // OR we accept that new sessions are empty on backend until interaction.
+
+                await window.electronAPI.session.save({ id: defaultSes.id, title: defaultSes.title });
+
                 set({
                     sessions: { [defaultSes.id]: defaultSes },
                     activeSessionId: defaultSes.id
@@ -87,11 +114,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     createSession: async (title) => {
-        const newSession = createDefaultSession();
-        if (title) newSession.title = title;
+        const backendSes = await window.electronAPI.session.create();
 
-        // Save to backend
-        await window.electronAPI.saveSession(newSession);
+        const newSession: ChatSession = {
+            id: backendSes.id,
+            title: title || '新对话',
+            createdAt: backendSes.createdAt,
+            updatedAt: backendSes.createdAt,
+            messages: [{
+                id: 'init-' + backendSes.id,
+                role: 'assistant',
+                content: '你好！我是 MUSE，你的个人智能助手。',
+                timestamp: Date.now()
+            }]
+        };
+
+        // Save title
+        await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
 
         set(state => ({
             sessions: { ...state.sessions, [newSession.id]: newSession },
@@ -107,10 +146,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (session) {
             set({ activeSessionId: id, activeTab: 'chat' });
 
-            // Lazy load if messages empty
+            // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
-                const messages = await window.electronAPI.getSessionMessages(id);
-                if (messages && messages.length > 0) {
+                const messages = await window.electronAPI.session.getHistory(id);
+                // If backend has messages, use them
+                if (messages) {
                     set(state => ({
                         sessions: {
                             ...state.sessions,
@@ -123,7 +163,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     deleteSession: async (id) => {
-        await window.electronAPI.deleteSession(id);
+        await window.electronAPI.session.delete(id);
 
         set(state => {
             const { [id]: deleted, ...rest } = state.sessions;
@@ -136,10 +176,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     // Trigger load for next session
                     get().switchSession(nextActiveId);
                 } else {
-                    const newSes = createDefaultSession();
-                    window.electronAPI.saveSession(newSes);
-                    rest[newSes.id] = newSes;
-                    nextActiveId = newSes.id;
+                    // Create new locally to avoid async recursion issues if possible, or just call create
+                    // Since create is async, we can't easily do it inside reducer seamlessly.
+                    // We'll set activeId to empty and let UI handle or trigger creation.
+                    // Or cheat:
+                    setTimeout(() => get().createSession(), 0);
+                    nextActiveId = '';
                 }
             }
             return { sessions: rest, activeSessionId: nextActiveId };
@@ -152,7 +194,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (!session) return state;
 
             const updated = { ...session, title: newTitle };
-            window.electronAPI.saveSession(updated); // Async save
+            window.electronAPI.session.save({ id, title: newTitle }); // Async save
 
             return {
                 sessions: { ...state.sessions, [id]: updated }
@@ -182,10 +224,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const potentialTitle = msg.content.trim().slice(0, 20);
                 if (potentialTitle) {
                     updatedSession.title = potentialTitle;
+                    window.electronAPI.session.save({ id: session.id, title: potentialTitle });
                 }
             }
 
-            window.electronAPI.saveSession(updatedSession); // Save single session
+            // DO NOT save session history here, backend handles it during Agent execution.
+            // We only update local state for immediate feedback.
 
             return {
                 sessions: { ...state.sessions, [state.activeSessionId]: updatedSession }
@@ -204,7 +248,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             const updatedSession = { ...session, messages: msgs, updatedAt: Date.now() };
 
-            window.electronAPI.saveSession(updatedSession);
+            // No save needed to backend for streaming updates
 
             return {
                 sessions: { ...state.sessions, [state.activeSessionId]: updatedSession }
@@ -213,6 +257,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     setSending: (isSending) => set({ isSending }),
+    setAgentEvent: (currentAgentEvent) => set({ currentAgentEvent }),
     setActiveTab: (activeTab) => set({ activeTab }),
 
     addPendingAttachment: (path) => set((state) => ({

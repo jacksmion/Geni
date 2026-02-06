@@ -29,24 +29,24 @@ export function Composer() {
     // Load initial settings
     useEffect(() => {
         const loadSettings = async () => {
-            const settings: AppSettings = await window.electronAPI.getAppSettings()
+            const settings: AppSettings = await window.electronAPI.system.getSettings()
             setWorkspacePath(settings.workspacePath || '选择工作目录...')
         }
         loadSettings()
     }, [])
 
     const handleSelectDirectory = async () => {
-        const path = await window.electronAPI.selectDirectory()
+        const path = await window.electronAPI.system.selectDirectory()
         if (path) {
             setWorkspacePath(path)
             // Save to settings
-            const settings: AppSettings = await window.electronAPI.getAppSettings()
-            await window.electronAPI.saveAppSettings({ ...settings, workspacePath: path })
+            const settings: AppSettings = await window.electronAPI.system.getSettings()
+            await window.electronAPI.system.saveSettings({ ...settings, workspacePath: path })
         }
     }
 
     const handleSelectFile = async () => {
-        const path = await window.electronAPI.selectFile()
+        const path = await window.electronAPI.system.selectFile()
         if (path) {
             addPendingAttachment(path)
         }
@@ -57,10 +57,6 @@ export function Composer() {
 
         const currentSession = sessions[activeSessionId]
         if (!currentSession) return
-
-        // Get history (excluding system messages or special cases if needed)
-        // We pass the existing messages as history
-        const history = currentSession.messages
 
         let finalPrompt = input
 
@@ -82,30 +78,41 @@ export function Composer() {
         clearPendingAttachments()
 
         // 3. Setup Stream Listeners
-        const cleanupStream = window.electronAPI.onReplyStream((chunk: string, reset?: boolean) => {
+        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
             updateLastMessage((msg) => ({
                 ...msg,
                 content: reset ? chunk : msg.content + chunk
             }))
         })
 
-        const cleanupTrace = window.electronAPI.onReplyTrace((steps: any[]) => {
+        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
             updateLastMessage((msg) => ({
                 ...msg,
                 steps: steps
             }))
         })
 
-        try {
-            // Pass history to backend
-            const response = await window.electronAPI.sendMessage(finalPrompt, history)
-
-            // 4. Update with final structured data (thoughts, steps)
+        const cleanupError = window.electronAPI.agent.onError((err: any) => {
             updateLastMessage((msg) => ({
                 ...msg,
-                content: response.finalAnswer || msg.content,
-                steps: response.steps
+                content: `Error: ${err.message || JSON.stringify(err)}`,
+                isError: true
             }))
+        })
+
+        const { setAgentEvent } = useChatStore.getState()
+        const cleanupState = window.electronAPI.agent.onStateChange((event: any) => {
+            console.log('[Composer] Received state change:', event.currentState, event.message);
+            setAgentEvent(event)
+        })
+
+        try {
+            // Start Agent
+            await window.electronAPI.agent.start({
+                sessionId: activeSessionId,
+                prompt: finalPrompt
+            });
+            // Result comes via stream/events
         } catch (err: any) {
             updateLastMessage((msg) => ({
                 ...msg,
@@ -115,6 +122,9 @@ export function Composer() {
         } finally {
             cleanupStream()
             cleanupTrace()
+            cleanupError()
+            cleanupState()
+            setAgentEvent(null)
             setSending(false)
         }
     }
@@ -188,7 +198,7 @@ export function Composer() {
                             {/* Directory Picker / Explorer */}
                             <div className="flex items-center bg-slate-100/50 dark:bg-white/5 rounded-xl px-1 py-0.5 ml-1 border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/30 dark:hover:border-white/20 transition-all group/path">
                                 <button
-                                    onClick={() => window.electronAPI.openExplorer(workspacePath)}
+                                    onClick={() => window.electronAPI.system.openExplorer(workspacePath)}
                                     className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white dark:text-zinc-500 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-all"
                                     title="在文件资源管理器中打开"
                                 >
@@ -208,7 +218,7 @@ export function Composer() {
 
                         {/* Right: Send Button */}
                         <button
-                            onClick={() => isSending ? window.electronAPI.abortRequest() : handleSend()}
+                            onClick={() => isSending ? window.electronAPI.agent.stop(activeSessionId) : handleSend()}
                             disabled={!isSending && !input.trim()}
                             className={cn(
                                 "flex items-center justify-center w-8 h-8 rounded-lg transition-all",

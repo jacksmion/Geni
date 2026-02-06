@@ -10,7 +10,7 @@ const SkillSettings: React.FC = () => {
 
     const fetchSkills = async () => {
         try {
-            const data = await window.electronAPI.getSkills();
+            const data = await window.electronAPI.tools.getSkills();
             setSkills(data);
         } catch (error) {
             console.error('Failed to fetch skills:', error);
@@ -24,12 +24,12 @@ const SkillSettings: React.FC = () => {
     }, []);
 
     const handleToggle = async (id: string) => {
-        const updated = await window.electronAPI.toggleSkill(id);
+        const updated = await window.electronAPI.tools.toggleSkill(id);
         setSkills(updated);
     };
 
     const handleSetTrustLevel = async (id: string, level: 'Ask' | 'Auto') => {
-        const updated = await window.electronAPI.setTrustLevel(id, level);
+        const updated = await window.electronAPI.tools.setTrustLevel(id, level);
         setSkills(updated);
     };
 

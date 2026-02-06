@@ -1,29 +1,47 @@
+
 import { Skill } from '../common/types/skill';
 
 export interface IElectronAPI {
-    ping: () => Promise<string>;
-    getSkills: () => Promise<Skill[]>;
-    toggleSkill: (id: string) => Promise<Skill[]>;
-    setTrustLevel: (id: string, level: 'Ask' | 'Auto') => Promise<Skill[]>;
-    sendMessage: (text: string, history?: any[]) => Promise<{ finalAnswer: string, steps: any[] }>;
-    abortRequest: () => Promise<boolean>;
-    getAppSettings: () => Promise<any>;
-    saveAppSettings: (settings: any) => Promise<boolean>;
-    mcpConnect: (config: { id: string, command?: string, args?: string[], type?: 'stdio' | 'sse', url?: string, apiKey?: string }) => Promise<{ success: boolean, error?: string }>;
-    mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
-    onReplyStream: (callback: (chunk: string) => void) => () => void;
-    onReplyTrace: (callback: (steps: any[]) => void) => () => void;
-    selectDirectory: () => Promise<string | null>;
-    selectFile: () => Promise<string | null>;
+    // Agent Namespace
+    agent: {
+        start: (payload: { sessionId?: string, prompt: string, options?: any }) => Promise<{ success: boolean, error?: string }>;
+        stop: (sessionId?: string) => Promise<void>;
+        getState: () => Promise<string>;
+        onStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
+        onStepUpdate: (callback: (steps: any[]) => void) => () => void;
+        onStateChange: (callback: (state: any) => void) => () => void;
+        onError: (callback: (error: any) => void) => () => void;
+    };
 
-    getSessionList: () => Promise<any[]>;
-    getSessionMessages: (id: string) => Promise<any[]>;
-    saveSession: (session: any) => Promise<boolean>;
-    deleteSession: (id: string) => Promise<boolean>;
-    openExplorer: (path: string) => Promise<void>;
-    testLLMConnection: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
+    // Session Namespace
+    session: {
+        create: () => Promise<{ id: string, createdAt: number }>;
+        list: () => Promise<any[]>;
+        getHistory: (id: string) => Promise<any[]>;
+        delete: (id: string) => Promise<boolean>;
+        save: (session: any) => Promise<boolean>;
+        get: (id: string) => Promise<any>;
+    };
+
+    // System Namespace
+    system: {
+        getSettings: () => Promise<any>;
+        saveSettings: (settings: any) => Promise<boolean>;
+        selectFile: () => Promise<string | null>;
+        selectDirectory: () => Promise<string | null>;
+        openExplorer: (path: string) => Promise<void>;
+        testLLM: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
+    };
+
+    // Tool Namespace
+    tools: {
+        getSkills: () => Promise<Skill[]>;
+        toggleSkill: (id: string) => Promise<Skill[]>;
+        setTrustLevel: (id: string, level: 'Ask' | 'Auto') => Promise<Skill[]>;
+        mcpConnect: (config: any) => Promise<{ success: boolean, error?: string }>;
+        mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
+    };
 }
-
 
 declare global {
     interface Window {

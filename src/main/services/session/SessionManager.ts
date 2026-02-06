@@ -2,11 +2,9 @@
 import { ChatMessage } from '../llm/IChatModel';
 import { randomUUID } from 'crypto';
 
-/**
- * Session State Definition
- */
 export interface SessionState {
     id: string;
+    title: string;
     history: ChatMessage[];
     variables: Record<string, any>;
     activeSkillIds: string[];
@@ -14,24 +12,14 @@ export interface SessionState {
     updatedAt: number;
 }
 
-/**
- * Session Manager
- * 
- * Phase 4.3: Session Management
- * 
- * Manages multiple conversation sessions, including history, context variables,
- * and active skills.
- */
 export class SessionManager {
     private sessions: Map<string, SessionState> = new Map();
 
-    /**
-     * Create a new session
-     */
     createSession(sessionId?: string): SessionState {
         const id = sessionId || randomUUID();
         const session: SessionState = {
             id,
+            title: 'New Chat',
             history: [],
             variables: {},
             activeSkillIds: [],
@@ -42,23 +30,14 @@ export class SessionManager {
         return session;
     }
 
-    /**
-     * Get a session by ID
-     */
     getSession(id: string): SessionState | undefined {
         return this.sessions.get(id);
     }
 
-    /**
-     * Delete a session
-     */
     deleteSession(id: string): boolean {
         return this.sessions.delete(id);
     }
 
-    /**
-     * Update session state
-     */
     updateSession(id: string, updates: Partial<SessionState>): SessionState | undefined {
         const session = this.sessions.get(id);
         if (!session) return undefined;
@@ -67,9 +46,30 @@ export class SessionManager {
         return session;
     }
 
-    /**
-     * Add a message to session history
-     */
+    saveSession(session: any): boolean {
+        // Handle "save" from frontend.
+        if (!session.id) return false;
+
+        let existing = this.sessions.get(session.id);
+
+        if (!existing) {
+            existing = {
+                id: session.id,
+                title: session.title || 'New Chat',
+                history: [],
+                variables: {},
+                activeSkillIds: [],
+                createdAt: session.createdAt || Date.now(),
+                updatedAt: Date.now()
+            };
+            this.sessions.set(session.id, existing);
+        }
+
+        if (session.title) existing.title = session.title;
+
+        return true;
+    }
+
     addMessage(id: string, message: ChatMessage): void {
         const session = this.sessions.get(id);
         if (session) {
@@ -78,16 +78,10 @@ export class SessionManager {
         }
     }
 
-    /**
-     * Get recent messages from session
-     */
     getHistory(id: string): ChatMessage[] {
         return this.sessions.get(id)?.history || [];
     }
 
-    /**
-     * Set a context variable
-     */
     setVariable(sessionId: string, key: string, value: any): void {
         const session = this.sessions.get(sessionId);
         if (session) {
@@ -96,16 +90,10 @@ export class SessionManager {
         }
     }
 
-    /**
-     * Get a context variable
-     */
     getVariable(sessionId: string, key: string): any {
         return this.sessions.get(sessionId)?.variables[key];
     }
 
-    /**
-     * List all active sessions
-     */
     listSessions(): SessionState[] {
         return Array.from(this.sessions.values()).sort((a, b) => b.updatedAt - a.updatedAt);
     }

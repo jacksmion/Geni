@@ -141,7 +141,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                 <div className="ml-auto flex items-center gap-2">
                     {step.isComplete && (
                         <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                            已完成
+                            已完成 {step.duration ? `(${step.duration}ms)` : ''}
                         </span>
                     )}
 

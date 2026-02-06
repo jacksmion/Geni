@@ -36,6 +36,7 @@ export interface AgentStep {
 export interface AgentRunResult {
     finalAnswer: string;
     steps: AgentStep[];
+    newMessages?: ChatMessage[];
 }
 
 export interface IAgentService {

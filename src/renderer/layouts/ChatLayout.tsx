@@ -4,6 +4,7 @@ import { useChatStore } from '../store/useChatStore'
 import { MessageList } from '../modules/chat/MessageList'
 import { Composer } from '../modules/chat/Composer'
 import { SessionSidebar } from './sidebar/SessionSidebar'
+import { StatusIndicator } from '../components/StatusIndicator'
 
 export function ChatLayout() {
     const { activeTab, sessions, activeSessionId } = useChatStore()
@@ -47,6 +48,9 @@ export function ChatLayout() {
                 <div className="flex-1 overflow-auto relative">
                     <MessageList />
                 </div>
+
+                {/* Status Indicator */}
+                <StatusIndicator />
 
                 {/* Input Area */}
                 <Composer />

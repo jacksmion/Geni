@@ -204,47 +204,42 @@
         - 统一注册所有 Controller 的 `ipcMain.handle`。
         - 确保单例模式的依赖注入 (Service Container)。
 
-## Phase 6: 前端集成 (Frontend Integration)
+## Phase 6: 前端集成与代码清理 (Frontend Integration & Cleanup) ✅ COMPLETED
 
-> **目标**: 迁移 React 前端以使用新的 IPC 协议，并展示高级 Agent 状态。
+> **目标**: 移除 `main.ts` 中的遗留逻辑，实现全功能的 Controller 架构，并升级前端以适配新的流式 Agent 和会话管理。
 
-- [ ] **6.1 更新 IPC Client**
-    - **文件**: `src/renderer/src/hooks/useAgent.ts` (新)
-    - **内容**:
-        - 封装 `window.electron.ipcRenderer.invoke`。
-        - 提供 `startSession`, `sendMessage`, `stopAgent` 等 API。
-        - 监听 `agent:stream`, `agent:step`, `agent:state` 事件。
-
-- [ ] **6.2 重构聊天界面 (Chat Interface)**
-    - **文件**: `src/renderer/src/components/Chat/ChatWindow.tsx`
+- [x] **6.1 基础设施控制器化 (Infrastructure Controllers)**
+    - **文件**: `src/main/controllers/SystemController.ts` & `src/main/controllers/ToolController.ts`
     - **任务**:
-        - 移除旧的 `send-message` 调用。
-        - 引入 Session 概念：页面加载时创建或恢复 Session。
-        - 渲染流式输出。
+        - `SystemController`: 迁移文件选择、配置管理、LLM 连接测试逻辑。 ✅
+        - `ToolController`: 迁移 Skill 开关管理、MCP 连接管理逻辑。 ✅
+        - 在 `AppRouter` 中注入依赖并注册这两个新控制器。 ✅
 
-- [ ] **6.3 实现状态可视化 (State Visualization)**
-    - **文件**: `src/renderer/src/components/Agent/StateIndicator.tsx`
+- [x] **6.2 主进程瘦身 (Main Process Cleanup)**
+    - **文件**: `src/main/main.ts`
     - **任务**:
-        - 根据 `AgentState` (Thinking, ExecutingTool) 显示不同的 UI 动画。
-        - 显示当前的 "Thought Process" (CoT)。
+        - 移除所有旧的 `ipcMain.handle` 定义。 ✅
+        - 移除旧的 `AgentRuntime` 直接实例化代码。 ✅
+        - 移除遗留的 `LegacySkillLoader`。 ✅
+        - 确保可以正确引导 `AppRouter`。 ✅
 
-- [ ] **6.4 工具执行结果渲染**
-    - **文件**: `src/renderer/src/components/Chat/ToolOutput.tsx`
+- [x] **6.3 Preload 桥接升级 (Preload Bridge Update)**
+    - **文件**: `src/main/preload.ts` & `src/renderer/electron-api.d.ts`
     - **任务**:
-        - 美化展示工具调用的参数和结果 (JSON 树或专用 UI)。
-        - 支持折叠/展开详细日志。
+        - 升级 `IElectronAPI` 接口 definition，匹配新的 IPC 协议。 ✅
+        - 实现 `agent:start`, `session:create` 等核心方法的桥接。 ✅
+        - 映射 `system:*` 和 `tools:*` 等辅助方法的 IPC 调用。 ✅
 
-- [ ] **6.5 安全确认后端逻辑 (Security Backend)**
-    - **文件**: `src/main/controllers/AgentController.ts`
-    - **设计**:
-        - 在 `AgentRuntime` 的 `onAuthorizationRequired` 回调中触发 IPC 事件 `agent:request-confirmation`。
-        - 使用 `Promise` + `Map<id, resolve>` 模式等待前端的异步响应 `agent:confirmation-response`。
-        - 确保主进程在等待用户确认时不会阻塞整个 Electron 应用（仅阻塞 Agent 异步流）。
-
-- [ ] **6.6 安全确认弹窗 (Security UI)**
-    - **文件**: `src/renderer/src/components/Agent/ConfirmationModal.tsx`
+- [x] **6.4 前端核心页面重构 (Frontend Refactor)**
     - **任务**:
-        - 监听 `agent:request-confirmation` 事件。
-        - 弹出模态框展示：工具名称、参数、风险等级。
-        - 用户点击“Approve”或“Reject”后，通过 API 发送响应。
+        - 移除旧的 `await sendMessage()` 模式。 ✅
+        - 实现基于 Session 的消息加载 (`useChatStore`)。 ✅
+        - 实现基于 Event 的流式响应渲染 (Content & Steps in `Composer`)。 ✅
+        - 适配状态机展示 (Thinking/Executing)。 ✅
+
+- [x] **6.5 辅助页面适配 (Auxiliary Pages Adapter)**
+    - **任务**:
+        - 确保配置保存、Skill 切换等功能调用新的 API (`Settings`, `ModelSettings`, `SkillSettings`, `McpSettings`)。 ✅
+
+
 

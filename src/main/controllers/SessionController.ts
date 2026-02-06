@@ -24,6 +24,12 @@ export class SessionController {
         ipcMain.handle(SESSION_CHANNELS.LIST, this.handleList.bind(this));
         ipcMain.handle(SESSION_CHANNELS.GET_HISTORY, this.handleGetHistory.bind(this));
         ipcMain.handle(SESSION_CHANNELS.DELETE, this.handleDelete.bind(this));
+        ipcMain.handle(SESSION_CHANNELS.SAVE, this.handleSave.bind(this));
+        ipcMain.handle(SESSION_CHANNELS.GET, this.handleGetSession.bind(this));
+    }
+
+    private async handleGetSession(event: IpcMainInvokeEvent, sessionId: string) {
+        return this.sessionManager.getSession(sessionId);
     }
 
     private async handleCreate(event: IpcMainInvokeEvent): Promise<SessionCreateResponse> {
@@ -46,5 +52,10 @@ export class SessionController {
 
     private async handleDelete(event: IpcMainInvokeEvent, sessionId: string) {
         return this.sessionManager.deleteSession(sessionId);
+    }
+
+    private async handleSave(event: IpcMainInvokeEvent, session: any) {
+        // session object from frontend might need sanitization or check
+        return this.sessionManager.saveSession(session);
     }
 }

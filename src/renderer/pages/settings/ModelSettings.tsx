@@ -28,7 +28,7 @@ export function ModelSettings() {
         setIsTesting(true);
         setTestResult(null);
         try {
-            const result = await window.electronAPI.testLLMConnection({
+            const result = await window.electronAPI.system.testLLM({
                 apiKey: currentConfig.apiKey,
                 baseUrl: currentConfig.baseUrl,
                 model: currentConfig.model

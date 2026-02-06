@@ -114,3 +114,22 @@ textarea {
 .animate-border-pulse {
   animation: border-pulse 2s infinite;
 }
+
+@keyframes sweep {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-sweep {
+  animation: sweep 2s infinite ease-in-out;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}

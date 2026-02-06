@@ -7,6 +7,8 @@ import { AgentStartRequest, AgentStartResponse } from '../../common/types/agentE
 
 import { ToolRegistry } from '../services/tools/ToolRegistry';
 import { AppSettings } from '../../common/types/settings';
+import { ToolController } from './ToolController';
+import { Skill } from '../../common/types/skill';
 
 /**
  * Agent Controller
@@ -18,19 +20,27 @@ export class AgentController {
     private agentRuntime: AgentRuntime;
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
+    private toolController: ToolController;
     private activeWebContents: WebContents | null = null;
     private currentSessionId: string | null = null;
+    private abortControllers = new Map<string, AbortController>();
 
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
-        sessionManager: SessionManager
+        sessionManager: SessionManager,
+        toolController: ToolController
     ) {
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
+        this.toolController = toolController;
         this.agentRuntime = new AgentRuntime(settings, toolRegistry);
 
         this.setupResultListeners();
+    }
+
+    public updateSettings(settings: AppSettings) {
+        this.agentRuntime.updateSettings(settings);
     }
 
     /**
@@ -45,6 +55,7 @@ export class AgentController {
     private setupResultListeners() {
         // Setup Agent event listeners that forward to WebContents
         this.agentRuntime.setStateChangeCallback((event: AgentStateEvent) => {
+            console.log(`[AgentController] State changed: ${event.previousState} -> ${event.currentState} (${event.message})`);
             this.broadcast(AGENT_EVENTS.STATE_CHANGE, event);
         });
     }
@@ -75,27 +86,33 @@ export class AgentController {
             // 2. Prepare Context from Session
             const history = this.sessionManager.getHistory(sid);
 
-            // 3. Prepare Runtime Options
+            // 3. Setup AbortController
+            const controller = new AbortController();
+            this.abortControllers.set(sid, controller);
+
+            // 4. Prepare Runtime Options
+            const enabledSkillObjects = this.toolController.getEnabledSkillObjects();
+            const skillList: Skill[] = enabledSkillObjects.map(obj => ({
+                id: obj.id,
+                name: obj.name,
+                description: obj.description,
+                content: obj.instruction,
+                path: obj.path || '',
+                enabled: true, // Known because coming from getEnabledSkillObjects
+                trustLevel: 'Ask' // Default or fetch from config if needed
+            }));
+
             const runOptions: AgentRuntimeOptions = {
-                signal: undefined, // TODO: Manage AbortController for cancellation
+                signal: controller.signal,
                 history: history,
                 model: options?.model,
-                skills: options?.skills ? [] : undefined // TODO: Load actual Skill objects if IDs provided
+                skills: skillList
             };
 
-            // 4. Run Agent (Non-blocking usually, but run() is async and returns final result)
-            // We want to run it "background" effectively but await it to return success/fail?
-            // Actually, usually we await execution so the 'Start' call returns when done?
-            // Or we treat 'Start' as 'Kickoff' and it returns immediately?
-            // Given IAgentService.run returns a Promise<Result>, we likely want to await it 
-            // OR we fire-and-forget and let events drive the UI.
-            // Let's await it to capture immediate errors, but streams handle progress.
-
-            // Note: We need to set up stream handlers per run
-
+            // 5. Run Agent
             const result = await this.agentRuntime.run(
                 prompt,
-                this.toolRegistry.getTools(), // Access tools
+                this.toolRegistry.getTools(),
                 runOptions,
                 (chunk, reset) => {
                     this.broadcast(AGENT_EVENTS.STREAM, { content: chunk, isReset: reset });
@@ -105,28 +122,44 @@ export class AgentController {
                 }
             );
 
-            // 5. Update Session History with new interactions
-            // The agent currently returns finalAnswer and steps.
-            // Use the updated messages from the context.
-            // Wait, AgentRuntime 'run' doesn't return the *full new* history easily.
-            // We need to capture the *new* messages (User + Assistant + Tools).
-            // For now, let's just append the user prompt and the final answer.
-            // Ideally AgentRuntime should return the 'messages' array or we capture them via events.
+            // 6. Cleanup AbortController
+            this.abortControllers.delete(sid);
 
-            this.sessionManager.addMessage(sid, { role: 'user', content: prompt });
-            this.sessionManager.addMessage(sid, { role: 'assistant', content: result.finalAnswer });
+            // 7. Update Session History
+            if (result.newMessages) {
+                for (const msg of result.newMessages) {
+                    this.sessionManager.addMessage(sid, msg);
+                }
+            }
 
             return { success: true };
 
         } catch (error: any) {
             console.error('Agent execution failed:', error);
+
+            // Cleanup on error/abort
+            if (this.currentSessionId) {
+                this.abortControllers.delete(this.currentSessionId);
+            }
+
             this.broadcast(AGENT_EVENTS.ERROR, { message: error.message });
             return { success: false, error: error.message };
         }
     }
 
-    private handleStop() {
-        // Implement AbortController logic here
-        // TODO: Map sessionId to AbortController
+    private handleStop(event: IpcMainInvokeEvent, sessionId?: string) {
+        if (sessionId) {
+            const controller = this.abortControllers.get(sessionId);
+            if (controller) {
+                controller.abort();
+                this.abortControllers.delete(sessionId);
+            }
+        } else {
+            // Stop all active agents
+            for (const [sid, controller] of this.abortControllers.entries()) {
+                controller.abort();
+            }
+            this.abortControllers.clear();
+        }
     }
 }

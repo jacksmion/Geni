@@ -178,7 +178,10 @@ export class AgentRuntime implements IAgentService {
         }
 
         // 添加当前用户输入
-        messages.push({ role: 'user', content: prompt });
+        const userMsg: ChatMessage = { role: 'user', content: prompt };
+        messages.push(userMsg);
+
+        const newMessages: ChatMessage[] = [userMsg]; // Track messages for return
 
         const steps: any[] = [];
         let finalAnswer = '';
@@ -290,6 +293,7 @@ export class AgentRuntime implements IAgentService {
                     tool_calls: toolCalls.length > 0 ? toolCalls : undefined
                 };
                 messages.push(assistantMsg);
+                newMessages.push(assistantMsg);
 
                 // --- Step 2: Handle Tool Calls ---
                 if (toolCalls.length > 0) {
@@ -325,11 +329,13 @@ export class AgentRuntime implements IAgentService {
 
                             if (!isAuthorized) {
                                 // 用户拒绝授权，记录并继续
-                                messages.push({
+                                const toolResultMsg: ChatMessage = {
                                     role: 'tool',
                                     tool_call_id: tc.id,
                                     content: `[Authorization Denied] User declined to execute tool "${fnName}". Please proceed with an alternative approach or ask for permission.`
-                                });
+                                };
+                                messages.push(toolResultMsg);
+                                newMessages.push(toolResultMsg);
 
                                 steps.push({
                                     thought: currentContent,
@@ -346,6 +352,13 @@ export class AgentRuntime implements IAgentService {
                         }
 
                         const startTime = Date.now();
+
+                        // 转换到 ExecutingTool 状态，并带上当前工具名称
+                        this.stateManager.transition(
+                            AgentState.ExecutingTool,
+                            `Executing tool: ${fnName}`,
+                            { tool: fnName }
+                        );
 
                         steps.push({
                             thought: currentContent,
@@ -369,11 +382,13 @@ export class AgentRuntime implements IAgentService {
                             observation += `\n\n[System Note]: The previous tool execution failed. Please analyze the error and try a different approach.`;
                         }
 
-                        messages.push({
+                        const toolResultMsg: ChatMessage = {
                             role: 'tool',
                             tool_call_id: tc.id,
                             content: observation
-                        });
+                        };
+                        messages.push(toolResultMsg);
+                        newMessages.push(toolResultMsg);
 
                         const lastStep = steps[steps.length - 1];
                         lastStep.observation = observation;
@@ -401,11 +416,12 @@ export class AgentRuntime implements IAgentService {
             this.stateManager.transition(AgentState.Error, error.message);
             return {
                 finalAnswer: `Error: ${error.message}`,
-                steps
+                steps,
+                newMessages
             };
         }
 
-        return { finalAnswer, steps };
+        return { finalAnswer, steps, newMessages };
     }
 }
 

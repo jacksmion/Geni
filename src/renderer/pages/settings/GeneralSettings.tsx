@@ -6,7 +6,7 @@ export function GeneralSettings() {
     const { settings, updateSettings } = useSettingsStore();
 
     const handleSelectDirectory = async () => {
-        const path = await window.electronAPI.selectDirectory();
+        const path = await window.electronAPI.system.selectDirectory();
         if (path) {
             updateSettings({ workspacePath: path });
         }

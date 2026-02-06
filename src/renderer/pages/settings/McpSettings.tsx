@@ -29,7 +29,7 @@ export function McpSettings() {
     // Function to fetch tools
     const fetchTools = async () => {
         try {
-            const list = await window.electronAPI.mcpListTools();
+            const list = await window.electronAPI.tools.mcpListTools();
             setTools(list);
         } catch (e) {
             console.error("Failed to fetch tools", e);
@@ -40,7 +40,7 @@ export function McpSettings() {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const settings = await window.electronAPI.getAppSettings();
+                const settings = await window.electronAPI.system.getSettings();
                 if (settings.mcpServers) {
                     setServers(settings.mcpServers);
                     if (settings.mcpServers.length > 0) {
@@ -81,8 +81,8 @@ export function McpSettings() {
     const saveChanges = async (newServers: IMcpServerConfig[]) => {
         setSaving(true);
         try {
-            const settings = await window.electronAPI.getAppSettings();
-            await window.electronAPI.saveAppSettings({
+            const settings = await window.electronAPI.system.getSettings();
+            await window.electronAPI.system.saveSettings({
                 ...settings,
                 mcpServers: newServers
             });
@@ -99,7 +99,7 @@ export function McpSettings() {
         setStatusMsg(prev => ({ ...prev, [server.id]: '' }));
 
         try {
-            const res = await window.electronAPI.mcpConnect({
+            const res = await window.electronAPI.tools.mcpConnect({
                 id: server.id,
                 command: server.command || '',
                 args: server.args || [],
