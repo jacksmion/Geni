@@ -11,6 +11,15 @@ export class ToolRegistry {
         this.tools.set(def.name, tool);
     }
 
+    unregister(name: string): boolean {
+        if (this.tools.has(name)) {
+            this.tools.delete(name);
+            console.log(`[ToolRegistry] Unregistered tool: ${name}`);
+            return true;
+        }
+        return false;
+    }
+
     getTools(): ITool[] {
         return Array.from(this.tools.values());
     }

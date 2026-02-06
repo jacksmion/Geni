@@ -25,7 +25,7 @@ import { EnvironmentInfoTool } from './services/tools/core/EnvironmentInfoTool.j
 import { AgentRuntime } from './services/agent/AgentRuntime.js'
 
 // MCP Integration
-import { McpManager } from './services/mcp/McpManager.js'
+import { McpManager } from './services/tools/mcp/McpManager.js'
 
 // Storage
 import { ChatHistoryManager } from './services/storage/ChatHistoryManager.js'

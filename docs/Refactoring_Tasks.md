@@ -67,16 +67,18 @@
         - 若涉及敏感操作，回调通知 UI 申请权限，并将 Agent 状态置为 `AwaitingInput`。
         - 仅在获得用户授权 (`UserApprovedContext`) 后继续执行。
 
-## Phase 1.5: 工具协议集成 (MCP Integration)
+## Phase 1.5: 工具协议集成 (MCP Integration) ✅ COMPLETED
 
 > **目标**: 标准化工具层，集成 Model Context Protocol，扩展 Agent 的物理能力。
 
-- [ ] **1.5.1 定义 MCP Client 管理器**
+- [x] **1.5.1 定义 MCP Client 管理器**
     - **文件**: `src/main/services/tools/mcp/McpManager.ts`
     - **功能**:
         - 负责建立与外部 MCP Server 的 SSE/Stdio 连接。
-        - 维护连接池。
+        - 维护连接池，支持连接状态跟踪 (`McpConnectionState`)。
         - 将 MCP Tools 转换为内部 `ITool` 格式并注册到 `ToolRegistry`。
+        - 支持单服务器断开与工具自动清理。
+        - 提供 `getConnectionStatuses()` 查询所有连接状态。
 
 ## Phase 2: 认知层抽象 (Cognitive Layer)
 
