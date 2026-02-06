@@ -31,3 +31,10 @@ export type {
     UserApprovalContext,
     AuthorizationCallback
 } from './ToolGuard';
+
+// Context & Summarization (Phase 4)
+export { TokenCounter } from './TokenCounter';
+export { ContextManager } from './ContextManager';
+export type { ContextManagerOptions } from './ContextManager';
+export { Summarizer } from './Summarizer';
+

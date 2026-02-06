@@ -150,24 +150,24 @@
 
 > **目标**: 解决长对话遗忘问题，管理 Token 预算。
 
-- [ ] **4.1 实现 TokenCounter**
+- [x] **4.1 实现 TokenCounter**
     - **文件**: `src/main/services/agent/TokenCounter.ts`
     - **设计**: 使用 `tiktoken` 或简单的字符估算 (char count / 4) 作为 MVP。
 
-- [ ] **4.2 实现 ContextManager (Sliding Window)**
+- [x] **4.2 实现 ContextManager (Sliding Window)**
     - **文件**: `src/main/services/agent/ContextManager.ts`
     - **功能**:
         - `prune(messages: ChatMessage[], maxTokens: number): ChatMessage[]`
         - 策略: 保留 System Prompt，保留最近 N 轮对话，丢弃中间层。
     - **集成**: 在 `AgentRuntime` 调用 LLM 前，先经过 `ContextManager` 处理消息队列。
 
-- [ ] **4.3 SessionManager (多会话支持)**
+- [x] **4.3 SessionManager (多会话支持)**
     - **文件**: `src/main/services/session/SessionManager.ts`
     - **设计**:
         - 维护 `Map<sessionId, SessionState>`。
         - `SessionState` 包含: `history`, `variables`, `activeSkillIds`。
 
-- [ ] **4.4 实现摘要服务 (Summarization Service)**
+- [x] **4.4 实现摘要服务 (Summarization Service)**
     - **文件**: `src/main/services/agent/Summarizer.ts`
     - **功能**:
         - 当上下文超过阈值（如 80% Token Limit），触发后台摘要任务。

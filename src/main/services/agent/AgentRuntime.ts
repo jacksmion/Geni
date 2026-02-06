@@ -25,6 +25,7 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/set
 import { PromptBuilder, AgentContext } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
 import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
+import { ContextManager } from './ContextManager';
 
 // Phase 2: 认知层抽象
 import {
@@ -60,6 +61,8 @@ export interface AgentRuntimeOptions extends AgentRunOptions {
         request: ToolExecutionRequest,
         decision: AuthorizationDecision
     ) => Promise<UserApprovalContext>;
+    /** Max tokens for context (Phase 4) */
+    maxContextTokens?: number;
 }
 
 export class AgentRuntime implements IAgentService {
@@ -198,15 +201,18 @@ export class AgentRuntime implements IAgentService {
                 // 转换到 Thinking 状态
                 this.stateManager.transition(AgentState.Thinking, `Loop ${loopCount}: Calling LLM`);
 
-                // --- Context Sliding Window ---
-                const MAX_HISTORY_ROUNDS = 20;
-                let contextMessages = messages;
+                // --- Context Management (Phase 4) ---
+                const contextManager = new ContextManager({
+                    maxTokens: options?.maxContextTokens || 32000, // Default to 32k window
+                    preserveRecentMessages: 20
+                });
 
-                if (messages.length > MAX_HISTORY_ROUNDS) {
-                    const systemMsg = messages[0];
-                    const recentMessages = messages.slice(-(MAX_HISTORY_ROUNDS - 1));
-                    contextMessages = [systemMsg, ...recentMessages];
-                }
+                // Prune messages to fit context window
+                // Note: We use a local variable for the context to send to LLM, 
+                // but we keep the full 'messages' array for the session history until it grows too large.
+                // In a real long-running session, we should also prune 'messages' or use Summarizer.
+                const contextMessages = contextManager.prune(messages);
+
 
                 // --- Step 1: Call LLM via IChatModel ---
                 const chatModelOptions: ChatModelOptions = {
