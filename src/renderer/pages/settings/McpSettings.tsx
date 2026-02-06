@@ -17,6 +17,7 @@ export function McpSettings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'general' | 'tools'>('general');
 
     // Status tracking for manual connection attempts
     const [status, setStatus] = useState<Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'>>({});
@@ -242,232 +243,291 @@ export function McpSettings() {
                 <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl flex-1 flex flex-col shadow-sm">
                     {selectedServer ? (
                         <>
-                            {/* Detail Header */}
-                            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-lg font-semibold text-slate-800 dark:text-white">{selectedServer.id}</h2>
-                                    {status[selectedServer.id] === 'connected' && (
-                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                                            <CheckCircle2 size={12} /> Connected
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Enable Toggle & Delete */}
-                                <div className="flex items-center gap-4">
-                                    <span className="text-xs text-slate-500 dark:text-gray-400">
-                                        {selectedServer.enabled ? '当前已启用' : '点击启用'}
-                                    </span>
-                                    <button
-                                        onClick={() => toggleEnable(selectedIdx!)}
-                                        className={clsx(
-                                            "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
-                                            selectedServer.enabled
-                                                ? "bg-emerald-500"
-                                                : "bg-slate-200 dark:bg-white/10"
-                                        )}
-                                    >
-                                        <div className={clsx(
-                                            "absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200",
-                                            selectedServer.enabled ? "translate-x-6" : "translate-x-0"
-                                        )} />
-                                    </button>
-
-                                    <button
-                                        onClick={() => removeRow(selectedIdx!)}
-                                        className="text-slate-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
-                                        title="删除服务器"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Config Form */}
-                            <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                                {/* Error Message */}
-                                {status[selectedServer.id] === 'error' && (
-                                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-                                        <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />
-                                        <div>
-                                            <h4 className="text-sm font-bold text-red-700 dark:text-red-400">连接失败</h4>
-                                            <p className="text-xs text-red-600 dark:text-red-300 mt-1 font-mono break-all">{statusMsg[selectedServer.id]}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Server ID */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Server size={14} /> 服务器 ID
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={selectedServer.id}
-                                        onChange={(e) => updateRow(selectedIdx!, 'id', e.target.value)}
-                                        onBlur={handleBlur}
-                                        placeholder="my-mcp-server"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
-                                    />
-                                </div>
-
-                                {/* Transport Type */}
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                        <Settings2 size={14} /> 传输类型 (Transport)
-                                    </label>
-                                    <select
-                                        value={selectedServer.type || 'stdio'}
-                                        onChange={(e) => updateRow(selectedIdx!, 'type', e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none"
-                                    >
-                                        <option value="stdio">Stdio (本地命令)</option>
-                                        <option value="sse">SSE (远程服务器)</option>
-                                    </select>
-                                </div>
-
-                                {/* Dynamic Fields based on Type */}
-                                {selectedServer.type === 'sse' ? (
-                                    <>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                                <Globe size={14} /> 服务器地址 (URL)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={selectedServer.url || ''}
-                                                onChange={(e) => updateRow(selectedIdx!, 'url', e.target.value)}
-                                                onBlur={handleBlur}
-                                                placeholder="http://localhost:3000/sse"
-                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
-                                            />
-                                            <p className="text-[10px] text-slate-400 dark:text-gray-500">
-                                                SSE 端点地址，通常以 /sse 结尾
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                                                <div className="flex items-center gap-2"><Key size={14} /> API 密钥 (可选)</div>
-                                                <span className="text-[10px] font-normal normal-case text-slate-400">仅存储于本地</span>
-                                            </label>
-                                            <input
-                                                type="password"
-                                                value={selectedServer.apiKey || ''}
-                                                onChange={(e) => updateRow(selectedIdx!, 'apiKey', e.target.value)}
-                                                onBlur={handleBlur}
-                                                placeholder="sk-..."
-                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
-                                            />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                                <TerminalSquare size={14} /> 命令 (Command)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={selectedServer.command || ''}
-                                                onChange={(e) => updateRow(selectedIdx!, 'command', e.target.value)}
-                                                onBlur={handleBlur}
-                                                placeholder="uvx"
-                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
-                                            />
-                                            <p className="text-[10px] text-slate-400 dark:text-gray-500">
-                                                用于启动 MCP 服务器的可执行命令
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                                <Command size={14} /> 参数 (Arguments)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={argsToString(selectedServer.args || [])}
-                                                onChange={(e) => updateRow(selectedIdx!, 'args', e.target.value)}
-                                                onBlur={handleBlur}
-                                                placeholder="mcp-server-sqlite --db-path ./data.db"
-                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
-                                            />
-                                            <p className="text-[10px] text-slate-400 dark:text-gray-500">
-                                                以空格分隔的命令行参数
-                                            </p>
-                                        </div>
-                                    </>
-                                )}
-
-                                {/* Connect Button */}
-                                <div className="pt-2">
-                                    <button
-                                        onClick={() => handleConnect(selectedServer)}
-                                        disabled={status[selectedServer.id] === 'connecting' || status[selectedServer.id] === 'connected'}
-                                        className={clsx(
-                                            "px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2",
-                                            status[selectedServer.id] === 'connected'
-                                                ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 cursor-default"
-                                                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
-                                        )}
-                                    >
-                                        {status[selectedServer.id] === 'connected' ? '已连接' : status[selectedServer.id] === 'connecting' ? '连接中...' : '测试连接'}
-                                        {status[selectedServer.id] !== 'connected' && <LinkIcon size={14} />}
-                                    </button>
-                                </div>
-
-                                {/* Divider */}
-                                <div className="border-t border-slate-100 dark:border-white/5 my-4" />
-
-                                {/* Tools List */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                            <Database size={14} /> 可用工具
-                                        </label>
-                                        {serverTools.length > 0 && (
-                                            <span className="bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                {serverTools.length} 个工具
+                            {/* Detail Header & Tabs */}
+                            <div className="border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] z-10 shrink-0">
+                                <div className="px-6 py-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-lg font-semibold text-slate-800 dark:text-white">{selectedServer.id}</h2>
+                                        {status[selectedServer.id] === 'connected' && (
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                <CheckCircle2 size={12} /> Connected
                                             </span>
                                         )}
                                     </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 p-1 rounded-lg">
+                                            <button
+                                                onClick={() => setActiveTab('general')}
+                                                className={clsx(
+                                                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                                                    activeTab === 'general'
+                                                        ? "bg-white dark:bg-[#18181b] text-slate-800 dark:text-white shadow-sm"
+                                                        : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
+                                                )}
+                                            >
+                                                通用设置
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('tools')}
+                                                className={clsx(
+                                                    "px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2",
+                                                    activeTab === 'tools'
+                                                        ? "bg-white dark:bg-[#18181b] text-slate-800 dark:text-white shadow-sm"
+                                                        : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
+                                                )}
+                                            >
+                                                可用工具
+                                                {serverTools.length > 0 && (
+                                                    <span className={clsx(
+                                                        "px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-white/10",
+                                                        activeTab === 'tools' && "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
+                                                    )}>
+                                                        {serverTools.length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
 
-                                    {status[selectedServer.id] !== 'connected' ? (
-                                        <div className="bg-slate-50 dark:bg-black/20 border border-dashed border-slate-200 dark:border-white/10 rounded-xl p-6 text-center">
-                                            <p className="text-slate-400 dark:text-gray-500 text-sm">连接服务器后可查看可用工具</p>
-                                        </div>
-                                    ) : (
-                                        <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-slate-50 dark:bg-black/20 border-b border-slate-200 dark:border-white/10">
-                                                    <tr>
-                                                        <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider w-1/3">工具名称</th>
-                                                        <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">描述</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                                    {serverTools.map((tool, tIdx) => (
-                                                        <tr key={tIdx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                            <td className="px-4 py-3">
-                                                                <code className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                                                                    {tool.name.split('__').slice(2).join('__')}
-                                                                </code>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-sm text-slate-600 dark:text-gray-300">
-                                                                {tool.description || <span className="text-slate-400 italic">无描述</span>}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    {serverTools.length === 0 && (
-                                                        <tr>
-                                                            <td colSpan={2} className="px-4 py-6 text-center text-slate-400 italic text-sm">
-                                                                此服务器未返回任何工具
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
+                                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
+
+                                        <button
+                                            onClick={() => removeRow(selectedIdx!)}
+                                            className="text-slate-400 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
+                                            title="删除服务器"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
+                            </div>
+
+                            {/* Tab Content */}
+                            <div className="flex-1 overflow-hidden relative">
+                                {activeTab === 'general' ? (
+                                    <div className="absolute inset-0 overflow-y-auto p-6 space-y-6">
+                                        {/* Error Message */}
+                                        {status[selectedServer.id] === 'error' && (
+                                            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+                                                <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-red-700 dark:text-red-400">连接失败</h4>
+                                                    <p className="text-xs text-red-600 dark:text-red-300 mt-1 font-mono break-all">{statusMsg[selectedServer.id]}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Enable Toggle - Moved inside General */}
+                                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <div className={clsx("p-2 rounded-lg", selectedServer.enabled ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-slate-200 dark:bg-white/10 text-slate-500")}>
+                                                    <Server size={18} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium text-slate-800 dark:text-white">启用此服务器</div>
+                                                    <div className="text-xs text-slate-500 dark:text-gray-400">启用后将自动加载工具</div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => toggleEnable(selectedIdx!)}
+                                                className={clsx(
+                                                    "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
+                                                    selectedServer.enabled
+                                                        ? "bg-emerald-500"
+                                                        : "bg-slate-200 dark:bg-white/10"
+                                                )}
+                                            >
+                                                <div className={clsx(
+                                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200",
+                                                    selectedServer.enabled ? "translate-x-6" : "translate-x-0"
+                                                )} />
+                                            </button>
+                                        </div>
+
+                                        {/* Server ID (Name) */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                <Server size={14} /> 名称 (Name)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={selectedServer.id}
+                                                onChange={(e) => updateRow(selectedIdx!, 'id', e.target.value)}
+                                                onBlur={handleBlur}
+                                                placeholder="my-mcp-server"
+                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
+                                            />
+                                            <p className="text-[10px] text-slate-400 dark:text-gray-500">
+                                                唯一标识符，用于区分不同的 MCP 服务器
+                                            </p>
+                                        </div>
+
+                                        {/* Transport Type */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                <Settings2 size={14} /> 传输类型 (Transport)
+                                            </label>
+                                            <select
+                                                value={selectedServer.type || 'stdio'}
+                                                onChange={(e) => updateRow(selectedIdx!, 'type', e.target.value)}
+                                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none"
+                                            >
+                                                <option value="stdio">Stdio (本地命令)</option>
+                                                <option value="sse">SSE (远程服务器)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Dynamic Fields based on Type */}
+                                        {selectedServer.type === 'sse' ? (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                        <Globe size={14} /> 服务器地址 (URL)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedServer.url || ''}
+                                                        onChange={(e) => updateRow(selectedIdx!, 'url', e.target.value)}
+                                                        onBlur={handleBlur}
+                                                        placeholder="http://localhost:3000/sse"
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 dark:text-gray-500">
+                                                        SSE 端点地址，通常以 /sse 结尾
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center justify-between">
+                                                        <div className="flex items-center gap-2"><Key size={14} /> API 密钥 (可选)</div>
+                                                        <span className="text-[10px] font-normal normal-case text-slate-400">仅存储于本地</span>
+                                                    </label>
+                                                    <input
+                                                        type="password"
+                                                        value={selectedServer.apiKey || ''}
+                                                        onChange={(e) => updateRow(selectedIdx!, 'apiKey', e.target.value)}
+                                                        onBlur={handleBlur}
+                                                        placeholder="sk-..."
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
+                                                    />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                        <TerminalSquare size={14} /> 命令 (Command)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={selectedServer.command || ''}
+                                                        onChange={(e) => updateRow(selectedIdx!, 'command', e.target.value)}
+                                                        onBlur={handleBlur}
+                                                        placeholder="uvx"
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 dark:text-gray-500">
+                                                        用于启动 MCP 服务器的可执行命令
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                        <Command size={14} /> 参数 (Arguments)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={argsToString(selectedServer.args || [])}
+                                                        onChange={(e) => updateRow(selectedIdx!, 'args', e.target.value)}
+                                                        onBlur={handleBlur}
+                                                        placeholder="mcp-server-sqlite --db-path ./data.db"
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 font-mono"
+                                                    />
+                                                    <p className="text-[10px] text-slate-400 dark:text-gray-500">
+                                                        以空格分隔的命令行参数
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Connect Button */}
+                                        <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                                            <button
+                                                onClick={() => handleConnect(selectedServer)}
+                                                disabled={status[selectedServer.id] === 'connecting' || status[selectedServer.id] === 'connected'}
+                                                className={clsx(
+                                                    "w-full py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2",
+                                                    status[selectedServer.id] === 'connected'
+                                                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 cursor-default"
+                                                        : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
+                                                )}
+                                            >
+                                                {status[selectedServer.id] === 'connected' ? '已连接' : status[selectedServer.id] === 'connecting' ? '连接中...' : '测试连接'}
+                                                {status[selectedServer.id] !== 'connected' && <LinkIcon size={14} />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="absolute inset-0 overflow-y-auto p-6">
+                                        {/* Tools Tab Content */}
+                                        {status[selectedServer.id] !== 'connected' ? (
+                                            <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+                                                <div className="w-12 h-12 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center">
+                                                    <LinkIcon size={24} className="opacity-50" />
+                                                </div>
+                                                <div className="text-center">
+                                                    <h3 className="text-sm font-medium text-slate-600 dark:text-gray-300">尚未连接</h3>
+                                                    <p className="text-xs mt-1">请在“通用设置”中连接服务器以查看可用工具</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-sm font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                        <Database size={14} /> 可用工具列表
+                                                    </h3>
+                                                    <span className="text-xs text-slate-400">
+                                                        共 {serverTools.length} 个
+                                                    </span>
+                                                </div>
+
+                                                <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+                                                    <table className="w-full text-left">
+                                                        <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                                                            <tr>
+                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider w-1/3">工具名称</th>
+                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">描述</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#18181b]">
+                                                            {serverTools.map((tool, tIdx) => (
+                                                                <tr key={tIdx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                                                    <td className="px-4 py-3 align-top">
+                                                                        <div className="flex items-start gap-2">
+                                                                            <code className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-500/20">
+                                                                                {tool.name.split('__').slice(2).join('__')}
+                                                                            </code>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-gray-300 align-top">
+                                                                        {tool.description || <span className="text-slate-400 italic">无描述</span>}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                            {serverTools.length === 0 && (
+                                                                <tr>
+                                                                    <td colSpan={2} className="px-4 py-12 text-center text-slate-400 italic text-sm">
+                                                                        <div className="flex flex-col items-center gap-2">
+                                                                            <Database className="opacity-20" size={32} />
+                                                                            此服务器未返回任何工具
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </>
                     ) : (
