@@ -120,25 +120,31 @@ function MessageItem({ message }: { message: ChatMessage }) {
                         {/* Text Body - High Contrast Fix & Data-Centric Layout */}
                         <div className="prose prose-slate dark:prose-invert max-w-none 
                             text-slate-900 dark:text-zinc-100
-                            prose-p:text-[15.5px] prose-p:leading-[1.8] prose-p:mb-5
                             
+                            /* Paragraph styling */
+                            prose-p:text-[15.5px] prose-p:leading-7 prose-p:my-4 prose-p:last:mb-0
+                            
+                            /* Heading styling */
                             prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-                            prose-h1:text-2xl prose-h1:mt-10 prose-h1:mb-6
-                            prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4
-                            prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3
+                            prose-h1:text-2xl prose-h1:mt-8 prose-h1:mb-4
+                            prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3
+                            prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2
                             
-                            prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6
-                            prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6
-                            prose-li:text-[15.5px] prose-li:leading-[1.8] prose-li:my-2 prose-li:pl-1
+                            /* List styling - The Core Fix */
+                            prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
+                            prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
+                            prose-li:my-1 prose-li:pl-1
+                            prose-li:prose-p:my-0 /* Fixes gap in loose lists */
                             prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
                             
-                            prose-strong:text-black dark:prose-strong:text-white prose-strong:font-bold prose-strong:mx-0.5
-                            prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-10
+                            /* Other elements */
+                            prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
+                            prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
                             
-                            prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400
+                            prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
                             
                             prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
-                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:my-8">
+                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:my-6">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -175,11 +181,14 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                         // 自动检测 Emoji 开头的行并添加间距
                                         const firstChild = childrenArray[0];
                                         if (typeof firstChild === 'string' && /^[\u{1F300}-\u{1F9FF}]/u.test(firstChild)) {
-                                            return <p className="mb-5 flex items-start gap-2 h-auto py-1">{children}</p>;
+                                            return <p className="flex items-start gap-2 h-auto py-1">{children}</p>;
                                         }
 
-                                        return <p className="mb-6 leading-relaxed">{children}</p>;
+                                        return <p>{children}</p>;
                                     },
+                                    ul: ({ className, ...props }) => <ul className={cn("list-disc pl-6 my-3 space-y-1", className)} {...props} />,
+                                    ol: ({ className, ...props }) => <ol className={cn("list-decimal pl-6 my-3 space-y-1", className)} {...props} />,
+                                    li: ({ className, ...props }) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
                                     hr: ({ ...props }) => <hr className="my-10" {...props} />,
                                     code({ node, inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
