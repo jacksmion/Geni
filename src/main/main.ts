@@ -2,22 +2,32 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { SkillLoader } from './services/SkillLoader.js'
+// Skill System (Legacy - to be refactored in Phase 3)
+import { LegacySkillLoader as SkillLoader } from './services/skills/core/LegacySkillLoader.js'
 
+// Core Services
 import { ConfigManager } from './services/ConfigManager.js'
 
+// Types
 import { Skill } from '../common/types/skill'
 import { AppSettings } from '../common/types/settings'
 
+// Tool System
 import { ToolRegistry } from './services/tools/ToolRegistry.js'
-import { OpenAIAgentService } from './services/agent/OpenAIAgentService.js'
-import { FileSystemTool } from './services/tools/builtin/FileSystemTool.js'
-import { BashTool } from './services/tools/builtin/BashTool.js'
-import { FileEditTool } from './services/tools/builtin/FileEditTool.js'
-import { FileSearchTool } from './services/tools/builtin/FileSearchTool.js'
-import { SkillReaderTool } from './services/tools/builtin/SkillReaderTool.js'
-import { EnvironmentInfoTool } from './services/tools/builtin/EnvironmentInfoTool.js'
+import { FileSystemTool } from './services/tools/core/FileSystemTool.js'
+import { BashTool } from './services/tools/core/BashTool.js'
+import { FileEditTool } from './services/tools/core/FileEditTool.js'
+import { FileSearchTool } from './services/tools/core/FileSearchTool.js'
+import { SkillReaderTool } from './services/tools/core/SkillReaderTool.js'
+import { EnvironmentInfoTool } from './services/tools/core/EnvironmentInfoTool.js'
+
+// Agent Runtime
+import { AgentRuntime } from './services/agent/AgentRuntime.js'
+
+// MCP Integration
 import { McpManager } from './services/mcp/McpManager.js'
+
+// Storage
 import { ChatHistoryManager } from './services/storage/ChatHistoryManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -101,7 +111,7 @@ app.whenReady().then(async () => {
     toolRegistry.register(skillReaderTool)
 
     // 3. Initialize Agent
-    const agentService = new OpenAIAgentService(appSettings, toolRegistry)
+    const agentService = new AgentRuntime(appSettings, toolRegistry)
 
     // 4. Initialize MCP from Settings
     const initMcpServers = async () => {

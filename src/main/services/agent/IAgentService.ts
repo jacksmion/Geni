@@ -1,37 +1,6 @@
-import { ITool } from '../../../common/types/tool';
-import { Skill } from '../../../common/types/skill';
-import { AppSettings } from '../../../common/types/settings';
-import { ChatMessage } from '../../../common/types/chat';
-
-export interface AgentRunOptions {
-    model?: string;
-    temperature?: number;
-    systemPrompt?: string;
-    skills?: Skill[]; // 启用的技能列表，其内容将注入 System Prompt
-    history?: ChatMessage[]; // 对话历史
-    signal?: AbortSignal;
-}
-
-export interface AgentRunResult {
-    finalAnswer: string;
-    steps: any[]; // To be rigorously typed later
-}
-
-export interface IAgentService {
-    /**
-     * The core loop: 
-     * Prompt -> LLM -> Tool Call -> Tool Exec -> LLM -> Final Answer
-     */
-    run(
-        prompt: string,
-        tools: ITool[],
-        options?: AgentRunOptions,
-        onStream?: (chunk: string, reset?: boolean) => void,
-        onStepUpdate?: (steps: any[]) => void
-    ): Promise<AgentRunResult>;
-
-    /**
-     * Update settings dynamically
-     */
-    updateSettings(settings: AppSettings): void;
-}
+/**
+ * @deprecated This module is deprecated.
+ * Please use './IAgent' instead.
+ * This file is kept for backward compatibility only.
+ */
+export type { IAgentService, AgentRunOptions, AgentRunResult, IAgent } from './IAgent';

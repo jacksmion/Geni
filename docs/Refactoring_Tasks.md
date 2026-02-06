@@ -3,25 +3,25 @@
 本文档基于 `Architecture_and_Skills_Revamp.md` 提供的架构蓝图，拆解为可执行的详细开发任务。
 所有代码变更主要位于 `src/main/services` 目录下。
 
-## Phase 0: 基础设施重构 (Infrastructure)
+## Phase 0: 基础设施重构 (Infrastructure) ✅ COMPLETED
 
 > **目标**: 建立符合分层架构的物理目录结构，完成文件迁移，确保编译通过。
 
-- [ ] **0.1 建立目录结构**
-    - [ ] `src/main/services/agent/state` (存放状态机相关)
-    - [ ] `src/main/services/llm/providers` (存放 OpenAI, Anthropic 等实现)
-    - [ ] `src/main/services/tools/core` (存放 FS, Bash 等原子工具)
-    - [ ] `src/main/services/tools/mcp` (存放 MCP Client)
-    - [ ] `src/main/services/skills/core` (存放 Registry, Parser)
-    - [ ] `src/main/services/skills/runtime` (存放 SkillReader, Injector)
-    - [ ] `src/main/services/skills/repository` (存放本地/网络源加载器)
-    - [ ] `src/main/services/session` (存放 SessionManager)
+- [x] **0.1 建立目录结构**
+    - [x] `src/main/services/agent/state` (存放状态机相关)
+    - [x] `src/main/services/llm/providers` (存放 OpenAI, Anthropic 等实现)
+    - [x] `src/main/services/tools/core` (存放 FS, Bash 等原子工具)
+    - [x] `src/main/services/tools/mcp` (存放 MCP Client)
+    - [x] `src/main/services/skills/core` (存放 Registry, Parser)
+    - [x] `src/main/services/skills/runtime` (存放 SkillReader, Injector)
+    - [x] `src/main/services/skills/repository` (存放本地/网络源加载器)
+    - [x] `src/main/services/session` (存放 SessionManager)
 
-- [ ] **0.2 核心文件迁移 (File Migration)**
-    - [ ] 移动 `OpenAIAgentService.ts` -> `src/main/services/agent/AgentRuntime.ts` (暂时保留类名，仅移动文件)
-    - [ ] 移动 `IOpenAIAgentService.ts` -> `src/main/services/agent/IAgent.ts`
-    - [ ] 移动 `ToolRegistry.ts` (如果有) -> `src/main/services/tools/ToolRegistry.ts`
-    - [ ] 移动 `SkillLoader.ts` -> `src/main/services/skills/core/LegacySkillLoader.ts` (标记为废弃，待重构)
+- [x] **0.2 核心文件迁移 (File Migration)**
+    - [x] 移动 `OpenAIAgentService.ts` -> `src/main/services/agent/AgentRuntime.ts` (暂时保留类名，仅移动文件)
+    - [x] 移动 `IOpenAIAgentService.ts` -> `src/main/services/agent/IAgent.ts`
+    - [x] 移动 `ToolRegistry.ts` (如果有) -> `src/main/services/tools/ToolRegistry.ts`
+    - [x] 移动 `SkillLoader.ts` -> `src/main/services/skills/core/LegacySkillLoader.ts` (标记为废弃，待重构)
 
 ## Phase 1: 运行时核心修复 (Agent Kernel)
 
