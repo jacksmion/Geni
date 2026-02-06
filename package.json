@@ -27,7 +27,7 @@
     "docx": "^9.5.1",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.563.0",
-    "openai": "^6.17.0",
+    "openai": "^4.60.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",

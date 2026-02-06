@@ -131,15 +131,26 @@ ${skillSummary}
                 }
 
                 // --- Step 1: Call LLM ---
+                // 明确构造消息，避免混入非标准字段
+                const sanitizedMessages = contextMessages.map(m => ({
+                    role: m.role,
+                    content: m.content || '',
+                    tool_calls: m.tool_calls,
+                    tool_call_id: m.tool_call_id
+                }));
+
                 const stream = await client.chat.completions.create({
                     model: options?.model || providerConfig.model,
-                    messages: contextMessages,
-                    tools: openaiTools.length > 0 ? openaiTools : undefined,
-                    tool_choice: 'auto',
-                    stream: true
+                    messages: sanitizedMessages as any,
+                    stream: true,
+                    ...(openaiTools && openaiTools.length > 0 ? {
+                        tools: openaiTools,
+                        tool_choice: 'auto'
+                    } : {})
                 }, {
                     signal: options?.signal
                 });
+
 
                 let currentContent = '';
                 let toolCallBuffer: any = null;
