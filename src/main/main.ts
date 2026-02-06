@@ -111,8 +111,11 @@ app.whenReady().then(async () => {
                     try {
                         await mcpManager.connectToServer({
                             id: server.id,
+                            type: server.type,
                             command: server.command,
                             args: server.args,
+                            url: server.url,
+                            apiKey: server.apiKey,
                             env: server.env
                         });
                     } catch (e) {
@@ -171,8 +174,11 @@ app.whenReady().then(async () => {
                     try {
                         await mcpManager.connectToServer({
                             id: server.id,
+                            type: server.type,
                             command: server.command,
                             args: server.args,
+                            url: server.url,
+                            apiKey: server.apiKey,
                             env: server.env
                         });
                     } catch (e) {
@@ -189,13 +195,9 @@ app.whenReady().then(async () => {
     })
 
     // IPC: MCP
-    ipcMain.handle('mcp-connect', async (_, config: { id: string, command: string, args: string[] }) => {
+    ipcMain.handle('mcp-connect', async (_, config: any) => {
         try {
-            await mcpManager.connectToServer({
-                id: config.id,
-                command: config.command,
-                args: config.args
-            })
+            await mcpManager.connectToServer(config)
             return { success: true }
         } catch (e: any) {
             return { success: false, error: e.message }

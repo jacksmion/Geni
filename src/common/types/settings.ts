@@ -21,8 +21,11 @@ export interface SkillState {
 // MCP Server Configuration
 export interface IMcpServerConfig {
     id: string;
-    command: string;
-    args: string[];
+    type: 'stdio' | 'sse'; // Transport type
+    command?: string; // For stdio
+    args?: string[];  // For stdio
+    url?: string;     // For sse
+    apiKey?: string;  // For sse auth
     env?: Record<string, string>;
     enabled: boolean;
 }

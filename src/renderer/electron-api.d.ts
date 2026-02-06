@@ -9,7 +9,7 @@ export interface IElectronAPI {
     abortRequest: () => Promise<boolean>;
     getAppSettings: () => Promise<any>;
     saveAppSettings: (settings: any) => Promise<boolean>;
-    mcpConnect: (config: { id: string, command: string, args: string[] }) => Promise<{ success: boolean, error?: string }>;
+    mcpConnect: (config: { id: string, command?: string, args?: string[], type?: 'stdio' | 'sse', url?: string, apiKey?: string }) => Promise<{ success: boolean, error?: string }>;
     mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
     onReplyStream: (callback: (chunk: string) => void) => () => void;
     onReplyTrace: (callback: (steps: any[]) => void) => () => void;

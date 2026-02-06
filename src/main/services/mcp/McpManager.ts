@@ -6,8 +6,11 @@ import { McpToolAdapter } from "./McpToolAdapter";
 // Configuration for an MCP Server (e.g. "sqlite": { command: "uvx", args: ["mcp-server-sqlite"] })
 export interface McpServerConfig {
     id: string;
-    command: string;
-    args: string[];
+    type?: 'stdio' | 'sse';
+    command?: string;
+    args?: string[];
+    url?: string;
+    apiKey?: string;
     env?: Record<string, string>;
 }
 
@@ -22,11 +25,30 @@ export class McpManager {
     async connectToServer(config: McpServerConfig) {
         console.log(`[McpManager] Connecting to ${config.id}...`);
 
-        const transport = new StdioClientTransport({
-            command: config.command,
-            args: config.args,
-            env: { ...process.env, ...(config.env || {}) } as Record<string, string>
-        });
+        let transport: any; // Transport interface, but typed loosely here to avoid dependency hell if type defs missing
+
+        if (config.type === 'sse') {
+            if (!config.url) throw new Error('URL is required for SSE transport');
+            const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+
+            // Construct EventSourceInit/RequestInit with headers if apiKey is present
+            const opts: any = {};
+            if (config.apiKey) {
+                opts.headers = {
+                    'Authorization': `Bearer ${config.apiKey}`
+                };
+            }
+
+            transport = new SSEClientTransport(new URL(config.url), opts);
+        } else {
+            // Default to stdio
+            if (!config.command) throw new Error('Command is required for stdio transport');
+            transport = new StdioClientTransport({
+                command: config.command,
+                args: config.args || [],
+                env: { ...process.env, ...(config.env || {}) } as Record<string, string>
+            });
+        }
 
         const client = new Client(
             { name: "assistant-core-client", version: "1.0.0" },
@@ -36,13 +58,19 @@ export class McpManager {
         try {
             await client.connect(transport);
             this.clients.set(config.id, client);
-            console.log(`[McpManager] Connected to ${config.id}`);
+            console.log(`[McpManager] Connected to ${config.id} via ${config.type || 'stdio'}`);
 
             // Discover Actions
             await this.refreshTools(config.id);
 
         } catch (error: any) {
             console.error(`[McpManager] Failed to connect to ${config.id}:`, error);
+
+            // Enhance error message for common SSE configuration mistakes
+            if (config.type === 'sse' && error.message && error.message.includes('Invalid content type')) {
+                throw new Error(`SSE Connection Failed: The server returned an invalid content type. Please check your URL (it should typically end with '/sse') and ensure the server is running. Original Error: ${error.message}`);
+            }
+
             throw error;
         }
     }

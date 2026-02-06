@@ -49,9 +49,21 @@ export default function Settings() {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden flex flex-col h-full bg-white dark:bg-transparent">
-                <div className="flex-1 overflow-y-auto p-8 h-full">
+                {/* Draggable Header for window control - 与 ChatLayout 一致 */}
+                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100">
+                            {sections.find(s => s.id === activeSection)?.label || '设置'}
+                        </h1>
+                    </div>
+                    {/* 预留窗口控制按钮的空间 */}
+                    <div className="w-32" />
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-8">
                     {/* The h-full above is crucial for ModelSettings to manage its own scrolling */}
                     {activeSection === 'general' && <GeneralSettings />}
+
 
                     {/* ModelSettings 占据100%高度，包含自己的两栏布局 */}
                     {activeSection === 'models' && (
