@@ -22,6 +22,7 @@
 | F003 | 错误恢复机制 | P0 | ⭐⭐⭐ | 📋 待开发 |
 | F004 | 响应式布局优化 | P1 | ⭐⭐ | 📋 待开发 |
 | F005 | Multi-Agent 协作 | P3 | ⭐⭐⭐⭐⭐ | 📋 待开发 |
+| F006 | 工具执行确认机制 | P0 | ⭐⭐ | 📋 待开发 |
 
 ---
 
@@ -971,6 +972,90 @@ export const MULTI_AGENT_EVENTS = {
 
 ---
 
+- 测试: 4 小时
+
+---
+
+## F006: 工具执行确认机制
+
+### 📌 状态: 📋 待开发
+
+### 问题描述
+
+当前 Agent 后端已实现 `ToolGuard` 拦截器和信任级别评估，但当前端未连接授权回调时，高风险操作（如 `bash` 命令、`execute_command`）会被静默拒绝（为了安全），导致 Agent 无法执行合理但有风险的任务，用户也无法感知被拦截的原因。
+
+### 目标
+
+实现用户授权交互流程，使得 Agent 在执行高风险操作前能请求用户许可，用户可以选择单次允许、拒绝或一段时间内允许。
+
+### 技术方案
+
+#### 1. IPC 协议扩展
+
+- **Channel**: `agent:authorization-response` (Renderer -> Main)
+- **Event**: `agent:authorization-request` (Main -> Renderer)
+
+#### 2. AgentController 集成
+
+连接 `AgentRuntime` 的 `onAuthorizationRequired` 回调与 IPC 通道。
+
+```typescript
+// AgentController.ts
+onAuthorizationRequired: async (request, decision) => {
+    return new Promise((resolve) => {
+        // 发送请求到前端
+        this.broadcast(AGENT_EVENTS.AUTHORIZATION_REQUEST, {
+            requestId: crypto.randomUUID(),
+            toolName: request.toolName,
+            args: request.args,
+            trustLevel: decision.trustLevel,
+            reason: decision.reason
+        });
+
+        // 等待响应
+        // 注意：需要实现请求 ID 匹配机制以支持并发（虽然通常是串行的）
+        ipcMain.once(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, (_, response) => {
+            resolve({
+                approved: response.approved,
+                rememberDecision: response.remember
+            });
+        });
+    });
+}
+```
+
+#### 3. 前端授权 UI
+
+实现 `AuthorizationModal` 组件，展示：
+- 待执行的工具名称
+- 参数预览（JSON 格式化）
+- 风险提示
+- 操作按钮：[拒绝] [允许] [允许并记住(1小时)]
+
+### 涉及文件
+
+| 文件 | 改动 |
+|:-----|:-----|
+| `src/common/ipc/channels.ts` | 添加常量 |
+| `src/main/controllers/AgentController.ts` | 实现回调桥接 |
+| `src/renderer/components/modals/AuthorizationModal.tsx` | 新建组件 |
+| `src/renderer/App.tsx` | 挂载全局 Modal |
+
+### 验收标准
+
+- [ ] 执行 `bash` 命令时弹出确认框
+- [ ] 用户点击"拒绝"后，Agent 收到拒绝信息并尝试其他方式
+- [ ] 用户点击"允许"后，命令正常执行
+- [ ] "允许并记住"功能生效，1小时内不再询问同类操作
+- [ ] 无操作超时处理（可选）
+
+### 工作量估算
+
+- 开发: 2-3 小时
+- 测试: 0.5 小时
+
+---
+
 ## 附录
 
 ### A. 状态说明
@@ -987,4 +1072,5 @@ export const MULTI_AGENT_EVENTS = {
 
 | 日期 | 版本 | 变更内容 |
 |:-----|:-----|:---------|
+| 2026-02-07 | v1.1 | 新增 F006 工具执行确认机制 |
 | 2026-02-07 | v1.0 | 初始版本，包含 5 个功能需求 |
