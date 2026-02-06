@@ -223,11 +223,11 @@ function MessageItem({ message }: { message: ChatMessage }) {
                     {isUser ? (
                         <>
                             <CopyButton text={message.content} className="p-0.5" />
-                            <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · You</span>
+                            <span>{new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} · You</span>
                         </>
                     ) : (
                         <>
-                            <span>AI Assistant · {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span>AI Assistant · {new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                             <CopyButton text={message.content} className="p-0.5" />
                         </>
                     )}
