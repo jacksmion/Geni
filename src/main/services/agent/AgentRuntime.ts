@@ -10,9 +10,14 @@
  *  ✅ 1.2 提取 PromptBuilder (解耦上下文构建)
  *  ✅ 1.3 引入显式状态机
  *  ✅ 1.4 实现工具执行拦截
+ * 
+ * Phase 2 重构完成:
+ *  ✅ 2.1 定义 IChatModel 接口
+ *  ✅ 2.2 实现 OpenAIAdapter
+ *  ✅ 2.3 实现 AnthropicAdapter
+ *  ✅ 集成 IChatModel 到 AgentRuntime
  */
 
-import { OpenAI } from 'openai';
 import { IAgentService, AgentRunOptions, AgentRunResult } from './IAgent';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
@@ -20,6 +25,16 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/set
 import { PromptBuilder, AgentContext } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
 import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
+
+// Phase 2: 认知层抽象
+import {
+    IChatModel,
+    ChatMessage,
+    ChatStreamEvent,
+    ChatModelOptions,
+    ChatModelToolDefinition,
+    createChatModel,
+} from '../llm';
 
 /**
  * 工具调用累加器 - 用于处理流式传输中的并行工具调用
@@ -112,14 +127,16 @@ export class AgentRuntime implements IAgentService {
         const providers = this.settings.llm.providers || {};
         const providerConfig = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
 
-        const client = new OpenAI({
+        // Phase 2: 使用 IChatModel 抽象层替代直接的 OpenAI 调用
+        const chatModel: IChatModel = createChatModel(activeProvider, {
             apiKey: providerConfig.apiKey || '',
-            baseURL: providerConfig.baseUrl || 'https://api.openai.com/v1',
-            dangerouslyAllowBrowser: true // Running in Electron Node process
+            baseUrl: providerConfig.baseUrl,
+            model: options?.model || providerConfig.model,
+            temperature: providerConfig.temperature,
         });
 
-        // 1. Convert ITool[] to OpenAI Tool Definition
-        const openaiTools = tools.map(t => {
+        // 1. Convert ITool[] to ChatModelToolDefinition[] (统一格式)
+        const chatModelTools: ChatModelToolDefinition[] = tools.map(t => {
             const def = t.getDefinition();
             return {
                 type: 'function' as const,
@@ -140,7 +157,8 @@ export class AgentRuntime implements IAgentService {
         };
         const systemPrompt = this.promptBuilder.buildSystemPrompt(agentContext);
 
-        const messages: any[] = [
+        // 使用 ChatMessage 类型的消息数组
+        const messages: ChatMessage[] = [
             { role: 'system', content: systemPrompt }
         ];
 
@@ -148,8 +166,10 @@ export class AgentRuntime implements IAgentService {
         if (options?.history && options.history.length > 0) {
             options.history.forEach((h: any) => {
                 messages.push({
-                    role: h.role,
-                    content: h.content
+                    role: h.role as 'user' | 'assistant' | 'system' | 'tool',
+                    content: h.content || null,
+                    tool_calls: h.tool_calls,
+                    tool_call_id: h.tool_call_id,
                 });
             });
         }
@@ -188,26 +208,14 @@ export class AgentRuntime implements IAgentService {
                     contextMessages = [systemMsg, ...recentMessages];
                 }
 
-                // --- Step 1: Call LLM ---
-                // 明确构造消息，避免混入非标准字段
-                const sanitizedMessages = contextMessages.map(m => ({
-                    role: m.role,
-                    content: m.content || '',
-                    tool_calls: m.tool_calls,
-                    tool_call_id: m.tool_call_id
-                }));
-
-                const stream = await client.chat.completions.create({
+                // --- Step 1: Call LLM via IChatModel ---
+                const chatModelOptions: ChatModelOptions = {
                     model: options?.model || providerConfig.model,
-                    messages: sanitizedMessages as any,
-                    stream: true,
-                    ...(openaiTools && openaiTools.length > 0 ? {
-                        tools: openaiTools,
-                        tool_choice: 'auto'
-                    } : {})
-                }, {
-                    signal: options?.signal
-                });
+                    temperature: providerConfig.temperature,
+                    tools: chatModelTools.length > 0 ? chatModelTools : undefined,
+                    tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
+                    signal: options?.signal,
+                };
 
                 // 转换到 ExecutingHelper 状态（处理流式输出）
                 this.stateManager.transition(AgentState.ExecutingHelper, 'Processing LLM stream');
@@ -217,66 +225,60 @@ export class AgentRuntime implements IAgentService {
                 /**
                  * Phase 1.1: 修复并行工具调用
                  * 使用 Map<number, ToolCallAccumulator> 替代单个 toolCallBuffer
-                 * 以正确处理 OpenAI 流式返回的交叉多工具调用
+                 * 以正确处理流式返回的交叉多工具调用
                  */
                 const toolCallAccumulators = new Map<number, ToolCallAccumulator>();
 
-                for await (const chunk of stream) {
-                    const delta = chunk.choices[0]?.delta;
+                // Phase 2: 使用统一的 IChatModel.stream() 接口
+                for await (const event of chatModel.stream(contextMessages, chatModelOptions)) {
+                    switch (event.type) {
+                        case 'content_delta':
+                            currentContent += event.delta;
+                            onStream?.(event.delta);
+                            break;
 
-                    // 处理文本内容
-                    if (delta?.content) {
-                        currentContent += delta.content;
-                        onStream?.(delta.content);
-                    }
+                        case 'tool_call_delta':
+                            // 处理工具调用增量
+                            const index = event.index;
 
-                    // 处理工具调用 (Phase 1.1 核心修复)
-                    if (delta?.tool_calls) {
-                        for (const tcChunk of delta.tool_calls) {
-                            const index = tcChunk.index;
-
-                            // 如果该 index 不存在，初始化 Accumulator
                             if (!toolCallAccumulators.has(index)) {
                                 toolCallAccumulators.set(index, {
-                                    id: tcChunk.id || '',
-                                    name: tcChunk.function?.name || '',
+                                    id: event.id || '',
+                                    name: event.name || '',
                                     arguments: '',
-                                    type: tcChunk.type || 'function'
+                                    type: 'function'
                                 });
                             }
 
                             const accumulator = toolCallAccumulators.get(index)!;
 
-                            // 更新 id（如果有）
-                            if (tcChunk.id) {
-                                accumulator.id = tcChunk.id;
+                            if (event.id) {
+                                accumulator.id = event.id;
                             }
+                            if (event.name) {
+                                accumulator.name = event.name;
+                            }
+                            if (event.arguments_delta) {
+                                accumulator.arguments += event.arguments_delta;
+                            }
+                            break;
 
-                            // 更新函数名（如果有）
-                            if (tcChunk.function?.name) {
-                                accumulator.name = tcChunk.function.name;
-                            }
-
-                            // 增量追加 arguments
-                            if (tcChunk.function?.arguments) {
-                                accumulator.arguments += tcChunk.function.arguments;
-                            }
-                        }
+                        case 'error':
+                            throw new Error(event.error.message);
                     }
                 }
 
                 // 将 Map 转换为工具调用数组
                 const toolCalls = Array.from(toolCallAccumulators.values()).map(acc => ({
-                    index: 0, // 保留兼容性
                     id: acc.id,
-                    type: acc.type,
+                    type: 'function' as const,
                     function: {
                         name: acc.name,
                         arguments: acc.arguments
                     }
                 }));
 
-                const assistantMsg = {
+                const assistantMsg: ChatMessage = {
                     role: 'assistant',
                     content: currentContent || null,
                     tool_calls: toolCalls.length > 0 ? toolCalls : undefined

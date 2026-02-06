@@ -80,11 +80,11 @@
         - 支持单服务器断开与工具自动清理。
         - 提供 `getConnectionStatuses()` 查询所有连接状态。
 
-## Phase 2: 认知层抽象 (Cognitive Layer)
+## Phase 2: 认知层抽象 (Cognitive Layer) ✅ COMPLETED
 
 > **目标**: 定义统一的 LLM 交互接口，支持无缝切换模型提供商。
 
-- [ ] **2.1 定义 IChatModel 接口**
+- [x] **2.1 定义 IChatModel 接口**
     - **文件**: `src/main/services/llm/IChatModel.ts`
     - **接口定义**:
         ```typescript
@@ -95,7 +95,7 @@
         ```
     - **类型定义**: 规范化 `ChatMessage` (统一 User/Assistant/System/Tool) 和 `ChatStreamEvent` (统一 Delta/ToolCall)。
 
-- [ ] **2.2 实现 OpenAIAdapter**
+- [x] **2.2 实现 OpenAIAdapter**
     - **文件**: `src/main/services/llm/providers/OpenAIAdapter.ts`
     - **设计**:
         - 实现 `IChatModel`。
@@ -103,12 +103,19 @@
         - 将 OpenAI 的 chunk 格式转换为标准的 `ChatStreamEvent`。
     - **集成**: 在 `AgentRuntime` 中注入 `IChatModel`，替代直接的 `new OpenAI()`。
 
-- [ ] **2.3 实现 AnthropicAdapter**
+- [x] **2.3 实现 AnthropicAdapter**
     - **文件**: `src/main/services/llm/providers/AnthropicAdapter.ts`
     - **设计**:
-        - 集成 `@anthropic-ai/sdk` (或项目中已有的 `claude-agent-sdk`)。
+        - 集成 `@anthropic-ai/sdk`。
         - 适配 Claude 3.5 Sonnet 的 Tool Use 格式。
         - 确保 `stream` 输出与 OpenAI Adapter 保持一致。
+
+- [x] **2.4 ChatModelFactory 工厂模式**
+    - **文件**: `src/main/services/llm/ChatModelFactory.ts`
+    - **设计**:
+        - 根据 providerId 自动创建对应的适配器实例
+        - 支持 OpenAI、Anthropic、DeepSeek、Local (Ollama) 等提供商
+        - DeepSeek/Local 使用 OpenAI 兼容接口
 
 ## Phase 3: Skill 系统重构 (Skill System 2.0)
 
