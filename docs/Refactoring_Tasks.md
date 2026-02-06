@@ -234,3 +234,17 @@
         - 美化展示工具调用的参数和结果 (JSON 树或专用 UI)。
         - 支持折叠/展开详细日志。
 
+- [ ] **6.5 安全确认后端逻辑 (Security Backend)**
+    - **文件**: `src/main/controllers/AgentController.ts`
+    - **设计**:
+        - 在 `AgentRuntime` 的 `onAuthorizationRequired` 回调中触发 IPC 事件 `agent:request-confirmation`。
+        - 使用 `Promise` + `Map<id, resolve>` 模式等待前端的异步响应 `agent:confirmation-response`。
+        - 确保主进程在等待用户确认时不会阻塞整个 Electron 应用（仅阻塞 Agent 异步流）。
+
+- [ ] **6.6 安全确认弹窗 (Security UI)**
+    - **文件**: `src/renderer/src/components/Agent/ConfirmationModal.tsx`
+    - **任务**:
+        - 监听 `agent:request-confirmation` 事件。
+        - 弹出模态框展示：工具名称、参数、风险等级。
+        - 用户点击“Approve”或“Reject”后，通过 API 发送响应。
+
