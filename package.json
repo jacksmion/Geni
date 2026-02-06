@@ -1,5 +1,5 @@
 {
-  "name": "cowork",
+  "name": "muse",
   "version": "1.0.0",
   "description": "AI-powered collaborative workspace assistant",
   "main": "dist-electron/main.js",
@@ -53,8 +53,8 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "build": {
-    "appId": "com.cowork.app",
-    "productName": "Cowork",
+    "appId": "com.muse.app",
+    "productName": "MUSE",
     "directories": {
       "output": "release"
     },

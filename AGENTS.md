@@ -1,7 +1,7 @@
-# Cowork Project - AI Agent Documentation
+# MUSE Project - AI Agent Documentation
 
 ## 1. Project Overview
-**Cowork** is an Electron-based AI coding assistant designed to act as a "Virtual Coworker". It differs from standard chat interfaces by adopting a **Tool-First Architecture**, where the AI is primarily a router and executor of capable tools (file editing, command execution, etc.) rather than just a text generator.
+**MUSE** is an Electron-based AI coding assistant designed to act as a "Virtual MUSEer". It differs from standard chat interfaces by adopting a **Tool-First Architecture**, where the AI is primarily a router and executor of capable tools (file editing, command execution, etc.) rather than just a text generator.
 
 ## 2. Architecture (V2: Tool-First)
 The project follows a modular "Service-Based" architecture, separating the UI (Renderer) from the Logic (Main Process).
@@ -61,7 +61,7 @@ Tools are located in `src/main/services/tools/builtin`. Current built-in tools i
 For an AI working on this codebase, these are the critical paths:
 
 ```
-d:/VibeCode/cowork/
+d:/VibeCode/MUSE/
 ├── src/
 │   ├── common/             # Shared Types
 │   │   ├── types/
