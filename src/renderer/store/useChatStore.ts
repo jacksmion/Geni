@@ -35,7 +35,7 @@ const createDefaultSession = (): ChatSession => {
         messages: [{
             id: 'init-1',
             role: 'assistant',
-            content: '你好！我是基于 Tool-Use 架构的新一代智能代理。\n我现在支持更复杂的任务拆解及工具调用。',
+            content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
             timestamp: Date.now()
         }]
     };

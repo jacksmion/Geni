@@ -79,10 +79,11 @@ export default function Settings() {
                     {activeSection === 'about' && (
                         <div className="max-w-2xl text-center pt-20 space-y-4">
                             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mx-auto shadow-xl flex items-center justify-center text-white text-3xl font-bold">
-                                AC
+                                M
                             </div>
-                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Assistant Core</h2>
-                            <p className="text-slate-500 dark:text-gray-400">Desktop AI Agent Environment</p>
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">MUSE</h2>
+                            <p className="text-slate-500 dark:text-gray-400">Your personal spark for creativity & code</p>
+
                             <div className="pt-8 text-xs text-slate-400">
                                 Version 1.0.0 (Beta) <br />
                                 © 2026 VibeCode Inc.

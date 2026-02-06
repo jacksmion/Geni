@@ -170,7 +170,7 @@ export function Composer() {
                                 handleSend()
                             }
                         }}
-                        placeholder="Message Assistant Core..."
+                        placeholder="Message MUSE..."
                         className="w-full bg-transparent px-5 py-4 min-h-[56px] max-h-64 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
                         rows={1}
                         style={{ lineHeight: '1.5' }}
@@ -224,12 +224,7 @@ export function Composer() {
                     </div>
                 </div>
 
-                {/* Footer Text */}
-                <div className="text-center mt-3">
-                    <p className="text-[10px] text-slate-400 dark:text-zinc-600">
-                        AI can make mistakes. Please verify important information.
-                    </p>
-                </div>
+
             </div>
         </div>
     )
