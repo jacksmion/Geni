@@ -204,3 +204,33 @@
         - 统一注册所有 Controller 的 `ipcMain.handle`。
         - 确保单例模式的依赖注入 (Service Container)。
 
+## Phase 6: 前端集成 (Frontend Integration)
+
+> **目标**: 迁移 React 前端以使用新的 IPC 协议，并展示高级 Agent 状态。
+
+- [ ] **6.1 更新 IPC Client**
+    - **文件**: `src/renderer/src/hooks/useAgent.ts` (新)
+    - **内容**:
+        - 封装 `window.electron.ipcRenderer.invoke`。
+        - 提供 `startSession`, `sendMessage`, `stopAgent` 等 API。
+        - 监听 `agent:stream`, `agent:step`, `agent:state` 事件。
+
+- [ ] **6.2 重构聊天界面 (Chat Interface)**
+    - **文件**: `src/renderer/src/components/Chat/ChatWindow.tsx`
+    - **任务**:
+        - 移除旧的 `send-message` 调用。
+        - 引入 Session 概念：页面加载时创建或恢复 Session。
+        - 渲染流式输出。
+
+- [ ] **6.3 实现状态可视化 (State Visualization)**
+    - **文件**: `src/renderer/src/components/Agent/StateIndicator.tsx`
+    - **任务**:
+        - 根据 `AgentState` (Thinking, ExecutingTool) 显示不同的 UI 动画。
+        - 显示当前的 "Thought Process" (CoT)。
+
+- [ ] **6.4 工具执行结果渲染**
+    - **文件**: `src/renderer/src/components/Chat/ToolOutput.tsx`
+    - **任务**:
+        - 美化展示工具调用的参数和结果 (JSON 树或专用 UI)。
+        - 支持折叠/展开详细日志。
+
