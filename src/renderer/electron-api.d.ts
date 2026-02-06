@@ -21,6 +21,7 @@ export interface IElectronAPI {
         delete: (id: string) => Promise<boolean>;
         save: (session: any) => Promise<boolean>;
         get: (id: string) => Promise<any>;
+        addMessage: (sessionId: string, message: any) => Promise<boolean>;
     };
 
     // System Namespace

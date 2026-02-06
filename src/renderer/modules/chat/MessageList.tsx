@@ -81,7 +81,8 @@ function preprocessMarkdown(content: string) {
 
 function MessageItem({ message }: { message: ChatMessage }) {
     const isUser = message.role === 'user'
-    const processedContent = !isUser ? preprocessMarkdown(message.content) : message.content;
+    const content = message.content || '';
+    const processedContent = !isUser ? preprocessMarkdown(content) : content;
 
     return (
         <div className={cn(
@@ -103,7 +104,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                 {/* User Message Bubble - High Contrast */}
                 {isUser && (
                     <div className="px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-slate-900 dark:text-zinc-100 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
-                        {message.content}
+                        {content}
                     </div>
                 )}
 
@@ -231,13 +232,13 @@ function MessageItem({ message }: { message: ChatMessage }) {
                 )}>
                     {isUser ? (
                         <>
-                            <CopyButton text={message.content} className="p-0.5" />
+                            <CopyButton text={content} className="p-0.5" />
                             <span>{new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} · You</span>
                         </>
                     ) : (
                         <>
                             <span>MUSE · {new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                            <CopyButton text={message.content} className="p-0.5" />
+                            <CopyButton text={content} className="p-0.5" />
                         </>
                     )}
                 </div>

@@ -33,7 +33,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getHistory: (id: string) => ipcRenderer.invoke('session:get-history', id),
         delete: (id: string) => ipcRenderer.invoke('session:delete', id),
         save: (session: any) => ipcRenderer.invoke('session:save', session),
-        get: (id: string) => ipcRenderer.invoke('session:get', id)
+        get: (id: string) => ipcRenderer.invoke('session:get', id),
+        addMessage: (sessionId: string, message: any) => ipcRenderer.invoke('session:add-message', { sessionId, message })
     },
     system: {
         getSettings: () => ipcRenderer.invoke('system:get-settings'),

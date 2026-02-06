@@ -6,4 +6,3 @@
  */
 
 export { SessionManager } from './SessionManager';
-export type { SessionState } from './SessionManager';

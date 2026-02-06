@@ -79,29 +79,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 // Init default if empty
                 // Create via backend
                 const newSes = await window.electronAPI.session.create();
-                // Save title/defaults
+
+                const welcomeMessage = {
+                    id: 'init-1',
+                    role: 'assistant' as const,
+                    content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
+                    timestamp: Date.now()
+                };
+
                 const defaultSes: ChatSession = {
                     id: newSes.id,
                     title: '新对话',
                     createdAt: newSes.createdAt,
                     updatedAt: newSes.createdAt,
-                    messages: [{
-                        id: 'init-1',
-                        role: 'assistant',
-                        content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
-                        timestamp: Date.now()
-                    }]
+                    messages: [welcomeMessage]
                 };
 
-                // We need to save the initial message to backend? 
-                // SessionManager.createSession initializes empty history.
-                // We want the welcome message.
-                // Backend assumes empty.
-                // We can't easily push a message via API without "running" agent or using a "addMessage" API?
-                // For now, let's just set it in local state. Backend will sync when user sends a message.
-                // OR we accept that new sessions are empty on backend until interaction.
-
+                // 保存标题和欢迎消息到后端
                 await window.electronAPI.session.save({ id: defaultSes.id, title: defaultSes.title });
+                await window.electronAPI.session.addMessage(defaultSes.id, welcomeMessage);
 
                 set({
                     sessions: { [defaultSes.id]: defaultSes },
@@ -115,22 +111,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     createSession: async (title) => {
         const backendSes = await window.electronAPI.session.create();
+        const sessionTitle = title || '新对话';
+
+        const welcomeMessage = {
+            id: 'init-' + backendSes.id,
+            role: 'assistant' as const,
+            content: '你好！我是 MUSE，你的个人智能助手。',
+            timestamp: Date.now()
+        };
 
         const newSession: ChatSession = {
             id: backendSes.id,
-            title: title || '新对话',
+            title: sessionTitle,
             createdAt: backendSes.createdAt,
             updatedAt: backendSes.createdAt,
-            messages: [{
-                id: 'init-' + backendSes.id,
-                role: 'assistant',
-                content: '你好！我是 MUSE，你的个人智能助手。',
-                timestamp: Date.now()
-            }]
+            messages: [welcomeMessage]
         };
 
-        // Save title
+        // 保存标题和欢迎消息到后端
         await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
+        await window.electronAPI.session.addMessage(newSession.id, welcomeMessage);
 
         set(state => ({
             sessions: { ...state.sessions, [newSession.id]: newSession },
@@ -203,38 +203,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     addMessage: (msg) => {
-        set(state => {
-            const session = state.sessions[state.activeSessionId];
-            if (!session) return state;
+        const state = get();
+        const session = state.sessions[state.activeSessionId];
+        if (!session) return;
 
-            const newMsg: ChatMessage = {
-                ...msg,
-                id: crypto.randomUUID(),
-                timestamp: Date.now()
-            };
+        const newMsg: ChatMessage = {
+            ...msg,
+            id: crypto.randomUUID(),
+            timestamp: Date.now()
+        };
 
-            const updatedSession = {
-                ...session,
-                messages: [...session.messages, newMsg],
-                updatedAt: Date.now()
-            };
+        const updatedSession = {
+            ...session,
+            messages: [...session.messages, newMsg],
+            updatedAt: Date.now()
+        };
 
-            // Auto-title logic for first user message
-            if (session.messages.length <= 1 && msg.role === 'user') {
-                const potentialTitle = msg.content.trim().slice(0, 20);
-                if (potentialTitle) {
-                    updatedSession.title = potentialTitle;
-                    window.electronAPI.session.save({ id: session.id, title: potentialTitle });
-                }
+        // Auto-title logic for first user message
+        if (session.messages.length <= 1 && msg.role === 'user' && msg.content) {
+            const potentialTitle = msg.content.trim().slice(0, 20);
+            if (potentialTitle) {
+                updatedSession.title = potentialTitle;
+                window.electronAPI.session.save({ id: session.id, title: potentialTitle });
             }
+        }
 
-            // DO NOT save session history here, backend handles it during Agent execution.
-            // We only update local state for immediate feedback.
-
-            return {
-                sessions: { ...state.sessions, [state.activeSessionId]: updatedSession }
-            };
+        // 立即更新本地状态
+        set({
+            sessions: { ...state.sessions, [state.activeSessionId]: updatedSession }
         });
+
+        // 用户消息立即保存到后端持久化（不等待 Agent 执行）
+        if (msg.role === 'user') {
+            window.electronAPI.session.addMessage(session.id, newMsg);
+        }
     },
 
     updateLastMessage: (updater) => {

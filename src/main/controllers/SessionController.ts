@@ -26,6 +26,7 @@ export class SessionController {
         ipcMain.handle(SESSION_CHANNELS.DELETE, this.handleDelete.bind(this));
         ipcMain.handle(SESSION_CHANNELS.SAVE, this.handleSave.bind(this));
         ipcMain.handle(SESSION_CHANNELS.GET, this.handleGetSession.bind(this));
+        ipcMain.handle(SESSION_CHANNELS.ADD_MESSAGE, this.handleAddMessage.bind(this));
     }
 
     private async handleGetSession(event: IpcMainInvokeEvent, sessionId: string) {
@@ -54,8 +55,34 @@ export class SessionController {
         return this.sessionManager.deleteSession(sessionId);
     }
 
-    private async handleSave(event: IpcMainInvokeEvent, session: any) {
-        // session object from frontend might need sanitization or check
-        return this.sessionManager.saveSession(session);
+    private async handleSave(event: IpcMainInvokeEvent, updates: { id: string; title?: string }) {
+        // 使用 updateSession 进行部分更新，而不是 saveSession 完全覆盖
+        // 这样可以保留现有的 messages、createdAt 等字段
+        if (!updates.id) {
+            console.error('[SessionController] handleSave called without session id');
+            return false;
+        }
+
+        const result = await this.sessionManager.updateSession(updates.id, { title: updates.title });
+        return result !== undefined;
+    }
+
+    /**
+     * 处理前端添加消息请求
+     * 用于用户发送消息时立即持久化，以及保存初始欢迎消息
+     */
+    private async handleAddMessage(event: IpcMainInvokeEvent, payload: { sessionId: string; message: any }) {
+        if (!payload.sessionId || !payload.message) {
+            console.error('[SessionController] handleAddMessage called with invalid payload');
+            return false;
+        }
+
+        try {
+            await this.sessionManager.addMessage(payload.sessionId, payload.message);
+            return true;
+        } catch (error) {
+            console.error('[SessionController] Failed to add message:', error);
+            return false;
+        }
     }
 }

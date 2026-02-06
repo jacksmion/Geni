@@ -1,6 +1,6 @@
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
-import { ConfigManager } from '../../../ConfigManager';
+import { ConfigManager } from '../../ConfigManager';
 
 /**
  * Skill Reader Tool

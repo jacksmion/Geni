@@ -18,6 +18,7 @@ export const SESSION_CHANNELS = {
     DELETE: 'session:delete',
     GET_HISTORY: 'session:get-history',
     SAVE: 'session:save',
+    ADD_MESSAGE: 'session:add-message',
 } as const;
 
 // Agent Events (Server -> Client)
