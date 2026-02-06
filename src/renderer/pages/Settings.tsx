@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';
 import { McpSettings } from './settings/McpSettings';
-import SkillHub from './SkillHub'; // Import SkillHub
+import SkillSettings from './settings/SkillSettings'; // Import SkillSettings
 
 type SettingsSection = 'general' | 'models' | 'mcp' | 'skills' | 'about';
 
@@ -74,7 +74,7 @@ export default function Settings() {
 
                     {activeSection === 'mcp' && <McpSettings />}
 
-                    {activeSection === 'skills' && <SkillHub />}
+                    {activeSection === 'skills' && <SkillSettings />}
 
                     {activeSection === 'about' && (
                         <div className="max-w-2xl text-center pt-20 space-y-4">

@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react'
-import SkillHub from './pages/SkillHub'
 import Settings from './pages/Settings'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'

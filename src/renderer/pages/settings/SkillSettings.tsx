@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import SkillCard from '../components/SkillCard';
-import { Skill } from '../../common/types/skill';
+import SkillCard from '../../components/SkillCard';
+import { Skill } from '../../../common/types/skill';
 import { Search, Loader2 } from 'lucide-react';
 
-const SkillHub: React.FC = () => {
+const SkillSettings: React.FC = () => {
     const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -88,4 +88,4 @@ const SkillHub: React.FC = () => {
     );
 };
 
-export default SkillHub;
+export default SkillSettings;
