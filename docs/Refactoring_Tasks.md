@@ -23,11 +23,11 @@
     - [x] 移动 `ToolRegistry.ts` (如果有) -> `src/main/services/tools/ToolRegistry.ts`
     - [x] 移动 `SkillLoader.ts` -> `src/main/services/skills/core/LegacySkillLoader.ts` (标记为废弃，待重构)
 
-## Phase 1: 运行时核心修复 (Agent Kernel)
+## Phase 1: 运行时核心修复 (Agent Kernel) ✅ COMPLETED
 
 > **目标**: 修复 `OpenAIAgentService` 的并行调用缺陷，引入状态机，并对核心类进行解耦拆分。
 
-- [ ] **1.1 修复并行工具调用 (Fix Parallel Function Calls)**
+- [x] **1.1 修复并行工具调用 (Fix Parallel Function Calls)**
     - **文件**: `src/main/services/agent/AgentRuntime.ts`
     - **问题**: 当前 `toolCallBuffer` 为单对象，无法处理 OpenAI 流式返回的交叉多工具调用 (ex: index 0 chunk, index 1 chunk, index 0 chunk)。
     - **设计**:
@@ -40,7 +40,7 @@
             4. 增量追加 `arguments` 字符串。
             5. 流结束时，将 Map values 转为数组进行执行。
  
-- [ ] **1.2 提取 PromptBuilder (Decouple Context)**
+- [x] **1.2 提取 PromptBuilder (Decouple Context)**
     - **文件**: `src/main/services/agent/PromptBuilder.ts`
     - **设计**:
         - 类 `PromptBuilder`
@@ -52,14 +52,14 @@
             - 注入 Methodology (CoT 指引)
     - **行动**: 将 `AgentRuntime.ts` 中的字符串拼接逻辑移动至此。
 
-- [ ] **1.3 引入显式状态机 (Explicit State Machine)**
+- [x] **1.3 引入显式状态机 (Explicit State Machine)**
     - **文件**: `src/main/services/agent/state/AgentState.ts`
     - **设计**:
         - 定义状态枚举: `Idle`, `Thinking` (Calling LLM), `ExecutingHelper` (Processing output), `ExecutingTool`, `AwaitingInput`。
         - 在 `AgentRuntime` 中维护 `currentState`。
         - **价值**: 让 UI 能精确展示当前 Agent 在做什么（"正在思考...", "正在执行命令...", "等待确认"）。
 
-- [ ] **1.4 实现工具执行拦截 (Tool Execution Interceptor)**
+- [x] **1.4 实现工具执行拦截 (Tool Execution Interceptor)**
     - **文件**: `src/main/services/agent/ToolGuard.ts`
     - **设计**:
         - 在 `AgentRuntime` 执行工具前增加拦截逻辑。
