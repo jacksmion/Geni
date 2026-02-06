@@ -185,15 +185,24 @@ export function Composer() {
                             {/* Attach File */}
                             <TooltipButton icon={Paperclip} label="Add Attachment" onClick={handleSelectFile} />
 
-                            {/* Directory Picker */}
-                            <button
-                                onClick={handleSelectDirectory}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5 transition-colors ml-1"
-                                title="Set Working Directory"
-                            >
-                                <Folder size={14} />
-                                <span className="max-w-[120px] truncate">{displayPath}</span>
-                            </button>
+                            {/* Directory Picker / Explorer */}
+                            <div className="flex items-center bg-slate-100/50 dark:bg-white/5 rounded-xl px-1 py-0.5 ml-1 border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/30 dark:hover:border-white/20 transition-all group/path">
+                                <button
+                                    onClick={() => window.electronAPI.openExplorer(workspacePath)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white dark:text-zinc-500 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-all"
+                                    title="在文件资源管理器中打开"
+                                >
+                                    <Folder size={14} />
+                                </button>
+                                <div className="w-[1px] h-3 bg-slate-200 dark:bg-white/10 mx-0.5" />
+                                <button
+                                    onClick={handleSelectDirectory}
+                                    className="px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200 truncate max-w-[150px] transition-colors"
+                                    title="切换工作目录"
+                                >
+                                    {displayPath}
+                                </button>
+                            </div>
 
                         </div>
 

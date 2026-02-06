@@ -28,5 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSessionList: () => ipcRenderer.invoke('get-session-list'),
     getSessionMessages: (id: string) => ipcRenderer.invoke('get-session-messages', id),
     saveSession: (session: any) => ipcRenderer.invoke('save-session', session),
-    deleteSession: (id: string) => ipcRenderer.invoke('delete-session', id)
+    deleteSession: (id: string) => ipcRenderer.invoke('delete-session', id),
+    openExplorer: (path: string) => ipcRenderer.invoke('open-explorer', path)
 })
+

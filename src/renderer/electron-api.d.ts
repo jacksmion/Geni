@@ -20,7 +20,9 @@ export interface IElectronAPI {
     getSessionMessages: (id: string) => Promise<any[]>;
     saveSession: (session: any) => Promise<boolean>;
     deleteSession: (id: string) => Promise<boolean>;
+    openExplorer: (path: string) => Promise<void>;
 }
+
 
 declare global {
     interface Window {

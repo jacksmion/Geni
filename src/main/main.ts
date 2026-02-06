@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { SkillLoader } from './services/SkillLoader.js'
@@ -245,6 +245,12 @@ app.whenReady().then(async () => {
             return result.filePaths[0];
         }
         return null;
+    });
+
+    ipcMain.handle('open-explorer', async (_, path: string) => {
+        if (path) {
+            shell.openPath(path);
+        }
     });
 
     // IPC: Chat

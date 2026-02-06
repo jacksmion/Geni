@@ -110,18 +110,20 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                     "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-left",
                     "bg-slate-50 hover:bg-slate-100 border-slate-200",
                     "dark:bg-white/[0.03] dark:hover:bg-white/[0.06] dark:border-white/10",
+                    !step.isComplete && "animate-border-pulse border-amber-500/30 dark:border-amber-500/20",
                     isExpanded && "rounded-b-none border-b-0"
                 )}
             >
                 {/* Tool Icon */}
                 <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all",
                     step.isComplete
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                        : "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
+                        : "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 animate-pulse-glow"
                 )}>
                     <ToolIcon size={14} strokeWidth={2} />
                 </div>
+
 
                 {/* Tool Name */}
                 <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 font-mono">
