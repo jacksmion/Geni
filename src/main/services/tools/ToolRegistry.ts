@@ -57,6 +57,22 @@ export class ToolRegistry {
             };
         }
     }
+
+    /**
+     * Updates the workspace path for all tools that support it.
+     * This is called when the user changes the workspace directory in the UI.
+     */
+    updateWorkspacePath(newPath: string) {
+        for (const tool of this.tools.values()) {
+            if (typeof (tool as any).setRoot === 'function') {
+                try {
+                    (tool as any).setRoot(newPath);
+                } catch (e) {
+                    console.error(`[ToolRegistry] Failed to update root for tool:`, e);
+                }
+            }
+        }
+    }
 }
 
 export const toolRegistry = new ToolRegistry();

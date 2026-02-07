@@ -35,7 +35,7 @@ export class EnvironmentInfoTool implements ITool {
     }
 
     // Allow updating cwd dynamically if needed (though usually fixed per session or agent run)
-    setCwd(cwd: string) {
+    setRoot(cwd: string) {
         this.cwd = cwd;
     }
 }

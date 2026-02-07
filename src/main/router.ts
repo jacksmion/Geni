@@ -58,6 +58,7 @@ export class AppRouter {
         // Wiring
         this.systemController.setSettingsChangeCallback((newSettings) => {
             this.agentController.updateSettings(newSettings);
+            this.toolRegistry.updateWorkspacePath(newSettings.workspacePath);
         });
     }
 

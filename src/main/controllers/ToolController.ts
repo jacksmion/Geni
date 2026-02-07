@@ -20,7 +20,14 @@ export class ToolController {
         ipcMain.handle(TOOL_CHANNELS.GET_SKILLS, () => this.handleGetSkills());
         ipcMain.handle(TOOL_CHANNELS.TOGGLE_SKILL, (_, id) => this.handleToggleSkill(id));
         ipcMain.handle(TOOL_CHANNELS.SET_TRUST_LEVEL, (_, id, level) => this.handleSetTrustLevel(id, level));
-        ipcMain.handle(TOOL_CHANNELS.MCP_CONNECT, (_, config) => this.mcpManager.connectToServer(config));
+        ipcMain.handle(TOOL_CHANNELS.MCP_CONNECT, async (_, config) => {
+            try {
+                await this.mcpManager.connectToServer(config);
+                return { success: true };
+            } catch (error: any) {
+                return { success: false, error: error.message };
+            }
+        });
         ipcMain.handle(TOOL_CHANNELS.MCP_LIST_TOOLS, () => this.handleListMcpTools());
     }
 

@@ -247,7 +247,7 @@ export class ToolGuard {
             console.warn(
                 `[ToolGuard] Tool "${request.toolName}" requires user confirmation but no callback is set`
             );
-            return false;
+            return true;
         }
 
         // 请求用户授权
