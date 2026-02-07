@@ -11,10 +11,13 @@ import { McpManager } from './services/tools/mcp/McpManager.js'
 import { AppRouter } from './router.js'
 
 // Tools
-import { FileSystemTool } from './services/tools/core/FileSystemTool.js'
+import { ListDirTool } from './services/tools/core/ListDirTool.js'
+import { ReadFileTool } from './services/tools/core/ReadFileTool.js'
+import { WriteFileTool } from './services/tools/core/WriteFileTool.js'
 import { BashTool } from './services/tools/core/BashTool.js'
 import { FileEditTool } from './services/tools/core/FileEditTool.js'
-import { FileSearchTool } from './services/tools/core/FileSearchTool.js'
+import { GlobTool } from './services/tools/core/GlobTool.js'
+import { GrepTool } from './services/tools/core/GrepTool.js'
 import { EnvironmentInfoTool } from './services/tools/core/EnvironmentInfoTool.js'
 import { SkillReaderTool } from './services/tools/core/SkillReaderTool.js'
 import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './services/tools/core/planning/PlanningTools.js'
@@ -75,11 +78,15 @@ app.whenReady().then(async () => {
 
     // 4. Register Built-in Tools
     // File Tools
-    const fsTool = new FileSystemTool(workspacePath); // Use const to allow cleanup if needed
-    toolRegistry.register(fsTool);
+    // const fsTool = new FileSystemTool(workspacePath); 
+    // toolRegistry.register(fsTool);
+    toolRegistry.register(new ListDirTool(workspacePath));
+    toolRegistry.register(new ReadFileTool(workspacePath));
+    toolRegistry.register(new WriteFileTool(workspacePath));
     toolRegistry.register(new BashTool(workspacePath));
     toolRegistry.register(new FileEditTool(workspacePath));
-    toolRegistry.register(new FileSearchTool(workspacePath));
+    toolRegistry.register(new GlobTool(workspacePath));
+    toolRegistry.register(new GrepTool(workspacePath));
     toolRegistry.register(new EnvironmentInfoTool(workspacePath));
 
     // Planning Tools (New)
