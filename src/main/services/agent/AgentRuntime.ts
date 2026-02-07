@@ -26,6 +26,7 @@ import { PromptBuilder, AgentContext } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
 import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
 import { ContextManager } from './ContextManager';
+import { Summarizer } from './Summarizer';
 
 // Phase 2: 认知层抽象
 import {
@@ -161,7 +162,7 @@ export class AgentRuntime implements IAgentService {
         const systemPrompt = this.promptBuilder.buildSystemPrompt(agentContext);
 
         // 使用 ChatMessage 类型的消息数组
-        const messages: ChatMessage[] = [
+        let messages: ChatMessage[] = [
             { role: 'system', content: systemPrompt }
         ];
 
@@ -205,15 +206,33 @@ export class AgentRuntime implements IAgentService {
                 this.stateManager.transition(AgentState.Thinking, `Loop ${loopCount}: Calling LLM`);
 
                 // --- Context Management (Phase 4) ---
+
+                // 1. Auto-Summarization (New Feature)
+                // Check if we effectively need to summarize before strict pruning
+                const maxTokens = options?.maxContextTokens || 32000;
+                if (Summarizer.shouldSummarize(messages, maxTokens)) {
+                    this.stateManager.transition(AgentState.Thinking, 'Summarizing conversation history...');
+                    const summarizer = new Summarizer();
+                    try {
+                        // Attempt to summarize using the same ChatModel
+                        messages = await summarizer.summarize(messages, chatModel);
+                        // Note: We update the local 'messages' working copy. 
+                        // The 'newMessages' array still tracks only the *new* turns from this run, 
+                        // maintaining the "append-only" contract for the caller.
+                    } catch (err) {
+                        console.warn('[AgentRuntime] Summarization failed, falling back to pruning:', err);
+                    }
+                }
+
+                // 2. Strict Window Pruning
+                // Ensure we absolutely fit within limits even after (or without) summarization
                 const contextManager = new ContextManager({
-                    maxTokens: options?.maxContextTokens || 32000, // Default to 32k window
+                    maxTokens: maxTokens,
                     preserveRecentMessages: 20
                 });
 
                 // Prune messages to fit context window
-                // Note: We use a local variable for the context to send to LLM, 
-                // but we keep the full 'messages' array for the session history until it grows too large.
-                // In a real long-running session, we should also prune 'messages' or use Summarizer.
+                // Note: We use a local variable for the context to send to LLM
                 const contextMessages = contextManager.prune(messages);
 
 
