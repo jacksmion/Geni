@@ -17,6 +17,7 @@ import { FileEditTool } from './services/tools/core/FileEditTool.js'
 import { FileSearchTool } from './services/tools/core/FileSearchTool.js'
 import { EnvironmentInfoTool } from './services/tools/core/EnvironmentInfoTool.js'
 import { SkillReaderTool } from './services/tools/core/SkillReaderTool.js'
+import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './services/tools/core/planning/PlanningTools.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -73,11 +74,18 @@ app.whenReady().then(async () => {
     console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills from ${skillsDir}`);
 
     // 4. Register Built-in Tools
-    toolRegistry.register(new FileSystemTool(workspacePath));
+    // File Tools
+    const fsTool = new FileSystemTool(workspacePath); // Use const to allow cleanup if needed
+    toolRegistry.register(fsTool);
     toolRegistry.register(new BashTool(workspacePath));
     toolRegistry.register(new FileEditTool(workspacePath));
     toolRegistry.register(new FileSearchTool(workspacePath));
     toolRegistry.register(new EnvironmentInfoTool(workspacePath));
+
+    // Planning Tools (New)
+    toolRegistry.register(new CreatePlanTool(workspacePath));
+    toolRegistry.register(new UpdateTaskStatusTool(workspacePath));
+    toolRegistry.register(new ReadPlanTool(workspacePath));
 
     // Register SkillReaderTool (with dependencies)
     toolRegistry.register(new SkillReaderTool(skillRegistry, configManager));
