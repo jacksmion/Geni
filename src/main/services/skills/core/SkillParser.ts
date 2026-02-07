@@ -2,10 +2,22 @@ import matter from 'gray-matter';
 import { z } from 'zod';
 
 export const SkillSchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),
     name: z.string(),
     description: z.string(),
-    version: z.string(),
+    license: z.string().optional(),
+    version: z.string().optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
+}).transform((data) => {
+    const metaStruct = data.metadata || {};
+    const version = metaStruct.version || data.version || '1.0.0';
+
+    return {
+        ...data,
+        id: data.id ?? data.name,
+        version: String(version),
+        metadata: metaStruct,
+    };
 });
 
 export type SkillMetadata = z.infer<typeof SkillSchema>;
