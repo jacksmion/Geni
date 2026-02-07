@@ -18,7 +18,7 @@ import { BashTool } from './services/tools/core/BashTool.js'
 import { FileEditTool } from './services/tools/core/FileEditTool.js'
 import { GlobTool } from './services/tools/core/GlobTool.js'
 import { GrepTool } from './services/tools/core/GrepTool.js'
-import { EnvironmentInfoTool } from './services/tools/core/EnvironmentInfoTool.js'
+
 import { SkillReaderTool } from './services/tools/core/SkillReaderTool.js'
 import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './services/tools/core/planning/PlanningTools.js'
 
@@ -87,7 +87,7 @@ app.whenReady().then(async () => {
     toolRegistry.register(new FileEditTool(workspacePath));
     toolRegistry.register(new GlobTool(workspacePath));
     toolRegistry.register(new GrepTool(workspacePath));
-    toolRegistry.register(new EnvironmentInfoTool(workspacePath));
+
 
     // Planning Tools (New)
     toolRegistry.register(new CreatePlanTool(workspacePath));
