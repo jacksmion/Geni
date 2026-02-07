@@ -53,6 +53,8 @@ export interface ChatMessage {
     tool_calls?: ToolCall[];
     /** 工具调用 ID (仅 tool 角色使用，对应 ToolCall.id) */
     tool_call_id?: string;
+    /** 推理内容 (用于 DeepSeek R1 等推理模型) */
+    reasoning_content?: string;
 }
 
 // ============================================================================
@@ -64,6 +66,7 @@ export interface ChatMessage {
  */
 export type ChatStreamEventType =
     | 'content_delta'      // 文本内容增量
+    | 'reasoning_delta'    // 推理内容增量
     | 'tool_call_delta'    // 工具调用增量
     | 'message_start'      // 消息开始
     | 'message_end'        // 消息结束
@@ -75,6 +78,15 @@ export type ChatStreamEventType =
 export interface ContentDeltaEvent {
     type: 'content_delta';
     /** 增量文本内容 */
+    delta: string;
+}
+
+/**
+ * 推理内容增量事件
+ */
+export interface ReasoningDeltaEvent {
+    type: 'reasoning_delta';
+    /** 增量推理内容 */
     delta: string;
 }
 
@@ -134,6 +146,7 @@ export interface ErrorEvent {
  */
 export type ChatStreamEvent =
     | ContentDeltaEvent
+    | ReasoningDeltaEvent
     | ToolCallDeltaEvent
     | MessageStartEvent
     | MessageEndEvent

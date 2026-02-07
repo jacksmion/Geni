@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Bot, User, CheckCircle2, Terminal, Copy, Check } from 'lucide-react'
+import { Bot, User, CheckCircle2, Terminal, Copy, Check, Brain, ChevronDown, ChevronUp } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
@@ -54,6 +54,54 @@ function CopyButton({ text, className }: { text: string, className?: string }) {
         >
             {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
         </button>
+    )
+}
+
+interface ThinkingBlockProps {
+    content: string;
+    isComplete: boolean;
+}
+
+function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
+    // 初始状态：如果是已完成的消息（历史记录），默认折叠；如果是正在生成（未完成），默认展开
+    // 这里的 isComplete 能够区分历史消息和正在生成的消息
+    const [isExpanded, setIsExpanded] = useState(!isComplete)
+
+    // 当思考完成时，自动折叠（针对流式生成场景）
+    // 使用 useRef 记录上一次的完成状态，避免重复触发
+    const prevCompleteRef = useRef(isComplete)
+
+    useEffect(() => {
+        // 只有当状态从 false 变为 true 时（即生成刚结束），才自动折叠
+        if (!prevCompleteRef.current && isComplete) {
+            setIsExpanded(false)
+        }
+        prevCompleteRef.current = isComplete
+    }, [isComplete])
+
+    return (
+        <div className="my-4 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-[#08080a] shadow-sm">
+            <div
+                className="flex items-center justify-between px-4 py-3 bg-slate-50/50 dark:bg-white/5 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors select-none"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex items-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                    <div className="p-1 bg-indigo-100/50 dark:bg-indigo-500/20 rounded-md">
+                        <Brain size={14} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <span>Deep Thinking Process</span>
+                </div>
+                {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+            </div>
+            {isExpanded && (
+                <div className="p-4 bg-slate-50/30 dark:bg-white/[0.02] text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
+                    {content}
+                    {!isComplete && (
+                        <span className="inline-block w-2 h-4 ml-1 align-middle bg-indigo-500 animate-pulse" />
+                    )}
+                </div>
+            )}
+        </div>
     )
 }
 
@@ -194,6 +242,17 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                     code({ node, inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
                                         const codeString = String(children).replace(/\n$/, '')
+
+                                        if (!inline && match && match[1] === 'thinking') {
+                                            // 检测思考块是否完整闭合
+                                            // 逻辑：检查整个 message.content 中是否存在闭合的 ```thinking ... ``` 结构
+                                            // 注意：这里简单判断是否存在闭合标记。更严谨的可能需要判断当前渲染的这个块是否闭合。
+                                            // 由于 thinking 只有一个，我们可以用全局判断。
+                                            const isThinkingComplete = /```thinking[\s\S]*?```/.test(message.content || '');
+
+                                            return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
+                                        }
+
                                         return !inline && match ? (
                                             <div className="rounded-xl overflow-hidden my-8 border border-slate-200 dark:border-white/10 shadow-lg bg-slate-50 dark:bg-[#08080a]">
                                                 <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">

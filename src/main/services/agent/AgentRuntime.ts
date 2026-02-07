@@ -249,6 +249,8 @@ export class AgentRuntime implements IAgentService {
                 this.stateManager.transition(AgentState.ExecutingHelper, 'Processing LLM stream');
 
                 let currentContent = '';
+                let currentReasoning = '';
+                let isReasoning = false;
 
                 /**
                  * Phase 1.1: 修复并行工具调用
@@ -261,7 +263,26 @@ export class AgentRuntime implements IAgentService {
                 for await (const event of chatModel.stream(contextMessages, chatModelOptions)) {
                     switch (event.type) {
                         case 'content_delta':
+                            // 如果是从推理状态切换回内容状态，添加结束标记
+                            if (isReasoning) {
+                                isReasoning = false;
+                                onStream?.('\n```\n\n');
+                            }
                             currentContent += event.delta;
+                            onStream?.(event.delta);
+                            break;
+
+                        case 'reasoning_delta':
+                            // 处理推理内容
+                            if (!isReasoning) {
+                                isReasoning = true;
+                                onStream?.('```thinking\n');
+                            }
+                            // 为每一行添加引用标记 (简单的处理方式，流式可能不如完整处理完美，但足够好用)
+                            // 这里简单直接输出，依靠前端 markdown 渲染或用户理解
+                            // 若要完美 markdown blockquote，需处理换行。这里简化处理。
+                            // 实际体验：通常 reasoning 是一大段，直接输出即可。
+                            currentReasoning += event.delta;
                             onStream?.(event.delta);
                             break;
 

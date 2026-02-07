@@ -90,11 +90,18 @@ export class OpenAIAdapter implements IChatModel {
                 const delta = chunk.choices[0]?.delta;
                 const finishReason = chunk.choices[0]?.finish_reason;
 
-                // 处理文本内容
                 if (delta?.content) {
                     yield {
                         type: 'content_delta',
                         delta: delta.content,
+                    };
+                }
+
+                // 处理推理内容 (DeepSeek R1 等)
+                if ((delta as any)?.reasoning_content) {
+                    yield {
+                        type: 'reasoning_delta',
+                        delta: (delta as any).reasoning_content,
                     };
                 }
 
@@ -157,6 +164,7 @@ export class OpenAIAdapter implements IChatModel {
         options?: ChatModelOptions
     ): Promise<ChatMessage> {
         let content = '';
+        let reasoning_content = '';
         const toolCalls: ToolCall[] = [];
         const toolCallAccumulators = new Map<number, {
             id: string;
@@ -168,6 +176,9 @@ export class OpenAIAdapter implements IChatModel {
             switch (event.type) {
                 case 'content_delta':
                     content += event.delta;
+                    break;
+                case 'reasoning_delta':
+                    reasoning_content += event.delta;
                     break;
                 case 'tool_call_delta':
                     if (!toolCallAccumulators.has(event.index)) {
@@ -202,6 +213,7 @@ export class OpenAIAdapter implements IChatModel {
         return {
             role: 'assistant',
             content: content || null,
+            reasoning_content: reasoning_content || undefined,
             tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         };
     }
