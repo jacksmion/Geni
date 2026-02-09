@@ -47,6 +47,9 @@ export interface IElectronAPI {
         mcpSetToolTrustLevel: (serverId: string, toolName: string, level: 'Ask' | 'Auto') => Promise<{ success: boolean }>;
         mcpToggleServer: (serverId: string, enabled: boolean) => Promise<{ success: boolean }>;
         mcpGetStatuses: () => Promise<Record<string, { state: 'disconnected' | 'connecting' | 'connected' | 'error'; error?: string; toolCount: number }>>;
+        coreToolList: () => Promise<Array<{ name: string, description: string, enabled: boolean, trustLevel: 'Ask' | 'Auto' }>>;
+        coreToolToggle: (toolName: string) => Promise<{ success: boolean }>;
+        coreToolSetTrustLevel: (toolName: string, level: 'Ask' | 'Auto') => Promise<{ success: boolean }>;
     };
 }
 

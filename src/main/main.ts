@@ -11,16 +11,7 @@ import { McpManager } from './services/tools/mcp/McpManager.js'
 import { AppRouter } from './router.js'
 
 // Tools
-import { ListDirTool } from './services/tools/core/ListDirTool.js'
-import { ReadFileTool } from './services/tools/core/ReadFileTool.js'
-import { WriteFileTool } from './services/tools/core/WriteFileTool.js'
-import { BashTool } from './services/tools/core/BashTool.js'
-import { FileEditTool } from './services/tools/core/FileEditTool.js'
-import { GlobTool } from './services/tools/core/GlobTool.js'
-import { GrepTool } from './services/tools/core/GrepTool.js'
-
-import { SkillReaderTool } from './services/tools/core/SkillReaderTool.js'
-import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './services/tools/core/planning/PlanningTools.js'
+import { CoreToolManager } from './services/tools/core/CoreToolManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -77,25 +68,8 @@ app.whenReady().then(async () => {
     console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills from ${skillsDir}`);
 
     // 4. Register Built-in Tools
-    // File Tools
-    // const fsTool = new FileSystemTool(workspacePath); 
-    // toolRegistry.register(fsTool);
-    toolRegistry.register(new ListDirTool(workspacePath));
-    toolRegistry.register(new ReadFileTool(workspacePath));
-    toolRegistry.register(new WriteFileTool(workspacePath));
-    toolRegistry.register(new BashTool(workspacePath));
-    toolRegistry.register(new FileEditTool(workspacePath));
-    toolRegistry.register(new GlobTool(workspacePath));
-    toolRegistry.register(new GrepTool(workspacePath));
-
-
-    // Planning Tools (New)
-    toolRegistry.register(new CreatePlanTool(workspacePath));
-    toolRegistry.register(new UpdateTaskStatusTool(workspacePath));
-    toolRegistry.register(new ReadPlanTool(workspacePath));
-
-    // Register SkillReaderTool (with dependencies)
-    toolRegistry.register(new SkillReaderTool(skillRegistry, configManager));
+    const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath);
+    coreToolManager.initialize();
 
     // 5. Initialize Services
     const mcpManager = new McpManager(toolRegistry);
@@ -112,7 +86,7 @@ app.whenReady().then(async () => {
     }
 
     // 6. Initialize AppRouter (DI Container & IPC)
-    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager);
+    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager);
     appRouter.initialize();
 
     createWindow();

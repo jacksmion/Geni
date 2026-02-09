@@ -50,4 +50,7 @@ export const TOOL_CHANNELS = {
     MCP_SET_TOOL_TRUST_LEVEL: 'tool:mcp-set-tool-trust-level',
     MCP_TOGGLE_SERVER: 'tool:mcp-toggle-server',
     MCP_GET_STATUSES: 'tool:mcp-get-statuses',
+    CORE_TOOL_LIST: 'tool:core-tool-list',
+    CORE_TOOL_TOGGLE: 'tool:core-tool-toggle',
+    CORE_TOOL_SET_TRUST_LEVEL: 'tool:core-tool-set-trust-level',
 } as const;

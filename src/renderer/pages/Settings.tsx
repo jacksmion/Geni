@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick } from 'lucide-react';
+import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';
 import { McpSettings } from './settings/McpSettings';
-import SkillSettings from './settings/SkillSettings'; // Import SkillSettings
+import SkillSettings from './settings/SkillSettings';
+import { CoreToolSettings } from './settings/CoreToolSettings';
 
-type SettingsSection = 'general' | 'models' | 'mcp' | 'skills' | 'about';
+type SettingsSection = 'general' | 'models' | 'mcp' | 'skills' | 'tools' | 'about';
 
 export default function Settings() {
     const [activeSection, setActiveSection] = useState<SettingsSection>('models');
@@ -16,6 +17,7 @@ export default function Settings() {
         { id: 'models', label: '模型配置', icon: Globe },
         { id: 'mcp', label: 'MCP 服务器', icon: Database },
         { id: 'skills', label: '技能管理', icon: ToyBrick },
+        { id: 'tools', label: '内置工具', icon: BoxIcon },
         { id: 'about', label: '关于我们', icon: Info },
     ] as const;
 
@@ -75,6 +77,8 @@ export default function Settings() {
                     {activeSection === 'mcp' && <McpSettings />}
 
                     {activeSection === 'skills' && <SkillSettings />}
+
+                    {activeSection === 'tools' && <CoreToolSettings />}
 
                     {activeSection === 'about' && (
                         <div className="max-w-2xl text-center pt-20 space-y-4">

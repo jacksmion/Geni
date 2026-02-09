@@ -9,6 +9,7 @@ import { ToolController } from './controllers/ToolController';
 import { ConfigManager } from './services/ConfigManager';
 import { SkillRegistry } from './services/skills/core/SkillRegistry';
 import { McpManager } from './services/tools/mcp/McpManager';
+import { CoreToolManager } from './services/tools/core/CoreToolManager';
 
 /**
  * App Router
@@ -27,25 +28,28 @@ export class AppRouter {
     private skillRegistry: SkillRegistry;
     private mcpManager: McpManager;
     private configManager: ConfigManager;
+    private coreToolManager: CoreToolManager;
 
     constructor(
         configManager: ConfigManager,
         toolRegistry: ToolRegistry,
         skillRegistry: SkillRegistry,
-        mcpManager: McpManager
+        mcpManager: McpManager,
+        coreToolManager: CoreToolManager
     ) {
         // Services
         this.configManager = configManager;
         this.toolRegistry = toolRegistry;
         this.skillRegistry = skillRegistry;
         this.mcpManager = mcpManager;
+        this.coreToolManager = coreToolManager;
         this.sessionManager = new SessionManager();
 
         const settings = this.configManager.load();
 
         // Controllers
         this.systemController = new SystemController(this.configManager);
-        this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager);
+        this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
         this.agentController = new AgentController(
             settings,

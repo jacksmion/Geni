@@ -7,13 +7,15 @@ import { ConfigManager } from '../services/ConfigManager';
 import { ToolRegistry } from '../services/tools/ToolRegistry';
 import { Skill } from '../../common/types/skill';
 import { SkillObject } from '../services/skills/core/SkillParser';
+import { CoreToolManager } from '../services/tools/core/CoreToolManager';
 
 export class ToolController {
     constructor(
         private skillRegistry: SkillRegistry,
         private toolRegistry: ToolRegistry,
         private mcpManager: McpManager,
-        private configManager: ConfigManager
+        private configManager: ConfigManager,
+        private coreToolManager: CoreToolManager
     ) { }
 
     public registerHandlers() {
@@ -33,6 +35,44 @@ export class ToolController {
         ipcMain.handle(TOOL_CHANNELS.MCP_SET_TOOL_TRUST_LEVEL, (_, serverId, toolName, level) => this.handleSetMcpToolTrustLevel(serverId, toolName, level));
         ipcMain.handle(TOOL_CHANNELS.MCP_TOGGLE_SERVER, (_, serverId, enabled) => this.handleToggleMcpServer(serverId, enabled));
         ipcMain.handle(TOOL_CHANNELS.MCP_GET_STATUSES, () => this.mcpManager.getConnectionStatuses());
+
+        ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_LIST, () => this.handleCoreToolList());
+        ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_TOGGLE, (_, toolName) => this.handleCoreToolToggle(toolName));
+        ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_SET_TRUST_LEVEL, (_, toolName, level) => this.handleCoreToolSetTrustLevel(toolName, level));
+    }
+
+    private handleCoreToolList() {
+        return this.coreToolManager.getCoreToolMetadata();
+    }
+
+    private async handleCoreToolToggle(toolName: string) {
+        const settings = this.configManager.load();
+        const coreToolSettings = { ... (settings.coreToolSettings || {}) };
+        const current = coreToolSettings[toolName] || { enabled: true, trustLevel: 'Ask' };
+
+        coreToolSettings[toolName] = {
+            ...current,
+            enabled: !current.enabled
+        };
+
+        this.configManager.save({ ...settings, coreToolSettings });
+        this.coreToolManager.refresh();
+        return { success: true };
+    }
+
+    private async handleCoreToolSetTrustLevel(toolName: string, level: 'Ask' | 'Auto') {
+        const settings = this.configManager.load();
+        const coreToolSettings = { ... (settings.coreToolSettings || {}) };
+        const current = coreToolSettings[toolName] || { enabled: true, trustLevel: 'Ask' };
+
+        coreToolSettings[toolName] = {
+            ...current,
+            trustLevel: level
+        };
+
+        this.configManager.save({ ...settings, coreToolSettings });
+        this.coreToolManager.refresh();
+        return { success: true };
     }
 
     private async handleToggleMcpServer(serverId: string, enabled: boolean) {

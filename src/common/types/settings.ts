@@ -41,6 +41,7 @@ export interface AppSettings {
     llm: LLMSettings;
     skillSettings: Record<string, SkillState>; // 技能ID -> 状态
     mcpServers: IMcpServerConfig[]; // Added MCP servers list
+    coreToolSettings?: Record<string, McpToolSetting>; // Built-in tools settings
     workspacePath: string; // 当前工作空间路径
     theme: 'dark' | 'light' | 'system';
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
@@ -81,6 +82,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     },
     skillSettings: {}, // 技能状态默认为空，将在加载技能时填充
     mcpServers: [], // Default empty list
+    coreToolSettings: {}, // Default empty list
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'dark',
     accentColor: 'indigo',
