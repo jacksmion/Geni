@@ -197,8 +197,8 @@ export function McpSettings() {
         try {
             await window.electronAPI.tools.mcpToggleTool(serverId, originalToolName);
             // Refresh settings and tools
-            loadSettings();
-            fetchTools();
+            await loadSettings();
+            await fetchTools();
         } catch (e) {
             console.error("Failed to toggle tool", e);
         }
@@ -208,8 +208,8 @@ export function McpSettings() {
         try {
             await window.electronAPI.tools.mcpSetToolTrustLevel(serverId, originalToolName, level);
             // Refresh settings and tools
-            loadSettings();
-            fetchTools();
+            await loadSettings();
+            await fetchTools();
         } catch (e) {
             console.error("Failed to set tool trust level", e);
         }

@@ -33,7 +33,7 @@ export class ToolController {
         ipcMain.handle(TOOL_CHANNELS.MCP_SET_TOOL_TRUST_LEVEL, (_, serverId, toolName, level) => this.handleSetMcpToolTrustLevel(serverId, toolName, level));
     }
 
-    private handleToggleMcpTool(serverId: string, toolName: string) {
+    private async handleToggleMcpTool(serverId: string, toolName: string) {
         const settings = this.configManager.load();
         const mcpServers = [...(settings.mcpServers || [])];
         const serverIdx = mcpServers.findIndex(s => s.id === serverId);
@@ -53,13 +53,13 @@ export class ToolController {
 
             // Refresh tools to apply changes if connected
             if (this.mcpManager.isConnected(serverId)) {
-                this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
+                await this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
             }
         }
         return { success: true };
     }
 
-    private handleSetMcpToolTrustLevel(serverId: string, toolName: string, level: 'Ask' | 'Auto') {
+    private async handleSetMcpToolTrustLevel(serverId: string, toolName: string, level: 'Ask' | 'Auto') {
         const settings = this.configManager.load();
         const mcpServers = [...(settings.mcpServers || [])];
         const serverIdx = mcpServers.findIndex(s => s.id === serverId);
@@ -79,7 +79,7 @@ export class ToolController {
 
             // Refresh tools to apply changes if connected
             if (this.mcpManager.isConnected(serverId)) {
-                this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
+                await this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
             }
         }
         return { success: true };
