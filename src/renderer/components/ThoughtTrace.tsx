@@ -168,7 +168,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
             {/* Expanded Content */}
             {isExpanded && (
                 <div className={cn(
-                    "px-4 py-3 border border-t-0 rounded-b-xl text-xs font-mono space-y-3",
+                    "select-text px-4 py-3 border border-t-0 rounded-b-xl text-xs font-mono space-y-3",
                     "bg-slate-50 border-slate-200 dark:bg-white/[0.02] dark:border-white/10"
                 )}>
                     {/* Input */}
@@ -208,7 +208,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
 const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     if (!thought) return null;
     return (
-        <div className="text-sm text-slate-500 dark:text-zinc-400 italic leading-relaxed pl-1 border-l-2 border-slate-200 dark:border-white/10 ml-1 my-2">
+        <div className="select-text text-sm text-slate-500 dark:text-zinc-400 italic leading-relaxed pl-1 border-l-2 border-slate-200 dark:border-white/10 ml-1 my-2">
             {thought}
         </div>
     );

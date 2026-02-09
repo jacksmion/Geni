@@ -94,7 +94,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
                 {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
             </div>
             {isExpanded && (
-                <div className="p-4 bg-slate-50/30 dark:bg-white/[0.02] text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
+                <div className="select-text p-4 bg-slate-50/30 dark:bg-white/[0.02] text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
                     {content}
                     {!isComplete && (
                         <span className="inline-block w-2 h-4 ml-1 align-middle bg-indigo-500 animate-pulse" />
@@ -151,7 +151,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
             )}>
                 {/* User Message Bubble - High Contrast */}
                 {isUser && (
-                    <div className="px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-slate-900 dark:text-zinc-100 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
+                    <div className="select-text px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-slate-900 dark:text-zinc-100 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
                         {content}
                     </div>
                 )}
@@ -167,7 +167,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                         )}
 
                         {/* Text Body - High Contrast Fix & Data-Centric Layout */}
-                        <div className="prose prose-slate dark:prose-invert max-w-none 
+                        <div className="select-text prose prose-slate dark:prose-invert max-w-none 
                             text-slate-900 dark:text-zinc-100
                             
                             /* Paragraph styling */
@@ -200,32 +200,8 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                     p: ({ children }) => {
                                         const childrenArray = React.Children.toArray(children);
 
-                                        // 智能检测：是否为数据对格式 (**Key**: Value)
-                                        // 逻辑：第一个子元素是 strong (Key)，第二个子元素是字符串且包含冒号 (Value 分隔)
-                                        if (childrenArray.length >= 2) {
-                                            const first = childrenArray[0] as any;
-                                            const second = childrenArray[1] as any;
 
-                                            if (first?.type === 'strong' && typeof second === 'string') {
-                                                const hasColon = second.trim().startsWith(':') || second.trim().startsWith('：');
-                                                if (hasColon) {
-                                                    const valuePart = second.replace(/^[:：]\s*/, '');
-                                                    const rest = childrenArray.slice(2);
 
-                                                    return (
-                                                        <div className="flex items-baseline gap-4 py-1.5 border-b border-slate-50 dark:border-white/[0.02] last:border-none group/row transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.01]">
-                                                            <div className="min-w-[100px] sm:min-w-[120px] text-slate-500 dark:text-zinc-500 font-medium shrink-0">
-                                                                {first}
-                                                            </div>
-                                                            <div className="flex-1 font-variant-numeric tabular-nums text-slate-900 dark:text-zinc-100 font-semibold tracking-wide">
-                                                                {valuePart}
-                                                                {rest}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
-                                            }
-                                        }
 
                                         // 自动检测 Emoji 开头的行并添加间距
                                         const firstChild = childrenArray[0];
