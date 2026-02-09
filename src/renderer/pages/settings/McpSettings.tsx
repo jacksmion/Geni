@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Plus, Trash2, CheckCircle2, AlertCircle, TerminalSquare, Server, Settings2, Link as LinkIcon, Box, Key, Globe, Command } from 'lucide-react';
+import { Database, Plus, Trash2, CheckCircle2, AlertCircle, TerminalSquare, Server, Settings2, Link as LinkIcon, Box, Key, Globe, Command, Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { IMcpServerConfig } from '../../../common/types/settings';
 
@@ -18,6 +18,9 @@ export function McpSettings() {
     const [saving, setSaving] = useState(false);
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'tools'>('general');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+    const [newServerId, setNewServerId] = useState('');
 
     // Status tracking for manual connection attempts
     const [status, setStatus] = useState<Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'>>({});
@@ -121,6 +124,30 @@ export function McpSettings() {
         }
     };
 
+    const handleAddServer = () => {
+        if (!newServerId.trim()) return;
+        const id = newServerId.trim();
+
+        if (servers.find(s => s.id === id)) {
+            alert('服务器名称已存在！');
+            return;
+        }
+
+        const newServer: IMcpServerConfig = {
+            id: id,
+            type: 'stdio',
+            command: '',
+            args: [],
+            enabled: true
+        };
+        const newServers = [...servers, newServer];
+        setServers(newServers);
+        saveChanges(newServers);
+        setSelectedIdx(newServers.length - 1);
+        setIsAdding(false);
+        setNewServerId('');
+    };
+
     const addRow = () => {
         const newServer: IMcpServerConfig = {
             id: `server-${Date.now()}`,
@@ -169,6 +196,11 @@ export function McpSettings() {
 
     const selectedServer = selectedIdx !== null ? servers[selectedIdx] : null;
 
+    // Filter servers based on search term
+    const filteredServers = servers.filter(server =>
+        server.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     // Filter tools for the selected server
     const serverTools = selectedServer ? tools.filter(t => t.name.startsWith(`mcp__${selectedServer.id.replace(/[^a-zA-Z0-9_]/g, '_')}__`)) : [];
 
@@ -176,23 +208,65 @@ export function McpSettings() {
         <div className="flex h-full gap-6 animate-in fade-in duration-500">
             {/* Left: Server List - 与 ModelSettings 保持一致的样式 */}
             <div className="w-64 shrink-0 flex flex-col gap-4">
-                {/* Add Server Button */}
-                <button
-                    onClick={addRow}
-                    className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 px-3 text-sm text-slate-600 dark:text-gray-400 hover:border-indigo-500/50 hover:text-indigo-500 transition-all flex items-center justify-center gap-2"
-                >
-                    <Plus size={14} /> 添加服务器
-                </button>
+                {/* Search and Add Button */}
+                <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
+                        <input
+                            type="text"
+                            placeholder="搜索服务器..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setIsAdding(!isAdding)}
+                        className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors"
+                        title="添加服务器"
+                    >
+                        <Plus size={16} />
+                    </button>
+                </div>
+
+                {isAdding && (
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl space-y-2 animate-in slide-in-from-top-2">
+                        <input
+                            type="text"
+                            autoFocus
+                            placeholder="服务器名称 (ID)"
+                            value={newServerId}
+                            onChange={(e) => setNewServerId(e.target.value)}
+                            className="w-full bg-white dark:bg-black/20 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-2 py-1.5 text-xs focus:outline-none text-slate-900 dark:text-slate-100"
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
+                        />
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleAddServer}
+                                className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1.5 rounded-lg transition-colors"
+                            >
+                                添加
+                            </button>
+                            <button
+                                onClick={() => setIsAdding(false)}
+                                className="flex-1 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-gray-400 text-xs py-1.5 rounded-lg hover:bg-slate-300 transition-colors"
+                            >
+                                取消
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                    {servers.map((server, idx) => {
-                        const isSelected = selectedIdx === idx;
+                    {filteredServers.map((server, idx) => {
+                        const actualIdx = servers.findIndex(s => s.id === server.id);
+                        const isSelected = selectedIdx === actualIdx;
                         const isConnected = status[server.id] === 'connected';
 
                         return (
                             <button
-                                key={idx}
-                                onClick={() => setSelectedIdx(idx)}
+                                key={server.id}
+                                onClick={() => setSelectedIdx(actualIdx)}
                                 className={clsx(
                                     "w-full text-left p-3 rounded-xl border transition-all duration-200 group relative",
                                     isSelected
@@ -229,10 +303,10 @@ export function McpSettings() {
                         );
                     })}
 
-                    {servers.length === 0 && (
+                    {filteredServers.length === 0 && (
                         <div className="text-center py-12 text-slate-400">
                             <Box className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">暂无服务器</p>
+                            <p className="text-sm">{searchTerm ? '未找到相关服务器' : '暂无服务器'}</p>
                         </div>
                     )}
                 </div>
