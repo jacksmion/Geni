@@ -58,6 +58,44 @@ export class AgentController {
             console.log(`[AgentController] State changed: ${event.previousState} -> ${event.currentState} (${event.message})`);
             this.broadcast(AGENT_EVENTS.STATE_CHANGE, event);
         });
+
+        // Bridge authorization requests to UI via IPC
+        this.agentRuntime.setAuthorizationCallback(async (request, decision) => {
+            console.log(`[AgentController] Authorization required for tool: ${request.toolName}`);
+
+            return new Promise((resolve) => {
+                const requestId = request.requestId || Math.random().toString(36).substring(7);
+
+                // Broadcast request to renderer (could be used for notifications)
+                this.broadcast(AGENT_EVENTS.AUTHORIZATION_REQUEST, {
+                    requestId,
+                    toolName: request.toolName,
+                    args: request.args,
+                    trustLevel: decision.trustLevel,
+                    reason: decision.reason
+                });
+
+                // Listen for response
+                const handler = (_event: any, response: any) => {
+                    if (response && response.requestId === requestId) {
+                        console.log(`[AgentController] Authorization response received: ${response.approved}`);
+                        ipcMain.removeListener(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
+                        resolve({
+                            approved: response.approved,
+                            rememberDecision: response.remember
+                        });
+                    }
+                };
+
+                ipcMain.on(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
+
+                // Optional: Add a timeout to avoid hanging forever
+                setTimeout(() => {
+                    ipcMain.removeListener(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
+                    resolve({ approved: false, message: 'Authorization timed out' });
+                }, 10 * 60 * 1000); // 10 minutes timeout
+            });
+        });
     }
 
     private broadcast(channel: string, payload: any) {

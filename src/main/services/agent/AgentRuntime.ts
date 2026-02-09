@@ -369,38 +369,59 @@ export class AgentRuntime implements IAgentService {
 
                         // Phase 1.4: 工具执行拦截 - 检查授权
                         if (tool) {
+                            const requestId = Math.random().toString(36).substring(7);
+
                             const executionRequest: ToolExecutionRequest = {
+                                requestId,
                                 toolName: fnName,
                                 definition: tool.getDefinition(),
                                 args: fnArgs,
                                 tool
                             };
 
-                            const isAuthorized = await this.toolGuard.checkAuthorization(executionRequest);
+                            // 获取信任级别评估
+                            const decision = this.toolGuard.evaluateRequest(executionRequest);
 
-                            if (!isAuthorized) {
-                                // 用户拒绝授权，记录并继续
-                                const toolResultMsg: ChatMessage = {
-                                    role: 'tool',
-                                    tool_call_id: tc.id,
-                                    content: `[Authorization Denied] User declined to execute tool "${fnName}". Please proceed with an alternative approach or ask for permission.`
-                                };
-                                messages.push(toolResultMsg);
-                                newMessages.push(toolResultMsg);
-
-                                const deniedStep = {
+                            // 如果需要授权，先创建一个等待状态的 Step，让前端展示确认界面
+                            if (decision.requiresUserConfirmation) {
+                                const authStep = {
                                     thought: currentReasoning || currentContent,
                                     tool: fnName,
                                     toolInput: JSON.stringify(fnArgs),
-                                    observation: '[Authorization Denied by User]',
-                                    isComplete: true,
-                                    duration: 0
+                                    isComplete: false,
+                                    isWaitingAuthorization: true,
+                                    authRequestId: requestId,
+                                    authReason: decision.reason
                                 };
-                                steps.push(deniedStep);
-                                currentLoopSteps.push(deniedStep);
+                                steps.push(authStep);
+                                currentLoopSteps.push(authStep);
                                 onStepUpdate?.([...steps]);
 
-                                continue; // 跳过此工具，继续处理下一个
+                                const isAuthorized = await this.toolGuard.checkAuthorization(executionRequest);
+
+                                if (!isAuthorized) {
+                                    // 用户拒绝授权，更新当前 Step 状态
+                                    const lastStep = steps[steps.length - 1];
+                                    lastStep.isWaitingAuthorization = false;
+                                    lastStep.observation = '[Authorization Denied by User]';
+                                    lastStep.isComplete = true;
+                                    lastStep.duration = 0;
+                                    onStepUpdate?.([...steps]);
+
+                                    const toolResultMsg: ChatMessage = {
+                                        role: 'tool',
+                                        tool_call_id: tc.id,
+                                        content: `[Authorization Denied] User declined to execute tool "${fnName}". Please proceed with an alternative approach or ask for permission.`
+                                    };
+                                    messages.push(toolResultMsg);
+                                    newMessages.push(toolResultMsg);
+                                    continue;
+                                }
+
+                                // 授权通过，将当前等待状态的 Step 更新为执行状态，移除授权标记
+                                const currentStep = steps[steps.length - 1];
+                                currentStep.isWaitingAuthorization = false;
+                                onStepUpdate?.([...steps]);
                             }
                         }
 
@@ -413,14 +434,19 @@ export class AgentRuntime implements IAgentService {
                             { tool: fnName }
                         );
 
-                        const step = {
-                            thought: currentReasoning || currentContent,
-                            tool: fnName,
-                            toolInput: JSON.stringify(fnArgs),
-                            isComplete: false
-                        };
-                        steps.push(step);
-                        currentLoopSteps.push(step);
+                        // 检查是否已经存在当前工具的 Step（如果是刚刚授权通过的，则复用）
+                        let step = steps.find(s => s.tool === fnName && !s.isComplete);
+
+                        if (!step) {
+                            step = {
+                                thought: currentReasoning || currentContent,
+                                tool: fnName,
+                                toolInput: JSON.stringify(fnArgs),
+                                isComplete: false
+                            };
+                            steps.push(step);
+                            currentLoopSteps.push(step);
+                        }
                         onStepUpdate?.([...steps]);
 
                         const result = await this.toolRegistry.executeTool(fnName, fnArgs);

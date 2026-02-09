@@ -25,7 +25,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
             const sub = (_: any, payload: { message: string }) => callback(payload)
             ipcRenderer.on('agent:error', sub)
             return () => ipcRenderer.removeListener('agent:error', sub)
-        }
+        },
+        onAuthorizationRequest: (callback: (request: any) => void) => {
+            const sub = (_: any, request: any) => callback(request)
+            ipcRenderer.on('agent:authorization-request', sub)
+            return () => ipcRenderer.removeListener('agent:authorization-request', sub)
+        },
+        respondToAuthorization: (response: any) => ipcRenderer.send('agent:authorization-response', response),
     },
     session: {
         create: () => ipcRenderer.invoke('session:create'),

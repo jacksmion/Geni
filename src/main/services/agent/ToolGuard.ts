@@ -31,6 +31,8 @@ export enum ToolTrustLevel {
  * 工具执行请求
  */
 export interface ToolExecutionRequest {
+    /** 唯一请求 ID（用户关联 UI） */
+    requestId?: string;
     /** 工具名称 */
     toolName: string;
     /** 工具定义 */

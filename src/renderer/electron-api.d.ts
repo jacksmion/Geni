@@ -11,6 +11,8 @@ export interface IElectronAPI {
         onStepUpdate: (callback: (steps: any[]) => void) => () => void;
         onStateChange: (callback: (state: any) => void) => () => void;
         onError: (callback: (error: any) => void) => () => void;
+        onAuthorizationRequest: (callback: (request: any) => void) => () => void;
+        respondToAuthorization: (response: { requestId: string, approved: boolean, remember?: boolean }) => void;
     };
 
     // Session Namespace

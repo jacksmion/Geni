@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -102,16 +102,27 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const handleAuthorization = (approved: boolean, remember: boolean = false) => {
+        if (step.authRequestId) {
+            window.electronAPI.agent.respondToAuthorization({
+                requestId: step.authRequestId,
+                approved,
+                remember
+            });
+        }
+    };
+
     return (
         <div className="my-2">
             {/* Card Header */}
-            <button
+            <div
                 onClick={() => setIsExpanded(!isExpanded)}
                 className={cn(
-                    "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-left",
+                    "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
                     "bg-slate-50 hover:bg-slate-100 border-slate-200",
                     "dark:bg-white/[0.03] dark:hover:bg-white/[0.06] dark:border-white/10",
-                    !step.isComplete && "animate-border-pulse border-amber-500/30 dark:border-amber-500/20",
+                    !step.isComplete && !step.isWaitingAuthorization && "animate-border-pulse border-amber-500/30 dark:border-amber-500/20",
+                    step.isWaitingAuthorization && "border-amber-500/50 bg-amber-50/30 dark:border-amber-500/30 dark:bg-amber-500/5",
                     isExpanded && "rounded-b-none border-b-0"
                 )}
             >
@@ -120,20 +131,31 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                     "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all",
                     step.isComplete
                         ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
-                        : "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 animate-pulse-glow"
+                        : step.isWaitingAuthorization
+                            ? "bg-amber-500 text-white dark:bg-amber-500 dark:text-white"
+                            : "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 animate-pulse-glow"
                 )}>
-                    <ToolIcon size={14} strokeWidth={2} />
+                    {step.isWaitingAuthorization ? <ShieldAlert size={14} strokeWidth={2.5} /> : <ToolIcon size={14} strokeWidth={2} />}
                 </div>
 
 
                 {/* Tool Name */}
-                <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 font-mono">
-                    {toolDisplayName}
-                </span>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 font-mono truncate">
+                        {toolDisplayName}
+                    </span>
+                    {step.isWaitingAuthorization && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium animate-pulse">
+                            等待授权执行...
+                        </span>
+                    )}
+                </div>
 
                 {/* Status Icon */}
                 {step.isComplete ? (
                     <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                ) : step.isWaitingAuthorization ? (
+                    <ShieldAlert size={14} className="text-amber-500 shrink-0" />
                 ) : (
                     <Loader2 size={14} className="text-amber-500 animate-spin shrink-0" />
                 )}
@@ -164,7 +186,41 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                         )}
                     />
                 </div>
-            </button>
+            </div>
+
+            {/* Inline Authorization UI */}
+            {step.isWaitingAuthorization && (
+                <div className="px-4 py-3 bg-amber-500/5 dark:bg-amber-500/5 border-x border-b border-amber-500/30 dark:border-amber-500/20 rounded-b-xl space-y-3">
+                    <div className="flex gap-2.5 items-start">
+                        <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-800 dark:text-amber-200/80 leading-relaxed font-medium">
+                            <span className="font-bold">安全建议: </span>
+                            {step.authReason || '此工具涉及高风险操作，请确认是否允许执行。'}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                            onClick={() => handleAuthorization(false)}
+                            className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 rounded-lg text-[11px] font-semibold hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all active:scale-95"
+                        >
+                            拒绝
+                        </button>
+                        <button
+                            onClick={() => handleAuthorization(true, true)}
+                            className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-[11px] font-semibold hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all active:scale-95"
+                        >
+                            允许并记住 (1h)
+                        </button>
+                        <button
+                            onClick={() => handleAuthorization(true)}
+                            className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[11px] font-bold shadow-sm shadow-amber-500/20 transition-all active:scale-95"
+                        >
+                            确认允许
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Expanded Content */}
             {isExpanded && (

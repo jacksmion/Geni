@@ -13,7 +13,6 @@ function App() {
     const { loadHistory } = useChatStore()
     const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useLayoutStore()
     const { isMobile } = useBreakpoint()
-
     useEffect(() => {
         loadSettings()
         loadHistory()

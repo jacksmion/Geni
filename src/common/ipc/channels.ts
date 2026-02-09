@@ -8,6 +8,7 @@ export const AGENT_CHANNELS = {
     START: 'agent:start',
     STOP: 'agent:stop',
     GET_STATE: 'agent:get-state',
+    AUTHORIZATION_RESPONSE: 'agent:authorization-response',
 } as const;
 
 // Session Channels
@@ -27,6 +28,7 @@ export const AGENT_EVENTS = {
     STEP_UPDATE: 'agent:step',      // Thought/Tool execution update
     STATE_CHANGE: 'agent:state',    // Idle/Thinking/etc
     ERROR: 'agent:error',           // Fatal error
+    AUTHORIZATION_REQUEST: 'agent:authorization-request', // Permission required
 } as const;
 
 export const SYSTEM_CHANNELS = {
