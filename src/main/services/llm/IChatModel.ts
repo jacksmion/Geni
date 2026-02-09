@@ -55,6 +55,8 @@ export interface ChatMessage {
     tool_call_id?: string;
     /** 推理内容 (用于 DeepSeek R1 等推理模型) */
     reasoning_content?: string;
+    /** UI 展示用的步骤追踪 (应用层扩展) */
+    steps?: any[];
 }
 
 // ============================================================================

@@ -18,6 +18,7 @@ interface ThoughtStep {
 
 interface ThoughtTraceProps {
     steps: ThoughtStep[];
+    contextContent?: string;
 }
 
 // Tool icon mapping
@@ -214,15 +215,26 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     );
 };
 
-const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps }) => {
+const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) => {
     if (steps.length === 0) return null;
+
+    // Helper to check if thought is a duplicate of main content
+    const isDuplicate = (thought?: string): boolean => {
+        if (!thought || !contextContent) return false;
+
+        const cleanThought = thought.trim();
+        const cleanContext = contextContent.trim();
+
+        // Exact match or if context exactly contains the thought (for robust matching)
+        return cleanThought === cleanContext || (cleanContext.length > 0 && cleanContext.includes(cleanThought) && cleanContext.length < cleanThought.length + 20);
+    };
 
     return (
         <div className="space-y-1">
             {steps.map((step, idx) => (
                 <div key={idx}>
-                    {/* Show thought if exists */}
-                    {step.thought && <ThoughtText thought={step.thought} />}
+                    {/* Show thought if exists and not duplicate */}
+                    {step.thought && !isDuplicate(step.thought) && <ThoughtText thought={step.thought} />}
 
                     {/* Show tool call card if exists */}
                     {step.tool && <ToolCallCard step={step} />}

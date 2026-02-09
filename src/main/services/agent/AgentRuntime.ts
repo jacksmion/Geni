@@ -248,6 +248,7 @@ export class AgentRuntime implements IAgentService {
                 // 转换到 ExecutingHelper 状态（处理流式输出）
                 this.stateManager.transition(AgentState.ExecutingHelper, 'Processing LLM stream');
 
+                const currentLoopSteps: any[] = [];
                 let currentContent = '';
                 let currentReasoning = '';
                 let isReasoning = false;
@@ -330,7 +331,8 @@ export class AgentRuntime implements IAgentService {
                 const assistantMsg: ChatMessage = {
                     role: 'assistant',
                     content: currentContent || null,
-                    tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+                    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+                    steps: currentLoopSteps
                 };
                 messages.push(assistantMsg);
                 newMessages.push(assistantMsg);
@@ -377,14 +379,16 @@ export class AgentRuntime implements IAgentService {
                                 messages.push(toolResultMsg);
                                 newMessages.push(toolResultMsg);
 
-                                steps.push({
-                                    thought: currentContent,
+                                const deniedStep = {
+                                    thought: currentReasoning || currentContent,
                                     tool: fnName,
                                     toolInput: JSON.stringify(fnArgs),
                                     observation: '[Authorization Denied by User]',
                                     isComplete: true,
                                     duration: 0
-                                });
+                                };
+                                steps.push(deniedStep);
+                                currentLoopSteps.push(deniedStep);
                                 onStepUpdate?.([...steps]);
 
                                 continue; // 跳过此工具，继续处理下一个
@@ -400,12 +404,14 @@ export class AgentRuntime implements IAgentService {
                             { tool: fnName }
                         );
 
-                        steps.push({
-                            thought: currentContent,
+                        const step = {
+                            thought: currentReasoning || currentContent,
                             tool: fnName,
                             toolInput: JSON.stringify(fnArgs),
                             isComplete: false
-                        });
+                        };
+                        steps.push(step);
+                        currentLoopSteps.push(step);
                         onStepUpdate?.([...steps]);
 
                         const result = await this.toolRegistry.executeTool(fnName, fnArgs);
