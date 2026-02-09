@@ -29,11 +29,41 @@ export function McpSettings() {
     // Tools list
     const [tools, setTools] = useState<ToolDefinition[]>([]);
 
+    // Function to fetch actual connection statuses from backend
+    const fetchStatuses = async () => {
+        try {
+            const backendStatuses = await window.electronAPI.tools.mcpGetStatuses();
+            const newStatus: Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'> = {};
+            const newMsg: Record<string, string> = {};
+
+            // Initialize with disconnected for all known servers
+            servers.forEach((s: IMcpServerConfig) => {
+                newStatus[s.id] = 'disconnected';
+            });
+
+            // Override with actual backend states
+            Object.entries(backendStatuses).forEach(([id, info]) => {
+                newStatus[id] = info.state;
+                if (info.error) {
+                    newMsg[id] = info.error;
+                }
+            });
+
+            setStatus(newStatus);
+            if (Object.keys(newMsg).length > 0) {
+                setStatusMsg(prev => ({ ...prev, ...newMsg }));
+            }
+        } catch (e) {
+            console.error("Failed to fetch statuses", e);
+        }
+    };
+
     // Function to fetch tools
     const fetchTools = async () => {
         try {
             const list = await window.electronAPI.tools.mcpListTools();
             setTools(list);
+            await fetchStatuses(); // Also sync statuses
         } catch (e) {
             console.error("Failed to fetch tools", e);
         }
@@ -43,11 +73,24 @@ export function McpSettings() {
         try {
             const settings = await window.electronAPI.system.getSettings();
             if (settings.mcpServers) {
-                setServers(settings.mcpServers);
-                if (settings.mcpServers.length > 0 && selectedIdx === null) {
+                const srvs = settings.mcpServers;
+                setServers(srvs);
+                if (srvs.length > 0 && selectedIdx === null) {
                     setSelectedIdx(0);
                 }
-                fetchTools();
+
+                // Fetch tools and statuses after updating servers list
+                const list = await window.electronAPI.tools.mcpListTools();
+                setTools(list);
+
+                // Sync statuses
+                const backendStatuses = await window.electronAPI.tools.mcpGetStatuses();
+                const newStatus: Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'> = {};
+                srvs.forEach((s: IMcpServerConfig) => { newStatus[s.id] = 'disconnected'; });
+                Object.entries(backendStatuses).forEach(([id, info]) => {
+                    newStatus[id] = info.state;
+                });
+                setStatus(newStatus);
             }
         } catch (e) {
             console.error("Failed to load settings", e);
@@ -61,25 +104,10 @@ export function McpSettings() {
         loadSettings();
     }, []);
 
-    // Verify status logic
+    // Sync statuses when servers or tools change
     useEffect(() => {
-        const newStatus = { ...status };
-        let changed = false;
-
-        servers.forEach(server => {
-            if (!server.id) return;
-            const safePrefix = server.id.replace(/[^a-zA-Z0-9_]/g, '_');
-            const prefix = `mcp__${safePrefix}__`;
-            const hasTools = tools.some(t => t.name.startsWith(prefix));
-
-            if (hasTools && newStatus[server.id] !== 'connected') {
-                newStatus[server.id] = 'connected';
-                changed = true;
-            }
-        });
-
-        if (changed) setStatus(newStatus);
-    }, [tools, servers]);
+        fetchStatuses();
+    }, [tools]);
 
 
     const saveChanges = async (newServers: IMcpServerConfig[]) => {
@@ -186,11 +214,22 @@ export function McpSettings() {
         saveChanges(servers);
     };
 
-    const toggleEnable = (index: number) => {
+    const toggleEnable = async (index: number) => {
         const newServers = [...servers];
-        newServers[index].enabled = !newServers[index].enabled;
+        const server = newServers[index];
+        server.enabled = !server.enabled;
+
         setServers(newServers);
-        saveChanges(newServers);
+        await saveChanges(newServers);
+
+        // Notify backend to connect/disconnect immediately
+        try {
+            await window.electronAPI.tools.mcpToggleServer(server.id, server.enabled);
+            await loadSettings();
+            await fetchTools();
+        } catch (e) {
+            console.error("Failed to toggle server state on backend", e);
+        }
     };
 
     const handleToggleTool = async (serverId: string, originalToolName: string) => {

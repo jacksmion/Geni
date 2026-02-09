@@ -57,6 +57,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         mcpConnect: (config: any) => ipcRenderer.invoke('tool:mcp-connect', config),
         mcpListTools: () => ipcRenderer.invoke('tool:mcp-list-tools'),
         mcpToggleTool: (serverId: string, toolName: string) => ipcRenderer.invoke('tool:mcp-toggle-tool', serverId, toolName),
-        mcpSetToolTrustLevel: (serverId: string, toolName: string, level: string) => ipcRenderer.invoke('tool:mcp-set-tool-trust-level', serverId, toolName, level)
+        mcpSetToolTrustLevel: (serverId: string, toolName: string, level: string) => ipcRenderer.invoke('tool:mcp-set-tool-trust-level', serverId, toolName, level),
+        mcpToggleServer: (serverId: string, enabled: boolean) => ipcRenderer.invoke('tool:mcp-toggle-server', serverId, enabled),
+        mcpGetStatuses: () => ipcRenderer.invoke('tool:mcp-get-statuses')
     }
 })

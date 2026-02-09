@@ -31,6 +31,27 @@ export class ToolController {
         ipcMain.handle(TOOL_CHANNELS.MCP_LIST_TOOLS, () => this.handleListMcpTools());
         ipcMain.handle(TOOL_CHANNELS.MCP_TOGGLE_TOOL, (_, serverId, toolName) => this.handleToggleMcpTool(serverId, toolName));
         ipcMain.handle(TOOL_CHANNELS.MCP_SET_TOOL_TRUST_LEVEL, (_, serverId, toolName, level) => this.handleSetMcpToolTrustLevel(serverId, toolName, level));
+        ipcMain.handle(TOOL_CHANNELS.MCP_TOGGLE_SERVER, (_, serverId, enabled) => this.handleToggleMcpServer(serverId, enabled));
+        ipcMain.handle(TOOL_CHANNELS.MCP_GET_STATUSES, () => this.mcpManager.getConnectionStatuses());
+    }
+
+    private async handleToggleMcpServer(serverId: string, enabled: boolean) {
+        if (!enabled) {
+            // Immediately disconnect if disabled
+            await this.mcpManager.disconnectServer(serverId);
+        } else {
+            // Connect if enabled
+            const settings = this.configManager.load();
+            const config = settings.mcpServers?.find(s => s.id === serverId);
+            if (config) {
+                try {
+                    await this.mcpManager.connectToServer(config);
+                } catch (e) {
+                    console.error(`[ToolController] Failed to auto-connect ${serverId} on toggle:`, e);
+                }
+            }
+        }
+        return { success: true };
     }
 
     private async handleToggleMcpTool(serverId: string, toolName: string) {
