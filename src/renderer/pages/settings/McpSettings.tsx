@@ -39,24 +39,25 @@ export function McpSettings() {
         }
     };
 
+    const loadSettings = async () => {
+        try {
+            const settings = await window.electronAPI.system.getSettings();
+            if (settings.mcpServers) {
+                setServers(settings.mcpServers);
+                if (settings.mcpServers.length > 0 && selectedIdx === null) {
+                    setSelectedIdx(0);
+                }
+                fetchTools();
+            }
+        } catch (e) {
+            console.error("Failed to load settings", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Load initial settings
     useEffect(() => {
-        const loadSettings = async () => {
-            try {
-                const settings = await window.electronAPI.system.getSettings();
-                if (settings.mcpServers) {
-                    setServers(settings.mcpServers);
-                    if (settings.mcpServers.length > 0) {
-                        setSelectedIdx(0);
-                    }
-                    fetchTools();
-                }
-            } catch (e) {
-                console.error("Failed to load settings", e);
-            } finally {
-                setLoading(false);
-            }
-        };
         loadSettings();
     }, []);
 
@@ -190,6 +191,28 @@ export function McpSettings() {
         newServers[index].enabled = !newServers[index].enabled;
         setServers(newServers);
         saveChanges(newServers);
+    };
+
+    const handleToggleTool = async (serverId: string, originalToolName: string) => {
+        try {
+            await window.electronAPI.tools.mcpToggleTool(serverId, originalToolName);
+            // Refresh settings and tools
+            loadSettings();
+            fetchTools();
+        } catch (e) {
+            console.error("Failed to toggle tool", e);
+        }
+    };
+
+    const handleSetToolTrustLevel = async (serverId: string, originalToolName: string, level: 'Ask' | 'Auto') => {
+        try {
+            await window.electronAPI.tools.mcpSetToolTrustLevel(serverId, originalToolName, level);
+            // Refresh settings and tools
+            loadSettings();
+            fetchTools();
+        } catch (e) {
+            console.error("Failed to set tool trust level", e);
+        }
     };
 
     if (loading) return <div className="p-8 text-center text-slate-500">Loading configurations...</div>;
@@ -566,25 +589,64 @@ export function McpSettings() {
                                                     <table className="w-full text-left">
                                                         <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                                                             <tr>
-                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider w-1/3">工具名称</th>
+                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">工具</th>
+                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">状态</th>
+                                                                <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">授权方式</th>
                                                                 <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">描述</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#18181b]">
-                                                            {serverTools.map((tool, tIdx) => (
-                                                                <tr key={tIdx} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                                    <td className="px-4 py-3 align-top">
-                                                                        <div className="flex items-start gap-2">
-                                                                            <code className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-indigo-500/20">
-                                                                                {tool.name.split('__').slice(2).join('__')}
+                                                            {serverTools.map((tool, tIdx) => {
+                                                                const originalName = tool.name.split('__').slice(2).join('__');
+                                                                const srvToolSettings = selectedServer.toolSettings || {};
+                                                                const tSetting = srvToolSettings[originalName] || { enabled: true, trustLevel: 'Ask' };
+
+                                                                return (
+                                                                    <tr key={tIdx} className={clsx(
+                                                                        "hover:bg-slate-50 dark:hover:bg-white/5 transition-colors",
+                                                                        !tSetting.enabled && "opacity-60"
+                                                                    )}>
+                                                                        <td className="px-4 py-4 align-top">
+                                                                            <code className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-1 rounded border border-indigo-100 dark:border-indigo-500/20 font-mono">
+                                                                                {originalName}
                                                                             </code>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-gray-300 align-top">
-                                                                        {tool.description || <span className="text-slate-400 italic">无描述</span>}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
+                                                                        </td>
+                                                                        <td className="px-4 py-4 align-top">
+                                                                            <button
+                                                                                onClick={() => handleToggleTool(selectedServer.id, originalName)}
+                                                                                className={clsx(
+                                                                                    "w-10 h-5 rounded-full transition-colors relative cursor-pointer",
+                                                                                    tSetting.enabled ? "bg-indigo-500" : "bg-slate-200 dark:bg-white/10"
+                                                                                )}
+                                                                            >
+                                                                                <div className={clsx(
+                                                                                    "absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200",
+                                                                                    tSetting.enabled ? "translate-x-5" : "translate-x-0"
+                                                                                )} />
+                                                                            </button>
+                                                                        </td>
+                                                                        <td className="px-4 py-4 align-top">
+                                                                            <select
+                                                                                value={tSetting.trustLevel}
+                                                                                onChange={(e) => handleSetToolTrustLevel(selectedServer.id, originalName, e.target.value as 'Ask' | 'Auto')}
+                                                                                className={clsx(
+                                                                                    "text-xs font-medium rounded-lg px-2 py-1 outline-none border transition-all appearance-none pr-6 relative bg-no-repeat bg-[right_0.4rem_center] bg-[length:0.8rem]",
+                                                                                    tSetting.trustLevel === 'Auto'
+                                                                                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                                                                        : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400"
+                                                                                )}
+                                                                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
+                                                                            >
+                                                                                <option value="Ask">需确认 (Ask)</option>
+                                                                                <option value="Auto">自动批准 (Auto)</option>
+                                                                            </select>
+                                                                        </td>
+                                                                        <td className="px-4 py-4 text-xs text-slate-500 dark:text-gray-400 leading-relaxed max-w-xs">
+                                                                            {tool.description || <span className="italic opacity-50">无描述</span>}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
                                                             {serverTools.length === 0 && (
                                                                 <tr>
                                                                     <td colSpan={2} className="px-4 py-12 text-center text-slate-400 italic text-sm">

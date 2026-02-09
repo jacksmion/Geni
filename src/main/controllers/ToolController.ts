@@ -29,6 +29,60 @@ export class ToolController {
             }
         });
         ipcMain.handle(TOOL_CHANNELS.MCP_LIST_TOOLS, () => this.handleListMcpTools());
+        ipcMain.handle(TOOL_CHANNELS.MCP_TOGGLE_TOOL, (_, serverId, toolName) => this.handleToggleMcpTool(serverId, toolName));
+        ipcMain.handle(TOOL_CHANNELS.MCP_SET_TOOL_TRUST_LEVEL, (_, serverId, toolName, level) => this.handleSetMcpToolTrustLevel(serverId, toolName, level));
+    }
+
+    private handleToggleMcpTool(serverId: string, toolName: string) {
+        const settings = this.configManager.load();
+        const mcpServers = [...(settings.mcpServers || [])];
+        const serverIdx = mcpServers.findIndex(s => s.id === serverId);
+
+        if (serverIdx !== -1) {
+            const server = mcpServers[serverIdx];
+            const toolSettings = { ...(server.toolSettings || {}) };
+            const current = toolSettings[toolName] || { enabled: true, trustLevel: 'Ask' };
+
+            toolSettings[toolName] = {
+                ...current,
+                enabled: !current.enabled
+            };
+
+            mcpServers[serverIdx] = { ...server, toolSettings };
+            this.configManager.save({ ...settings, mcpServers });
+
+            // Refresh tools to apply changes if connected
+            if (this.mcpManager.isConnected(serverId)) {
+                this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
+            }
+        }
+        return { success: true };
+    }
+
+    private handleSetMcpToolTrustLevel(serverId: string, toolName: string, level: 'Ask' | 'Auto') {
+        const settings = this.configManager.load();
+        const mcpServers = [...(settings.mcpServers || [])];
+        const serverIdx = mcpServers.findIndex(s => s.id === serverId);
+
+        if (serverIdx !== -1) {
+            const server = mcpServers[serverIdx];
+            const toolSettings = { ...(server.toolSettings || {}) };
+            const current = toolSettings[toolName] || { enabled: true, trustLevel: 'Ask' };
+
+            toolSettings[toolName] = {
+                ...current,
+                trustLevel: level
+            };
+
+            mcpServers[serverIdx] = { ...server, toolSettings };
+            this.configManager.save({ ...settings, mcpServers });
+
+            // Refresh tools to apply changes if connected
+            if (this.mcpManager.isConnected(serverId)) {
+                this.mcpManager.refreshTools(serverId, mcpServers[serverIdx]).catch(console.error);
+            }
+        }
+        return { success: true };
     }
 
     public getEnabledSkillObjects(): SkillObject[] {

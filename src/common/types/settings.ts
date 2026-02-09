@@ -18,6 +18,12 @@ export interface SkillState {
     trustLevel: 'Ask' | 'Auto';
 }
 
+// MCP Tool specific configuration
+export interface McpToolSetting {
+    enabled: boolean;
+    trustLevel: 'Ask' | 'Auto';
+}
+
 // MCP Server Configuration
 export interface IMcpServerConfig {
     id: string;
@@ -28,6 +34,7 @@ export interface IMcpServerConfig {
     apiKey?: string;  // For sse auth
     env?: Record<string, string>;
     enabled: boolean;
+    toolSettings?: Record<string, McpToolSetting>; // [originalToolName] -> settings
 }
 
 export interface AppSettings {

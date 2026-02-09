@@ -43,6 +43,8 @@ export interface IElectronAPI {
         setTrustLevel: (id: string, level: 'Ask' | 'Auto') => Promise<Skill[]>;
         mcpConnect: (config: any) => Promise<{ success: boolean, error?: string }>;
         mcpListTools: () => Promise<Array<{ name: string, description: string }>>;
+        mcpToggleTool: (serverId: string, toolName: string) => Promise<{ success: boolean }>;
+        mcpSetToolTrustLevel: (serverId: string, toolName: string, level: 'Ask' | 'Auto') => Promise<{ success: boolean }>;
     };
 }
 

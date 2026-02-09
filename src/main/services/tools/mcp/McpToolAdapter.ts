@@ -19,11 +19,13 @@ export class McpToolAdapter implements ITool {
         client: Client,
         mcpToolName: string,
         mcpSchema: any,
-        description: string
+        description: string,
+        trustLevel: 'Ask' | 'Auto' = 'Ask'
     ) {
         this.client = client;
         this.mcpToolName = mcpToolName;
         this.serverId = serverId;
+        this.requireConfirmation = trustLevel === 'Ask';
 
         // Sanitize serverId (only alphanumeric + underscore)
         const safePrefix = serverId.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -91,7 +93,7 @@ export class McpToolAdapter implements ITool {
      * MCP tools may have varying danger levels
      * For now, default to requiring confirmation
      */
-    requireConfirmation = true;
+    requireConfirmation: boolean;
 
     /**
      * Get the original MCP tool name (without prefix)

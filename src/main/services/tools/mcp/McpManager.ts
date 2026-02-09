@@ -6,6 +6,14 @@ import { McpToolAdapter } from "./McpToolAdapter";
 // ===== Types =====
 
 /**
+ * MCP Tool specific configuration
+ */
+export interface McpToolSetting {
+    enabled: boolean;
+    trustLevel: 'Ask' | 'Auto';
+}
+
+/**
  * Configuration for an MCP Server
  */
 export interface McpServerConfig {
@@ -16,6 +24,8 @@ export interface McpServerConfig {
     url?: string;
     apiKey?: string;
     env?: Record<string, string>;
+    enabled?: boolean;
+    toolSettings?: Record<string, McpToolSetting>;
 }
 
 /**
@@ -165,11 +175,15 @@ export class McpManager {
     /**
      * Refresh tools for a connected server
      */
-    async refreshTools(serverId: string): Promise<void> {
+    async refreshTools(serverId: string, newConfig?: McpServerConfig): Promise<void> {
         const connection = this.connections.get(serverId);
-        if (!connection || connection.state !== 'connected') {
+        if (!connection || (connection.state !== 'connected' && connection.state !== 'error')) {
             console.warn(`[McpManager] Cannot refresh tools: ${serverId} is not connected`);
             return;
+        }
+
+        if (newConfig) {
+            connection.config = newConfig;
         }
 
         console.log(`[McpManager] Listing tools for ${serverId}...`);
@@ -179,15 +193,25 @@ export class McpManager {
 
         const result = await connection.client.listTools();
         const registeredToolNames: string[] = [];
+        const toolSettings = connection.config.toolSettings || {};
 
         for (const tool of result.tools) {
+            const settings = toolSettings[tool.name];
+
+            // If tool explicitly disabled, skip it
+            if (settings && settings.enabled === false) {
+                console.log(`[McpManager] Tool ${tool.name} (from ${serverId}) is disabled by user settings`);
+                continue;
+            }
+
             const schema = tool.inputSchema;
             const adapter = new McpToolAdapter(
                 serverId,
                 connection.client,
                 tool.name,
                 schema,
-                tool.description || ''
+                tool.description || '',
+                settings ? settings.trustLevel : 'Ask'
             );
 
             this.registry.register(adapter);
