@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToyBrick as Brick, Check, Shield, AlertCircle } from 'lucide-react';
+import { ToyBrick as Brick } from 'lucide-react';
 import { Skill } from '../../common/types/skill';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -11,10 +11,9 @@ function cn(...inputs: ClassValue[]) {
 interface SkillCardProps {
     skill: Skill;
     onToggle: (id: string) => void;
-    onSetTrustLevel: (id: string, level: 'Ask' | 'Auto') => void;
 }
 
-const SkillCard: React.FC<SkillCardProps> = ({ skill, onToggle, onSetTrustLevel }) => {
+const SkillCard: React.FC<SkillCardProps> = ({ skill, onToggle }) => {
     return (
         <div className={cn(
             "bg-white/5 backdrop-blur-md p-5 rounded-3xl border border-white/10 transition-all duration-300 group",
@@ -29,30 +28,6 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onToggle, onSetTrustLevel 
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Trust Level Toggle */}
-                    <div className="flex bg-black/20 rounded-xl p-1 border border-white/5 backdrop-blur-sm">
-                        <button
-                            onClick={() => onSetTrustLevel(skill.id, 'Ask')}
-                            className={cn(
-                                "p-1.5 rounded-lg transition-all",
-                                skill.trustLevel === 'Ask' ? "bg-white/10 text-amber-400 shadow-sm" : "text-gray-500 hover:text-gray-300"
-                            )}
-                            title="Ask for confirmation"
-                        >
-                            <AlertCircle size={14} />
-                        </button>
-                        <button
-                            onClick={() => onSetTrustLevel(skill.id, 'Auto')}
-                            className={cn(
-                                "p-1.5 rounded-lg transition-all",
-                                skill.trustLevel === 'Auto' ? "bg-white/10 text-emerald-400 shadow-sm" : "text-gray-500 hover:text-gray-300"
-                            )}
-                            title="Auto-process"
-                        >
-                            <Shield size={14} />
-                        </button>
-                    </div>
-
                     {/* Enable Toggle */}
                     <button
                         onClick={() => onToggle(skill.id)}
@@ -73,17 +48,6 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onToggle, onSetTrustLevel 
                 <h3 className="font-bold text-base text-gray-100 group-hover:text-indigo-300 transition-colors mb-1.5">
                     {skill.name}
                 </h3>
-                <p className="text-[10px] uppercase tracking-widest mb-3 flex items-center gap-1.5 font-bold">
-                    {skill.trustLevel === 'Auto' ? (
-                        <span className="text-emerald-400 flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                            <Check size={10} strokeWidth={3} /> TRUSTED
-                        </span>
-                    ) : (
-                        <span className="text-amber-400 flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
-                            <AlertCircle size={10} strokeWidth={3} /> ASK PERMISSION
-                        </span>
-                    )}
-                </p>
                 <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 min-h-[2.5rem]">
                     {skill.description}
                 </p>

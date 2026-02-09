@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
-import { Search, Loader2, Plus, X, ToyBrick as Brick, CheckCircle2, Shield, AlertCircle, Info, Trash2, Box, Command, FileText } from 'lucide-react';
+import { Search, Loader2, Plus, X, ToyBrick as Brick, CheckCircle2, Info, Trash2, Box, Command, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const SkillSettings: React.FC = () => {
@@ -39,11 +39,6 @@ const SkillSettings: React.FC = () => {
 
     const handleToggle = async (id: string) => {
         const updated = await window.electronAPI.tools.toggleSkill(id);
-        setSkills(updated);
-    };
-
-    const handleSetTrustLevel = async (id: string, level: 'Ask' | 'Auto') => {
-        const updated = await window.electronAPI.tools.setTrustLevel(id, level);
         setSkills(updated);
     };
 
@@ -232,46 +227,6 @@ const SkillSettings: React.FC = () => {
                                                     selectedSkill.enabled ? "translate-x-6" : "translate-x-0"
                                                 )} />
                                             </button>
-                                        </div>
-
-                                        {/* Trust Level */}
-                                        <div className="space-y-4">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                                <Shield size={14} /> 权限与隐私
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <button
-                                                    onClick={() => handleSetTrustLevel(selectedSkill.id, 'Ask')}
-                                                    className={clsx(
-                                                        "p-4 rounded-xl border flex flex-col gap-2 text-left transition-all",
-                                                        selectedSkill.trustLevel === 'Ask'
-                                                            ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30"
-                                                            : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-slate-200"
-                                                    )}
-                                                >
-                                                    <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", selectedSkill.trustLevel === 'Ask' ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600" : "bg-slate-100 dark:bg-white/10 text-slate-400")}>
-                                                        <AlertCircle size={18} />
-                                                    </div>
-                                                    <span className={clsx("text-sm font-semibold", selectedSkill.trustLevel === 'Ask' ? "text-amber-800 dark:text-amber-400" : "text-slate-600 dark:text-gray-400")}>执行前确认</span>
-                                                    <span className="text-xs text-slate-400 leading-tight">助手运行该技能的工具前需获得您的许可</span>
-                                                </button>
-
-                                                <button
-                                                    onClick={() => handleSetTrustLevel(selectedSkill.id, 'Auto')}
-                                                    className={clsx(
-                                                        "p-4 rounded-xl border flex flex-col gap-2 text-left transition-all",
-                                                        selectedSkill.trustLevel === 'Auto'
-                                                            ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
-                                                            : "bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:border-slate-200"
-                                                    )}
-                                                >
-                                                    <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", selectedSkill.trustLevel === 'Auto' ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600" : "bg-slate-100 dark:bg-white/10 text-slate-400")}>
-                                                        <Shield size={18} />
-                                                    </div>
-                                                    <span className={clsx("text-sm font-semibold", selectedSkill.trustLevel === 'Auto' ? "text-emerald-800 dark:text-emerald-400" : "text-slate-600 dark:text-gray-400")}>高度信任</span>
-                                                    <span className="text-xs text-slate-400 leading-tight">助手可以无须询问直接执行此技能包含的工具</span>
-                                                </button>
-                                            </div>
                                         </div>
 
                                         {/* Skill Metadata */}
