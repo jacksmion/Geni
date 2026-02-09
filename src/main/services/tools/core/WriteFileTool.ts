@@ -12,7 +12,7 @@ export class WriteFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'write_file',
-            description: 'Write content to a file. Overwrites existing content.',
+            description: 'Write content to a file. Automatically creates directories. Supports append mode and idempotency checks.',
             input_schema: {
                 type: 'object',
                 properties: {
@@ -23,6 +23,14 @@ export class WriteFileTool implements ITool {
                     content: {
                         type: 'string',
                         description: 'Content to write to the file'
+                    },
+                    append: {
+                        type: 'boolean',
+                        description: 'If true, appends content to the end of the file instead of overwriting. Default is false.'
+                    },
+                    ignoreIfExists: {
+                        type: 'boolean',
+                        description: 'If true, the operation will be skipped if the file already exists. Default is false.'
                     }
                 },
                 required: ['path', 'content']
@@ -31,7 +39,7 @@ export class WriteFileTool implements ITool {
     }
 
     async execute(args: any): Promise<ToolExecutionResult> {
-        const { path: relPath, content } = args;
+        const { path: relPath, content, append = false, ignoreIfExists = false } = args;
 
         // Security Check: Prevent directory traversal outside root
         const fullPath = path.resolve(this.allowedRoot, relPath);
@@ -44,11 +52,55 @@ export class WriteFileTool implements ITool {
         }
 
         try {
-            await fs.writeFile(fullPath, content, 'utf-8');
+            // 1. Ensure directory exists
+            const dirPath = path.dirname(fullPath);
+            await fs.mkdir(dirPath, { recursive: true });
+
+            // 2. Check file state
+            let fileExists = false;
+            let existingContent = '';
+
+            try {
+                // Try reading to check existence and content
+                existingContent = await fs.readFile(fullPath, 'utf-8');
+                fileExists = true;
+            } catch (err: any) {
+                if (err.code !== 'ENOENT') {
+                    throw err; // Re-throw unexpected errors
+                }
+            }
+
+            // 3. Handle ignoreIfExists
+            if (ignoreIfExists && fileExists) {
+                return {
+                    toolName: 'write_file',
+                    isError: false,
+                    result: `Skipped: File '${relPath}' already exists and ignoreIfExists is true.`
+                };
+            }
+
+            // 4. Idempotency Check (Only if overwriting, skipping if appending)
+            if (!append && fileExists && existingContent === content) {
+                return {
+                    toolName: 'write_file',
+                    isError: false,
+                    result: `No Change: Content of '${relPath}' is identical to the input.`
+                };
+            }
+
+            // 5. Perform Write Operation
+            if (append) {
+                await fs.appendFile(fullPath, content, 'utf-8');
+            } else {
+                await fs.writeFile(fullPath, content, 'utf-8');
+            }
+
+            // 6. Return Action Status
+            const status = !fileExists ? 'Created new file' : (append ? 'Appended to file' : 'Updated file');
             return {
                 toolName: 'write_file',
                 isError: false,
-                result: `Successfully wrote to ${relPath}`
+                result: `Success: ${status} at '${relPath}'`
             };
 
         } catch (error: any) {
