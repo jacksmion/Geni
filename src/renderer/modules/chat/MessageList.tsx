@@ -24,9 +24,49 @@ export function MessageList() {
         endRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages, messages.length])
 
+    // Message Grouping Logic
+    const groupedMessages: ChatMessage[] = [];
+    const skipIds = new Set<string>();
+
+    for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (skipIds.has(msg.id)) continue;
+
+        // Ensure we are skipping tool outputs as they are handled inside steps or merged (if logic changes later)
+        // But the primary goal here is to merge Assistant (Tool Call) + Assistant (Answer)
+        if (msg.role === 'tool') continue;
+
+        if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+            // This is a tool call message. Look ahead for the answer.
+            let nextMsgIndex = i + 1;
+            while (nextMsgIndex < messages.length && messages[nextMsgIndex].role === 'tool') {
+                nextMsgIndex++;
+            }
+
+            if (nextMsgIndex < messages.length) {
+                const nextMsg = messages[nextMsgIndex];
+                if (nextMsg.role === 'assistant' && !nextMsg.tool_calls) {
+                    // Found the answer! Merge it into the current message visually
+                    // We create a new object to avoid mutating state directly
+                    const mergedMsg: ChatMessage = {
+                        ...msg,
+                        // Combine content: Thought/Intro + Result
+                        content: (msg.content ? msg.content + '\n\n' : '') + (nextMsg.content || ''),
+                        // Steps are already on msg (from previous fixes), ensuring tool cards show up
+                    };
+                    groupedMessages.push(mergedMsg);
+                    skipIds.add(nextMsg.id); // Skip the answer message in main loop
+                    continue;
+                }
+            }
+        }
+
+        groupedMessages.push(msg);
+    }
+
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-8 pb-4 space-y-8">
-            {messages.filter(msg => msg.role !== 'tool').map((msg) => (
+            {groupedMessages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
             <div ref={endRef} className="h-4" />
@@ -159,6 +199,13 @@ function MessageItem({ message }: { message: ChatMessage }) {
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
+                        {/* Thoughts/Tools */}
+                        {message.steps && message.steps.length > 0 && (
+                            <div className="mb-4 w-full">
+                                <ThoughtTrace steps={message.steps} contextContent={message.content || ''} />
+                            </div>
+                        )}
+
                         {/* Text Body - High Contrast Fix & Data-Centric Layout */}
                         <div className="select-text prose prose-slate dark:prose-invert max-w-none 
                             text-slate-900 dark:text-zinc-100
@@ -250,12 +297,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             </ReactMarkdown>
                         </div>
 
-                        {/* Thoughts/Tools */}
-                        {message.steps && message.steps.length > 0 && (
-                            <div className="mb-2 w-full mt-4">
-                                <ThoughtTrace steps={message.steps} contextContent={message.content || ''} />
-                            </div>
-                        )}
+
 
                         {/* Bottom Meta & Actions */}
                         <div className={cn(
