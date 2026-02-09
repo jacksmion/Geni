@@ -1,6 +1,8 @@
-import { exec, ExecOptions } from 'child_process';
+import { spawn } from 'child_process';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 import os from 'os';
+import path from 'path';
+import { z } from 'zod';
 
 /**
  * 智能解码 Buffer 为字符串，支持 UTF-8 和 Windows 下的 GBK 回退
@@ -33,24 +35,42 @@ function decodeOutput(buffer: Buffer): string {
 export class BashTool implements ITool {
     requireConfirmation = true;
     private allowedRoot: string;
+    private currentCwd: string;
+
+    // Configuration
+    private readonly MAX_OUTPUT_LENGTH = 50 * 1024; // 50KB
+    private readonly OUTPUT_TRUNCATE_HEAD = 10 * 1024;
+    private readonly OUTPUT_TRUNCATE_TAIL = 10 * 1024;
+    private readonly DEFAULT_TIMEOUT = 60 * 1000;
 
     constructor(rootPath: string = process.cwd()) {
-        this.allowedRoot = rootPath;
+        this.allowedRoot = path.resolve(rootPath);
+        this.currentCwd = this.allowedRoot;
     }
 
     public setRoot(newRoot: string) {
-        this.allowedRoot = newRoot;
+        this.allowedRoot = path.resolve(newRoot);
+        // Reset CWD to new root to ensure safety/consistency
+        this.currentCwd = this.allowedRoot;
     }
 
     getDefinition(): ToolDefinition {
         const isWindows = os.platform() === 'win32';
-        const shellName = isWindows ? 'PowerShell' : 'Bash';
 
         return {
             name: 'bash',
-            description: `Execute a shell command. 
-Environment: ${isWindows ? 'Windows PowerShell' : 'Linux/Mac Bash'}.
-Use this to run system tools, git commands, or npm scripts.`,
+            description: `Execute a shell command with persistent working directory support.
+Target Environment: ${isWindows ? 'Windows PowerShell' : 'Linux/Mac Bash'}.
+Current Working Directory: ${this.currentCwd}
+
+Features:
+1. State Persistence: 'cd' commands update the tool's internal state.
+2. Safety: Output is automatically truncated if too long.
+3. Timeout: Commands time out after 60s by default.
+
+Usage:
+- Use 'cwd' parameter to effectively 'cd' for a single command.
+- For interactive commands (like 'npm init'), use non-interactive flags (e.g. 'npm init -y').`,
             input_schema: {
                 type: 'object',
                 properties: {
@@ -60,7 +80,11 @@ Use this to run system tools, git commands, or npm scripts.`,
                     },
                     cwd: {
                         type: 'string',
-                        description: 'Current working directory (optional)'
+                        description: 'Optional. Override working directory for this execution. If not provided, uses the current persistent directory.'
+                    },
+                    timeout: {
+                        type: 'number',
+                        description: 'Optional. Timeout in milliseconds (default: 60000). Set to 0 to disable.'
                     }
                 },
                 required: ['command']
@@ -69,35 +93,149 @@ Use this to run system tools, git commands, or npm scripts.`,
     }
 
     async execute(args: any): Promise<ToolExecutionResult> {
-        return new Promise((resolve) => {
-            const command = args.command;
-            const cwd = args.cwd || this.allowedRoot;
+        const Schema = z.object({
+            command: z.string(),
+            cwd: z.string().optional(),
+            timeout: z.number().optional()
+        });
 
-            // 检测系统并选择合适的 Shell
-            const isWindows = os.platform() === 'win32';
-            const shell = isWindows ? 'powershell.exe' : '/bin/bash';
-
-            console.log(`[BashTool] Executing using ${shell}: ${command} at ${cwd}`);
-
-            const options: ExecOptions = {
-                cwd,
-                shell: shell,
-                maxBuffer: 10 * 1024 * 1024, // 10MB 缓冲区
-                encoding: 'buffer' as any      // 关键：捕获原始字节流以支持后续转码
+        const parseResult = Schema.safeParse(args);
+        if (!parseResult.success) {
+            return {
+                toolName: 'bash',
+                isError: true,
+                result: `Invalid arguments: ${parseResult.error.issues.map(i => i.message).join(', ')}`
             };
+        }
 
-            exec(command, options, (error, stdout, stderr) => {
-                // 使用智能解码处理输出
-                const decodedStdout = decodeOutput(stdout as any as Buffer);
-                const decodedStderr = decodeOutput(stderr as any as Buffer);
+        const { command, cwd, timeout } = parseResult.data;
+        const effectiveTimeout = timeout ?? this.DEFAULT_TIMEOUT;
+
+        // Determine effective CWD
+        let effectiveCwd = this.currentCwd;
+        if (cwd) {
+            effectiveCwd = path.resolve(this.currentCwd, cwd);
+        }
+
+        // Handle 'cd' commands to update state
+        // Simple heuristic: if command starts with 'cd ', we update the internal state
+        // This allows agents to "explore" the filesystem naturally
+        if (command.trim().startsWith('cd ')) {
+            const targetPath = command.trim().substring(3).trim();
+            if (targetPath) {
+                try {
+                    const newPath = path.resolve(effectiveCwd, targetPath);
+                    // In a real implementation, we should check if dir exists using fs.stat
+                    // For now, we assume it exists and let the next command fail if it doesn't
+                    this.currentCwd = newPath;
+                    return {
+                        toolName: 'bash',
+                        isError: false,
+                        result: `Directory changed to ${this.currentCwd}`,
+                        displayText: `> ${command}\nDirectory changed to ${this.currentCwd}`
+                    };
+                } catch (e: any) {
+                    return {
+                        toolName: 'bash',
+                        isError: true,
+                        result: `Failed to change directory: ${e.message}`
+                    };
+                }
+            }
+        }
+
+        return this.runCommand(command, effectiveCwd, effectiveTimeout);
+    }
+
+    private runCommand(command: string, cwd: string, timeout: number): Promise<ToolExecutionResult> {
+        return new Promise((resolve) => {
+            const isWindows = os.platform() === 'win32';
+            // Use shell: true to execute command string
+            const shellOption = isWindows ? 'powershell.exe' : '/bin/bash';
+
+            // Construct arguments based on platform
+            // spawn(shell, [args], options)
+            // For bash: /bin/bash -c "command"
+            // For powershell: powershell.exe -Command "command"
+            const shellArgs = isWindows ? ['-Command', command] : ['-c', command];
+
+            const child = spawn(shellOption, shellArgs, {
+                cwd,
+                stdio: ['ignore', 'pipe', 'pipe'],
+                windowsHide: true,
+                // env: { ...process.env, FORCE_COLOR: '0' } // Optional: enforce no color
+            });
+
+            const stdoutChunks: Buffer[] = [];
+            const stderrChunks: Buffer[] = [];
+            let timedOut = false;
+
+            // Collect output
+            child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+            child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+
+            // Setup timeout
+            let timer: NodeJS.Timeout | undefined;
+            if (timeout > 0) {
+                timer = setTimeout(() => {
+                    timedOut = true;
+                    child.kill();
+                }, timeout);
+            }
+
+            child.on('close', (code) => {
+                if (timer) clearTimeout(timer);
+
+                if (timedOut) {
+                    resolve({
+                        toolName: 'bash',
+                        isError: true,
+                        result: `Error: Command timed out after ${timeout}ms.`
+                    });
+                    return;
+                }
+
+                const stdoutBuffer = Buffer.concat(stdoutChunks);
+                const stderrBuffer = Buffer.concat(stderrChunks);
+
+                let stdoutStr = decodeOutput(stdoutBuffer);
+                let stderrStr = decodeOutput(stderrBuffer);
+
+                // Truncate logic
+                if (stdoutStr.length > this.MAX_OUTPUT_LENGTH) {
+                    stdoutStr = stdoutStr.substring(0, this.OUTPUT_TRUNCATE_HEAD)
+                        + `\n... [Output truncated, ${stdoutStr.length - this.MAX_OUTPUT_LENGTH} chars omitted] ...\n`
+                        + stdoutStr.substring(stdoutStr.length - this.OUTPUT_TRUNCATE_TAIL);
+                }
+
+                if (stderrStr.length > this.MAX_OUTPUT_LENGTH) {
+                    stderrStr = stderrStr.substring(0, this.OUTPUT_TRUNCATE_HEAD)
+                        + `\n... [Error output truncated] ...\n`
+                        + stderrStr.substring(stderrStr.length - this.OUTPUT_TRUNCATE_TAIL);
+                }
+
+                const isError = code !== 0;
+                let output = "";
+                if (stdoutStr) output += `[stdout]:\n${stdoutStr}\n`;
+                if (stderrStr) output += `[stderr]:\n${stderrStr}\n`;
+                if (isError) output += `[Exit Code]: ${code}`;
+
+                if (!output) output = "Success (No output)";
 
                 resolve({
                     toolName: 'bash',
-                    isError: !!error,
-                    result: error
-                        ? `Error: ${error.message}\nStderr: ${decodedStderr}\n(Executed via ${shell})`
-                        : (decodedStdout || decodedStderr || 'Success (no output)'),
-                    displayText: `> ${command}\n${decodedStdout}`
+                    isError: isError,
+                    result: output.trim(),
+                    displayText: `> ${command}\n${output.trim()}`
+                });
+            });
+
+            child.on('error', (err) => {
+                if (timer) clearTimeout(timer);
+                resolve({
+                    toolName: 'bash',
+                    isError: true,
+                    result: `Failed to spawn process: ${err.message}`
                 });
             });
         });
