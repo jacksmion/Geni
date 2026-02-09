@@ -1,9 +1,30 @@
-import fs from 'fs/promises';
+import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
+import readline from 'readline';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
+
+interface Match {
+    lineNum: number;
+    content: string;
+}
+
+interface FileResult {
+    filePath: string;
+    mtime: number;
+    matches: Match[];
+}
 
 export class GrepTool implements ITool {
     private allowedRoot: string;
+    private readonly MAX_TOTAL_MATCHES = 1000;
+    private readonly MAX_LINE_LENGTH = 500;
+    private readonly DEFAULT_EXTENSIONS = [
+        '.ts', '.js', '.jsx', '.tsx', '.json', '.md', '.txt',
+        '.html', '.css', '.scss', '.less', '.xml', '.yml', '.yaml',
+        '.sql', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.go',
+        '.rs', '.php', '.rb', '.sh', '.bat', '.cmd', '.ps1'
+    ];
 
     constructor(rootPath: string) {
         this.allowedRoot = path.resolve(rootPath);
@@ -12,13 +33,13 @@ export class GrepTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'grep',
-            description: 'Search for a string pattern in files (content search).',
+            description: 'Search for string patterns in files using smart filtering and sorting. Returns results grouped by file and sorted by modification time (most recent first).',
             input_schema: {
                 type: 'object',
                 properties: {
                     pattern: {
                         type: 'string',
-                        description: 'The regex or string pattern to search for in file content.'
+                        description: 'The text or regex pattern to search for.'
                     },
                     path: {
                         type: 'string',
@@ -26,7 +47,15 @@ export class GrepTool implements ITool {
                     },
                     include: {
                         type: 'string',
-                        description: 'Comma-separated list of file extensions to include (e.g., "ts,js,json"). Defaults to common text files.'
+                        description: 'Comma-separated extensions or patterns to include (e.g., "ts,js", "*.test.ts"). If omitted, searches common text files.'
+                    },
+                    caseInsensitive: {
+                        type: 'boolean',
+                        description: 'Whether to ignore case. Defaults to false.'
+                    },
+                    isRegex: {
+                        type: 'boolean',
+                        description: 'Whether to treat pattern as a regular expression. Defaults to true. Set to false for literal string search.'
                     }
                 },
                 required: ['pattern']
@@ -35,31 +64,52 @@ export class GrepTool implements ITool {
     }
 
     async execute(args: any): Promise<ToolExecutionResult> {
-        const { pattern, path: searchPath, include } = args;
-        const startDir = searchPath ? path.resolve(this.allowedRoot, searchPath) : this.allowedRoot;
+        const { pattern, path: searchPath, include, caseInsensitive = false, isRegex = true } = args;
 
-        // Security Check
+        let startDir = searchPath ? path.resolve(this.allowedRoot, searchPath) : this.allowedRoot;
+        // Ensure startDir is within allowedRoot
         if (!startDir.startsWith(this.allowedRoot)) {
-            return {
-                toolName: 'grep',
-                isError: true,
-                result: `Access Denied: Path '${searchPath}' is outside the allowed workspace.`
-            };
+            startDir = this.allowedRoot; // Fallback or could error. Let's be safe.
         }
 
         try {
-            // Parse include extensions
-            let extensions = ['.ts', '.js', '.jsx', '.tsx', '.json', '.md', '.txt', '.py', '.css', '.html', '.yml', '.yaml'];
-            if (include) {
-                extensions = include.split(',').map((ext: string) => ext.trim().startsWith('.') ? ext.trim() : `.${ext.trim()}`);
+            // 1. Prepare Regex
+            let regex: RegExp;
+            const flags = caseInsensitive ? 'i' : '';
+            if (isRegex) {
+                try {
+                    regex = new RegExp(pattern, flags);
+                } catch (e: any) {
+                    return {
+                        toolName: 'grep',
+                        isError: true,
+                        result: `Invalid Regular Expression: ${e.message}. If you meant to search for a literal string, set 'isRegex' to false.`
+                    };
+                }
+            } else {
+                // Escape special regex characters for literal search
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                regex = new RegExp(escapedPattern, flags);
             }
 
-            const results = await this.grepFind(startDir, pattern, extensions);
+            // 2. Parse inclusions
+            const includePatterns = include
+                ? include.split(',').map((s: string) => s.trim())
+                : null;
+
+            // 3. Find files & Grep (Concurrent buffered)
+            const results = await this.searchDirectory(startDir, regex, includePatterns);
+
+            // 4. Sort by mtime (descending)
+            results.sort((a, b) => b.mtime - a.mtime);
+
+            // 5. Format Output
+            const formattedOutput = this.formatResults(results, results.length > 50); // Truncation hint if too many files
 
             return {
                 toolName: 'grep',
                 isError: false,
-                result: results.length > 0 ? results.join('\n') : 'No matches found.'
+                result: formattedOutput
             };
 
         } catch (error: any) {
@@ -71,53 +121,31 @@ export class GrepTool implements ITool {
         }
     }
 
-    private async grepFind(dir: string, pattern: string, extensions: string[]): Promise<string[]> {
-        const regex = new RegExp(pattern); // We assume simple regex for now. Flag 'm' or 'g'? Usually just default.
-        const matches: string[] = [];
-        const MAX_MATCHES = 500; // Safety limit
+    private async searchDirectory(dir: string, regex: RegExp, includePatterns: string[] | null): Promise<FileResult[]> {
+        const results: FileResult[] = [];
+        const filesToProcess: string[] = [];
+
+        // Helper to collect all file paths first (BFS/DFS) or we can process in chunks. 
+        // For simplicity and avoiding "open too many files", we gather paths then process in batches.
 
         const walk = async (currentDir: string) => {
-            if (matches.length >= MAX_MATCHES) return;
-
-            let list;
+            let entries;
             try {
-                list = await fs.readdir(currentDir, { withFileTypes: true });
+                entries = await fsPromises.readdir(currentDir, { withFileTypes: true });
             } catch (e) {
-                return;
+                return; // Access denied or removed
             }
 
-            for (const dirent of list) {
-                if (matches.length >= MAX_MATCHES) return;
+            for (const entry of entries) {
+                const fullPath = path.join(currentDir, entry.name);
 
-                const fullPath = path.join(currentDir, dirent.name);
-
-                if (dirent.isDirectory()) {
-                    if (dirent.name === 'node_modules' || dirent.name.startsWith('.')) continue;
+                if (entry.isDirectory()) {
+                    // Ignore common junk
+                    if (['node_modules', '.git', '.vscode', '.idea', 'dist', 'build', 'coverage'].includes(entry.name)) continue;
                     await walk(fullPath);
-                } else {
-                    const ext = path.extname(dirent.name).toLowerCase();
-                    if (extensions.includes(ext)) {
-                        try {
-                            const content = await fs.readFile(fullPath, 'utf-8');
-                            const lines = content.split('\n');
-
-                            // Check first if the whole file might match to save per-line time? 
-                            // Regex.test(content) might be faster but we need line numbers.
-
-                            for (let i = 0; i < lines.length; i++) {
-                                const line = lines[i];
-                                if (regex.test(line)) {
-                                    const relPath = path.relative(this.allowedRoot, fullPath).split(path.sep).join('/');
-                                    // Limit line length for output
-                                    const truncatedLine = line.trim().substring(0, 100);
-                                    matches.push(`${relPath}:${i + 1}: ${truncatedLine}`);
-
-                                    // Should we limit matches per file? Maybe not.
-                                }
-                            }
-                        } catch (err) {
-                            // Ignore read errors
-                        }
+                } else if (entry.isFile()) {
+                    if (this.shouldInclude(entry.name, includePatterns)) {
+                        filesToProcess.push(fullPath);
                     }
                 }
             }
@@ -125,10 +153,117 @@ export class GrepTool implements ITool {
 
         await walk(dir);
 
-        if (matches.length >= MAX_MATCHES) {
-            matches.push(`... (Limit of ${MAX_MATCHES} matches reached)`);
+        // Process files in batches to control concurrency
+        const CONCURRENCY = 20;
+        for (let i = 0; i < filesToProcess.length; i += CONCURRENCY) {
+            const batch = filesToProcess.slice(i, i + CONCURRENCY);
+            const batchResults = await Promise.all(batch.map(f => this.grepFile(f, regex)));
+            for (const res of batchResults) {
+                if (res && res.matches.length > 0) {
+                    results.push(res);
+                }
+            }
+
+            // Safety break if too many matches already?
+            // Calculating total matches so far
+            const currentTotal = results.reduce((sum, r) => sum + r.matches.length, 0);
+            if (currentTotal >= this.MAX_TOTAL_MATCHES) break;
         }
 
-        return matches;
+        return results;
+    }
+
+    private shouldInclude(filename: string, patterns: string[] | null): boolean {
+        // Always ignore dotfiles (unless explicitly asked? For now assume basic code search logic)
+        // If pattern explicitly includes dotfile logic, we might need change. 
+        // Current logic: ignore system dotfiles
+        if (filename.startsWith('.') && filename !== '.gitignore' && filename !== '.env') return false;
+
+        const lowerName = filename.toLowerCase();
+
+        if (!patterns) {
+            // Use default extensions
+            return this.DEFAULT_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+        }
+
+        return patterns.some(p => {
+            if (p.startsWith('*')) {
+                return lowerName.endsWith(p.substring(1).toLowerCase());
+            }
+            return lowerName.endsWith(p.toLowerCase());
+        });
+    }
+
+    private async grepFile(filePath: string, regex: RegExp): Promise<FileResult | null> {
+        try {
+            const stats = await fsPromises.stat(filePath);
+            if (stats.size > 1024 * 1024 * 5) return null; // Skip files > 5MB
+
+            const matches: Match[] = [];
+            const fileStream = fs.createReadStream(filePath, { encoding: 'utf8' });
+
+            const rl = readline.createInterface({
+                input: fileStream,
+                crlfDelay: Infinity
+            });
+
+            let lineNum = 0;
+            for await (const line of rl) {
+                lineNum++;
+                if (regex.test(line)) {
+                    // Truncate overly long lines
+                    let content = line.trim();
+                    if (content.length > this.MAX_LINE_LENGTH) {
+                        content = content.substring(0, this.MAX_LINE_LENGTH) + '...';
+                    }
+                    matches.push({ lineNum, content });
+
+                    if (matches.length >= 100) break; // Limit per file
+                }
+            }
+
+            if (matches.length > 0) {
+                return {
+                    filePath: filePath,
+                    mtime: stats.mtimeMs,
+                    matches
+                };
+            }
+        } catch (e) {
+            // Ignore read errors
+        }
+        return null;
+    }
+
+    private formatResults(results: FileResult[], truncatedFiles: boolean): string {
+        if (results.length === 0) return 'No matches found.';
+
+        const outputLines: string[] = [];
+        let totalMatches = 0;
+
+        outputLines.push(`Found matches in ${results.length} files (sorted by modified time):`);
+        outputLines.push('');
+
+        for (const fileResult of results) {
+            const relPath = path.relative(this.allowedRoot, fileResult.filePath).split(path.sep).join('/');
+            outputLines.push(`${relPath}:`);
+
+            for (const match of fileResult.matches) {
+                outputLines.push(`  ${match.lineNum}: ${match.content}`);
+                totalMatches++;
+            }
+            outputLines.push(''); // Empty line between files
+
+            if (totalMatches >= this.MAX_TOTAL_MATCHES) {
+                outputLines.push(`... (Limit of ${this.MAX_TOTAL_MATCHES} total matches reached)`);
+                return outputLines.join('\n');
+            }
+        }
+
+        if (truncatedFiles) {
+            outputLines.push('... (Some matched files were skipped due to limit)');
+        }
+
+        return outputLines.join('\n');
     }
 }
