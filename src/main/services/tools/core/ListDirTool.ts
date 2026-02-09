@@ -9,7 +9,7 @@ export class ListDirTool implements ITool {
         "bin", "obj", ".idea", ".vscode", ".zig-cache", "zig-out", ".coverage",
         "coverage", "tmp", "temp", ".cache", "cache", "logs", ".venv", "venv", "env"
     ]);
-    private readonly LIMIT = 500;
+    private readonly LIMIT = 100;
 
     constructor(rootPath: string) {
         this.allowedRoot = path.resolve(rootPath);
@@ -18,7 +18,7 @@ export class ListDirTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'list_dir',
-            description: 'List the contents of a directory. Returns a list of files and subdirectories. Automatically ignores common non-source directories (e.g. node_modules, .git).Results are truncated if they exceed 500 items.',
+            description: 'List the contents of a directory. Returns a list of files and subdirectories. Automatically ignores common non-source directories (e.g. node_modules, .git).Results are truncated if they exceed 100 items.',
             input_schema: {
                 type: 'object',
                 properties: {
