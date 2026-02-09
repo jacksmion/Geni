@@ -45,13 +45,14 @@ export function MessageList() {
 
             if (nextMsgIndex < messages.length) {
                 const nextMsg = messages[nextMsgIndex];
-                if (nextMsg.role === 'assistant' && !nextMsg.tool_calls) {
+                if (nextMsg.role === 'assistant' && !nextMsg.tool_calls && nextMsg.content) {
                     // Found the answer! Merge it into the current message visually
                     // We create a new object to avoid mutating state directly
                     const mergedMsg: ChatMessage = {
                         ...msg,
-                        // Combine content: Thought/Intro + Result
-                        content: (msg.content ? msg.content + '\n\n' : '') + (nextMsg.content || ''),
+                        // Fix for duplication: Use ONLY the next message's content.
+                        // The original content (thought) is rendered by ThoughtTrace via 'steps'.
+                        content: nextMsg.content,
                         // Steps are already on msg (from previous fixes), ensuring tool cards show up
                     };
                     groupedMessages.push(mergedMsg);
