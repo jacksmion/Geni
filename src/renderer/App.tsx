@@ -4,16 +4,39 @@ import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
 import { useChatStore } from './store/useChatStore'
 import { useSettingsStore } from './store/useSettingsStore'
+import { useLayoutStore } from './store/useLayoutStore'
+import { useBreakpoint } from './hooks/useBreakpoint'
 
 function App() {
     const { activeTab } = useChatStore()
     const { loadSettings } = useSettingsStore()
     const { loadHistory } = useChatStore()
+    const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useLayoutStore()
+    const { isMobile } = useBreakpoint()
 
     useEffect(() => {
         loadSettings()
         loadHistory()
     }, [loadSettings, loadHistory])
+
+    // Auto collapse on mobile
+    useEffect(() => {
+        if (isMobile) {
+            setSidebarCollapsed(true)
+        }
+    }, [isMobile, setSidebarCollapsed])
+
+    // Hotkey for sidebar
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault()
+                toggleSidebar()
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [toggleSidebar])
 
     // Check for Electron Env
     if (!window.electronAPI) {
