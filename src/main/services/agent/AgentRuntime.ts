@@ -180,9 +180,18 @@ export class AgentRuntime implements IAgentService {
 
         // 添加当前用户输入
         const userMsg: ChatMessage = { role: 'user', content: prompt };
-        messages.push(userMsg);
 
-        const newMessages: ChatMessage[] = [userMsg]; // Track messages for return
+        // 检查历史记录中是否已经包含这个消息（避免重复注入上下文）
+        const lastHistoryMsg = messages[messages.length - 1];
+        const isDuplicateInContext = lastHistoryMsg &&
+            lastHistoryMsg.role === 'user' &&
+            lastHistoryMsg.content === prompt;
+
+        if (!isDuplicateInContext) {
+            messages.push(userMsg);
+        }
+
+        const newMessages: ChatMessage[] = []; // 只追踪本次运行产生的新消息（不包含初始 Prompt，因为它已被调用方自行保存）
 
         const steps: any[] = [];
         let finalAnswer = '';
