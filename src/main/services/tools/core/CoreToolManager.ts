@@ -7,7 +7,7 @@ import { BashTool } from './BashTool';
 import { FileEditTool } from './FileEditTool';
 import { GlobTool } from './GlobTool';
 import { GrepTool } from './GrepTool';
-import { SkillReaderTool } from './SkillReaderTool';
+import { SkillLoaderTool } from './SkillLoaderTool';
 import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './planning/PlanningTools';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
@@ -44,11 +44,11 @@ export class CoreToolManager {
             'create_plan': () => new CreatePlanTool(this.workspacePath),
             'update_task_status': () => new UpdateTaskStatusTool(this.workspacePath),
             'read_plan': () => new ReadPlanTool(this.workspacePath),
-            'read_skill': () => new SkillReaderTool(this.skillRegistry, this.configManager)
+            'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager)
         };
 
         // Determine read-only tools for default 'Auto' trust
-        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'read_skill'];
+        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'load_skill'];
 
         // Register each tool if not explicitly disabled
         for (const [name, factory] of Object.entries(toolFactories)) {
@@ -81,8 +81,8 @@ export class CoreToolManager {
         const settings = this.configManager.load();
         const coreToolSettings = settings.coreToolSettings || {};
 
-        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'read_skill'];
-        const hiddenTools = ['create_plan', 'update_task_status', 'read_plan', 'read_skill'];
+        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'load_skill'];
+        const hiddenTools = ['create_plan', 'update_task_status', 'read_plan', 'load_skill'];
 
         // This is a static list of all core tools we support, with their descriptions
         const allCoreTools = [
@@ -96,7 +96,7 @@ export class CoreToolManager {
             { name: 'create_plan', description: 'Create a new project plan' },
             { name: 'update_task_status', description: 'Update a task in a plan' },
             { name: 'read_plan', description: 'Read an existing plan' },
-            { name: 'read_skill', description: 'Read detailed instructions for a skill' }
+            { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' }
         ];
 
         return allCoreTools

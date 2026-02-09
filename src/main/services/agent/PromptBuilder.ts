@@ -130,7 +130,7 @@ export class PromptBuilder {
      * 
      * 采用渐进式加载策略：
      * - 仅在 System Prompt 中注入技能摘要（名称+描述）
-     * - 完整内容通过 read_skill 工具懒加载
+     * - 完整内容通过 load_skill 工具懒加载
      */
     private buildSkillSummary(context: AgentContext): string | null {
         if (!context.skills || context.skills.length === 0) {
@@ -151,7 +151,7 @@ You have access to the following skills:
 
 ${skillList}
 
-**Important**: When you need to apply a skill's methodology, use the \`read_skill\` tool to load its full instructions first.
+**Important**: When you need to apply a skill's methodology, use the \`load_skill\` tool to load its full instructions and discover its associated resources first.
 </skills>`;
     }
 
