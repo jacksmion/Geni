@@ -76,13 +76,18 @@ export class AgentRuntime implements IAgentService {
     constructor(settings: AppSettings, toolRegistry: ToolRegistry) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
-        this.promptBuilder = new PromptBuilder();
+        this.promptBuilder = new PromptBuilder({
+            defaultBasePrompt: settings.systemPrompt
+        });
         this.stateManager = new AgentStateManager();
         this.toolGuard = defaultToolGuard;
     }
 
     public updateSettings(settings: AppSettings) {
         this.settings = settings;
+        if (settings.systemPrompt) {
+            this.promptBuilder.updateConfig({ defaultBasePrompt: settings.systemPrompt });
+        }
     }
 
     /**

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon } from 'lucide-react';
+import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';
 import { McpSettings } from './settings/McpSettings';
 import { CoreToolSettings } from './settings/CoreToolSettings';
+import { PersonaSettings } from './settings/PersonaSettings';
 
-type SettingsSection = 'general' | 'models' | 'mcp' | 'tools' | 'about';
+type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'about';
 
 export default function Settings() {
     const [activeSection, setActiveSection] = useState<SettingsSection>('models');
@@ -14,6 +15,7 @@ export default function Settings() {
     const sections = [
         { id: 'general', label: '常规设置', icon: Layout },
         { id: 'models', label: '模型配置', icon: Globe },
+        { id: 'persona', label: '个性化', icon: Sparkles },
         { id: 'mcp', label: 'MCP 服务器', icon: Database },
         { id: 'tools', label: '内置工具', icon: BoxIcon },
         { id: 'about', label: '关于我们', icon: Info },
@@ -71,6 +73,8 @@ export default function Settings() {
                             <ModelSettings />
                         </div>
                     )}
+
+                    {activeSection === 'persona' && <PersonaSettings />}
 
                     {activeSection === 'mcp' && <McpSettings />}
 

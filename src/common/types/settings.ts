@@ -45,6 +45,7 @@ export interface AppSettings {
     workspacePath: string; // 当前工作空间路径
     theme: 'dark' | 'light' | 'system';
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
+    systemPrompt?: string; // 全局系统提示词
 }
 
 // 默认的提供商配置
