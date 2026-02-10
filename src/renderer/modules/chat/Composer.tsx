@@ -171,7 +171,7 @@ export function Composer() {
                                 handleSend()
                             }
                         }}
-                        placeholder="Message MUSE..."
+                        placeholder="Message Geni..."
                         className="w-full bg-transparent px-5 py-4 min-h-[56px] max-h-64 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
                         rows={1}
                         style={{ lineHeight: '1.5' }}

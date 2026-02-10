@@ -1,9 +1,9 @@
-# MUSE
+# Geni
 
 > **Your AI-Powered Collaborative Workspace Assistant**
 > *Enabling inspiration through intelligence.*
 
-MUSE is a modern desktop application designed to bridge the gap between AI intelligence and your local workflow. Built with **Electron**, **React**, and the **Model Context Protocol (MCP)**, MUSE offers a seamless environment for AI-assisted coding, writing, and problem-solving.
+Geni is a modern desktop application designed to bridge the gap between AI intelligence and your local workflow. Built with **Electron**, **React**, and the **Model Context Protocol (MCP)**, Geni offers a seamless environment for AI-assisted coding, writing, and problem-solving.
 
 ## ✨ Features
 
@@ -37,8 +37,8 @@ MUSE is a modern desktop application designed to bridge the gap between AI intel
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/muse.git
-    cd muse
+    git clone https://github.com/yourusername/geni.git
+    cd geni
     ```
 
 2.  Install dependencies:
@@ -80,7 +80,7 @@ The output artifacts (installers, executables) will be generated in the `release
 ## 📂 Project Structure
 
 ```
-muse/
+geni/
 ├── src/
 │   ├── main/                 # Electron main process
 │   │   ├── services/         # Core business logic (Agents, MCP, Config)

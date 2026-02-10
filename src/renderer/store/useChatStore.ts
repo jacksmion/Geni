@@ -37,7 +37,7 @@ const createDefaultSession = (): ChatSession => {
         messages: [{
             id: 'init-1',
             role: 'assistant',
-            content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
+            content: '你好！我是 Geni，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
             timestamp: Date.now()
         }]
     };
@@ -83,7 +83,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const welcomeMessage = {
                     id: 'init-1',
                     role: 'assistant' as const,
-                    content: '你好！我是 MUSE，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
+                    content: '你好！我是 Geni，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
                     timestamp: Date.now()
                 };
 
@@ -116,7 +116,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const welcomeMessage = {
             id: 'init-' + backendSes.id,
             role: 'assistant' as const,
-            content: '你好！我是 MUSE，你的个人智能助手。',
+            content: '你好！我是 Geni，你的个人智能助手。',
             timestamp: Date.now()
         };
 

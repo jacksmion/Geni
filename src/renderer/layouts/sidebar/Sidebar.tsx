@@ -2,7 +2,7 @@ import { Settings, MessageSquare, Sun, Moon } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { clsx } from 'clsx'
-import { MuseLogo } from '../../components/MuseLogo'
+import { GeniLogo } from '../../components/GeniLogo'
 
 export function Sidebar() {
     const { activeTab, setActiveTab } = useChatStore()
@@ -15,7 +15,7 @@ export function Sidebar() {
         <aside className="w-[50px] flex flex-col items-center py-4 bg-slate-50 border-r border-slate-200 dark:bg-[#18181b] dark:border-white/5 shrink-0 z-20 h-full transition-all duration-300">
             {/* Brand Icon */}
             <div className="mb-4 p-2 rounded-lg bg-indigo-600 text-white shadow-none">
-                <MuseLogo size={20} />
+                <GeniLogo size={20} />
             </div>
 
             {/* Navigation */}
