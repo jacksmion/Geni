@@ -145,4 +145,12 @@ export class CoreToolManager {
         // Re-initialize
         this.initialize();
     }
+
+    /**
+     * Updates the local workspace path reference.
+     * This should be called before refresh() when the path changes.
+     */
+    public updateWorkspacePath(newPath: string) {
+        this.workspacePath = newPath;
+    }
 }

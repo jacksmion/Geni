@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText, ArrowUp } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
+import { useSettingsStore } from '../../store/useSettingsStore'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { AppSettings } from '../../../common/types/settings'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -11,7 +11,9 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function Composer() {
     const [input, setInput] = useState('')
-    const [workspacePath, setWorkspacePath] = useState('')
+    const { settings, updateSettings } = useSettingsStore()
+    const workspacePath = settings.workspacePath || '选择工作目录...'
+
     const {
         isSending,
         sessions,
@@ -24,24 +26,13 @@ export function Composer() {
         removePendingAttachment,
         clearPendingAttachments
     } = useChatStore()
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    // Load initial settings
-    useEffect(() => {
-        const loadSettings = async () => {
-            const settings: AppSettings = await window.electronAPI.system.getSettings()
-            setWorkspacePath(settings.workspacePath || '选择工作目录...')
-        }
-        loadSettings()
-    }, [])
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const handleSelectDirectory = async () => {
         const path = await window.electronAPI.system.selectDirectory()
         if (path) {
-            setWorkspacePath(path)
-            // Save to settings
-            const settings: AppSettings = await window.electronAPI.system.getSettings()
-            await window.electronAPI.system.saveSettings({ ...settings, workspacePath: path })
+            await updateSettings({ workspacePath: path })
         }
     }
 

@@ -66,6 +66,7 @@ export class AppRouter {
 
             // 2. Update Tool settings & Workspace
             this.toolRegistry.updateWorkspacePath(newSettings.workspacePath);
+            this.coreToolManager.updateWorkspacePath(newSettings.workspacePath);
             this.coreToolManager.refresh();
 
             // 3. Sync MCP Server states (connect new ones, disconnect disabled ones)

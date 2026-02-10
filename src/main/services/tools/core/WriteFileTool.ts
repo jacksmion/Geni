@@ -9,6 +9,10 @@ export class WriteFileTool implements ITool {
         this.allowedRoot = path.resolve(rootPath);
     }
 
+    public setRoot(newRoot: string) {
+        this.allowedRoot = path.resolve(newRoot);
+    }
+
     getDefinition(): ToolDefinition {
         return {
             name: 'write_file',
