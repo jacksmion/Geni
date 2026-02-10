@@ -211,7 +211,7 @@ export class McpManager {
                 tool.name,
                 schema,
                 tool.description || '',
-                settings ? settings.trustLevel : 'Ask'
+                settings ? settings.trustLevel : 'Auto'
             );
 
             this.registry.register(adapter);

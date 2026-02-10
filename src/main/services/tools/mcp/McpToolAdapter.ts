@@ -20,7 +20,7 @@ export class McpToolAdapter implements ITool {
         mcpToolName: string,
         mcpSchema: any,
         description: string,
-        trustLevel: 'Ask' | 'Auto' = 'Ask'
+        trustLevel: 'Ask' | 'Auto' = 'Auto'
     ) {
         this.client = client;
         this.mcpToolName = mcpToolName;

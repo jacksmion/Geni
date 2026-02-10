@@ -638,7 +638,7 @@ export function McpSettings() {
                                                             {serverTools.map((tool, tIdx) => {
                                                                 const originalName = tool.name.split('__').slice(2).join('__');
                                                                 const srvToolSettings = selectedServer.toolSettings || {};
-                                                                const tSetting = srvToolSettings[originalName] || { enabled: true, trustLevel: 'Ask' };
+                                                                const tSetting = srvToolSettings[originalName] || { enabled: true, trustLevel: 'Auto' };
 
                                                                 return (
                                                                     <tr key={tIdx} className={clsx(
