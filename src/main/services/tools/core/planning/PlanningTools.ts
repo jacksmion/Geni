@@ -1,5 +1,5 @@
 
-import { ITool, ToolDefinition, ToolResult } from '../../../../common/types/tool';
+import { ITool, ToolDefinition, ToolExecutionResult as ToolResult } from '../../../../../common/types/tool';
 import { planManager } from './PlanManager';
 
 interface CreatePlanArgs {
@@ -44,11 +44,13 @@ export class CreatePlanTool implements ITool {
         try {
             const plan = await planManager.createPlan(args.description, args.tasks);
             return {
+                toolName: 'create_plan',
                 result: `Plan created successfully.\nID: ${plan.id}\nGoal: ${plan.description}\nTasks:\n${plan.tasks.map(t => `- [${t.id}] ${t.description} (${t.status})`).join('\n')}`,
                 isError: false
             };
         } catch (error: any) {
             return {
+                toolName: 'create_plan',
                 result: `Failed to create plan: ${error.message}`,
                 isError: true
             };
@@ -104,11 +106,13 @@ export class UpdateTaskStatusTool implements ITool {
             }
 
             return {
+                toolName: 'update_task_status',
                 result,
                 isError: false
             };
         } catch (error: any) {
             return {
+                toolName: 'update_task_status',
                 result: `Failed to update task: ${error.message}`,
                 isError: true
             };
@@ -138,6 +142,7 @@ export class ReadPlanTool implements ITool {
             const plan = await planManager.getActivePlan();
             if (!plan) {
                 return {
+                    toolName: 'read_plan',
                     result: 'No active plan found.',
                     isError: false
                 };
@@ -158,11 +163,13 @@ export class ReadPlanTool implements ITool {
             }).join('\n');
 
             return {
+                toolName: 'read_plan',
                 result: `Active Plan: ${plan.description}\nStatus: ${plan.status}\n\nTasks:\n${taskList}`,
                 isError: false
             };
         } catch (error: any) {
             return {
+                toolName: 'read_plan',
                 result: `Failed to read plan: ${error.message}`,
                 isError: true
             };

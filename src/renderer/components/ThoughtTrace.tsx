@@ -14,6 +14,9 @@ interface ThoughtStep {
     observation?: string;
     isComplete?: boolean;
     duration?: number;
+    authRequestId?: string;
+    isWaitingAuthorization?: boolean;
+    authReason?: string;
 }
 
 interface ThoughtTraceProps {
