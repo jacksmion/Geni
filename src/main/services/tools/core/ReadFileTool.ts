@@ -43,7 +43,7 @@ export class ReadFileTool implements ITool {
         };
     }
 
-    async execute(args: any): Promise<ToolExecutionResult> {
+    async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { path: relPath, start_line, end_line, with_line_numbers } = args;
 
         // Defensive Check: Ensure required path argument is present and valid

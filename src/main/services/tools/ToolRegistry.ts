@@ -28,7 +28,7 @@ export class ToolRegistry {
         return this.getTools().map(t => t.getDefinition());
     }
 
-    async executeTool(name: string, args: any): Promise<ToolExecutionResult> {
+    async executeTool(name: string, args: any, signal?: AbortSignal): Promise<ToolExecutionResult> {
         const tool = this.tools.get(name);
         if (!tool) {
             return {
@@ -47,7 +47,7 @@ export class ToolRegistry {
 
         try {
             console.log(`[ToolRegistry] Executing ${name} with args:`, JSON.stringify(args));
-            return await tool.execute(args);
+            return await tool.execute(args, signal);
         } catch (error: any) {
             console.error(`[ToolRegistry] Execution failed for ${name}:`, error);
             return {

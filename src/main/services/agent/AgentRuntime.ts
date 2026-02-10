@@ -356,6 +356,12 @@ export class AgentRuntime implements IAgentService {
                     );
 
                     for (const tc of toolCalls) {
+                        // Check Abort inside tool loop
+                        if (options?.signal?.aborted) {
+                            console.log('[AgentRuntime] Abort detected during multi-tool execution');
+                            break;
+                        }
+
                         const fnName = tc.function.name;
                         let fnArgs = {};
                         try {
@@ -425,6 +431,9 @@ export class AgentRuntime implements IAgentService {
                             }
                         }
 
+                        // Re-check Abort after potential long authorization wait
+                        if (options?.signal?.aborted) break;
+
                         const startTime = Date.now();
 
                         // 转换到 ExecutingTool 状态，并带上当前工具名称
@@ -449,7 +458,7 @@ export class AgentRuntime implements IAgentService {
                         }
                         onStepUpdate?.([...steps]);
 
-                        const result = await this.toolRegistry.executeTool(fnName, fnArgs);
+                        const result = await this.toolRegistry.executeTool(fnName, fnArgs, options?.signal);
                         const duration = Date.now() - startTime;
 
                         const MAX_OUTPUT_LENGTH = 2000;
@@ -480,7 +489,6 @@ export class AgentRuntime implements IAgentService {
                 } else {
                     // No tool calls -> Done!
                     finalAnswer = currentContent;
-                    this.stateManager.transition(AgentState.Idle, 'Execution completed');
                     break;
                 }
             }
@@ -489,17 +497,29 @@ export class AgentRuntime implements IAgentService {
                 const warningMsg = `\n\n---\n⚠️ **Agent 达到最大执行步数限制 (${MAX_LOOPS} 步)**\n请发送消息让 Agent 继续。`;
                 finalAnswer = (finalAnswer || '') + warningMsg;
                 onStream?.(warningMsg);
-                this.stateManager.transition(AgentState.Idle, 'Max loops reached');
             }
 
         } catch (error: any) {
             console.error('[AgentRuntime] Error:', error);
-            this.stateManager.transition(AgentState.Error, error.message);
+            if (error.message?.includes('aborted')) {
+                // If it was already transitioned in the check at top of loop
+                if (this.stateManager.getState() !== AgentState.Aborted) {
+                    this.stateManager.transition(AgentState.Aborted, 'Execution aborted');
+                }
+            } else {
+                this.stateManager.transition(AgentState.Error, error.message);
+            }
             return {
                 finalAnswer: `Error: ${error.message}`,
                 steps,
                 newMessages
             };
+        } finally {
+            // Ensure state returns to Idle unless it's an error/aborted state we want to keep?
+            // Actually, for UI UX, Idle is best so the "Stop" button turns back into "Send"
+            if (this.stateManager.getState() !== AgentState.Idle) {
+                this.stateManager.transition(AgentState.Idle, 'Execution finished');
+            }
         }
 
         return { finalAnswer, steps, newMessages };

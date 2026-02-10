@@ -20,7 +20,7 @@ export class EnvironmentInfoTool implements ITool {
         };
     }
 
-    async execute(args: any): Promise<ToolExecutionResult> {
+    async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         return {
             toolName: 'get_env_info',
             isError: false,

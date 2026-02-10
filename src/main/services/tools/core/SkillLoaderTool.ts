@@ -60,8 +60,8 @@ export class SkillLoaderTool implements ITool {
         };
     }
 
-    async execute(input: { skill_id: string }): Promise<ToolExecutionResult> {
-        const skillId = input.skill_id;
+    async execute(args: { skill_id: string }, _signal?: AbortSignal): Promise<ToolExecutionResult> {
+        const skillId = args.skill_id;
         const skill = this.skillRegistry.get(skillId);
 
         if (!skill) {

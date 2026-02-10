@@ -92,7 +92,7 @@ Usage:
         };
     }
 
-    async execute(args: any): Promise<ToolExecutionResult> {
+    async execute(args: any, signal?: AbortSignal): Promise<ToolExecutionResult> {
         const Schema = z.object({
             command: z.string(),
             cwd: z.string().optional(),
@@ -144,10 +144,10 @@ Usage:
             }
         }
 
-        return this.runCommand(command, effectiveCwd, effectiveTimeout);
+        return this.runCommand(command, effectiveCwd, effectiveTimeout, signal);
     }
 
-    private runCommand(command: string, cwd: string, timeout: number): Promise<ToolExecutionResult> {
+    private runCommand(command: string, cwd: string, timeout: number, signal?: AbortSignal): Promise<ToolExecutionResult> {
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
             // Use shell: true to execute command string
@@ -169,10 +169,30 @@ Usage:
             const stdoutChunks: Buffer[] = [];
             const stderrChunks: Buffer[] = [];
             let timedOut = false;
+            let aborted = false;
 
             // Collect output
             child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
             child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+
+            // Setup abort listener
+            const abortHandler = () => {
+                aborted = true;
+                child.kill();
+                resolve({
+                    toolName: 'bash',
+                    isError: true,
+                    result: 'Command aborted by user.'
+                });
+            };
+
+            if (signal) {
+                if (signal.aborted) {
+                    abortHandler();
+                    return;
+                }
+                signal.addEventListener('abort', abortHandler, { once: true });
+            }
 
             // Setup timeout
             let timer: NodeJS.Timeout | undefined;
@@ -185,6 +205,9 @@ Usage:
 
             child.on('close', (code) => {
                 if (timer) clearTimeout(timer);
+                if (signal) signal.removeEventListener('abort', abortHandler);
+
+                if (aborted) return; // Already resolved in abortHandler
 
                 if (timedOut) {
                     resolve({
@@ -232,6 +255,8 @@ Usage:
 
             child.on('error', (err) => {
                 if (timer) clearTimeout(timer);
+                if (signal) signal.removeEventListener('abort', abortHandler);
+                if (aborted) return;
                 resolve({
                     toolName: 'bash',
                     isError: true,

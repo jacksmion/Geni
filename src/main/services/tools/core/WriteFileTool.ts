@@ -42,7 +42,7 @@ export class WriteFileTool implements ITool {
         };
     }
 
-    async execute(args: any): Promise<ToolExecutionResult> {
+    async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { path: relPath, content, append = false, ignoreIfExists = false } = args;
 
         // Defensive Check: Ensure required arguments are present and valid

@@ -42,7 +42,7 @@ export class FileEditTool implements ITool {
         };
     }
 
-    async execute(args: any): Promise<ToolExecutionResult> {
+    async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { path: relPath, target, replacement, replaceAll } = args;
 
         const fullPath = path.resolve(this.allowedRoot, relPath);
