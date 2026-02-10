@@ -148,8 +148,8 @@ export class ToolGuard {
         }
 
         // 2. 检查工具是否声明需要确认
-        if (tool?.requireConfirmation) {
-            return ToolTrustLevel.High;
+        if (tool?.requireConfirmation !== undefined) {
+            return tool.requireConfirmation ? ToolTrustLevel.High : ToolTrustLevel.Low;
         }
 
         // 3. 基于工具名称的启发式判断

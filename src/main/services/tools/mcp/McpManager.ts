@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ToolRegistry } from "../ToolRegistry";
 import { McpToolAdapter } from "./McpToolAdapter";
+import { defaultToolGuard, ToolTrustLevel } from "../../agent/ToolGuard";
 
 // ===== Types =====
 
@@ -215,6 +216,14 @@ export class McpManager {
             );
 
             this.registry.register(adapter);
+
+            // Sync with ToolGuard mapping
+            const trustLevel = settings ? settings.trustLevel : 'Auto';
+            defaultToolGuard.registerToolTrustLevel(
+                adapter.getDefinition().name,
+                trustLevel === 'Auto' ? ToolTrustLevel.Low : ToolTrustLevel.High
+            );
+
             registeredToolNames.push(adapter.getDefinition().name);
             console.log(`[McpManager] Registered tool: ${tool.name} (from ${serverId})`);
         }
