@@ -60,9 +60,29 @@ export class AppRouter {
         this.sessionController = new SessionController(this.sessionManager);
 
         // Wiring
-        this.systemController.setSettingsChangeCallback((newSettings) => {
+        this.systemController.setSettingsChangeCallback(async (newSettings) => {
+            // 1. Update Agent Engine settings
             this.agentController.updateSettings(newSettings);
+
+            // 2. Update Tool settings & Workspace
             this.toolRegistry.updateWorkspacePath(newSettings.workspacePath);
+            this.coreToolManager.refresh();
+
+            // 3. Sync MCP Server states (connect new ones, disconnect disabled ones)
+            if (newSettings.mcpServers) {
+                for (const server of newSettings.mcpServers) {
+                    const isConnected = this.mcpManager.isConnected(server.id);
+                    if (server.enabled && !isConnected) {
+                        console.log(`[AppRouter] Auto-connecting MCP server ${server.id} after settings change`);
+                        this.mcpManager.connectToServer(server).catch(e => {
+                            console.error(`[AppRouter] Failed to connect MCP server ${server.id}:`, e);
+                        });
+                    } else if (!server.enabled && isConnected) {
+                        console.log(`[AppRouter] Disconnecting MCP server ${server.id} after settings change`);
+                        await this.mcpManager.disconnectServer(server.id).catch(console.error);
+                    }
+                }
+            }
         });
     }
 

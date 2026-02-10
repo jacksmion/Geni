@@ -47,8 +47,17 @@ export class CoreToolManager {
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager)
         };
 
-        // Determine read-only tools for default 'Auto' trust
-        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'load_skill'];
+        // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
+        const safeTools = [
+            'list_directory',
+            'read_file',
+            'glob_search',
+            'grep_search',
+            'read_plan',
+            'create_plan',
+            'update_task_status',
+            'load_skill'
+        ];
 
         // Register each tool if not explicitly disabled
         for (const [name, factory] of Object.entries(toolFactories)) {
@@ -61,7 +70,7 @@ export class CoreToolManager {
             const tool = factory();
 
             // Apply trust level override if specified, otherwise use default
-            const trustLevel = setting?.trustLevel || (readOnlyTools.includes(name) ? 'Auto' : 'Ask');
+            const trustLevel = setting?.trustLevel || (safeTools.includes(name) ? 'Auto' : 'Ask');
             tool.requireConfirmation = (trustLevel === 'Ask');
 
             // Sync with ToolGuard mapping
@@ -81,7 +90,16 @@ export class CoreToolManager {
         const settings = this.configManager.load();
         const coreToolSettings = settings.coreToolSettings || {};
 
-        const readOnlyTools = ['list_directory', 'read_file', 'glob_search', 'grep_search', 'read_plan', 'load_skill'];
+        const safeTools = [
+            'list_directory',
+            'read_file',
+            'glob_search',
+            'grep_search',
+            'read_plan',
+            'create_plan',
+            'update_task_status',
+            'load_skill'
+        ];
         const hiddenTools = ['create_plan', 'update_task_status', 'read_plan', 'load_skill'];
 
         // This is a static list of all core tools we support, with their descriptions
@@ -106,7 +124,7 @@ export class CoreToolManager {
                 return {
                     ...t,
                     enabled: setting ? setting.enabled : true,
-                    trustLevel: setting ? setting.trustLevel : (readOnlyTools.includes(t.name) ? 'Auto' : 'Ask')
+                    trustLevel: setting ? setting.trustLevel : (safeTools.includes(t.name) ? 'Auto' : 'Ask')
                 };
             });
     }
@@ -116,8 +134,13 @@ export class CoreToolManager {
      */
     public refresh() {
         // First unregister all core tools
-        const allTools = this.getCoreToolMetadata();
-        allTools.forEach(t => this.registry.unregister(t.name));
+        // We use the full list to ensure even currently disabled or hidden tools are cleaned up from registry
+        const allCoreTools = [
+            'list_directory', 'read_file', 'write_file', 'bash', 'file_edit',
+            'glob_search', 'grep_search', 'create_plan', 'update_task_status',
+            'read_plan', 'load_skill'
+        ];
+        allCoreTools.forEach(name => this.registry.unregister(name));
 
         // Re-initialize
         this.initialize();
