@@ -60,7 +60,7 @@ function App() {
             {activeTab === 'chat' ? (
                 <ChatLayout />
             ) : (
-                <main className="flex-1 overflow-auto bg-transparent">
+                <main className="flex-1 overflow-hidden bg-transparent">
                     {activeTab === 'skills' && <SkillSettings />}
                     {activeTab === 'settings' && <Settings />}
                 </main>

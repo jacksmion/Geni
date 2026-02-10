@@ -4,10 +4,9 @@ import { clsx } from 'clsx';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';
 import { McpSettings } from './settings/McpSettings';
-import SkillSettings from './settings/SkillSettings';
 import { CoreToolSettings } from './settings/CoreToolSettings';
 
-type SettingsSection = 'general' | 'models' | 'mcp' | 'skills' | 'tools' | 'about';
+type SettingsSection = 'general' | 'models' | 'mcp' | 'tools' | 'about';
 
 export default function Settings() {
     const [activeSection, setActiveSection] = useState<SettingsSection>('models');
@@ -16,7 +15,6 @@ export default function Settings() {
         { id: 'general', label: '常规设置', icon: Layout },
         { id: 'models', label: '模型配置', icon: Globe },
         { id: 'mcp', label: 'MCP 服务器', icon: Database },
-        { id: 'skills', label: '技能管理', icon: ToyBrick },
         { id: 'tools', label: '内置工具', icon: BoxIcon },
         { id: 'about', label: '关于我们', icon: Info },
     ] as const;
@@ -75,8 +73,6 @@ export default function Settings() {
                     )}
 
                     {activeSection === 'mcp' && <McpSettings />}
-
-                    {activeSection === 'skills' && <SkillSettings />}
 
                     {activeSection === 'tools' && <CoreToolSettings />}
 
