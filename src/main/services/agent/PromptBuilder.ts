@@ -22,10 +22,6 @@ export interface AgentContext {
     workspacePath?: string;
     /** 启用的技能列表 */
     skills?: Skill[];
-    /** 自定义环境变量 */
-    customEnvironment?: Record<string, string>;
-    /** 是否包含方法论指引 */
-    includeMethodology?: boolean;
 }
 
 /**
@@ -34,20 +30,18 @@ export interface AgentContext {
 export interface PromptBuilderConfig {
     /** 默认基础 Prompt */
     defaultBasePrompt: string;
-    /** 是否默认包含方法论 */
-    defaultIncludeMethodology: boolean;
 }
 
 const DEFAULT_CONFIG: PromptBuilderConfig = {
-    defaultBasePrompt: 'You are a helpful assistant capable of using tools.',
-    defaultIncludeMethodology: true
+    defaultBasePrompt: `You are Geni, a highly efficient AI coding assistant. 
+Your goal is to help users solve tasks with minimum friction.`
 };
 
 /**
  * PromptBuilder - 系统提示词构建器
  * 
- * 将复杂的 System Prompt 构建逻辑集中管理，
- * 使 AgentRuntime 更专注于执行循环逻辑
+ * 将系统提示词构建逻辑集中管理，
+ * 移除机械的方法论和冗余的路径信息，依赖模型原生推理。
  */
 export class PromptBuilder {
     private config: PromptBuilderConfig;
@@ -68,15 +62,7 @@ export class PromptBuilder {
         // 1. 基础 Prompt (Persona)
         parts.push(this.buildPersona(context));
 
-        // 2. 方法论指引 (Methodology/CoT)
-        if (context.includeMethodology ?? this.config.defaultIncludeMethodology) {
-            parts.push(this.buildMethodology());
-        }
-
-        // 3. 环境信息 (Environment Info)
-        parts.push(this.buildEnvironmentInfo(context));
-
-        // 4. 技能摘要 (Skill Summary)
+        // 2. 技能摘要 (Skill Summary)
         const skillSummary = this.buildSkillSummary(context);
         if (skillSummary) {
             parts.push(skillSummary);
@@ -90,39 +76,6 @@ export class PromptBuilder {
      */
     private buildPersona(context: AgentContext): string {
         return context.basePrompt || this.config.defaultBasePrompt;
-    }
-
-    /**
-     * 构建方法论指引 (Chain of Thought)
-     */
-    private buildMethodology(): string {
-        return `[Methodology]:
-1. **Think**: Before using any tool, you MUST explain your reasoning and plan in a brief thought.
-2. **Act**: Call the appropriate tool.
-3. **Observe**: Analyze the tool output.
-4. **Reflect**: If an error occurs, analyze why and correct your approach.`;
-    }
-
-    /**
-     * 构建环境信息
-     */
-    private buildEnvironmentInfo(context: AgentContext): string {
-        const now = new Date();
-        const lines = [
-            '[Environment Info]:',
-            `- Current Time: ${now.toLocaleString()}`,
-            `- OS: ${process.platform}`,
-            `- Working Directory: ${context.workspacePath || process.cwd()}`
-        ];
-
-        // 注入自定义环境变量
-        if (context.customEnvironment) {
-            for (const [key, value] of Object.entries(context.customEnvironment)) {
-                lines.push(`- ${key}: ${value}`);
-            }
-        }
-
-        return lines.join('\n');
     }
 
     /**
