@@ -1,5 +1,5 @@
 ---
-id: implementation-planner
+id: planner
 name: Planner
 description: A powerful skill for breaking down complex goals into a structured plan and tracking progress.
 version: 1.0.0
