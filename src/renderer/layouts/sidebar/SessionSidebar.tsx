@@ -34,7 +34,7 @@ export function SessionSidebar() {
     // Filtered and Grouped sessions
     const groupedSessions = useMemo(() => {
         const filtered = Object.values(sessions)
-            .filter(s => s.title.toLowerCase().includes(searchTerm.toLowerCase()))
+            .filter(s => (s.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
             .sort((a, b) => b.updatedAt - a.updatedAt);
 
         const groups: Record<string, typeof filtered> = {};
@@ -180,8 +180,8 @@ export function SessionSidebar() {
                                                         />
                                                     </form>
                                                 ) : (
-                                                    <span className="flex-1 truncate pr-6 select-none" title={session.title}>
-                                                        {session.title}
+                                                    <span className="flex-1 truncate pr-6 select-none" title={session.title || '新对话'}>
+                                                        {session.title || '新对话'}
                                                     </span>
                                                 )}
 
