@@ -137,7 +137,7 @@ export class AgentController {
                 content: obj.instruction,
                 path: obj.path || '',
                 enabled: true, // Known because coming from getEnabledSkillObjects
-                trustLevel: 'Ask' // Default or fetch from config if needed
+                trustLevel: 'Auto' // Skills are prompt-instructions, inherently safe to load
             }));
 
             const runOptions: AgentRuntimeOptions = {

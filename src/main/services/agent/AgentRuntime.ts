@@ -24,7 +24,7 @@ import { ToolRegistry } from '../tools/ToolRegistry';
 import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings';
 import { PromptBuilder, AgentContext } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
-import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
+import { ToolGuard, defaultToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
 import { ContextManager } from './ContextManager';
 import { Summarizer } from './Summarizer';
 
@@ -78,7 +78,7 @@ export class AgentRuntime implements IAgentService {
         this.toolRegistry = toolRegistry;
         this.promptBuilder = new PromptBuilder();
         this.stateManager = new AgentStateManager();
-        this.toolGuard = new ToolGuard();
+        this.toolGuard = defaultToolGuard;
     }
 
     public updateSettings(settings: AppSettings) {

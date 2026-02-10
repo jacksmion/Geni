@@ -41,6 +41,23 @@ export class WriteFileTool implements ITool {
     async execute(args: any): Promise<ToolExecutionResult> {
         const { path: relPath, content, append = false, ignoreIfExists = false } = args;
 
+        // Defensive Check: Ensure required arguments are present and valid
+        if (typeof relPath !== 'string' || relPath.trim() === '') {
+            return {
+                toolName: 'write_file',
+                isError: true,
+                result: "Error: Missing or invalid 'path' argument. It must be a non-empty string."
+            };
+        }
+
+        if (typeof content !== 'string') {
+            return {
+                toolName: 'write_file',
+                isError: true,
+                result: "Error: Missing or invalid 'content' argument. It must be a string."
+            };
+        }
+
         // Security Check: Prevent directory traversal outside root
         const fullPath = path.resolve(this.allowedRoot, relPath);
         if (!fullPath.startsWith(this.allowedRoot)) {

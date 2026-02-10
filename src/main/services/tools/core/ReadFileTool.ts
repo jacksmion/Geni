@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { Stats } from 'fs';
 import path from 'path';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 
@@ -41,6 +42,15 @@ export class ReadFileTool implements ITool {
     async execute(args: any): Promise<ToolExecutionResult> {
         const { path: relPath, start_line, end_line, with_line_numbers } = args;
 
+        // Defensive Check: Ensure required path argument is present and valid
+        if (typeof relPath !== 'string' || relPath.trim() === '') {
+            return {
+                toolName: 'read_file',
+                isError: true,
+                result: "Error: Missing or invalid 'path' argument. It must be a non-empty string."
+            };
+        }
+
         // Configuration constants
         const MAX_TOTAL_BYTES = 50 * 1024; // 50KB strict limit for output
         const MAX_LINE_LENGTH = 1000; // Truncate lines longer than this
@@ -63,7 +73,7 @@ export class ReadFileTool implements ITool {
 
         try {
             // 2. Existence & Stats Check with Fuzzy Matching
-            let stats: fs.Stats;
+            let stats: Stats;
             try {
                 stats = await fs.stat(fullPath);
             } catch (error: any) {
