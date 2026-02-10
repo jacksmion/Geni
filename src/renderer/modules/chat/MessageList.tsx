@@ -8,7 +8,8 @@ import { twMerge } from 'tailwind-merge'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { vscDarkPlus, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { useSettingsStore } from '../../store/useSettingsStore'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -104,16 +105,10 @@ interface ThinkingBlockProps {
 }
 
 function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
-    // 初始状态：如果是已完成的消息（历史记录），默认折叠；如果是正在生成（未完成），默认展开
-    // 这里的 isComplete 能够区分历史消息和正在生成的消息
     const [isExpanded, setIsExpanded] = useState(!isComplete)
-
-    // 当思考完成时，自动折叠（针对流式生成场景）
-    // 使用 useRef 记录上一次的完成状态，避免重复触发
     const prevCompleteRef = useRef(isComplete)
 
     useEffect(() => {
-        // 只有当状态从 false 变为 true 时（即生成刚结束），才自动折叠
         if (!prevCompleteRef.current && isComplete) {
             setIsExpanded(false)
         }
@@ -121,24 +116,22 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
     }, [isComplete])
 
     return (
-        <div className="my-4 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden bg-white dark:bg-[#08080a] shadow-sm">
+        <div className="my-4 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden bg-white dark:bg-[#0c0c0e]">
             <div
-                className="flex items-center justify-between px-4 py-3 bg-slate-50/50 dark:bg-white/5 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 transition-colors select-none"
+                className="flex items-center justify-between px-4 py-2 bg-slate-50/50 dark:bg-white/[0.02] cursor-pointer hover:bg-slate-100/80 dark:hover:bg-white/5 transition-colors select-none"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <div className="flex items-center gap-2.5 text-sm font-medium text-slate-700 dark:text-slate-200">
-                    <div className="p-1 bg-indigo-100/50 dark:bg-indigo-500/20 rounded-md">
-                        <Brain size={14} className="text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <span>Deep Thinking Process</span>
+                <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-zinc-400">
+                    <Brain size={13} className="text-indigo-500/70" />
+                    <span>Thinking Process</span>
                 </div>
-                {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                {isExpanded ? <ChevronUp size={14} className="text-slate-400/70" /> : <ChevronDown size={14} className="text-slate-400/70" />}
             </div>
             {isExpanded && (
-                <div className="select-text p-4 bg-slate-50/30 dark:bg-white/[0.02] text-[13.5px] leading-relaxed text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
+                <div className="not-prose select-text p-4 bg-slate-50/30 dark:bg-white/[0.01] text-[12.5px] leading-relaxed text-slate-500 dark:text-zinc-500 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
                     {content}
                     {!isComplete && (
-                        <span className="inline-block w-2 h-4 ml-1 align-middle bg-indigo-500 animate-pulse" />
+                        <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />
                     )}
                 </div>
             )}
@@ -172,6 +165,9 @@ function MessageItem({ message }: { message: ChatMessage }) {
     const isUser = message.role === 'user'
     const content = message.content || '';
     const processedContent = !isUser ? preprocessMarkdown(content) : content;
+    const { settings } = useSettingsStore();
+    const isDark = settings.theme === 'dark';
+    const syntaxTheme = isDark ? vscDarkPlus : oneLight;
 
     return (
         <div className={cn(
@@ -271,23 +267,32 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                         }
 
                                         return !inline && match ? (
-                                            <div className="rounded-xl overflow-hidden my-8 border border-slate-200 dark:border-white/10 shadow-lg bg-slate-50 dark:bg-[#08080a]">
-                                                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                    <span className="text-[11px] font-bold text-slate-600 dark:text-gray-400 font-mono uppercase tracking-wider">{match[1]}</span>
-                                                    <CopyButton text={codeString} className="p-1.5 hover:bg-slate-200 dark:hover:bg-white/10" />
+                                            <div className="not-prose group/code rounded-xl overflow-hidden my-6 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+                                                <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                                                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match[1]}</span>
+                                                    <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
+                                                        <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
+                                                    </div>
                                                 </div>
                                                 <SyntaxHighlighter
-                                                    style={vscDarkPlus}
+                                                    style={syntaxTheme}
                                                     language={match[1]}
                                                     PreTag="div"
-                                                    customStyle={{ margin: 0, padding: '1.5rem', background: 'transparent', fontSize: '13.5px', lineHeight: '1.6' }}
+                                                    customStyle={{
+                                                        margin: 0,
+                                                        padding: '1.25rem',
+                                                        background: 'transparent',
+                                                        fontSize: '13px',
+                                                        lineHeight: '1.65',
+                                                        letterSpacing: '-0.01em'
+                                                    }}
                                                     {...props}
                                                 >
                                                     {codeString}
                                                 </SyntaxHighlighter>
                                             </div>
                                         ) : (
-                                            <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[0.9em] font-semibold", className)} {...props}>
+                                            <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[0.85em] font-medium", className)} {...props}>
                                                 {children}
                                             </code>
                                         )
