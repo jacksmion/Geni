@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 // Services
+import { PathManager } from './services/PathManager.js'
 import { ConfigManager } from './services/ConfigManager.js'
 import { ToolRegistry } from './services/tools/ToolRegistry.js'
 import { SkillRegistry } from './services/skills/core/SkillRegistry.js'
@@ -45,14 +46,28 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-    // 1. Initialize Config
-    const configManager = new ConfigManager();
+    // 0. PathManager (must be first, after app.whenReady())
+    const pathManager = PathManager.getInstance();
+
+    // 0.5. Data migration (if needed)
+    if (pathManager.needsMigration()) {
+        console.log('[Main] Migration needed, starting migration...');
+        const migrationResult = await pathManager.migrate();
+        if (migrationResult.success) {
+            console.log('[Main] Migration completed:', migrationResult.details);
+        } else {
+            console.error('[Main] Migration failed:', migrationResult.details);
+        }
+    }
+
+    // 1. Initialize Config (with PathManager)
+    const configManager = new ConfigManager(pathManager);
     const appSettings = configManager.load();
 
     // Ensure workspace path
     if (!appSettings.workspacePath) {
         appSettings.workspacePath = process.cwd();
-        // Optionally save back? 
+        // Optionally save back?
         // configManager.save(appSettings);
     }
     const workspacePath = appSettings.workspacePath;
@@ -61,11 +76,42 @@ app.whenReady().then(async () => {
     const toolRegistry = new ToolRegistry();
     const skillRegistry = new SkillRegistry();
 
-    // 3. Load Skills
-    const skillsDir = path.join(__dirname, '../skills');
-    // Ensure skills dir exists or handle error? SkillRegistry.loadFromDirectory handles errors gracefully.
-    await skillRegistry.loadFromDirectory(skillsDir);
-    console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills from ${skillsDir}`);
+    // 3. Load Skills (from multiple paths in priority order)
+    // Load order: builtin → global → project (later sources override earlier ones)
+
+    // Check which skills directories exist before loading
+    const skillsInfo = pathManager.getSkillsLoadInfo(workspacePath);
+    console.log('[Main] Skills directories status:', skillsInfo);
+
+    const skillsToLoad: Array<{ path: string; source: 'builtin' | 'global' | 'project' }> = [];
+
+    // Built-in skills (should always exist)
+    if (skillsInfo.builtin.exists) {
+        skillsToLoad.push({ path: skillsInfo.builtin.path, source: 'builtin' });
+        console.log('[Main] Will load built-in skills from:', skillsInfo.builtin.path);
+    } else {
+        console.warn('[Main] Built-in skills directory not found:', skillsInfo.builtin.path);
+    }
+
+    // Global skills (may not exist for new installations)
+    if (skillsInfo.global.exists) {
+        skillsToLoad.push({ path: skillsInfo.global.path, source: 'global' });
+        console.log('[Main] Will load global skills from:', skillsInfo.global.path);
+    } else {
+        console.log('[Main] Global skills directory not found, skipping:', skillsInfo.global.path);
+    }
+
+    // Project skills (may not exist for projects without custom skills)
+    if (skillsInfo.project.exists) {
+        skillsToLoad.push({ path: skillsInfo.project.path, source: 'project' });
+        console.log('[Main] Will load project skills from:', skillsInfo.project.path);
+    } else {
+        console.log('[Main] Project skills directory not found, skipping:', skillsInfo.project.path);
+    }
+
+    // Load skills from existing directories only
+    await skillRegistry.loadFromDirectories(skillsToLoad);
+    console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills`);
 
     // 4. Register Built-in Tools
     const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath);
@@ -85,8 +131,8 @@ app.whenReady().then(async () => {
         }
     }
 
-    // 6. Initialize AppRouter (DI Container & IPC)
-    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager);
+    // 6. Initialize AppRouter (DI Container & IPC, with PathManager)
+    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager);
     appRouter.initialize();
 
     createWindow();

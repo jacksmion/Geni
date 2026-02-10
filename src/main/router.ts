@@ -10,10 +10,11 @@ import { ConfigManager } from './services/ConfigManager';
 import { SkillRegistry } from './services/skills/core/SkillRegistry';
 import { McpManager } from './services/tools/mcp/McpManager';
 import { CoreToolManager } from './services/tools/core/CoreToolManager';
+import { PathManager } from './services/PathManager';
 
 /**
  * App Router
- * 
+ *
  * Main entry point for registering all IPC Core services.
  * Acts as the Dependency Injection Container.
  */
@@ -29,13 +30,16 @@ export class AppRouter {
     private mcpManager: McpManager;
     private configManager: ConfigManager;
     private coreToolManager: CoreToolManager;
+    private pathManager: PathManager;
+    private currentWorkspacePath: string;
 
     constructor(
         configManager: ConfigManager,
         toolRegistry: ToolRegistry,
         skillRegistry: SkillRegistry,
         mcpManager: McpManager,
-        coreToolManager: CoreToolManager
+        coreToolManager: CoreToolManager,
+        pathManager: PathManager
     ) {
         // Services
         this.configManager = configManager;
@@ -43,12 +47,14 @@ export class AppRouter {
         this.skillRegistry = skillRegistry;
         this.mcpManager = mcpManager;
         this.coreToolManager = coreToolManager;
-        this.sessionManager = new SessionManager();
+        this.pathManager = pathManager;
+        this.sessionManager = new SessionManager(pathManager);
 
         const settings = this.configManager.load();
+        this.currentWorkspacePath = settings.workspacePath || process.cwd();
 
         // Controllers
-        this.systemController = new SystemController(this.configManager);
+        this.systemController = new SystemController(this.configManager, pathManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
         this.agentController = new AgentController(
@@ -69,7 +75,20 @@ export class AppRouter {
             this.coreToolManager.updateWorkspacePath(newSettings.workspacePath);
             this.coreToolManager.refresh();
 
-            // 3. Sync MCP Server states (connect new ones, disconnect disabled ones)
+            // 3. Reload project skills if workspace changed
+            const newWorkspacePath = newSettings.workspacePath || process.cwd();
+            if (newWorkspacePath !== this.currentWorkspacePath) {
+                console.log(`[AppRouter] Workspace changed from ${this.currentWorkspacePath} to ${newWorkspacePath}`);
+                // Remove old project skills
+                this.skillRegistry.removeBySource('project');
+                // Load new project skills
+                const projectSkillsDir = this.pathManager.getProjectSkillsDir(newWorkspacePath);
+                await this.skillRegistry.loadFromDirectory(projectSkillsDir, 'project');
+                console.log(`[AppRouter] Reloaded project skills from ${projectSkillsDir}`);
+                this.currentWorkspacePath = newWorkspacePath;
+            }
+
+            // 4. Sync MCP Server states (connect new ones, disconnect disabled ones)
             if (newSettings.mcpServers) {
                 for (const server of newSettings.mcpServers) {
                     const isConnected = this.mcpManager.isConnected(server.id);

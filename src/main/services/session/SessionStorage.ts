@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
 import { ChatSession, SessionMeta } from '../../../common/types/chat';
+import { PathManager } from '../PathManager';
 
 /**
  * SessionStorage - 负责会话的物理存储 (磁盘 IO)
- * 
+ *
  * 职责:
  * - 对单个会话 JSON 的物理读写
  * - 维护 session/index.json 索引文件
@@ -14,10 +14,9 @@ export class SessionStorage {
     private storageDir: string;
     private indexFile: string;
 
-    constructor() {
-        const userDataPath = app.getPath('userData');
-        this.storageDir = path.join(userDataPath, 'sessions');
-        this.indexFile = path.join(this.storageDir, 'index.json');
+    constructor(pathManager: PathManager) {
+        this.storageDir = pathManager.getSessionsDir();
+        this.indexFile = pathManager.getSessionsIndexFile();
 
         console.log('[SessionStorage] Storage Dir:', this.storageDir);
 

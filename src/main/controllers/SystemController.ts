@@ -2,13 +2,17 @@
 import { ipcMain, dialog, shell } from 'electron';
 import { SYSTEM_CHANNELS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
+import { PathManager } from '../services/PathManager';
 import { AppSettings } from '../../common/types/settings';
 import { OpenAI } from 'openai';
 
 export class SystemController {
     private onSettingsChanged?: (settings: AppSettings) => void;
+    private pathManager: PathManager;
 
-    constructor(private configManager: ConfigManager) { }
+    constructor(private configManager: ConfigManager, pathManager: PathManager) {
+        this.pathManager = pathManager;
+    }
 
     public setSettingsChangeCallback(callback: (settings: AppSettings) => void) {
         this.onSettingsChanged = callback;
@@ -21,6 +25,8 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, () => this.handleSelectFile());
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LLM, (_, config) => this.handleTestLLM(config));
+        ipcMain.handle(SYSTEM_CHANNELS.GET_PATH_INFO, () => this.handleGetPathInfo());
+        ipcMain.handle(SYSTEM_CHANNELS.OPEN_USER_SKILLS, () => this.handleOpenUserSkills());
     }
 
     private async handleSaveSettings(settings: AppSettings) {
@@ -96,5 +102,21 @@ export class SystemController {
             console.error('[SystemController] LLM Test Failed:', error);
             return { success: false, message: error.message || 'Connection failed' };
         }
+    }
+
+    private handleGetPathInfo() {
+        return {
+            root: this.pathManager.getRootDir(),
+            config: this.pathManager.getConfigFile(),
+            sessions: this.pathManager.getSessionsDir(),
+            globalSkills: this.pathManager.getGlobalSkillsDir(),
+            builtinSkills: this.pathManager.getBuiltinSkillsDir(),
+            migration: this.pathManager.getMigrationInfo()
+        };
+    }
+
+    private async handleOpenUserSkills() {
+        const globalSkillsDir = this.pathManager.getGlobalSkillsDir();
+        await shell.openPath(globalSkillsDir);
     }
 }

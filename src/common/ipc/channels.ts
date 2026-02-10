@@ -38,6 +38,8 @@ export const SYSTEM_CHANNELS = {
     GET_SETTINGS: 'system:get-settings',
     SAVE_SETTINGS: 'system:save-settings',
     TEST_LLM: 'system:test-llm',
+    GET_PATH_INFO: 'system:get-path-info',
+    OPEN_USER_SKILLS: 'system:open-user-skills',
 } as const;
 
 export const TOOL_CHANNELS = {

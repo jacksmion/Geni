@@ -1,17 +1,17 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { AppSettings, DEFAULT_SETTINGS } from '../../common/types/settings';
+import { PathManager } from './PathManager';
 
 export class ConfigManager {
     private configPath: string;
 
-    constructor() {
-        const userDataDir = path.join(os.homedir(), '.assistant-core');
-        if (!fs.existsSync(userDataDir)) {
-            fs.mkdirSync(userDataDir, { recursive: true });
+    constructor(pathManager: PathManager) {
+        const configDir = path.dirname(pathManager.getConfigFile());
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
         }
-        this.configPath = path.join(userDataDir, 'config.json');
+        this.configPath = pathManager.getConfigFile();
     }
 
     public load(): AppSettings {

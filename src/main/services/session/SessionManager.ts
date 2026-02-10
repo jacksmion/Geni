@@ -1,10 +1,11 @@
 import { ChatMessage, ChatSession, SessionMeta } from '../../../common/types/chat';
 import { randomUUID } from 'crypto';
 import { SessionStorage } from './SessionStorage';
+import { PathManager } from '../PathManager';
 
 /**
  * SessionManager - 会话业务逻辑管理器 (运行时经理)
- * 
+ *
  * 职责:
  * - 管理内存中的活跃会话
  * - 协调 SessionStorage 进行持久化
@@ -14,8 +15,8 @@ export class SessionManager {
     private sessions: Map<string, ChatSession> = new Map();
     private storage: SessionStorage;
 
-    constructor() {
-        this.storage = new SessionStorage();
+    constructor(pathManager: PathManager) {
+        this.storage = new SessionStorage(pathManager);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { Settings, MessageSquare, Sun, Moon } from 'lucide-react'
+import { Settings, MessageSquare, Zap, Sun, Moon } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { clsx } from 'clsx'
@@ -9,6 +9,7 @@ export function Sidebar() {
 
     const navItems = [
         { id: 'chat', icon: MessageSquare, label: 'Chat' },
+        { id: 'skills', icon: Zap, label: 'Skills' },
     ] as const
 
     return (
