@@ -465,11 +465,15 @@ export class AgentRuntime implements IAgentService {
                         const result = await this.toolRegistry.executeTool(fnName, fnArgs, options?.signal);
                         const duration = Date.now() - startTime;
 
-                        const MAX_OUTPUT_LENGTH = 2000;
+                        // 针对不同工具采用不同的截断策略
+                        // 技能加载和文件读取需要较长的上下文以保证信息完整
+                        const isLongOutputTool = ['load_skill', 'read_file'].includes(fnName);
+                        const maxOutputLength = isLongOutputTool ? 32000 : 2000;
+
                         let observation = result.result;
-                        if (observation && observation.length > MAX_OUTPUT_LENGTH) {
-                            observation = observation.substring(0, MAX_OUTPUT_LENGTH) +
-                                `\n... [Content truncated (length: ${observation.length}). Output is too large to fit in context.]`;
+                        if (observation && observation.length > maxOutputLength) {
+                            observation = observation.substring(0, maxOutputLength) +
+                                `\n... [Content truncated (length: ${observation.length}, limit: ${maxOutputLength}). Output is too large to fit in context.]`;
                         }
 
                         if (result.isError) {
