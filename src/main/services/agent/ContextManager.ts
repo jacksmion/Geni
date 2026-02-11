@@ -52,8 +52,29 @@ export class ContextManager {
             if (m.role === 'system') immutableIndices.add(i);
         });
 
-        // 2. Keep Recents
-        const startIndexToKeep = Math.max(0, messages.length - this.preserveRecentMessages);
+        // 2. Keep Recents (Sliding Window)
+        let startIndexToKeep = Math.max(0, messages.length - this.preserveRecentMessages);
+
+        // --- 核心优化: 确保工具调用原子性 ---
+        // 防止滑动窗口切断 assistant/tool 对。
+        // 如果当前起始点是 tool 消息，或其前序是带 tool_calls 的 assistant，则向前回溯。
+        while (startIndexToKeep > 0) {
+            const currentMsg = messages[startIndexToKeep];
+            const prevMsg = messages[startIndexToKeep - 1];
+
+            if (currentMsg.role === 'tool') {
+                startIndexToKeep--;
+                continue;
+            }
+
+            if (prevMsg && prevMsg.role === 'assistant' && prevMsg.tool_calls) {
+                startIndexToKeep--;
+                continue;
+            }
+
+            break;
+        }
+
         for (let i = startIndexToKeep; i < messages.length; i++) {
             immutableIndices.add(i);
         }

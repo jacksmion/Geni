@@ -38,7 +38,31 @@ export class Summarizer {
         // We do NOT summarize System messages (usually contain Core Instructions)
         // We do NOT summarize the most recent N messages (Active Context)
 
-        const recentStartIdx = Math.max(0, messages.length - keepRecentCount);
+        let recentStartIdx = Math.max(0, messages.length - keepRecentCount);
+
+        // --- 核心优化: 确保工具调用原子性 ---
+        // 如果 recentStartIdx 落在 tool 消息上，或者落在一个紧跟在 assistant tool_calls 之后的工具链中，
+        // 我们需要向前回溯，直到找到发起这个调用的 assistant 消息。
+        // 这防止了 LLM 协议因切断 assistant/tool 对而崩溃。
+        while (recentStartIdx > 0) {
+            const currentMsg = messages[recentStartIdx];
+            const prevMsg = messages[recentStartIdx - 1];
+
+            // 1. 如果当前是 tool 消息，必须包含它前面的内容
+            if (currentMsg.role === 'tool') {
+                recentStartIdx--;
+                continue;
+            }
+
+            // 2. 如果前一个是 assistant 且带有 tool_calls，则当前不能作为起始点（除非当前也是它的一部分）
+            // 实际上，只要当前消息的 role 不是 user，且前一个是工具调用的 assistant，我们就得继续回溯
+            if (prevMsg && prevMsg.role === 'assistant' && prevMsg.tool_calls) {
+                recentStartIdx--;
+                continue;
+            }
+
+            break;
+        }
 
         // Filter out system messages and recent messages to get the "Middle"
         // But we need to preserve order, so let's identify indices.

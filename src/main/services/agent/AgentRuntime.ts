@@ -113,42 +113,89 @@ export class AgentRuntime implements IAgentService {
         return this.stateManager.getState();
     }
 
-    async run(
+    public async run(
         prompt: string,
         tools: ITool[],
         options?: AgentRuntimeOptions,
         onStream?: (chunk: string, reset?: boolean) => void,
         onStepUpdate?: (steps: any[]) => void
     ): Promise<AgentRunResult> {
-        // 初始化状态回调
+        this.initOptions(options);
+        this.stateManager.transition(AgentState.Thinking, 'Starting agent execution');
+
+        const chatModel = this.createChatModel(options);
+        const chatModelTools = this.convertTools(tools);
+        let messages = this.prepareMessages(prompt, options);
+        const newMessages: ChatMessage[] = [];
+        const steps: any[] = [];
+
+        let loopCount = 0;
+        const MAX_LOOPS = 50;
+
+        try {
+            while (loopCount++ < MAX_LOOPS) {
+                if (options?.signal?.aborted) throw new Error('Agent execution aborted by user.');
+                onStream?.('', true);
+
+                // 1. 上下文优化
+                messages = await this.optimizeContext(messages, chatModel, options);
+
+                // 2. LLM 轮次执行
+                this.stateManager.transition(AgentState.Thinking, `Thinking (Step ${loopCount})...`);
+                const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
+                    messages, chatModel, chatModelTools, options, onStream
+                );
+
+                const assistantMsg: ChatMessage = {
+                    role: 'assistant',
+                    content: currentContent || null,
+                    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+                };
+                messages.push(assistantMsg);
+                newMessages.push(assistantMsg);
+
+                // 3. 工具处理
+                if (toolCalls.length > 0) {
+                    await this.handleToolCalls(toolCalls, tools, messages, newMessages, steps, currentReasoning || currentContent, options, onStepUpdate);
+                } else {
+                    return { finalAnswer: currentContent, steps, newMessages };
+                }
+            }
+            return this.handleMaxSteps(steps, newMessages, onStream);
+        } catch (error: any) {
+            return this.handleError(error, steps, newMessages);
+        } finally {
+            this.stateManager.transition(AgentState.Idle, 'Execution finished');
+        }
+    }
+
+    private initOptions(options?: AgentRuntimeOptions) {
         if (options?.onStateChange) {
             this.stateManager = new AgentStateManager(options.onStateChange);
         }
         if (options?.onAuthorizationRequired) {
             this.toolGuard.setAuthorizationCallback(options.onAuthorizationRequired);
         }
+    }
 
-        // 转换到 Thinking 状态
-        this.stateManager.transition(AgentState.Thinking, 'Starting agent execution');
-
-        // 获取当前激活的提供商配置（兼容旧配置结构）
+    private createChatModel(options?: AgentRuntimeOptions): IChatModel {
         const activeProvider = this.settings.llm.activeProvider || 'OpenAI';
         const providers = this.settings.llm.providers || {};
-        const providerConfig = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
+        const config = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
 
-        // Phase 2: 使用 IChatModel 抽象层替代直接的 OpenAI 调用
-        const chatModel: IChatModel = createChatModel(activeProvider, {
-            apiKey: providerConfig.apiKey || '',
-            baseUrl: providerConfig.baseUrl,
-            model: options?.model || providerConfig.model,
-            temperature: providerConfig.temperature,
+        return createChatModel(activeProvider, {
+            apiKey: config.apiKey || '',
+            baseUrl: config.baseUrl,
+            model: options?.model || config.model,
+            temperature: config.temperature,
         });
+    }
 
-        // 1. Convert ITool[] to ChatModelToolDefinition[] (统一格式)
-        const chatModelTools: ChatModelToolDefinition[] = tools.map(t => {
+    private convertTools(tools: ITool[]): ChatModelToolDefinition[] {
+        return tools.map(t => {
             const def = t.getDefinition();
             return {
-                type: 'function' as const,
+                type: 'function',
                 function: {
                     name: def.name,
                     description: def.description,
@@ -156,25 +203,22 @@ export class AgentRuntime implements IAgentService {
                 }
             };
         });
+    }
 
-        // 2. 使用 PromptBuilder 构建 System Prompt (Phase 1.2)
-        const agentContext: AgentContext = {
+    private prepareMessages(prompt: string, options?: AgentRuntimeOptions): ChatMessage[] {
+        const context = {
             basePrompt: options?.systemPrompt,
             workspacePath: this.settings.workspacePath,
             skills: options?.skills
         };
-        const systemPrompt = this.promptBuilder.buildSystemPrompt(agentContext);
+        const systemPrompt = this.promptBuilder.buildSystemPrompt(context);
 
-        // 使用 ChatMessage 类型的消息数组
-        let messages: ChatMessage[] = [
-            { role: 'system', content: systemPrompt }
-        ];
+        const messages: ChatMessage[] = [{ role: 'system', content: systemPrompt }];
 
-        // 注入历史记录
-        if (options?.history && options.history.length > 0) {
+        if (options?.history) {
             options.history.forEach((h: any) => {
                 messages.push({
-                    role: h.role as 'user' | 'assistant' | 'system' | 'tool',
+                    role: h.role,
                     content: h.content || null,
                     tool_calls: h.tool_calls,
                     tool_call_id: h.tool_call_id,
@@ -182,356 +226,209 @@ export class AgentRuntime implements IAgentService {
             });
         }
 
-        // 添加当前用户输入
-        const userMsg: ChatMessage = { role: 'user', content: prompt };
-
-        // 检查历史记录中是否已经包含这个消息（避免重复注入上下文）
-        const lastHistoryMsg = messages[messages.length - 1];
-        const isDuplicateInContext = lastHistoryMsg &&
-            lastHistoryMsg.role === 'user' &&
-            lastHistoryMsg.content === prompt;
-
-        if (!isDuplicateInContext) {
-            messages.push(userMsg);
+        const lastMsg = messages[messages.length - 1];
+        if (!(lastMsg?.role === 'user' && lastMsg?.content === prompt)) {
+            messages.push({ role: 'user', content: prompt });
         }
-
-        const newMessages: ChatMessage[] = []; // 只追踪本次运行产生的新消息（不包含初始 Prompt，因为它已被调用方自行保存）
-
-        const steps: any[] = [];
-        let finalAnswer = '';
-        let loopCount = 0;
-        const MAX_LOOPS = 50;
-
-        try {
-            while (loopCount < MAX_LOOPS) {
-                // Check Abort
-                if (options?.signal?.aborted) {
-                    this.stateManager.transition(AgentState.Aborted, 'Execution aborted by user');
-                    throw new Error('Agent execution aborted by user.');
-                }
-
-                // 每个回合开始时，通知渲染进程重置内容缓冲区
-                onStream?.('', true);
-
-                loopCount++;
-
-                // 转换到 Thinking 状态
-                this.stateManager.transition(AgentState.Thinking, `Loop ${loopCount}: Calling LLM`);
-
-                // --- Context Management (Phase 4) ---
-
-                // 1. Auto-Summarization (New Feature)
-                // Check if we effectively need to summarize before strict pruning
-                const maxTokens = options?.maxContextTokens || 32000;
-                if (Summarizer.shouldSummarize(messages, maxTokens)) {
-                    this.stateManager.transition(AgentState.Thinking, 'Summarizing conversation history...');
-                    const summarizer = new Summarizer();
-                    try {
-                        // Attempt to summarize using the same ChatModel
-                        messages = await summarizer.summarize(messages, chatModel);
-                        // Note: We update the local 'messages' working copy. 
-                        // The 'newMessages' array still tracks only the *new* turns from this run, 
-                        // maintaining the "append-only" contract for the caller.
-                    } catch (err) {
-                        console.warn('[AgentRuntime] Summarization failed, falling back to pruning:', err);
-                    }
-                }
-
-                // 2. Strict Window Pruning
-                // Ensure we absolutely fit within limits even after (or without) summarization
-                const contextManager = new ContextManager({
-                    maxTokens: maxTokens,
-                    preserveRecentMessages: 20
-                });
-
-                // Prune messages to fit context window
-                // Note: We use a local variable for the context to send to LLM
-                const contextMessages = contextManager.prune(messages);
-
-
-                // --- Step 1: Call LLM via IChatModel ---
-                const chatModelOptions: ChatModelOptions = {
-                    model: options?.model || providerConfig.model,
-                    temperature: providerConfig.temperature,
-                    tools: chatModelTools.length > 0 ? chatModelTools : undefined,
-                    tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
-                    signal: options?.signal,
-                };
-
-                // 转换到 ExecutingHelper 状态（处理流式输出）
-                this.stateManager.transition(AgentState.ExecutingHelper, 'Processing LLM stream');
-
-                const currentLoopSteps: any[] = [];
-                let currentContent = '';
-                let currentReasoning = '';
-                let isReasoning = false;
-
-                /**
-                 * Phase 1.1: 修复并行工具调用
-                 * 使用 Map<number, ToolCallAccumulator> 替代单个 toolCallBuffer
-                 * 以正确处理流式返回的交叉多工具调用
-                 */
-                const toolCallAccumulators = new Map<number, ToolCallAccumulator>();
-
-                // Phase 2: 使用统一的 IChatModel.stream() 接口
-                for await (const event of chatModel.stream(contextMessages, chatModelOptions)) {
-                    switch (event.type) {
-                        case 'content_delta':
-                            // 如果是从推理状态切换回内容状态，添加结束标记
-                            if (isReasoning) {
-                                isReasoning = false;
-                                onStream?.('\n```\n\n');
-                            }
-                            currentContent += event.delta;
-                            onStream?.(event.delta);
-                            break;
-
-                        case 'reasoning_delta':
-                            // 处理推理内容
-                            if (!isReasoning) {
-                                isReasoning = true;
-                                onStream?.('```thinking\n');
-                            }
-                            // 为每一行添加引用标记 (简单的处理方式，流式可能不如完整处理完美，但足够好用)
-                            // 这里简单直接输出，依靠前端 markdown 渲染或用户理解
-                            // 若要完美 markdown blockquote，需处理换行。这里简化处理。
-                            // 实际体验：通常 reasoning 是一大段，直接输出即可。
-                            currentReasoning += event.delta;
-                            onStream?.(event.delta);
-                            break;
-
-                        case 'tool_call_delta':
-                            // 处理工具调用增量
-                            const index = event.index;
-
-                            if (!toolCallAccumulators.has(index)) {
-                                toolCallAccumulators.set(index, {
-                                    id: event.id || '',
-                                    name: event.name || '',
-                                    arguments: '',
-                                    type: 'function'
-                                });
-                            }
-
-                            const accumulator = toolCallAccumulators.get(index)!;
-
-                            if (event.id) {
-                                accumulator.id = event.id;
-                            }
-                            if (event.name) {
-                                accumulator.name = event.name;
-                            }
-                            if (event.arguments_delta) {
-                                accumulator.arguments += event.arguments_delta;
-                            }
-                            break;
-
-                        case 'error':
-                            throw new Error(event.error.message);
-                    }
-                }
-
-                // 将 Map 转换为工具调用数组
-                const toolCalls = Array.from(toolCallAccumulators.values()).map(acc => ({
-                    id: acc.id,
-                    type: 'function' as const,
-                    function: {
-                        name: acc.name,
-                        arguments: acc.arguments
-                    }
-                }));
-
-                const assistantMsg: ChatMessage = {
-                    role: 'assistant',
-                    content: currentContent || null,
-                    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-                    steps: currentLoopSteps
-                };
-                messages.push(assistantMsg);
-                newMessages.push(assistantMsg);
-
-                // --- Step 2: Handle Tool Calls ---
-                if (toolCalls.length > 0) {
-                    // 转换到 ExecutingTool 状态
-                    this.stateManager.transition(
-                        AgentState.ExecutingTool,
-                        `Executing ${toolCalls.length} tool(s)`,
-                        { toolCount: toolCalls.length }
-                    );
-
-                    for (const tc of toolCalls) {
-                        // Check Abort inside tool loop
-                        if (options?.signal?.aborted) {
-                            console.log('[AgentRuntime] Abort detected during multi-tool execution');
-                            break;
-                        }
-
-                        const fnName = tc.function.name;
-                        let fnArgs = {};
-                        try {
-                            fnArgs = JSON.parse(tc.function.arguments);
-                        } catch (e) {
-                            console.error('Failed to parse tool args JSON:', tc.function.arguments);
-                        }
-
-                        // 获取工具实例
-                        const tool = tools.find(t => t.getDefinition().name === fnName);
-
-                        // Phase 1.4: 工具执行拦截 - 检查授权
-                        if (tool) {
-                            const requestId = Math.random().toString(36).substring(7);
-
-                            const executionRequest: ToolExecutionRequest = {
-                                requestId,
-                                toolName: fnName,
-                                definition: tool.getDefinition(),
-                                args: fnArgs,
-                                tool
-                            };
-
-                            // 获取信任级别评估
-                            const decision = this.toolGuard.evaluateRequest(executionRequest);
-
-                            // 如果需要授权，先创建一个等待状态的 Step，让前端展示确认界面
-                            if (decision.requiresUserConfirmation) {
-                                const authStep = {
-                                    thought: currentReasoning || currentContent,
-                                    tool: fnName,
-                                    toolInput: JSON.stringify(fnArgs),
-                                    isComplete: false,
-                                    isWaitingAuthorization: true,
-                                    authRequestId: requestId,
-                                    authReason: decision.reason
-                                };
-                                steps.push(authStep);
-                                currentLoopSteps.push(authStep);
-                                onStepUpdate?.([...steps]);
-
-                                const isAuthorized = await this.toolGuard.checkAuthorization(executionRequest);
-
-                                if (!isAuthorized) {
-                                    // 用户拒绝授权，更新当前 Step 状态
-                                    const lastStep = steps[steps.length - 1];
-                                    lastStep.isWaitingAuthorization = false;
-                                    lastStep.observation = '[Authorization Denied by User]';
-                                    lastStep.isComplete = true;
-                                    lastStep.duration = 0;
-                                    onStepUpdate?.([...steps]);
-
-                                    const toolResultMsg: ChatMessage = {
-                                        role: 'tool',
-                                        tool_call_id: tc.id,
-                                        content: `[Authorization Denied] User declined to execute tool "${fnName}". Please proceed with an alternative approach or ask for permission.`
-                                    };
-                                    messages.push(toolResultMsg);
-                                    newMessages.push(toolResultMsg);
-                                    continue;
-                                }
-
-                                // 授权通过，将当前等待状态的 Step 更新为执行状态，移除授权标记
-                                const currentStep = steps[steps.length - 1];
-                                currentStep.isWaitingAuthorization = false;
-                                onStepUpdate?.([...steps]);
-                            }
-                        }
-
-                        // Re-check Abort after potential long authorization wait
-                        if (options?.signal?.aborted) break;
-
-                        const startTime = Date.now();
-
-                        // 转换到 ExecutingTool 状态，并带上当前工具名称
-                        this.stateManager.transition(
-                            AgentState.ExecutingTool,
-                            `Executing tool: ${fnName}`,
-                            { tool: fnName }
-                        );
-
-                        // 检查是否已经存在当前工具的 Step（如果是刚刚授权通过的，则复用）
-                        let step = steps.find(s => s.tool === fnName && !s.isComplete);
-
-                        if (!step) {
-                            step = {
-                                thought: currentReasoning || currentContent,
-                                tool: fnName,
-                                toolInput: JSON.stringify(fnArgs),
-                                isComplete: false
-                            };
-                            steps.push(step);
-                            currentLoopSteps.push(step);
-                        }
-                        onStepUpdate?.([...steps]);
-
-                        const result = await this.toolRegistry.executeTool(fnName, fnArgs, options?.signal);
-                        const duration = Date.now() - startTime;
-
-                        // 针对不同工具采用不同的截断策略
-                        // 技能加载和文件读取需要较长的上下文以保证信息完整
-                        const isLongOutputTool = ['load_skill', 'read_file'].includes(fnName);
-                        const maxOutputLength = isLongOutputTool ? 32000 : 2000;
-
-                        let observation = result.result;
-                        if (observation && observation.length > maxOutputLength) {
-                            observation = observation.substring(0, maxOutputLength) +
-                                `\n... [Content truncated (length: ${observation.length}, limit: ${maxOutputLength}). Output is too large to fit in context.]`;
-                        }
-
-                        if (result.isError) {
-                            observation += `\n\n[System Note]: The previous tool execution failed. Please analyze the error and try a different approach.`;
-                        }
-
-                        const toolResultMsg: ChatMessage = {
-                            role: 'tool',
-                            tool_call_id: tc.id,
-                            content: observation
-                        };
-                        messages.push(toolResultMsg);
-                        newMessages.push(toolResultMsg);
-
-                        const lastStep = steps[steps.length - 1];
-                        lastStep.observation = observation;
-                        lastStep.isComplete = true;
-                        lastStep.duration = duration;
-                        onStepUpdate?.([...steps]);
-                    }
-                } else {
-                    // No tool calls -> Done!
-                    finalAnswer = currentContent;
-                    break;
-                }
-            }
-
-            if (loopCount >= MAX_LOOPS) {
-                const warningMsg = `\n\n---\n⚠️ **Agent 达到最大执行步数限制 (${MAX_LOOPS} 步)**\n请发送消息让 Agent 继续。`;
-                finalAnswer = (finalAnswer || '') + warningMsg;
-                onStream?.(warningMsg);
-            }
-
-        } catch (error: any) {
-            console.error('[AgentRuntime] Error:', error);
-            if (error.message?.includes('aborted')) {
-                // If it was already transitioned in the check at top of loop
-                if (this.stateManager.getState() !== AgentState.Aborted) {
-                    this.stateManager.transition(AgentState.Aborted, 'Execution aborted');
-                }
-            } else {
-                this.stateManager.transition(AgentState.Error, error.message);
-            }
-            return {
-                finalAnswer: `Error: ${error.message}`,
-                steps,
-                newMessages
-            };
-        } finally {
-            // Ensure state returns to Idle unless it's an error/aborted state we want to keep?
-            // Actually, for UI UX, Idle is best so the "Stop" button turns back into "Send"
-            if (this.stateManager.getState() !== AgentState.Idle) {
-                this.stateManager.transition(AgentState.Idle, 'Execution finished');
-            }
-        }
-
-        return { finalAnswer, steps, newMessages };
+        return messages;
     }
+
+    private async optimizeContext(messages: ChatMessage[], chatModel: IChatModel, options?: AgentRuntimeOptions): Promise<ChatMessage[]> {
+        const maxTokens = options?.maxContextTokens || 32000;
+        let optimized = [...messages];
+
+        if (Summarizer.shouldSummarize(optimized, maxTokens)) {
+            this.stateManager.transition(AgentState.Thinking, 'Summarizing history...');
+            try {
+                optimized = await new Summarizer().summarize(optimized, chatModel);
+            } catch (e) {
+                console.warn('[AgentRuntime] Summarization failed:', e);
+            }
+        }
+
+        return new ContextManager({ maxTokens, preserveRecentMessages: 20 }).prune(optimized);
+    }
+
+    private async executeLlmTurn(
+        messages: ChatMessage[],
+        chatModel: IChatModel,
+        chatModelTools: ChatModelToolDefinition[],
+        options?: AgentRuntimeOptions,
+        onStream?: (chunk: string) => void
+    ) {
+        const chatOptions: ChatModelOptions = {
+            model: options?.model,
+            temperature: options?.temperature,
+            tools: chatModelTools.length > 0 ? chatModelTools : undefined,
+            tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
+            signal: options?.signal,
+        };
+
+        let currentContent = '';
+        let currentReasoning = '';
+        let isReasoning = false;
+        const accumulators = new Map<number, ToolCallAccumulator>();
+
+        for await (const event of chatModel.stream(messages, chatOptions)) {
+            switch (event.type) {
+                case 'content_delta':
+                    if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
+                    currentContent += event.delta;
+                    onStream?.(event.delta);
+                    break;
+                case 'reasoning_delta':
+                    if (!isReasoning) { isReasoning = true; onStream?.('```thinking\n'); }
+                    currentReasoning += event.delta;
+                    onStream?.(event.delta);
+                    break;
+                case 'tool_call_delta':
+                    const acc = accumulators.get(event.index) || { id: '', name: '', arguments: '', type: 'function' };
+                    if (event.id) acc.id = event.id;
+                    if (event.name) acc.name = event.name;
+                    if (event.arguments_delta) acc.arguments += event.arguments_delta;
+                    accumulators.set(event.index, acc);
+                    break;
+                case 'error':
+                    throw new Error(event.error.message);
+            }
+        }
+
+        return {
+            currentContent,
+            currentReasoning,
+            toolCalls: Array.from(accumulators.values()).map(acc => ({
+                id: acc.id,
+                type: acc.type as 'function',
+                function: { name: acc.name, arguments: acc.arguments }
+            }))
+        };
+    }
+
+    private async handleToolCalls(
+        toolCalls: any[],
+        tools: ITool[],
+        messages: ChatMessage[],
+        newMessages: ChatMessage[],
+        steps: any[],
+        thought: string,
+        options?: AgentRuntimeOptions,
+        onStepUpdate?: (steps: any[]) => void
+    ) {
+        this.stateManager.transition(AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
+
+        for (const tc of toolCalls) {
+            if (options?.signal?.aborted) break;
+
+            const fnName = tc.function.name;
+            let args;
+            try {
+                args = JSON.parse(tc.function.arguments);
+            } catch (e) {
+                const error = `[Error] "${fnName}" arguments invalid JSON: ${tc.function.arguments}. Please fix and try again.`;
+                this.recordToolResult(tc.id, error, messages, newMessages);
+                steps.push({ thought, tool: fnName, toolInput: tc.function.arguments, observation: error, isComplete: true, isError: true });
+                onStepUpdate?.([...steps]);
+                continue;
+            }
+
+            const tool = tools.find(t => t.getDefinition().name === fnName);
+            if (!tool) continue;
+
+            const authorized = await this.checkAuthorization(tc, tool, args, thought, steps, options, onStepUpdate);
+            if (options?.signal?.aborted) break;
+            if (!authorized) {
+                const denial = `[Authorization Denied] User declined tool "${fnName}".`;
+                this.recordToolResult(tc.id, denial, messages, newMessages);
+                continue;
+            }
+
+            const startTime = Date.now();
+            this.stateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
+
+            let step = steps.find(s => s.tool === fnName && !s.isComplete);
+            if (!step) {
+                step = { thought, tool: fnName, toolInput: JSON.stringify(args), isComplete: false };
+                steps.push(step);
+            }
+            onStepUpdate?.([...steps]);
+
+            const result = await this.toolRegistry.executeTool(fnName, args, options?.signal);
+            const duration = Date.now() - startTime;
+
+            let obs = result.result;
+            const limit = ['load_skill', 'read_file'].includes(fnName) ? 32000 : 2000;
+            if (obs && obs.length > limit) obs = obs.substring(0, limit) + `\n... [Truncated ${obs.length} chars]`;
+            if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
+
+            this.recordToolResult(tc.id, obs, messages, newMessages);
+            step.observation = obs;
+            step.isComplete = true;
+            step.duration = duration;
+            onStepUpdate?.([...steps]);
+
+            this.dehydrateContext(fnName, tc.id, messages);
+        }
+    }
+
+    private async checkAuthorization(tc: any, tool: ITool, args: any, thought: string, steps: any[], options?: AgentRuntimeOptions, onStepUpdate?: (steps: any[]) => void): Promise<boolean> {
+        const requestId = Math.random().toString(36).substring(7);
+        const req: ToolExecutionRequest = { requestId, toolName: tc.function.name, definition: tool.getDefinition(), args, tool };
+        const decision = this.toolGuard.evaluateRequest(req);
+
+        if (decision.requiresUserConfirmation) {
+            steps.push({ thought, tool: tc.function.name, toolInput: JSON.stringify(args), isComplete: false, isWaitingAuthorization: true, authRequestId: req.requestId, authReason: decision.reason });
+            onStepUpdate?.([...steps]);
+
+            const authorized = await this.toolGuard.checkAuthorization(req);
+            if (options?.signal?.aborted) return false;
+
+            const step = steps[steps.length - 1];
+            step.isWaitingAuthorization = false;
+            if (!authorized) {
+                step.observation = '[Authorization Denied]';
+                step.isComplete = true;
+                onStepUpdate?.([...steps]);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private recordToolResult(id: string, content: string, messages: ChatMessage[], newMessages: ChatMessage[]) {
+        const msg: ChatMessage = { role: 'tool', tool_call_id: id, content };
+        messages.push(msg);
+        newMessages.push(msg);
+    }
+
+    private dehydrateContext(name: string, id: string, messages: ChatMessage[]) {
+        if (!['write_file', 'edit_file'].includes(name)) return;
+        const assistantMsg = messages.find(m => m.role === 'assistant' && m.tool_calls?.some(tc => tc.id === id));
+        if (!assistantMsg?.tool_calls) return;
+        const tc = assistantMsg.tool_calls.find(tc => tc.id === id);
+        if (!tc) return;
+        try {
+            const args = JSON.parse(tc.function.arguments);
+            let modified = false;
+            if (args.content?.length > 1000) { args.content = `<omitted ${args.content.length} chars>`; modified = true; }
+            if (args.target?.length > 500) { args.target = `<omitted ${args.target.length} chars>`; modified = true; }
+            if (args.replacement?.length > 500) { args.replacement = `<omitted ${args.replacement.length} chars>`; modified = true; }
+            if (modified) tc.function.arguments = JSON.stringify(args);
+        } catch { }
+    }
+
+    private handleMaxSteps(steps: any[], newMessages: ChatMessage[], onStream?: (c: string) => void) {
+        const warning = `\n\n---\n⚠️ **Max steps reached (50)**\nSend a message to continue.`;
+        onStream?.(warning);
+        return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
+    }
+
+    private handleError(error: any, steps: any[], newMessages: ChatMessage[]) {
+        console.error('[AgentRuntime] Error:', error);
+        const state = error.message?.includes('aborted') ? AgentState.Aborted : AgentState.Error;
+        this.stateManager.transition(state, error.message);
+        return { finalAnswer: `Error: ${error.message}`, steps, newMessages };
+    }
+
 }
 
 // 向后兼容: 保留旧类名导出别名
