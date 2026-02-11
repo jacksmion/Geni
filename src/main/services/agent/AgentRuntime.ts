@@ -324,7 +324,9 @@ export class AgentRuntime implements IAgentService {
             try {
                 args = JSON.parse(tc.function.arguments);
             } catch (e) {
-                const error = `[Error] "${fnName}" arguments invalid JSON: ${tc.function.arguments}. Please fix and try again.`;
+                const error = `[Error] "${fnName}" arguments invalid JSON: ${tc.function.arguments}. 
+This is likely caused by output truncation due to context length limits. 
+Guidance: If you are trying to write a very large file, please use \`write_file\` to create the basic structure first, and then use \`edit_file\` or \`write_file(append: true)\` to fill in the content step-by-step.`;
                 this.recordToolResult(tc.id, error, messages, newMessages);
                 steps.push({ thought, tool: fnName, toolInput: tc.function.arguments, observation: error, isComplete: true, isError: true });
                 onStepUpdate?.([...steps]);
@@ -428,7 +430,6 @@ export class AgentRuntime implements IAgentService {
         this.stateManager.transition(state, error.message);
         return { finalAnswer: `Error: ${error.message}`, steps, newMessages };
     }
-
 }
 
 // 向后兼容: 保留旧类名导出别名

@@ -16,7 +16,7 @@ export class FileEditTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'edit_file',
-            description: 'Edit a file by replacing a target string with a new string. This tool uses multiple strategies (exact match, trimmed match, fuzzy block match) to locate the target string, making it robust against minor formatting differences.',
+            description: 'Edit a file by replacing a target string with a new string. This tool is significantly more efficient than write_file for modifying large files. ALWAYS prefer this tool over write_file when updating existing files to avoid context length limits and potential output truncation.',
             input_schema: {
                 type: 'object',
                 properties: {
