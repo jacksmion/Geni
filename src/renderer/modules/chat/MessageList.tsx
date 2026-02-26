@@ -51,10 +51,10 @@ export function MessageList() {
                     // We create a new object to avoid mutating state directly
                     const mergedMsg: ChatMessage = {
                         ...msg,
-                        // Fix for duplication: Use ONLY the next message's content.
-                        // The original content (thought) is rendered by ThoughtTrace via 'steps'.
+                        // Use the final answer's content
                         content: nextMsg.content,
-                        // Steps are already on msg (from previous fixes), ensuring tool cards show up
+                        // Carry over steps from either message (runtime puts on msg, persistence puts on nextMsg)
+                        steps: msg.steps || nextMsg.steps,
                     };
                     groupedMessages.push(mergedMsg);
                     skipIds.add(nextMsg.id); // Skip the answer message in main loop

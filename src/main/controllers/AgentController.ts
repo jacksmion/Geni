@@ -165,6 +165,16 @@ export class AgentController {
 
             // 7. Update Session History
             if (result.newMessages) {
+                // Inject steps into the last assistant message for persistence
+                if (result.steps && result.steps.length > 0) {
+                    for (let i = result.newMessages.length - 1; i >= 0; i--) {
+                        if (result.newMessages[i].role === 'assistant') {
+                            (result.newMessages[i] as any).steps = result.steps;
+                            break;
+                        }
+                    }
+                }
+
                 for (const msg of result.newMessages) {
                     await this.sessionManager.addMessage(sid, msg as any);
                 }
