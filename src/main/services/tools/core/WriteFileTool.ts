@@ -15,7 +15,7 @@ export class WriteFileTool implements ITool {
 
     getDefinition(): ToolDefinition {
         return {
-            name: 'write_file',
+            name: 'write',
             description: 'Write content to a file. Automatically creates directories. Supports append mode and idempotency checks.',
             input_schema: {
                 type: 'object',
@@ -48,7 +48,7 @@ export class WriteFileTool implements ITool {
         // Defensive Check: Ensure required arguments are present and valid
         if (typeof relPath !== 'string' || relPath.trim() === '') {
             return {
-                toolName: 'write_file',
+                toolName: 'write',
                 isError: true,
                 result: "Error: Missing or invalid 'path' argument. It must be a non-empty string."
             };
@@ -56,7 +56,7 @@ export class WriteFileTool implements ITool {
 
         if (typeof content !== 'string') {
             return {
-                toolName: 'write_file',
+                toolName: 'write',
                 isError: true,
                 result: "Error: Missing or invalid 'content' argument. It must be a string."
             };
@@ -66,7 +66,7 @@ export class WriteFileTool implements ITool {
         const fullPath = path.resolve(this.allowedRoot, relPath);
         if (!fullPath.startsWith(this.allowedRoot)) {
             return {
-                toolName: 'write_file',
+                toolName: 'write',
                 isError: true,
                 result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
             };
@@ -94,7 +94,7 @@ export class WriteFileTool implements ITool {
             // 3. Handle ignoreIfExists
             if (ignoreIfExists && fileExists) {
                 return {
-                    toolName: 'write_file',
+                    toolName: 'write',
                     isError: false,
                     result: `Skipped: File '${relPath}' already exists and ignoreIfExists is true.`
                 };
@@ -103,7 +103,7 @@ export class WriteFileTool implements ITool {
             // 4. Idempotency Check (Only if overwriting, skipping if appending)
             if (!append && fileExists && existingContent === content) {
                 return {
-                    toolName: 'write_file',
+                    toolName: 'write',
                     isError: false,
                     result: `No Change: Content of '${relPath}' is identical to the input.`
                 };
@@ -119,14 +119,14 @@ export class WriteFileTool implements ITool {
             // 6. Return Action Status
             const status = !fileExists ? 'Created new file' : (append ? 'Appended to file' : 'Updated file');
             return {
-                toolName: 'write_file',
+                toolName: 'write',
                 isError: false,
                 result: `Success: ${status} at '${relPath}'`
             };
 
         } catch (error: any) {
             return {
-                toolName: 'write_file',
+                toolName: 'write',
                 isError: true,
                 result: `Write File Error: ${error.message}`
             };

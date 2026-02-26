@@ -21,7 +21,7 @@ export class ListDirTool implements ITool {
 
     getDefinition(): ToolDefinition {
         return {
-            name: 'list_dir',
+            name: 'list',
             description: 'List the contents of a directory. Returns a list of files and subdirectories. Automatically ignores common non-source directories (e.g. node_modules, .git).Results are truncated if they exceed 100 items.',
             input_schema: {
                 type: 'object',
@@ -43,7 +43,7 @@ export class ListDirTool implements ITool {
         const fullPath = path.resolve(this.allowedRoot, relPath);
         if (!fullPath.startsWith(this.allowedRoot)) {
             return {
-                toolName: 'list_dir',
+                toolName: 'list',
                 isError: true,
                 result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
             };
@@ -85,14 +85,14 @@ export class ListDirTool implements ITool {
             }
 
             return {
-                toolName: 'list_dir',
+                toolName: 'list',
                 isError: false,
                 result: result
             };
 
         } catch (error: any) {
             return {
-                toolName: 'list_dir',
+                toolName: 'list',
                 isError: true,
                 result: `List Dir Error: ${error.message}`
             };

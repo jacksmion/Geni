@@ -16,7 +16,7 @@ export class ReadFileTool implements ITool {
 
     getDefinition(): ToolDefinition {
         return {
-            name: 'read_file',
+            name: 'read',
             description: 'Read the contents of a file. Supports line ranges, line numbering, and automatic truncation for large files.',
             input_schema: {
                 type: 'object',
@@ -49,7 +49,7 @@ export class ReadFileTool implements ITool {
         // Defensive Check: Ensure required path argument is present and valid
         if (typeof relPath !== 'string' || relPath.trim() === '') {
             return {
-                toolName: 'read_file',
+                toolName: 'read',
                 isError: true,
                 result: "Error: Missing or invalid 'path' argument. It must be a non-empty string."
             };
@@ -69,7 +69,7 @@ export class ReadFileTool implements ITool {
         // Security Check: Prevent directory traversal outside root
         if (!fullPath.startsWith(this.allowedRoot)) {
             return {
-                toolName: 'read_file',
+                toolName: 'read',
                 isError: true,
                 result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
             };
@@ -96,7 +96,7 @@ export class ReadFileTool implements ITool {
 
                         if (suggestions.length > 0) {
                             return {
-                                toolName: 'read_file',
+                                toolName: 'read',
                                 isError: true,
                                 result: `File not found: '${relPath}'.\nDid you mean one of these?\n${suggestions.map(s => `- ${s}`).join('\n')}`
                             };
@@ -105,7 +105,7 @@ export class ReadFileTool implements ITool {
                         // Ignore directory read errors, just return generic not found
                     }
                     return {
-                        toolName: 'read_file',
+                        toolName: 'read',
                         isError: true,
                         result: `File not found: '${relPath}'`
                     };
@@ -115,7 +115,7 @@ export class ReadFileTool implements ITool {
 
             if (!stats.isFile()) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: true,
                     result: `Error: '${relPath}' is not a file.`
                 };
@@ -124,7 +124,7 @@ export class ReadFileTool implements ITool {
             // 3. Size Check (Fail fast for massive files)
             if (stats.size > MAX_FILE_SIZE) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: true,
                     result: `Error: File is too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Max size is 10MB.`
                 };
@@ -133,7 +133,7 @@ export class ReadFileTool implements ITool {
             // 4. Binary Check (Extension + Content)
             if (this.isBinaryExtension(fullPath)) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: true,
                     result: `Error: Cannot read binary file extension: ${path.extname(fullPath)}`
                 };
@@ -145,7 +145,7 @@ export class ReadFileTool implements ITool {
             // Content-based binary check (NULL bytes or high non-printable ratio)
             if (this.isBinaryContent(buffer)) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: true,
                     result: `Error: File appears to be binary and cannot be read as text.`
                 };
@@ -157,7 +157,7 @@ export class ReadFileTool implements ITool {
 
             if (totalLines === 0) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: false,
                     result: `<file path="${relPath}">\n[Empty File]\n</file>`
                 };
@@ -181,7 +181,7 @@ export class ReadFileTool implements ITool {
 
             if (start > end) {
                 return {
-                    toolName: 'read_file',
+                    toolName: 'read',
                     isError: true,
                     result: `Error: start_line (${start}) cannot be greater than end_line (${end}).`
                 };
@@ -249,14 +249,14 @@ export class ReadFileTool implements ITool {
             }
 
             return {
-                toolName: 'read_file',
+                toolName: 'read',
                 isError: false,
                 result: output
             };
 
         } catch (error: any) {
             return {
-                toolName: 'read_file',
+                toolName: 'read',
                 isError: true,
                 result: `Read File Error: ${error.message}`
             };

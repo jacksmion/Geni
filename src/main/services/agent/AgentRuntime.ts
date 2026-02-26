@@ -326,7 +326,7 @@ export class AgentRuntime implements IAgentService {
             } catch (e) {
                 const error = `[Error] "${fnName}" arguments invalid JSON: ${tc.function.arguments}. 
 This is likely caused by output truncation due to context length limits. 
-Guidance: If you are trying to write a very large file, please use \`write_file\` to create the basic structure first, and then use \`edit_file\` or \`write_file(append: true)\` to fill in the content step-by-step.`;
+Guidance: If you are trying to write a very large file, please use \`write\` to create the basic structure first, and then use \`edit\` or \`write(append: true)\` to fill in the content step-by-step.`;
                 this.recordToolResult(tc.id, error, messages, newMessages);
                 steps.push({ thought, tool: fnName, toolInput: tc.function.arguments, observation: error, isComplete: true, isError: true });
                 onStepUpdate?.([...steps]);
@@ -358,7 +358,7 @@ Guidance: If you are trying to write a very large file, please use \`write_file\
             const duration = Date.now() - startTime;
 
             let obs = result.result;
-            const limit = ['load_skill', 'read_file'].includes(fnName) ? 32000 : 2000;
+            const limit = ['load_skill', 'read'].includes(fnName) ? 32000 : 2000;
             if (obs && obs.length > limit) obs = obs.substring(0, limit) + `\n... [Truncated ${obs.length} chars]`;
             if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
 
@@ -403,7 +403,7 @@ Guidance: If you are trying to write a very large file, please use \`write_file\
     }
 
     private dehydrateContext(name: string, id: string, messages: ChatMessage[]) {
-        if (!['write_file', 'edit_file'].includes(name)) return;
+        if (!['write', 'edit'].includes(name)) return;
         const assistantMsg = messages.find(m => m.role === 'assistant' && m.tool_calls?.some(tc => tc.id === id));
         if (!assistantMsg?.tool_calls) return;
         const tc = assistantMsg.tool_calls.find(tc => tc.id === id);

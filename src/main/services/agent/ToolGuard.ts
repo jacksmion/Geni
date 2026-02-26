@@ -105,14 +105,14 @@ export class ToolGuard {
      */
     private trustLevelMap: Record<string, ToolTrustLevel> = {
         // 安全工具（只读）
-        'read_file': ToolTrustLevel.Safe,
-        'list_directory': ToolTrustLevel.Safe,
+        'read': ToolTrustLevel.Safe,
+        'list': ToolTrustLevel.Safe,
         'load_skill': ToolTrustLevel.Safe,
         'search_files': ToolTrustLevel.Safe,
         'get_file_info': ToolTrustLevel.Safe,
 
         // 低风险工具
-        'write_file': ToolTrustLevel.Low,
+        'write': ToolTrustLevel.Low,
         'create_directory': ToolTrustLevel.Low,
 
         // 中等风险工具

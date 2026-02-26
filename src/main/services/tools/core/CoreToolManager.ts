@@ -34,13 +34,13 @@ export class CoreToolManager {
 
         // Define all available core tools and their factory functions
         const toolFactories: Record<string, () => any> = {
-            'list_directory': () => new ListDirTool(this.workspacePath),
-            'read_file': () => new ReadFileTool(this.workspacePath),
-            'write_file': () => new WriteFileTool(this.workspacePath),
+            'list': () => new ListDirTool(this.workspacePath),
+            'read': () => new ReadFileTool(this.workspacePath),
+            'write': () => new WriteFileTool(this.workspacePath),
             'bash': () => new BashTool(this.workspacePath),
-            'file_edit': () => new FileEditTool(this.workspacePath),
-            'glob_search': () => new GlobTool(this.workspacePath),
-            'grep_search': () => new GrepTool(this.workspacePath),
+            'edit': () => new FileEditTool(this.workspacePath),
+            'glob': () => new GlobTool(this.workspacePath),
+            'grep': () => new GrepTool(this.workspacePath),
             'create_plan': () => new CreatePlanTool(this.workspacePath),
             'update_task_status': () => new UpdateTaskStatusTool(this.workspacePath),
             'read_plan': () => new ReadPlanTool(this.workspacePath),
@@ -49,10 +49,10 @@ export class CoreToolManager {
 
         // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
         const safeTools = [
-            'list_directory',
-            'read_file',
-            'glob_search',
-            'grep_search',
+            'list',
+            'read',
+            'glob',
+            'grep',
             'read_plan',
             'create_plan',
             'update_task_status',
@@ -91,10 +91,10 @@ export class CoreToolManager {
         const coreToolSettings = settings.coreToolSettings || {};
 
         const safeTools = [
-            'list_directory',
-            'read_file',
-            'glob_search',
-            'grep_search',
+            'list',
+            'read',
+            'glob',
+            'grep',
             'read_plan',
             'create_plan',
             'update_task_status',
@@ -104,13 +104,13 @@ export class CoreToolManager {
 
         // This is a static list of all core tools we support, with their descriptions
         const allCoreTools = [
-            { name: 'list_directory', description: 'List files and directories in a path' },
-            { name: 'read_file', description: 'Read the content of a file' },
-            { name: 'write_file', description: 'Write or overwrite a file' },
+            { name: 'list', description: 'List files and directories in a path' },
+            { name: 'read', description: 'Read the content of a file' },
+            { name: 'write', description: 'Write or overwrite a file' },
             { name: 'bash', description: 'Execute shell commands' },
-            { name: 'file_edit', description: 'Edit existing files with advanced matching' },
-            { name: 'glob_search', description: 'Search for files using glob patterns' },
-            { name: 'grep_search', description: 'Search for text patterns within files' },
+            { name: 'edit', description: 'Edit existing files with advanced matching' },
+            { name: 'glob', description: 'Search for files using glob patterns' },
+            { name: 'grep', description: 'Search for text patterns within files' },
             { name: 'create_plan', description: 'Create a new project plan' },
             { name: 'update_task_status', description: 'Update a task in a plan' },
             { name: 'read_plan', description: 'Read an existing plan' },
@@ -136,8 +136,8 @@ export class CoreToolManager {
         // First unregister all core tools
         // We use the full list to ensure even currently disabled or hidden tools are cleaned up from registry
         const allCoreTools = [
-            'list_directory', 'read_file', 'write_file', 'bash', 'file_edit',
-            'glob_search', 'grep_search', 'create_plan', 'update_task_status',
+            'list', 'read', 'write', 'bash', 'edit',
+            'glob', 'grep', 'create_plan', 'update_task_status',
             'read_plan', 'load_skill'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));

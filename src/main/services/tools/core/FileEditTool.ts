@@ -15,8 +15,8 @@ export class FileEditTool implements ITool {
 
     getDefinition(): ToolDefinition {
         return {
-            name: 'edit_file',
-            description: 'Edit a file by replacing a target string with a new string. This tool is significantly more efficient than write_file for modifying large files. ALWAYS prefer this tool over write_file when updating existing files to avoid context length limits and potential output truncation.',
+            name: 'edit',
+            description: 'Edit a file by replacing a target string with a new string. This tool is significantly more efficient than write for modifying large files. ALWAYS prefer this tool over write when updating existing files to avoid context length limits and potential output truncation.',
             input_schema: {
                 type: 'object',
                 properties: {
@@ -48,7 +48,7 @@ export class FileEditTool implements ITool {
         const fullPath = path.resolve(this.allowedRoot, relPath);
         if (!fullPath.startsWith(this.allowedRoot)) {
             return {
-                toolName: 'edit_file',
+                toolName: 'edit',
                 isError: true,
                 result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
             };
@@ -66,7 +66,7 @@ export class FileEditTool implements ITool {
             if (content === newContent) {
                 // Should be caught by replace throwing error if not found, but double check
                 return {
-                    toolName: 'edit_file',
+                    toolName: 'edit',
                     isError: true,
                     result: `Error: Target string not found in file: ${relPath}`
                 };
@@ -77,14 +77,14 @@ export class FileEditTool implements ITool {
             const diff = generateDiff(content, newContent, relPath);
 
             return {
-                toolName: 'edit_file',
+                toolName: 'edit',
                 isError: false,
                 result: `Successfully modified ${relPath}\n\nDiff:\n${diff}`
             };
 
         } catch (error: any) {
             return {
-                toolName: 'edit_file',
+                toolName: 'edit',
                 isError: true,
                 result: `Edit Error: ${error.message}`
             };
