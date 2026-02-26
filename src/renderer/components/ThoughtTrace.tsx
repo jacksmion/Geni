@@ -116,14 +116,14 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
     };
 
     return (
-        <div className="my-2">
+        <div className="my-1">
             {/* Card Header */}
             <div
                 onClick={() => setIsExpanded(!isExpanded)}
                 className={cn(
-                    "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all text-left cursor-pointer",
-                    "bg-slate-50 hover:bg-slate-100 border-slate-200",
-                    "dark:bg-white/[0.03] dark:hover:bg-white/[0.06] dark:border-white/10",
+                    "group/card w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-left cursor-pointer",
+                    "bg-slate-50/80 hover:bg-slate-100/80 border-slate-100",
+                    "dark:bg-white/[0.02] dark:hover:bg-white/[0.04] dark:border-white/5",
                     !step.isComplete && !step.isWaitingAuthorization && "animate-border-pulse border-amber-500/30 dark:border-amber-500/20",
                     step.isWaitingAuthorization && "border-amber-500/50 bg-amber-50/30 dark:border-amber-500/30 dark:bg-amber-500/5",
                     isExpanded && "rounded-b-none border-b-0"
@@ -131,63 +131,61 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
             >
                 {/* Tool Icon */}
                 <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                    "w-5 h-5 rounded flex items-center justify-center shrink-0",
                     step.isComplete
-                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 shadow-none"
+                        ? "text-emerald-500 dark:text-emerald-400"
                         : step.isWaitingAuthorization
-                            ? "bg-amber-500 text-white dark:bg-amber-500 dark:text-white"
-                            : "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 animate-pulse-glow"
+                            ? "text-amber-500"
+                            : "text-amber-500 animate-pulse"
                 )}>
-                    {step.isWaitingAuthorization ? <ShieldAlert size={14} strokeWidth={2.5} /> : <ToolIcon size={14} strokeWidth={2} />}
+                    {step.isWaitingAuthorization ? <ShieldAlert size={12} strokeWidth={2.5} /> : <ToolIcon size={12} strokeWidth={2} />}
                 </div>
-
 
                 {/* Tool Name */}
-                <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium text-slate-700 dark:text-zinc-200 font-mono truncate">
-                        {toolDisplayName}
-                    </span>
-                    {step.isWaitingAuthorization && (
-                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium animate-pulse">
-                            等待授权执行...
-                        </span>
-                    )}
-                </div>
+                <span className="text-[12px] font-medium text-slate-600 dark:text-zinc-300 font-mono truncate">
+                    {toolDisplayName}
+                </span>
 
-                {/* Status Icon */}
+                {/* Status checkmark */}
                 {step.isComplete ? (
-                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                    <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
                 ) : step.isWaitingAuthorization ? (
-                    <ShieldAlert size={14} className="text-amber-500 shrink-0" />
+                    <ShieldAlert size={12} className="text-amber-500 shrink-0" />
                 ) : (
-                    <Loader2 size={14} className="text-amber-500 animate-spin shrink-0" />
+                    <Loader2 size={12} className="text-amber-500 animate-spin shrink-0" />
                 )}
 
-                {/* Right Side Actions */}
-                <div className="ml-auto flex items-center gap-2">
-                    {step.isComplete && (
-                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                            已完成 {step.duration ? `(${step.duration}ms)` : ''}
+                {step.isWaitingAuthorization && (
+                    <span className="text-[10px] text-amber-500 font-medium animate-pulse">
+                        等待授权...
+                    </span>
+                )}
+
+                {/* Right Side - Duration + Actions (hover only) */}
+                <div className="ml-auto flex items-center gap-1.5">
+                    {step.isComplete && step.duration != null && (
+                        <span className="text-[10px] text-slate-400 dark:text-zinc-500 tabular-nums">
+                            {step.duration}ms
                         </span>
                     )}
 
-                    {/* Copy Button */}
-                    <button
-                        onClick={handleCopy}
-                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-                        title="Copy output"
-                    >
-                        {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                    </button>
-
-                    {/* Expand Chevron */}
-                    <ChevronRight
-                        size={14}
-                        className={cn(
-                            "text-slate-400 dark:text-zinc-500 transition-transform",
-                            isExpanded && "rotate-90"
-                        )}
-                    />
+                    {/* Copy & Expand - visible on hover */}
+                    <div className="hidden group-hover/card:flex items-center gap-0.5">
+                        <button
+                            onClick={handleCopy}
+                            className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                            title="Copy output"
+                        >
+                            {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                        </button>
+                        <ChevronRight
+                            size={12}
+                            className={cn(
+                                "text-slate-400 dark:text-zinc-500 transition-transform",
+                                isExpanded && "rotate-90"
+                            )}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -268,7 +266,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
 const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     if (!thought) return null;
     return (
-        <div className="select-text text-sm text-slate-500 dark:text-zinc-400 italic leading-relaxed pl-1 border-l-2 border-slate-200 dark:border-white/10 ml-1 my-2">
+        <div className="select-text text-[11px] text-slate-400 dark:text-zinc-500 leading-relaxed pl-3 border-l border-slate-200/60 dark:border-white/5 ml-2 my-1">
             {thought}
         </div>
     );
