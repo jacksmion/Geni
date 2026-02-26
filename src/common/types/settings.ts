@@ -4,6 +4,7 @@ export interface ProviderConfig {
     apiKey: string;
     model: string;
     temperature: number;
+    enabled?: boolean; // 是否在模型选择器中可用
 }
 
 // LLM 配置：当前激活的提供商 + 每个提供商的独立配置
@@ -55,24 +56,28 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         apiKey: '',
         model: 'gpt-3.5-turbo',
         temperature: 0.7,
+        enabled: false,
     },
     'Anthropic': {
         baseUrl: 'https://api.anthropic.com/v1',
         apiKey: '',
         model: 'claude-3-5-sonnet-latest',
         temperature: 0.7,
+        enabled: false,
     },
     'DeepSeek': {
         baseUrl: 'https://api.deepseek.com',
         apiKey: '',
         model: 'deepseek-chat',
         temperature: 0.7,
+        enabled: false,
     },
     'Local': {
         baseUrl: 'http://localhost:11434/v1',
         apiKey: '',
         model: 'llama3:latest',
         temperature: 0.7,
+        enabled: false,
     },
 };
 

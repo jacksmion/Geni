@@ -1,12 +1,162 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText, ArrowUp } from 'lucide-react'
+import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
+}
+
+// Provider display metadata
+const PROVIDER_DISPLAY: Record<string, { icon: any, color: string }> = {
+    'OpenAI': { icon: Bot, color: 'text-emerald-500' },
+    'Anthropic': { icon: Bot, color: 'text-orange-500' },
+    'DeepSeek': { icon: Bot, color: 'text-blue-500' },
+    'Local': { icon: Cpu, color: 'text-purple-500' },
+}
+
+function ModelSelector() {
+    const { settings, updateSettings } = useSettingsStore()
+    const [isOpen, setIsOpen] = useState(false)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [isOpen])
+
+    // Build the list of available models from configured providers
+    const allProviderKeys = Array.from(new Set([
+        ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
+        ...Object.keys(settings.llm.providers || {})
+    ]))
+
+    // Filter to only show providers that are enabled
+    const availableProviders = allProviderKeys.filter(key => {
+        const config = settings.llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
+        if (!config) return false
+        return config.enabled === true
+    })
+
+    const activeProvider = settings.llm.activeProvider || 'OpenAI'
+    const activeConfig = settings.llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
+    const activeModelName = activeConfig?.model || 'unknown'
+    const activeMeta = PROVIDER_DISPLAY[activeProvider] || { icon: Bot, color: 'text-indigo-500' }
+    const ActiveIcon = activeMeta.icon
+
+    const handleSelectProvider = async (providerKey: string) => {
+        setIsOpen(false)
+        if (providerKey === activeProvider) return
+        await updateSettings({
+            llm: {
+                ...settings.llm,
+                activeProvider: providerKey
+            }
+        })
+    }
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            {/* Trigger Button */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all",
+                    "bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5",
+                    "hover:border-indigo-500/30 dark:hover:border-white/20",
+                    "text-slate-600 dark:text-zinc-300"
+                )}
+            >
+                <ActiveIcon size={13} className={activeMeta.color} />
+                <span className="max-w-[120px] truncate">{activeProvider}</span>
+                <ChevronDown size={12} className={cn(
+                    "text-slate-400 dark:text-zinc-500 transition-transform",
+                    isOpen && "rotate-180"
+                )} />
+            </button>
+
+            {/* Dropdown */}
+            {isOpen && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                    {/* Header */}
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5">
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">选择模型</p>
+                    </div>
+
+                    {/* Model List */}
+                    <div className="py-1 max-h-64 overflow-y-auto">
+                        {availableProviders.length === 0 ? (
+                            <div className="px-3 py-4 text-center">
+                                <p className="text-xs text-slate-400 dark:text-zinc-500">暂无可用模型</p>
+                                <p className="text-[10px] text-slate-300 dark:text-zinc-600 mt-1">请在设置中配置 API Key</p>
+                            </div>
+                        ) : (
+                            availableProviders.map(key => {
+                                const config = settings.llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
+                                const meta = PROVIDER_DISPLAY[key] || { icon: Bot, color: 'text-indigo-500' }
+                                const Icon = meta.icon
+                                const isActive = key === activeProvider
+
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleSelectProvider(key)}
+                                        className={cn(
+                                            "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                                            isActive
+                                                ? "bg-indigo-50 dark:bg-indigo-500/10"
+                                                : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                                            isActive
+                                                ? "bg-indigo-100 dark:bg-indigo-500/20"
+                                                : "bg-slate-100 dark:bg-white/5"
+                                        )}>
+                                            <Icon size={14} className={meta.color} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={cn(
+                                                    "text-xs font-medium truncate",
+                                                    isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-zinc-300"
+                                                )}>
+                                                    {key}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 truncate mt-0.5">
+                                                {config?.model || 'No model configured'}
+                                            </p>
+                                        </div>
+                                        {isActive && (
+                                            <Check size={14} className="text-indigo-500 shrink-0" />
+                                        )}
+                                    </button>
+                                )
+                            })
+                        )}
+                    </div>
+
+                    {/* Footer hint */}
+                    <div className="px-3 py-2 border-t border-slate-100 dark:border-white/5">
+                        <p className="text-[10px] text-slate-400 dark:text-zinc-600">在设置中管理更多模型配置</p>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
 }
 
 export function Composer() {
@@ -137,7 +287,7 @@ export function Composer() {
         <div className="w-full px-4 pb-6 z-10 bg-transparent shrink-0">
             <div className="max-w-4xl mx-auto relative">
                 {/* Main Composer Box */}
-                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-shadow focus-within:shadow-lg focus-within:border-indigo-500/30 dark:focus-within:border-white/20 overflow-hidden">
+                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-shadow focus-within:shadow-lg focus-within:border-indigo-500/30 dark:focus-within:border-white/20">
 
                     {/* Attachment Preview */}
                     {pendingAttachments.length > 0 && (
@@ -185,6 +335,9 @@ export function Composer() {
 
                             {/* Attach File */}
                             <TooltipButton icon={Paperclip} label="Add Attachment" onClick={handleSelectFile} />
+
+                            {/* Model Selector */}
+                            <ModelSelector />
 
                             {/* Directory Picker / Explorer */}
                             <div className="flex items-center bg-slate-100/50 dark:bg-white/5 rounded-xl px-1 py-0.5 ml-1 border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/30 dark:hover:border-white/20 transition-all group/path">

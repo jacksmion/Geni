@@ -41,12 +41,36 @@ export function ModelSettings() {
         }
     };
 
-    // 处理 Provider 切换（全局激活）
-    const handleActivateProvider = (providerKey: string) => {
+    // 处理 Provider 启用/禁用（独立开关，多个可同时启用）
+    const handleToggleProvider = (providerKey: string) => {
+        const currentProviders = settings.llm.providers;
+        const config = currentProviders[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
+        const newEnabled = !config.enabled;
+
+        const updatedProviders = {
+            ...currentProviders,
+            [providerKey]: {
+                ...config,
+                enabled: newEnabled
+            }
+        };
+
+        // 如果当前 activeProvider 被禁用，自动切换到第一个已启用的 Provider
+        let newActiveProvider = settings.llm.activeProvider;
+        if (!newEnabled && providerKey === settings.llm.activeProvider) {
+            const firstEnabled = Object.entries(updatedProviders).find(([_, cfg]) => cfg.enabled);
+            newActiveProvider = firstEnabled ? firstEnabled[0] : providerKey;
+        }
+        // 如果启用了一个新的，且当前没有 activeProvider，则自动设为 activeProvider
+        if (newEnabled && !Object.values(currentProviders).some(p => p.enabled)) {
+            newActiveProvider = providerKey;
+        }
+
         updateSettings({
             llm: {
                 ...settings.llm,
-                activeProvider: providerKey
+                activeProvider: newActiveProvider,
+                providers: updatedProviders
             }
         });
     };
@@ -193,7 +217,8 @@ export function ModelSettings() {
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: 'Custom Provider' };
                         const isSelected = selectedProvider === key;
-                        const isActive = settings.llm.activeProvider === key;
+                        const providerConfig = settings.llm.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
+                        const isEnabled = providerConfig?.enabled ?? false;
                         const Icon = meta.icon;
                         const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
 
@@ -219,7 +244,7 @@ export function ModelSettings() {
                                         <span className={clsx("font-medium text-sm", isSelected ? "text-slate-800 dark:text-white" : "text-slate-600 dark:text-gray-400")}>{meta.label}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        {isActive && (
+                                        {isEnabled && (
                                             <div className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">ON</div>
                                         )}
                                         {isCustom && (
@@ -256,20 +281,20 @@ export function ModelSettings() {
                         {/* Global Switch */}
                         <div className="flex items-center gap-3">
                             <span className="text-xs text-slate-500 dark:text-gray-400">
-                                {settings.llm.activeProvider === selectedProvider ? '当前已启用' : '点击启用此模型'}
+                                {(settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider])?.enabled ? '当前已启用' : '点击启用此模型'}
                             </span>
                             <button
-                                onClick={() => handleActivateProvider(selectedProvider)}
+                                onClick={() => handleToggleProvider(selectedProvider)}
                                 className={clsx(
                                     "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
-                                    settings.llm.activeProvider === selectedProvider
+                                    (settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider])?.enabled
                                         ? "bg-emerald-500"
                                         : "bg-slate-200 dark:bg-white/10"
                                 )}
                             >
                                 <div className={clsx(
                                     "absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200",
-                                    settings.llm.activeProvider === selectedProvider ? "translate-x-6" : "translate-x-0"
+                                    (settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider])?.enabled ? "translate-x-6" : "translate-x-0"
                                 )} />
                             </button>
                         </div>
