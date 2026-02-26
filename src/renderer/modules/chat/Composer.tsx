@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Paperclip, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check } from 'lucide-react'
+import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check, Shield, ShieldCheck } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
@@ -72,15 +72,13 @@ function ModelSelector() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition-all",
-                    "bg-slate-100/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/5",
-                    "hover:border-indigo-500/30 dark:hover:border-white/20",
-                    "text-slate-600 dark:text-zinc-300"
+                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all",
+                    "hover:bg-slate-100 dark:hover:bg-white/5",
+                    "text-slate-500 dark:text-zinc-400"
                 )}
             >
-                <ActiveIcon size={13} className={activeMeta.color} />
                 <span className="max-w-[120px] truncate">{activeProvider}</span>
-                <ChevronDown size={12} className={cn(
+                <ChevronDown size={11} className={cn(
                     "text-slate-400 dark:text-zinc-500 transition-transform",
                     isOpen && "rotate-180"
                 )} />
@@ -156,6 +154,44 @@ function ModelSelector() {
                 </div>
             )}
         </div>
+    )
+}
+
+function AccessIndicator() {
+    const { settings, updateSettings } = useSettingsStore()
+
+    // Determine current access mode from core tool settings
+    const coreToolSettings = settings.coreToolSettings || {}
+    const toolEntries = Object.values(coreToolSettings)
+    const autoCount = toolEntries.filter(t => t.trustLevel === 'Auto').length
+    const isFullAccess = toolEntries.length > 0 && autoCount >= toolEntries.length / 2
+
+    const handleToggle = async () => {
+        const newLevel = isFullAccess ? 'Ask' : 'Auto'
+        const updated: Record<string, any> = {}
+        for (const [name, tool] of Object.entries(coreToolSettings)) {
+            updated[name] = { ...tool, trustLevel: newLevel }
+        }
+        await updateSettings({ coreToolSettings: updated })
+    }
+
+    return (
+        <button
+            onClick={handleToggle}
+            className={cn(
+                "flex items-center gap-1.5 text-[11px] transition-colors",
+                isFullAccess
+                    ? "text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
+                    : "text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+            )}
+            title={isFullAccess ? "完全访问：工具自动执行" : "确认模式：工具需用户授权"}
+        >
+            {isFullAccess
+                ? <ShieldCheck size={12} />
+                : <Shield size={12} />
+            }
+            <span className="font-medium">{isFullAccess ? 'Full access' : 'Ask mode'}</span>
+        </button>
     )
 }
 
@@ -287,7 +323,7 @@ export function Composer() {
         <div className="w-full px-4 pb-6 z-10 bg-transparent shrink-0">
             <div className="max-w-4xl mx-auto relative">
                 {/* Main Composer Box */}
-                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-shadow focus-within:shadow-lg focus-within:border-indigo-500/30 dark:focus-within:border-white/20">
+                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-all focus-within:shadow-lg focus-within:border-indigo-400/40 dark:focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/5 dark:focus-within:ring-indigo-500/10">
 
                     {/* Attachment Preview */}
                     {pendingAttachments.length > 0 && (
@@ -327,37 +363,19 @@ export function Composer() {
                         style={{ lineHeight: '1.5' }}
                     />
 
-                    {/* Toolbar & Send Actions */}
+                    {/* Inner Toolbar: Attach + Model Selector + Send */}
                     <div className="flex items-center justify-between px-3 pb-3 pt-1">
-
                         {/* Left Tools */}
-                        <div className="flex items-center gap-1">
-
-                            {/* Attach File */}
-                            <TooltipButton icon={Paperclip} label="Add Attachment" onClick={handleSelectFile} />
-
-                            {/* Model Selector */}
+                        <div className="flex items-center gap-1.5">
+                            {/* Add / Attach Button */}
+                            <button
+                                onClick={handleSelectFile}
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-zinc-200 transition-all"
+                                title="Add Attachment"
+                            >
+                                <Plus size={16} strokeWidth={2} />
+                            </button>
                             <ModelSelector />
-
-                            {/* Directory Picker / Explorer */}
-                            <div className="flex items-center bg-slate-100/50 dark:bg-white/5 rounded-xl px-1 py-0.5 ml-1 border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/30 dark:hover:border-white/20 transition-all group/path">
-                                <button
-                                    onClick={() => window.electronAPI.system.openExplorer(workspacePath)}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white dark:text-zinc-500 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-all"
-                                    title="在文件资源管理器中打开"
-                                >
-                                    <Folder size={14} />
-                                </button>
-                                <div className="w-[1px] h-3 bg-slate-200 dark:bg-white/10 mx-0.5" />
-                                <button
-                                    onClick={handleSelectDirectory}
-                                    className="px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200 truncate max-w-[150px] transition-colors"
-                                    title="切换工作目录"
-                                >
-                                    {displayPath}
-                                </button>
-                            </div>
-
                         </div>
 
                         {/* Right: Send Button */}
@@ -365,20 +383,33 @@ export function Composer() {
                             onClick={() => isSending ? window.electronAPI.agent.stop(activeSessionId) : handleSend()}
                             disabled={!isSending && !input.trim()}
                             className={cn(
-                                "flex items-center justify-center w-8 h-8 rounded-lg transition-all",
+                                "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200",
                                 isSending
-                                    ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/20 dark:text-red-400"
+                                    ? "bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-500/20"
                                     : input.trim()
-                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20 hover:bg-indigo-700"
-                                        : "bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-zinc-500 cursor-not-allowed"
+                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 scale-100 hover:scale-105"
+                                        : "bg-slate-200/80 text-slate-400 dark:bg-white/10 dark:text-zinc-600 opacity-50 cursor-not-allowed"
                             )}
                         >
-                            {isSending ? <Square size={14} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
+                            {isSending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
                         </button>
                     </div>
                 </div>
 
+                {/* Outer Context Bar: Workspace + Access */}
+                <div className="flex items-center gap-3 px-4 pt-2">
+                    <button
+                        onClick={handleSelectDirectory}
+                        className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors"
+                        title="切换工作目录"
+                    >
+                        <Folder size={12} />
+                        <span className="truncate max-w-[200px]">{displayPath}</span>
+                        <ChevronDown size={10} />
+                    </button>
 
+                    <AccessIndicator />
+                </div>
             </div>
         </div>
     )
