@@ -14,103 +14,82 @@ export function StatusIndicator() {
 
     if (!event || event.currentState === 'Idle') return null;
 
-    const stateMeta: Record<string, { label: string, icon: any, color: string, pulse: boolean }> = {
+    const stateMeta: Record<string, { label: string, icon: any, color: string, bgColor: string, pulse: boolean }> = {
         Thinking: {
-            label: '正在思考...',
+            label: 'Thinking...',
             icon: Sparkles,
             color: 'text-indigo-500 dark:text-indigo-400',
+            bgColor: 'bg-indigo-50 dark:bg-indigo-500/10',
             pulse: true
         },
         ExecutingHelper: {
-            label: '正在处理数据...',
+            label: 'Processing...',
             icon: Loader2,
             color: 'text-blue-500 dark:text-blue-400',
+            bgColor: 'bg-blue-50 dark:bg-blue-500/10',
             pulse: true
         },
         ExecutingTool: {
-            label: '正在执行工具...',
+            label: 'Running tool...',
             icon: Wrench,
             color: 'text-emerald-500 dark:text-emerald-400',
+            bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
             pulse: true
         },
         AwaitingInput: {
-            label: '等待确认...',
+            label: 'Awaiting...',
             icon: AlertTriangle,
             color: 'text-amber-500 dark:text-amber-400',
+            bgColor: 'bg-amber-50 dark:bg-amber-500/10',
             pulse: true
         },
         Error: {
-            label: '执行出错',
+            label: 'Error',
             icon: XCircle,
             color: 'text-red-500 dark:text-red-400',
+            bgColor: 'bg-red-50 dark:bg-red-500/10',
             pulse: false
         },
         Aborted: {
-            label: '已中断',
+            label: 'Aborted',
             icon: XCircle,
             color: 'text-slate-500 dark:text-slate-400',
+            bgColor: 'bg-slate-50 dark:bg-white/5',
             pulse: false
         }
     };
 
-    const meta = stateMeta[event.currentState] || { label: event.currentState, icon: Sparkles, color: 'text-indigo-500', pulse: true };
+    const meta = stateMeta[event.currentState] || { label: event.currentState, icon: Sparkles, color: 'text-indigo-500', bgColor: 'bg-indigo-50', pulse: true };
     const Icon = meta.icon;
     const statusText = event.message || meta.label;
 
-    // Specific tool icon if we have one in metadata
-    let ToolIcon = null;
-    if (event.metadata?.tool) {
-        const t = event.metadata.tool.toLowerCase();
-        if (t.includes('search')) ToolIcon = Search;
-        else if (t.includes('file') || t.includes('edit')) ToolIcon = FileText;
-        else if (t.includes('bash') || t.includes('cmd')) ToolIcon = Terminal;
-    }
-
     return (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] pointer-events-none">
+        <div className="w-full flex justify-center px-4 py-2 shrink-0">
             <div className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-full border shadow-2xl backdrop-blur-xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4 zoom-in-95",
-                "bg-white/90 dark:bg-zinc-900/90 border-slate-200 dark:border-white/10",
-                meta.pulse && "ring-4 ring-indigo-500/5 dark:ring-indigo-400/5 animate-pulse"
+                "inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-300 animate-in fade-in slide-in-from-bottom-2",
+                meta.bgColor,
+                meta.color
             )}>
-                {/* Status Icon with background glow */}
-                <div className={cn(
-                    "relative w-7 h-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden",
-                    meta.color.replace('text-', 'bg-').replace('500', '100').replace('400', '500/10')
-                )}>
-                    <Icon size={14} className={cn(meta.color, meta.pulse && "animate-spin-slow")} />
+                <Icon size={13} className={cn(meta.pulse && "animate-spin")} style={meta.pulse ? { animationDuration: '2s' } : undefined} />
 
-                    {/* Scanning sweep effect for thinking/executing */}
-                    {meta.pulse && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent -translate-x-full animate-sweep" />
-                    )}
-                </div>
+                <span>{statusText}</span>
 
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-bold text-slate-700 dark:text-zinc-200">
-                            {statusText}
-                        </span>
-                        {event.metadata?.tool && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded-md border border-slate-200 dark:border-white/10">
-                                {ToolIcon && <ToolIcon size={10} className="text-slate-500" />}
-                                <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-zinc-400">
-                                    {event.metadata.tool}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                {event.metadata?.tool && (
+                    <span className="text-[10px] font-mono opacity-70">
+                        {event.metadata.tool}
+                    </span>
+                )}
 
                 {/* Activity dots */}
                 {meta.pulse && (
-                    <div className="flex gap-1 pr-1">
-                        <div className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.3s]" />
-                        <div className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce [animation-delay:-0.15s]" />
-                        <div className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce" />
+                    <div className="flex gap-0.5 ml-0.5">
+                        <div className="w-1 h-1 rounded-full bg-current opacity-60 animate-bounce [animation-delay:-0.3s]" />
+                        <div className="w-1 h-1 rounded-full bg-current opacity-60 animate-bounce [animation-delay:-0.15s]" />
+                        <div className="w-1 h-1 rounded-full bg-current opacity-60 animate-bounce" />
                     </div>
                 )}
             </div>
         </div>
     );
 }
+

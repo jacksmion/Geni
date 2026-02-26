@@ -385,13 +385,13 @@ export function Composer() {
                             className={cn(
                                 "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200",
                                 isSending
-                                    ? "bg-red-500 text-white hover:bg-red-600 shadow-md shadow-red-500/20"
+                                    ? "bg-slate-100 dark:bg-white/10 text-red-500 dark:text-red-400 border-2 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10"
                                     : input.trim()
                                         ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 scale-100 hover:scale-105"
                                         : "bg-slate-200/80 text-slate-400 dark:bg-white/10 dark:text-zinc-600 opacity-50 cursor-not-allowed"
                             )}
                         >
-                            {isSending ? <Square size={12} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
+                            {isSending ? <Square size={10} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
                         </button>
                     </div>
                 </div>

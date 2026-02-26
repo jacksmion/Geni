@@ -67,7 +67,7 @@ export function MessageList() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-4 space-y-8">
+        <div className="max-w-4xl mx-auto p-4 md:p-8 pb-4 space-y-8 min-h-full flex flex-col justify-end">
             {groupedMessages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
@@ -307,7 +307,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
                         {/* Bottom Meta & Actions */}
                         <div className={cn(
-                            "flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 font-medium mt-2 px-1 opacity-10 group-hover:opacity-100 transition-opacity",
+                            "flex items-center gap-3 text-[11px] text-slate-400 dark:text-zinc-500 font-medium mt-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
                             isUser ? "flex-reverse" : ""
                         )}>
                             {isUser ? (
