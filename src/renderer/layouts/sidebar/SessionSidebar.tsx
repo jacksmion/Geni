@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function SessionSidebar() {
@@ -29,6 +29,19 @@ export function SessionSidebar() {
         if (diffDays <= 7) return '最近 7 天';
         if (diffDays <= 30) return '最近 30 天';
         return '更早以前';
+    };
+
+    // Relative time for session items
+    const getRelativeTime = (timestamp: number) => {
+        const now = Date.now();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return '刚刚';
+        if (minutes < 60) return `${minutes}分钟前`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}小时前`;
+        const d = new Date(timestamp);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
     };
 
     // Filtered and Grouped sessions
@@ -99,8 +112,8 @@ export function SessionSidebar() {
                 <div className="px-4 pt-5 pb-3 space-y-4 overflow-hidden">
                     {/* Section Header */}
                     <div className="flex items-center justify-between min-w-[200px]">
-                        <h2 className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-zinc-600 select-none">
-                            Recent Chats
+                        <h2 className="text-[11px] font-semibold text-slate-500 dark:text-zinc-500 select-none">
+                            对话列表
                         </h2>
                         <button
                             onClick={() => createSession()}
@@ -153,17 +166,22 @@ export function SessionSidebar() {
                                                 key={session.id}
                                                 onClick={() => switchSession(session.id)}
                                                 className={clsx(
-                                                    "group relative flex items-center px-3 py-2 rounded-lg text-sm transition-all cursor-pointer border border-transparent",
+                                                    "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer",
                                                     isActive
-                                                        ? "bg-white dark:bg-white/10 shadow-sm border-slate-200/50 dark:border-white/5 text-slate-900 dark:text-white font-medium"
-                                                        : "text-slate-600 dark:text-gray-400 hover:bg-slate-200/50 dark:hover:bg-white/5"
+                                                        ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
+                                                        : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
                                                 )}
                                             >
+                                                {/* Active accent bar */}
+                                                {isActive && (
+                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
+                                                )}
+
                                                 <MessageSquare
                                                     size={14}
                                                     className={clsx(
-                                                        "shrink-0 mr-3",
-                                                        isActive ? "text-indigo-500" : "text-slate-400 dark:text-gray-600"
+                                                        "shrink-0 mr-2.5",
+                                                        isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
                                                     )}
                                                 />
 
@@ -180,17 +198,23 @@ export function SessionSidebar() {
                                                         />
                                                     </form>
                                                 ) : (
-                                                    <span className="flex-1 truncate pr-6 select-none" title={session.title || '新对话'}>
-                                                        {session.title || '新对话'}
-                                                    </span>
+                                                    <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                                                        <span className="truncate select-none text-[13px]" title={session.title || '新对话'}>
+                                                            {session.title || '新对话'}
+                                                        </span>
+                                                        {/* Time - visible by default, hidden on hover */}
+                                                        <span className={clsx(
+                                                            "text-[10px] shrink-0 tabular-nums group-hover:hidden transition-opacity",
+                                                            isActive ? "text-indigo-400/70 dark:text-indigo-400/50" : "text-slate-300 dark:text-zinc-600"
+                                                        )}>
+                                                            {getRelativeTime(session.updatedAt)}
+                                                        </span>
+                                                    </div>
                                                 )}
 
                                                 {/* Actions (Hover) */}
                                                 {!isEditing && (
-                                                    <div className={clsx(
-                                                        "absolute right-2 flex items-center gap-1",
-                                                        isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    )}>
+                                                    <div className="absolute right-2 hidden group-hover:flex items-center gap-0.5">
                                                         <button
                                                             onClick={(e) => handleStartEdit(e, session.id, session.title)}
                                                             className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
