@@ -141,7 +141,7 @@ export class AgentRuntime implements IAgentService {
                 messages = await this.optimizeContext(messages, chatModel, options);
 
                 // 2. LLM 轮次执行
-                this.stateManager.transition(AgentState.Thinking, `Thinking (Step ${loopCount})...`);
+                this.stateManager.transition(AgentState.Thinking, `Thinking...`);
                 const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
                     messages, chatModel, chatModelTools, options, onStream
                 );
