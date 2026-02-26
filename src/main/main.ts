@@ -31,9 +31,9 @@ function createWindow() {
         },
         titleBarStyle: 'hidden',
         titleBarOverlay: {
-            color: '#ffffff', // HEADER_BG (Light) - 适配浅色模式，深色模式下可能需要通过 IPC 更新
-            symbolColor: '#71717a', // Slate-500
-            height: 56 // h-14
+            color: '#ffffff',
+            symbolColor: '#71717a',
+            height: 44 // h-11 = 44px, synced with header height
         },
     })
 
