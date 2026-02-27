@@ -4,19 +4,25 @@ import { TokenCounter } from './TokenCounter';
 
 /**
  * Summarizer Service
- * 
- * Phase 4.4: Summarization Service
- * 
+ *
  * Compresses conversation history to manageable size using LLM summarization.
+ *
+ * Improvements:
+ * - Tool output truncation to prevent summarize prompt from exceeding limits
+ * - tool_calls info extraction (tool name + key args preserved in summary)
+ * - Chunked summarization for very long histories
+ * - Language-adaptive summarization prompt
  */
+
+/** Max characters per tool output in the summarization text */
+const TOOL_OUTPUT_MAX_CHARS = 500;
+/** Max tokens for the summarization request itself */
+const SUMMARIZE_REQUEST_MAX_TOKENS = 12000;
+
 export class Summarizer {
 
     /**
      * Check if the conversation needs summarization
-     * 
-     * @param messages Current history
-     * @param maxTokens Token limit
-     * @param thresholdPercent Threshold to trigger summarization (0.0 - 1.0)
      */
     static shouldSummarize(messages: ChatMessage[], maxTokens: number, thresholdPercent: number = 0.8): boolean {
         const total = TokenCounter.countMessages(messages);
@@ -25,7 +31,7 @@ export class Summarizer {
 
     /**
      * Summarize the conversation history
-     * 
+     *
      * Keeps System prompts and Recent messages intact.
      * Compresses the "middle" messages into a single summary system message.
      */
@@ -34,97 +40,38 @@ export class Summarizer {
         model: IChatModel,
         keepRecentCount: number = 10
     ): Promise<ChatMessage[]> {
-        // 1. Identify valid range to summarize
-        // We do NOT summarize System messages (usually contain Core Instructions)
-        // We do NOT summarize the most recent N messages (Active Context)
-
+        // 1. Find the boundary for recent messages (with tool-call atomicity)
         let recentStartIdx = Math.max(0, messages.length - keepRecentCount);
+        recentStartIdx = this.ensureToolCallAtomicity(messages, recentStartIdx);
 
-        // --- 核心优化: 确保工具调用原子性 ---
-        // 如果 recentStartIdx 落在 tool 消息上，或者落在一个紧跟在 assistant tool_calls 之后的工具链中，
-        // 我们需要向前回溯，直到找到发起这个调用的 assistant 消息。
-        // 这防止了 LLM 协议因切断 assistant/tool 对而崩溃。
-        while (recentStartIdx > 0) {
-            const currentMsg = messages[recentStartIdx];
-            const prevMsg = messages[recentStartIdx - 1];
-
-            // 1. 如果当前是 tool 消息，必须包含它前面的内容
-            if (currentMsg.role === 'tool') {
-                recentStartIdx--;
-                continue;
-            }
-
-            // 2. 如果前一个是 assistant 且带有 tool_calls，则当前不能作为起始点（除非当前也是它的一部分）
-            // 实际上，只要当前消息的 role 不是 user，且前一个是工具调用的 assistant，我们就得继续回溯
-            if (prevMsg && prevMsg.role === 'assistant' && prevMsg.tool_calls) {
-                recentStartIdx--;
-                continue;
-            }
-
-            break;
-        }
-
-        // Filter out system messages and recent messages to get the "Middle"
-        // But we need to preserve order, so let's identify indices.
-
+        // 2. Extract middle messages to summarize
         const middleMessages = messages.filter((m, i) => {
             return m.role !== 'system' && i < recentStartIdx;
         });
 
-        // If nothing to summarize, return original
         if (middleMessages.length === 0) {
             return messages;
         }
 
-        // 2. Generate Summary using the Model
-        const conversationText = middleMessages.map(m => `${m.role.toUpperCase()}: ${m.content || '(Tool Output)'}`).join('\n---\n');
+        // 3. Format messages for summarization (with truncation and tool info extraction)
+        const conversationText = this.formatMessagesForSummary(middleMessages);
 
-        const summarizationPrompt: ChatMessage[] = [
-            {
-                role: 'user',
-                content: `Please read the following conversation history and create a concise summary. 
-Focus on:
-1. Key user preferences and requirements defined.
-2. Important decisions made or actions taken.
-3. The current state of the task.
-
-Ignore trivial details.
-
-Conversation History:
-${conversationText}`
-            }
-        ];
-
-        let summaryContent = "";
-
+        // 4. Generate summary (with chunked fallback for very long histories)
+        let summaryContent: string;
         try {
-            if (model.invoke) {
-                const response = await model.invoke(summarizationPrompt);
-                summaryContent = response.content || "No summary generated.";
-            } else {
-                // Fallback to stream consumption
-                const stream = model.stream(summarizationPrompt);
-                for await (const event of stream) {
-                    if (event.type === 'content_delta') {
-                        summaryContent += event.delta;
-                    }
-                }
-            }
+            summaryContent = await this.generateSummary(conversationText, model);
         } catch (error) {
             console.error('[Summarizer] Failed to generate summary:', error);
-            // Return original messages on failure to avoid data loss
             return messages;
         }
 
-        // 3. Reassemble History
-        // [All System Messages] + [Summary Message] + [Recent Messages]
-
+        // 5. Reassemble: [System] + [Summary] + [Recent]
         const systemMessages = messages.filter(m => m.role === 'system');
         const recentMessages = messages.slice(recentStartIdx);
 
         const summaryMessage: ChatMessage = {
             role: 'system',
-            content: `[History Summary]: ${summaryContent}`
+            content: `[Conversation History Summary]\n${summaryContent}`
         };
 
         return [
@@ -132,5 +79,171 @@ ${conversationText}`
             summaryMessage,
             ...recentMessages
         ];
+    }
+
+    /**
+     * Ensure the split point doesn't break assistant/tool pairs
+     */
+    private ensureToolCallAtomicity(messages: ChatMessage[], startIdx: number): number {
+        while (startIdx > 0) {
+            const currentMsg = messages[startIdx];
+            const prevMsg = messages[startIdx - 1];
+
+            if (currentMsg.role === 'tool') {
+                startIdx--;
+                continue;
+            }
+
+            if (prevMsg && prevMsg.role === 'assistant' && prevMsg.tool_calls) {
+                startIdx--;
+                continue;
+            }
+
+            break;
+        }
+        return startIdx;
+    }
+
+    /**
+     * Format messages into readable text for summarization
+     *
+     * Key improvements:
+     * - Extracts tool_calls info (tool name + key args) from assistant messages
+     * - Truncates large tool outputs to prevent prompt explosion
+     * - Preserves the semantic flow of the conversation
+     */
+    private formatMessagesForSummary(messages: ChatMessage[]): string {
+        const parts: string[] = [];
+
+        for (const msg of messages) {
+            if (msg.role === 'assistant') {
+                if (msg.tool_calls && msg.tool_calls.length > 0) {
+                    // Extract tool call info instead of losing it
+                    const toolInfo = msg.tool_calls.map(tc => {
+                        const args = this.truncateText(tc.function.arguments, 200);
+                        return `  → ${tc.function.name}(${args})`;
+                    }).join('\n');
+                    const thought = msg.content ? `${this.truncateText(msg.content, 300)}\n` : '';
+                    parts.push(`ASSISTANT (tool calls):\n${thought}${toolInfo}`);
+                } else {
+                    parts.push(`ASSISTANT: ${this.truncateText(msg.content || '', 800)}`);
+                }
+            } else if (msg.role === 'tool') {
+                // Truncate large tool outputs
+                const output = this.truncateText(msg.content || '', TOOL_OUTPUT_MAX_CHARS);
+                parts.push(`TOOL RESULT: ${output}`);
+            } else if (msg.role === 'user') {
+                parts.push(`USER: ${msg.content || ''}`);
+            }
+        }
+
+        return parts.join('\n---\n');
+    }
+
+    /**
+     * Generate summary, with chunked fallback for very long conversation text
+     */
+    private async generateSummary(conversationText: string, model: IChatModel): Promise<string> {
+        const textTokens = TokenCounter.count(conversationText);
+
+        if (textTokens <= SUMMARIZE_REQUEST_MAX_TOKENS) {
+            // Single-pass summarization
+            return await this.callLlmForSummary(conversationText, model);
+        }
+
+        // Chunked summarization: split text, summarize each chunk, then merge
+        console.log(`[Summarizer] Text too long (${textTokens} tokens), using chunked summarization`);
+        const chunks = this.splitIntoChunks(conversationText, SUMMARIZE_REQUEST_MAX_TOKENS);
+        const chunkSummaries: string[] = [];
+
+        for (let i = 0; i < chunks.length; i++) {
+            console.log(`[Summarizer] Summarizing chunk ${i + 1}/${chunks.length}`);
+            const chunkSummary = await this.callLlmForSummary(chunks[i], model);
+            chunkSummaries.push(chunkSummary);
+        }
+
+        // If multiple chunks, do a final merge summarization
+        if (chunkSummaries.length > 1) {
+            const mergedText = chunkSummaries.map((s, i) => `[Part ${i + 1}]: ${s}`).join('\n\n');
+            return await this.callLlmForSummary(mergedText, model, true);
+        }
+
+        return chunkSummaries[0];
+    }
+
+    /**
+     * Call LLM to generate a summary
+     */
+    private async callLlmForSummary(text: string, model: IChatModel, isMerge: boolean = false): Promise<string> {
+        const instruction = isMerge
+            ? '以下是分段总结的对话历史，请合并为一份简洁的整体摘要。'
+            : '请阅读以下对话历史，生成简洁的摘要。';
+
+        const prompt: ChatMessage[] = [
+            {
+                role: 'user',
+                content: `${instruction}
+
+重点关注：
+1. 用户提出的需求和偏好
+2. 已做出的关键决策和执行的操作
+3. 当前任务的状态和进展
+4. 涉及的关键文件和代码变更
+
+忽略琐碎细节。用对话中使用的语言进行总结。
+
+---
+${text}`
+            }
+        ];
+
+        let result = '';
+
+        if (model.invoke) {
+            const response = await model.invoke(prompt);
+            result = response.content || 'No summary generated.';
+        } else {
+            const stream = model.stream(prompt);
+            for await (const event of stream) {
+                if (event.type === 'content_delta') {
+                    result += event.delta;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Split text into chunks by paragraph boundaries
+     */
+    private splitIntoChunks(text: string, maxTokensPerChunk: number): string[] {
+        const paragraphs = text.split('\n---\n');
+        const chunks: string[] = [];
+        let currentChunk = '';
+
+        for (const para of paragraphs) {
+            const combined = currentChunk ? `${currentChunk}\n---\n${para}` : para;
+            if (TokenCounter.count(combined) > maxTokensPerChunk && currentChunk) {
+                chunks.push(currentChunk);
+                currentChunk = para;
+            } else {
+                currentChunk = combined;
+            }
+        }
+
+        if (currentChunk) {
+            chunks.push(currentChunk);
+        }
+
+        return chunks;
+    }
+
+    /**
+     * Truncate text with ellipsis
+     */
+    private truncateText(text: string, maxChars: number): string {
+        if (text.length <= maxChars) return text;
+        return text.slice(0, maxChars) + '... (truncated)';
     }
 }
