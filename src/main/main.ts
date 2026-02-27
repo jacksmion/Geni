@@ -47,7 +47,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
     // 0. PathManager (must be first, after app.whenReady())
-    const pathManager = PathManager.getInstance();
+    const pathManager = new PathManager();
 
     // 0.5. Data migration (if needed)
     if (pathManager.needsMigration()) {

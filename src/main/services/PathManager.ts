@@ -19,7 +19,6 @@ const __dirname = dirname(__filename);
  * - Data migration from old paths
  */
 export class PathManager {
-    private static instance: PathManager;
     private rootDir: string;
     private sessionsDir: string;
     private globalSkillsDir: string;
@@ -30,7 +29,7 @@ export class PathManager {
     private legacyConfigDir: string;
     private legacySessionsDir: string;
 
-    private constructor() {
+    constructor() {
         // Initialize paths after app is ready
         const userDataPath = app.getPath('userData');
         const appPath = app.getAppPath();
@@ -49,16 +48,6 @@ export class PathManager {
 
         // Ensure directory structure exists
         this.ensureDirectories();
-    }
-
-    /**
-     * Get singleton instance
-     */
-    public static getInstance(): PathManager {
-        if (!PathManager.instance) {
-            PathManager.instance = new PathManager();
-        }
-        return PathManager.instance;
     }
 
     /**
