@@ -238,7 +238,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
                             
                             prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
-                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:my-6">
+                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -260,6 +260,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                     ol: ({ className, ...props }) => <ol className={cn("list-decimal pl-6 my-3 space-y-1", className)} {...props} />,
                                     li: ({ className, ...props }) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
                                     hr: ({ ...props }) => <hr className="my-10" {...props} />,
+                                    pre: ({ children }) => <>{children}</>,
                                     code({ node, inline, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
                                         const codeString = String(children).replace(/\n$/, '')
@@ -275,7 +276,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                         }
 
                                         return !inline && match ? (
-                                            <div className="not-prose group/code rounded-xl overflow-hidden my-6 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+                                            <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                 <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                                                     <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match[1]}</span>
                                                     <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">

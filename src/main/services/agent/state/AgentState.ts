@@ -148,6 +148,7 @@ export class AgentStateManager {
         const validTransitions: Record<AgentState, AgentState[]> = {
             [AgentState.Idle]: [AgentState.Thinking],
             [AgentState.Thinking]: [
+                AgentState.Thinking, // 允许状态自我更新（如更新界面显示文字）
                 AgentState.ExecutingHelper,
                 AgentState.ExecutingTool,
                 AgentState.AwaitingInput,
