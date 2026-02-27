@@ -216,6 +216,8 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
     const toolDisplayName = formatToolName(step.tool || 'unknown');
     const keyInfo = extractKeyInfo(step.tool || '', step.toolInput);
 
+    const isTodoTool = step.tool === 'todowrite' || step.tool === 'todoread';
+
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
         const textToCopy = step.observation || step.toolInput || '';
@@ -238,14 +240,15 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
         <div className="my-1">
             {/* Card Header */}
             <div
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => !isTodoTool && setIsExpanded(!isExpanded)}
                 className={cn(
-                    "group/card w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-left cursor-pointer",
+                    "group/card w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-left",
+                    !isTodoTool && "cursor-pointer",
                     "bg-slate-50/80 hover:bg-slate-100/80 border-slate-100",
                     "dark:bg-white/[0.02] dark:hover:bg-white/[0.04] dark:border-white/5",
                     !step.isComplete && !step.isWaitingAuthorization && "animate-border-pulse border-amber-500/30 dark:border-amber-500/20",
                     step.isWaitingAuthorization && "border-amber-500/50 bg-amber-50/30 dark:border-amber-500/30 dark:bg-amber-500/5",
-                    isExpanded && "rounded-b-none border-b-0"
+                    isExpanded && !isTodoTool && "rounded-b-none border-b-0"
                 )}
             >
                 {/* Tool Icon */}
@@ -288,25 +291,32 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                         </span>
                     )}
 
-                    {/* Copy & Expand - visible on hover */}
-                    <div className="hidden group-hover/card:flex items-center gap-0.5">
-                        <button
-                            onClick={handleCopy}
-                            className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-                            title="Copy output"
-                        >
-                            {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                        </button>
-                        <ChevronRight
-                            size={12}
-                            className={cn(
-                                "text-slate-400 dark:text-zinc-500 transition-transform",
-                                isExpanded && "rotate-90"
-                            )}
-                        />
-                    </div>
+                    {/* Copy & Expand - visible on hover, hidden for todo tools */}
+                    {!isTodoTool && (
+                        <div className="hidden group-hover/card:flex items-center gap-0.5">
+                            <button
+                                onClick={handleCopy}
+                                className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                                title="Copy output"
+                            >
+                                {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                            </button>
+                            <ChevronRight
+                                size={12}
+                                className={cn(
+                                    "text-slate-400 dark:text-zinc-500 transition-transform",
+                                    isExpanded && "rotate-90"
+                                )}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Todo: Always-visible card (no expand needed) */}
+            {isTodoTool && step.observation && (
+                <TodoCard observation={step.observation} />
+            )}
 
             {/* Inline Authorization UI */}
             {step.isWaitingAuthorization && (
@@ -342,8 +352,8 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                 </div>
             )}
 
-            {/* Expanded Content */}
-            {isExpanded && (
+            {/* Expanded Content (non-todo tools only) */}
+            {!isTodoTool && isExpanded && (
                 <div className={cn(
                     "select-text px-4 py-3 border border-t-0 rounded-b-xl text-xs font-mono space-y-3",
                     "bg-slate-50 border-slate-200 dark:bg-white/[0.02] dark:border-white/10"
@@ -368,15 +378,11 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                     {step.observation && (
                         <div>
                             <div className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-1.5 font-sans font-medium">Output</div>
-                            {(step.tool === 'todowrite' || step.tool === 'todoread') ? (
-                                <TodoCard observation={step.observation} />
-                            ) : (
-                                <pre className="text-slate-600 dark:text-zinc-400 whitespace-pre-wrap break-all bg-white dark:bg-black/20 p-2 rounded-lg border border-slate-100 dark:border-white/5 max-h-60 overflow-auto">
-                                    {step.observation.length > 2000
-                                        ? step.observation.slice(0, 2000) + '\n\n... (truncated)'
-                                        : step.observation}
-                                </pre>
-                            )}
+                            <pre className="text-slate-600 dark:text-zinc-400 whitespace-pre-wrap break-all bg-white dark:bg-black/20 p-2 rounded-lg border border-slate-100 dark:border-white/5 max-h-60 overflow-auto">
+                                {step.observation.length > 2000
+                                    ? step.observation.slice(0, 2000) + '\n\n... (truncated)'
+                                    : step.observation}
+                            </pre>
                         </div>
                     )}
                 </div>

@@ -26,41 +26,65 @@ export function MessageList() {
     }, [messages, messages.length])
 
     // Message Grouping Logic
+    // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.
+    // The final answer (assistant without tool_calls) is merged with preceding tool iterations.
     const groupedMessages: ChatMessage[] = [];
-    const skipIds = new Set<string>();
+    const skipIndices = new Set<number>();
 
     for (let i = 0; i < messages.length; i++) {
+        if (skipIndices.has(i)) continue;
         const msg = messages[i];
-        if (msg.id && skipIds.has(msg.id)) continue;
 
-        // Ensure we are skipping tool outputs as they are handled inside steps or merged (if logic changes later)
-        // But the primary goal here is to merge Assistant (Tool Call) + Assistant (Answer)
+        // Skip standalone tool messages (handled within steps)
         if (msg.role === 'tool') continue;
 
+        // Detect start of a ReAct chain: assistant with tool_calls
         if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-            // This is a tool call message. Look ahead for the answer.
-            let nextMsgIndex = i + 1;
-            while (nextMsgIndex < messages.length && messages[nextMsgIndex].role === 'tool') {
-                nextMsgIndex++;
-            }
+            // Walk forward, collecting all consecutive (assistant+tool) rounds
+            const chainSteps: any[] = [...(msg.steps || [])];
+            let lastContent = msg.content || '';
+            let j = i + 1;
 
-            if (nextMsgIndex < messages.length) {
-                const nextMsg = messages[nextMsgIndex];
-                if (nextMsg.role === 'assistant' && !nextMsg.tool_calls && nextMsg.content) {
-                    // Found the answer! Merge it into the current message visually
-                    // We create a new object to avoid mutating state directly
-                    const mergedMsg: ChatMessage = {
-                        ...msg,
-                        // Use the final answer's content
-                        content: nextMsg.content,
-                        // Carry over steps from either message (runtime puts on msg, persistence puts on nextMsg)
-                        steps: msg.steps || nextMsg.steps,
-                    };
-                    groupedMessages.push(mergedMsg);
-                    if (nextMsg.id) skipIds.add(nextMsg.id); // Skip the answer message in main loop
+            while (j < messages.length) {
+                // Skip tool result messages
+                if (messages[j].role === 'tool') {
+                    skipIndices.add(j);
+                    j++;
                     continue;
                 }
+
+                // Next assistant message - part of the chain?
+                if (messages[j].role === 'assistant') {
+                    const nextAssistant = messages[j];
+
+                    if (nextAssistant.tool_calls && nextAssistant.tool_calls.length > 0) {
+                        // Another tool call round - merge its steps and continue
+                        if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
+                        if (nextAssistant.content) lastContent = nextAssistant.content;
+                        skipIndices.add(j);
+                        j++;
+                        continue;
+                    }
+
+                    if (!nextAssistant.tool_calls && nextAssistant.content) {
+                        // Final answer - merge and stop
+                        lastContent = nextAssistant.content;
+                        if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
+                        skipIndices.add(j);
+                        break;
+                    }
+                }
+
+                // Non-assistant, non-tool message - chain ends
+                break;
             }
+
+            groupedMessages.push({
+                ...msg,
+                content: lastContent,
+                steps: chainSteps.length > 0 ? chainSteps : msg.steps,
+            });
+            continue;
         }
 
         groupedMessages.push(msg);
