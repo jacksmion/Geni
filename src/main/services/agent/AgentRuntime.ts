@@ -382,8 +382,6 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             step.isComplete = true;
             step.duration = duration;
             onStepUpdate?.([...steps]);
-
-            ContextManager.dehydrateToolCall(fnName, tc.id, messages);
         }
     }
 

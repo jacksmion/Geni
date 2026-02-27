@@ -180,34 +180,4 @@ export class ContextManager {
         return output.substring(0, limit) + `\n... [Truncated ${output.length} chars]`;
     }
 
-    /**
-     * Dehydrate tool call arguments in-place after execution
-     *
-     * For write/edit tools, the arguments contain the full file content
-     * which is no longer needed after execution. Replace with placeholder.
-     *
-     * @param toolName Name of the executed tool
-     * @param toolCallId ID of the tool call
-     * @param messages Current message history (mutated in-place)
-     */
-    static dehydrateToolCall(toolName: string, toolCallId: string, messages: ChatMessage[]): void {
-        if (!['write', 'edit'].includes(toolName)) return;
-
-        const assistantMsg = messages.find(
-            m => m.role === 'assistant' && m.tool_calls?.some(tc => tc.id === toolCallId)
-        );
-        if (!assistantMsg?.tool_calls) return;
-
-        const tc = assistantMsg.tool_calls.find(tc => tc.id === toolCallId);
-        if (!tc) return;
-
-        try {
-            const args = JSON.parse(tc.function.arguments);
-            let modified = false;
-            if (args.content?.length > 1000) { args.content = `[FILE_CONTENT_DEHYDRATED: ${args.content.length} chars written to disk — do not reuse this placeholder]`; modified = true; }
-            if (args.target?.length > 500) { args.target = `[MATCH_TARGET_DEHYDRATED: ${args.target.length} chars — do not reuse this placeholder]`; modified = true; }
-            if (args.replacement?.length > 500) { args.replacement = `[REPLACEMENT_DEHYDRATED: ${args.replacement.length} chars — do not reuse this placeholder]`; modified = true; }
-            if (modified) tc.function.arguments = JSON.stringify(args);
-        } catch { }
-    }
 }
