@@ -59,33 +59,77 @@ const formatToolName = (tool: string): string => {
     return `@builtin/${tool}`;
 };
 
+// Truncate path: keep tail for long paths
+const truncatePath = (p: string, max = 50): string =>
+    p.length > max ? '...' + p.slice(-max) : p;
+
+// Truncate generic string
+const truncateStr = (s: string, max = 50): string =>
+    s.length > max ? s.slice(0, max) + '...' : s;
+
 // Extract key info from tool input
 const extractKeyInfo = (tool: string, input?: string): string => {
     if (!input) return '';
     try {
         const parsed = JSON.parse(input);
-        if (tool.includes('bash') && parsed.command) {
-            return parsed.command.length > 60 ? parsed.command.slice(0, 60) + '...' : parsed.command;
+        const lower = tool.toLowerCase();
+
+        // Bash / command execution
+        if (lower.includes('bash') || lower.includes('command')) {
+            const cmd = parsed.command || parsed.cmd;
+            if (cmd) return truncateStr(cmd, 60);
         }
-        if (tool.includes('file') && (parsed.path || parsed.file_path)) {
-            const path = parsed.path || parsed.file_path;
-            return path.length > 50 ? '...' + path.slice(-50) : path;
+
+        // File write / read / edit — extract path
+        const filePath = parsed.path || parsed.file_path || parsed.filepath
+            || parsed.target_file || parsed.filename;
+        if (filePath && (lower.includes('file') || lower.includes('write')
+            || lower.includes('read') || lower.includes('edit')
+            || lower.includes('fs') || lower.includes('patch'))) {
+            return truncatePath(filePath);
         }
-        if (tool.includes('search') && parsed.query) {
-            return `"${parsed.query}"`;
+
+        // Glob / pattern matching
+        if (lower.includes('glob') || lower.includes('find') || lower.includes('list_dir')) {
+            const pattern = parsed.pattern || parsed.glob || parsed.include;
+            const dir = parsed.path || parsed.directory || parsed.root_dir;
+            if (pattern && dir) return `${truncatePath(dir, 30)}  ${pattern}`;
+            if (pattern) return pattern;
+            if (dir) return truncatePath(dir);
         }
-        if (parsed.operation) {
-            return `${parsed.operation} ${parsed.path || ''}`.trim();
+
+        // Search / grep
+        if (lower.includes('search') || lower.includes('grep') || lower.includes('ripgrep')) {
+            const query = parsed.query || parsed.pattern || parsed.regex || parsed.search_term;
+            if (query) return truncateStr(query, 50);
         }
-        // Return first key-value for unknown tools
+
+        // Code interpreter / python
+        if (lower.includes('python') || lower.includes('code')) {
+            const code = parsed.code || parsed.script;
+            if (code) return truncateStr(code.split('\n')[0], 50);
+        }
+
+        // Todo
+        if (lower.includes('todo')) {
+            const todos = parsed.todos;
+            if (Array.isArray(todos) && todos.length > 0) {
+                return `${todos.length} item(s)`;
+            }
+        }
+
+        // Generic: if there is a recognizable path-like field, show it
+        if (filePath) return truncatePath(filePath);
+
+        // Fallback: show the first key-value
         const firstKey = Object.keys(parsed)[0];
         if (firstKey) {
             const val = String(parsed[firstKey]);
-            return val.length > 40 ? val.slice(0, 40) + '...' : val;
+            return truncateStr(val, 40);
         }
         return '';
     } catch {
-        return input.length > 50 ? input.slice(0, 50) + '...' : input;
+        return truncateStr(input, 50);
     }
 };
 
@@ -263,10 +307,18 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                     {step.isWaitingAuthorization ? <ShieldAlert size={12} strokeWidth={2.5} /> : <ToolIcon size={12} strokeWidth={2} />}
                 </div>
 
-                {/* Tool Name */}
-                <span className="text-[12px] font-medium text-slate-600 dark:text-zinc-300 font-mono truncate">
+                {/* Tool Name + Key Params */}
+                <span className="text-[12px] font-medium text-slate-600 dark:text-zinc-300 font-mono truncate min-w-0">
                     {toolDisplayName}
                 </span>
+                {keyInfo && (
+                    <>
+                        <span className="text-[11px] text-slate-300 dark:text-zinc-600 shrink-0 select-none">·</span>
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-mono truncate min-w-0" title={keyInfo}>
+                            {keyInfo}
+                        </span>
+                    </>
+                )}
 
                 {/* Status checkmark */}
                 {step.isComplete ? (
