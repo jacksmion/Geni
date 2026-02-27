@@ -367,14 +367,21 @@ src/
 3. Write detailed instructions in markdown body
 4. Skills are auto-loaded on startup
 
-### 11.4 Modifying Agent Logic
+### 11.4 Writing Unit Tests
+
+1. Create tests in the `/tests/` directory at the project root, mirroring the `src/` directory structure.
+2. Use `vitest` as the testing framework.
+3. Use absolute path aliases (`@/`) to import source modules (e.g., `import { TokenCounter } from '@/main/services/agent/TokenCounter';`).
+4. Run tests using `npm run test` or `npm run test:watch`.
+
+### 11.5 Modifying Agent Logic
 
 - Core loop: `src/main/services/agent/AgentRuntime.ts`
 - State transitions: `src/main/services/agent/state/AgentState.ts`
 - Security: `src/main/services/agent/ToolGuard.ts`
 - Ensure `onStream` and `onStepUpdate` callbacks are called for UI sync
 
-### 11.5 Type Changes
+### 11.6 Type Changes
 
 - **All shared types**: Define in `src/common/types/` (Single Source of Truth)
 - **LLM layer**: Re-exports from common via `IChatModel.ts`
