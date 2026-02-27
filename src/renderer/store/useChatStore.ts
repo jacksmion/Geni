@@ -24,6 +24,7 @@ interface ChatState {
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
     startNewChat: () => void
+    sendMessage: (input: string, attachments: string[]) => Promise<void>
 }
 
 // Helper: initial default session
@@ -110,33 +111,37 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     createSession: async (title) => {
-        const backendSes = await window.electronAPI.session.create();
-        const sessionTitle = title || '新对话';
+        try {
+            const backendSes = await window.electronAPI.session.create();
+            const sessionTitle = title || '新对话';
 
-        const welcomeMessage = {
-            id: 'init-' + backendSes.id,
-            role: 'assistant' as const,
-            content: '你好！我是 Geni，你的个人智能助手。',
-            timestamp: Date.now()
-        };
+            const welcomeMessage = {
+                id: 'init-' + backendSes.id,
+                role: 'assistant' as const,
+                content: '你好！我是 Geni，你的个人智能助手。',
+                timestamp: Date.now()
+            };
 
-        const newSession: ChatSession = {
-            id: backendSes.id,
-            title: sessionTitle,
-            createdAt: backendSes.createdAt,
-            updatedAt: backendSes.createdAt,
-            messages: [welcomeMessage]
-        };
+            const newSession: ChatSession = {
+                id: backendSes.id,
+                title: sessionTitle,
+                createdAt: backendSes.createdAt,
+                updatedAt: backendSes.createdAt,
+                messages: [welcomeMessage]
+            };
 
-        // 保存标题和欢迎消息到后端
-        await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
-        await window.electronAPI.session.addMessage(newSession.id, welcomeMessage);
+            // 保存标题和欢迎消息到后端
+            await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
+            await window.electronAPI.session.addMessage(newSession.id, welcomeMessage);
 
-        set(state => ({
-            sessions: { ...state.sessions, [newSession.id]: newSession },
-            activeSessionId: newSession.id,
-            activeTab: 'chat'
-        }));
+            set(state => ({
+                sessions: { ...state.sessions, [newSession.id]: newSession },
+                activeSessionId: newSession.id,
+                activeTab: 'chat'
+            }));
+        } catch (error) {
+            console.error('Failed to create session:', error);
+        }
     },
 
     switchSession: async (id) => {
@@ -148,58 +153,71 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
-                const messages = await window.electronAPI.session.getHistory(id);
-                // If backend has messages, use them
-                if (messages) {
-                    set(state => ({
-                        sessions: {
-                            ...state.sessions,
-                            [id]: { ...state.sessions[id], messages }
-                        }
-                    }));
+                try {
+                    const messages = await window.electronAPI.session.getHistory(id);
+                    // If backend has messages, use them
+                    if (messages) {
+                        set(state => ({
+                            sessions: {
+                                ...state.sessions,
+                                [id]: { ...state.sessions[id], messages }
+                            }
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Failed to load session history for id', id, ':', error);
                 }
             }
         }
     },
 
     deleteSession: async (id) => {
-        await window.electronAPI.session.delete(id);
+        try {
+            await window.electronAPI.session.delete(id);
 
-        set(state => {
-            const { [id]: deleted, ...rest } = state.sessions;
+            set(state => {
+                const { [id]: deleted, ...rest } = state.sessions;
 
-            let nextActiveId = state.activeSessionId;
-            if (id === state.activeSessionId) {
-                const remainingIds = Object.keys(rest);
-                if (remainingIds.length > 0) {
-                    nextActiveId = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt)[0].id;
-                    // Trigger load for next session
-                    get().switchSession(nextActiveId);
-                } else {
-                    // Create new locally to avoid async recursion issues if possible, or just call create
-                    // Since create is async, we can't easily do it inside reducer seamlessly.
-                    // We'll set activeId to empty and let UI handle or trigger creation.
-                    // Or cheat:
-                    setTimeout(() => get().createSession(), 0);
-                    nextActiveId = '';
+                let nextActiveId = state.activeSessionId;
+                if (id === state.activeSessionId) {
+                    const remainingIds = Object.keys(rest);
+                    if (remainingIds.length > 0) {
+                        nextActiveId = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt)[0].id;
+                        // Trigger load for next session
+                        get().switchSession(nextActiveId);
+                    } else {
+                        // Create new locally to avoid async recursion issues if possible, or just call create
+                        // Since create is async, we can't easily do it inside reducer seamlessly.
+                        // We'll set activeId to empty and let UI handle or trigger creation.
+                        // Or cheat:
+                        setTimeout(() => get().createSession(), 0);
+                        nextActiveId = '';
+                    }
                 }
-            }
-            return { sessions: rest, activeSessionId: nextActiveId };
-        });
+                return { sessions: rest, activeSessionId: nextActiveId };
+            });
+        } catch (error) {
+            console.error('Failed to delete session', id, ':', error);
+        }
     },
 
-    renameSession: (id, newTitle) => {
+    renameSession: async (id, newTitle) => {
         set(state => {
             const session = state.sessions[id];
             if (!session) return state;
 
             const updated = { ...session, title: newTitle };
-            window.electronAPI.session.save({ id, title: newTitle }); // Async save
 
             return {
                 sessions: { ...state.sessions, [id]: updated }
             };
         });
+
+        try {
+            await window.electronAPI.session.save({ id, title: newTitle }); // Async save
+        } catch (error) {
+            console.error('Failed to rename session', id, ':', error);
+        }
     },
 
     addMessage: (msg) => {
@@ -276,5 +294,83 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     startNewChat: () => {
         get().createSession();
+    },
+
+    sendMessage: async (input: string, attachments: string[]) => {
+        const state = get();
+        const { isSending, sessions, activeSessionId, addMessage, updateLastMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
+
+        if (!input.trim() || isSending) return;
+
+        const currentSession = sessions[activeSessionId];
+        if (!currentSession) return;
+
+        let finalPrompt = input;
+
+        // 如果有附件，在 Prompt 前面追加上下文说明
+        if (attachments.length > 0) {
+            const attachmentInfo = attachments.map(p => `- ${p}`).join('\n');
+            finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`;
+        }
+
+        const userInput = input;
+
+        // 1. Add User Message
+        addMessage({ role: 'user', content: userInput });
+
+        // 2. Add Placeholder for Assistant
+        setSending(true);
+        addMessage({ role: 'assistant', content: '' });
+        clearPendingAttachments();
+
+        // 3. Setup Stream Listeners
+        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                content: reset ? chunk : msg.content + chunk
+            }));
+        });
+
+        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                steps: steps
+            }));
+        });
+
+        const cleanupError = window.electronAPI.agent.onError((err: any) => {
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                content: `Error: ${err.message || JSON.stringify(err)}`,
+                isError: true
+            }));
+        });
+
+        const cleanupState = window.electronAPI.agent.onStateChange((event: any) => {
+            console.log('[Store] Received state change:', event.currentState, event.message);
+            get().setAgentEvent(event);
+        });
+
+        try {
+            // Start Agent
+            await window.electronAPI.agent.start({
+                sessionId: activeSessionId,
+                prompt: finalPrompt
+            });
+            // Result comes via stream/events
+        } catch (err: any) {
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                content: `Error: ${err.message}`,
+                isError: true
+            }));
+        } finally {
+            cleanupStream();
+            cleanupTrace();
+            cleanupError();
+            cleanupState();
+            get().setAgentEvent(null);
+            get().setSending(false);
+        }
     }
 }))

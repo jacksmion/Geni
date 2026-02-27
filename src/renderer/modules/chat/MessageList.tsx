@@ -8,8 +8,9 @@ import { twMerge } from 'tailwind-merge'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { preprocessMarkdown } from '../../utils/markdown'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -28,67 +29,70 @@ export function MessageList() {
     // Message Grouping Logic
     // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.
     // The final answer (assistant without tool_calls) is merged with preceding tool iterations.
-    const groupedMessages: ChatMessage[] = [];
-    const skipIndices = new Set<number>();
+    const groupedMessages = React.useMemo(() => {
+        const groups: ChatMessage[] = [];
+        const skipIndices = new Set<number>();
 
-    for (let i = 0; i < messages.length; i++) {
-        if (skipIndices.has(i)) continue;
-        const msg = messages[i];
+        for (let i = 0; i < messages.length; i++) {
+            if (skipIndices.has(i)) continue;
+            const msg = messages[i];
 
-        // Skip standalone tool messages (handled within steps)
-        if (msg.role === 'tool') continue;
+            // Skip standalone tool messages (handled within steps)
+            if (msg.role === 'tool') continue;
 
-        // Detect start of a ReAct chain: assistant with tool_calls
-        if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-            // Walk forward, collecting all consecutive (assistant+tool) rounds
-            const chainSteps: any[] = [...(msg.steps || [])];
-            let lastContent = msg.content || '';
-            let j = i + 1;
+            // Detect start of a ReAct chain: assistant with tool_calls
+            if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+                // Walk forward, collecting all consecutive (assistant+tool) rounds
+                const chainSteps: any[] = [...(msg.steps || [])];
+                let lastContent = msg.content || '';
+                let j = i + 1;
 
-            while (j < messages.length) {
-                // Skip tool result messages
-                if (messages[j].role === 'tool') {
-                    skipIndices.add(j);
-                    j++;
-                    continue;
-                }
-
-                // Next assistant message - part of the chain?
-                if (messages[j].role === 'assistant') {
-                    const nextAssistant = messages[j];
-
-                    if (nextAssistant.tool_calls && nextAssistant.tool_calls.length > 0) {
-                        // Another tool call round - merge its steps and continue
-                        if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
-                        if (nextAssistant.content) lastContent = nextAssistant.content;
+                while (j < messages.length) {
+                    // Skip tool result messages
+                    if (messages[j].role === 'tool') {
                         skipIndices.add(j);
                         j++;
                         continue;
                     }
 
-                    if (!nextAssistant.tool_calls && nextAssistant.content) {
-                        // Final answer - merge and stop
-                        lastContent = nextAssistant.content;
-                        if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
-                        skipIndices.add(j);
-                        break;
+                    // Next assistant message - part of the chain?
+                    if (messages[j].role === 'assistant') {
+                        const nextAssistant = messages[j];
+
+                        if (nextAssistant.tool_calls && nextAssistant.tool_calls.length > 0) {
+                            // Another tool call round - merge its steps and continue
+                            if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
+                            if (nextAssistant.content) lastContent = nextAssistant.content;
+                            skipIndices.add(j);
+                            j++;
+                            continue;
+                        }
+
+                        if (!nextAssistant.tool_calls && nextAssistant.content) {
+                            // Final answer - merge and stop
+                            lastContent = nextAssistant.content;
+                            if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
+                            skipIndices.add(j);
+                            break;
+                        }
                     }
+
+                    // Non-assistant, non-tool message - chain ends
+                    break;
                 }
 
-                // Non-assistant, non-tool message - chain ends
-                break;
+                groups.push({
+                    ...msg,
+                    content: lastContent,
+                    steps: chainSteps.length > 0 ? chainSteps : msg.steps,
+                });
+                continue;
             }
 
-            groupedMessages.push({
-                ...msg,
-                content: lastContent,
-                steps: chainSteps.length > 0 ? chainSteps : msg.steps,
-            });
-            continue;
+            groups.push(msg);
         }
-
-        groupedMessages.push(msg);
-    }
+        return groups;
+    }, [messages]);
 
     return (
         <div className="max-w-4xl mx-auto p-4 md:p-8 pb-4 space-y-8 min-h-full flex flex-col justify-end">
@@ -163,27 +167,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
     )
 }
 
-// Markdown 预处理器：修复大模型常见的格式不规范问题
-function preprocessMarkdown(content: string) {
-    if (!content) return "";
 
-    let processed = content;
-
-    // 1. 修复标题：确保 # 后面有空格 (例如 ###标题 -> ### 标题)
-    processed = processed.replace(/^(#{1,6})([^\s#].*)$/gm, "$1 $2");
-
-    // 2. 修复列表：确保 *、- 或数字列表后面有空格 (例如 *列表 -> * 列表)
-    // 仅针对行首的列表符
-    processed = processed.replace(/^([\s]*[*+-])([^\s*+-].*)$/gm, "$1 $2");
-    processed = processed.replace(/^([\s]*\d+\.)([^\s\d].*)$/gm, "$1 $2");
-
-    // 3. 修复换行：在标题和列表之前强制增加一个空行，如果前面不是空行的话
-    // 这样能确保解析器能正确识别块级元素
-    processed = processed.replace(/([^\n])\n(#{1,6}\s)/g, "$1\n\n$2");
-    processed = processed.replace(/([^\n])\n([\s]*[*+-\d]+\.\s)/g, "$1\n\n$2");
-
-    return processed;
-}
 
 function MessageItem({ message }: { message: ChatMessage }) {
     const isUser = message.role === 'user'

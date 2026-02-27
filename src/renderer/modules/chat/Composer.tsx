@@ -204,13 +204,10 @@ export function Composer() {
         isSending,
         sessions,
         activeSessionId,
-        addMessage,
-        updateLastMessage,
-        setSending,
+        sendMessage,
         pendingAttachments,
         addPendingAttachment,
-        removePendingAttachment,
-        clearPendingAttachments
+        removePendingAttachment
     } = useChatStore()
 
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -232,85 +229,18 @@ export function Composer() {
     const handleSend = async () => {
         if (!input.trim() || isSending) return
 
-        const currentSession = sessions[activeSessionId]
-        if (!currentSession) return
-
-        let finalPrompt = input
-
-        // 如果有附件，在 Prompt 前面追加上下文说明
-        if (pendingAttachments.length > 0) {
-            const attachmentInfo = pendingAttachments.map(p => `- ${p}`).join('\n')
-            finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`
-        }
-
         const userInput = input
+        const attachments = [...pendingAttachments]
         setInput('')
 
-        // 1. Add User Message
-        addMessage({ role: 'user', content: userInput })
-
-        // 2. Add Placeholder for Assistant
-        setSending(true)
-        addMessage({ role: 'assistant', content: '' })
-        clearPendingAttachments()
-
-        // 3. Setup Stream Listeners
-        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
-            updateLastMessage((msg) => ({
-                ...msg,
-                content: reset ? chunk : msg.content + chunk
-            }))
-        })
-
-        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
-            updateLastMessage((msg) => ({
-                ...msg,
-                steps: steps
-            }))
-        })
-
-        const cleanupError = window.electronAPI.agent.onError((err: any) => {
-            updateLastMessage((msg) => ({
-                ...msg,
-                content: `Error: ${err.message || JSON.stringify(err)}`,
-                isError: true
-            }))
-        })
-
-        const { setAgentEvent } = useChatStore.getState()
-        const cleanupState = window.electronAPI.agent.onStateChange((event: any) => {
-            console.log('[Composer] Received state change:', event.currentState, event.message);
-            setAgentEvent(event)
-        })
-
-        try {
-            // Start Agent
-            await window.electronAPI.agent.start({
-                sessionId: activeSessionId,
-                prompt: finalPrompt
-            });
-            // Result comes via stream/events
-        } catch (err: any) {
-            updateLastMessage((msg) => ({
-                ...msg,
-                content: `Error: ${err.message}`,
-                isError: true
-            }))
-        } finally {
-            cleanupStream()
-            cleanupTrace()
-            cleanupError()
-            cleanupState()
-            setAgentEvent(null)
-            setSending(false)
-        }
+        await sendMessage(userInput, attachments)
     }
 
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto'
-            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+            textareaRef.current.style.height = '56px'
+            textareaRef.current.style.height = Math.max(56, textareaRef.current.scrollHeight) + 'px'
         }
     }, [input])
 
