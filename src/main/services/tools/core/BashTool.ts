@@ -60,7 +60,7 @@ export class BashTool implements ITool {
         return {
             name: 'bash',
             description: `Execute a shell command with persistent working directory support.
-Target Environment: ${isWindows ? 'Windows Command Prompt (cmd.exe)' : 'Linux/Mac Bash'}.
+Target Environment: ${isWindows ? 'Windows PowerShell' : 'Linux/Mac Bash'}.
 Current Working Directory: ${this.currentCwd}
 
 Features:
@@ -150,14 +150,14 @@ Usage:
     private runCommand(command: string, cwd: string, timeout: number, signal?: AbortSignal): Promise<ToolExecutionResult> {
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
-            // Use shell: true to execute command string
-            const shellOption = isWindows ? (process.env.comspec || 'cmd.exe') : '/bin/bash';
+            // For powershell: powershell.exe -Command "command"
+            const shellOption = isWindows ? 'powershell.exe' : '/bin/bash';
 
             // Construct arguments based on platform
             // spawn(shell, [args], options)
             // For bash: /bin/bash -c "command"
             // For powershell: powershell.exe -Command "command"
-            const shellArgs = isWindows ? ['/c', command] : ['-c', command];
+            const shellArgs = isWindows ? ['-Command', command] : ['-c', command];
 
             const child = spawn(shellOption, shellArgs, {
                 cwd,
