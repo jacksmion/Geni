@@ -31,7 +31,7 @@ export interface IAgentService {
         tools: ITool[],
         options?: AgentRunOptions,
         onStream?: (chunk: string, reset?: boolean) => void,
-        onStepUpdate?: (steps: any[]) => void
+        onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult>;
 
     updateSettings(settings: AppSettings): void;

@@ -10,6 +10,10 @@ export interface AgentStep {
     isComplete: boolean;
     duration?: number; // 耗时(毫秒)
     isError?: boolean;
+    // Authorization state
+    isWaitingAuthorization?: boolean;
+    authRequestId?: string;
+    authReason?: string;
 }
 
 /**

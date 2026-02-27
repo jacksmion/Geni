@@ -154,4 +154,60 @@ export class ContextManager {
         }
         return startIdx;
     }
+
+    // ========================================================================
+    // Tool Output Management
+    // ========================================================================
+
+    /** Truncation limits per tool category */
+    private static readonly LIMITS: Record<string, number> = {
+        'load_skill': 32000,
+        'read': 32000,
+    };
+    private static readonly DEFAULT_LIMIT = 2000;
+
+    /**
+     * Truncate tool execution output to prevent context bloat
+     *
+     * @param toolName Name of the tool that produced the output
+     * @param output Raw tool output
+     * @returns Truncated output
+     */
+    static truncateToolOutput(toolName: string, output: string): string {
+        if (!output) return output;
+        const limit = ContextManager.LIMITS[toolName] ?? ContextManager.DEFAULT_LIMIT;
+        if (output.length <= limit) return output;
+        return output.substring(0, limit) + `\n... [Truncated ${output.length} chars]`;
+    }
+
+    /**
+     * Dehydrate tool call arguments in-place after execution
+     *
+     * For write/edit tools, the arguments contain the full file content
+     * which is no longer needed after execution. Replace with placeholder.
+     *
+     * @param toolName Name of the executed tool
+     * @param toolCallId ID of the tool call
+     * @param messages Current message history (mutated in-place)
+     */
+    static dehydrateToolCall(toolName: string, toolCallId: string, messages: ChatMessage[]): void {
+        if (!['write', 'edit'].includes(toolName)) return;
+
+        const assistantMsg = messages.find(
+            m => m.role === 'assistant' && m.tool_calls?.some(tc => tc.id === toolCallId)
+        );
+        if (!assistantMsg?.tool_calls) return;
+
+        const tc = assistantMsg.tool_calls.find(tc => tc.id === toolCallId);
+        if (!tc) return;
+
+        try {
+            const args = JSON.parse(tc.function.arguments);
+            let modified = false;
+            if (args.content?.length > 1000) { args.content = `<omitted ${args.content.length} chars>`; modified = true; }
+            if (args.target?.length > 500) { args.target = `<omitted ${args.target.length} chars>`; modified = true; }
+            if (args.replacement?.length > 500) { args.replacement = `<omitted ${args.replacement.length} chars>`; modified = true; }
+            if (modified) tc.function.arguments = JSON.stringify(args);
+        } catch { }
+    }
 }

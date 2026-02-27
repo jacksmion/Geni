@@ -18,7 +18,7 @@
  *  ✅ 集成 IChatModel 到 AgentRuntime
  */
 
-import { IAgentService, AgentRunOptions, AgentRunResult } from './IAgent';
+import { IAgentService, AgentRunOptions, AgentRunResult, AgentStep } from './IAgent';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings';
@@ -72,6 +72,9 @@ export class AgentRuntime implements IAgentService {
     private promptBuilder: PromptBuilder;
     private stateManager: AgentStateManager;
     private toolGuard: ToolGuard;
+    private contextManager: ContextManager;
+    private summarizer: Summarizer;
+    private cachedChatModel: IChatModel | null = null;
 
     constructor(settings: AppSettings, toolRegistry: ToolRegistry) {
         this.settings = settings;
@@ -81,10 +84,13 @@ export class AgentRuntime implements IAgentService {
         });
         this.stateManager = new AgentStateManager();
         this.toolGuard = defaultToolGuard;
+        this.contextManager = new ContextManager({ maxTokens: 32000, preserveRecentMessages: 20 });
+        this.summarizer = new Summarizer();
     }
 
     public updateSettings(settings: AppSettings) {
         this.settings = settings;
+        this.cachedChatModel = null; // Invalidate cached model on settings change
         if (settings.systemPrompt) {
             this.promptBuilder.updateConfig({ defaultBasePrompt: settings.systemPrompt });
         }
@@ -118,7 +124,7 @@ export class AgentRuntime implements IAgentService {
         tools: ITool[],
         options?: AgentRuntimeOptions,
         onStream?: (chunk: string, reset?: boolean) => void,
-        onStepUpdate?: (steps: any[]) => void
+        onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult> {
         this.initOptions(options);
         this.stateManager.transition(AgentState.Thinking, 'Starting agent execution');
@@ -127,7 +133,7 @@ export class AgentRuntime implements IAgentService {
         const chatModelTools = this.convertTools(tools);
         let messages = this.prepareMessages(prompt, options);
         const newMessages: ChatMessage[] = [];
-        const steps: any[] = [];
+        const steps: AgentStep[] = [];
 
         let loopCount = 0;
         const MAX_LOOPS = 50;
@@ -179,16 +185,26 @@ export class AgentRuntime implements IAgentService {
     }
 
     private createChatModel(options?: AgentRuntimeOptions): IChatModel {
+        // Reuse cached model if settings haven't changed
+        if (this.cachedChatModel && !options?.model) {
+            return this.cachedChatModel;
+        }
+
         const activeProvider = this.settings.llm.activeProvider || 'OpenAI';
         const providers = this.settings.llm.providers || {};
         const config = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
 
-        return createChatModel(activeProvider, {
+        const model = createChatModel(activeProvider, {
             apiKey: config.apiKey || '',
             baseUrl: config.baseUrl,
             model: options?.model || config.model,
             temperature: config.temperature,
         });
+
+        if (!options?.model) {
+            this.cachedChatModel = model;
+        }
+        return model;
     }
 
     private convertTools(tools: ITool[]): ChatModelToolDefinition[] {
@@ -240,13 +256,13 @@ export class AgentRuntime implements IAgentService {
         if (Summarizer.shouldSummarize(optimized, maxTokens)) {
             this.stateManager.transition(AgentState.Thinking, 'Summarizing history...');
             try {
-                optimized = await new Summarizer().summarize(optimized, chatModel);
+                optimized = await this.summarizer.summarize(optimized, chatModel);
             } catch (e) {
                 console.warn('[AgentRuntime] Summarization failed:', e);
             }
         }
 
-        return new ContextManager({ maxTokens, preserveRecentMessages: 20 }).prune(optimized);
+        return this.contextManager.prune(optimized);
     }
 
     private async executeLlmTurn(
@@ -309,10 +325,10 @@ export class AgentRuntime implements IAgentService {
         tools: ITool[],
         messages: ChatMessage[],
         newMessages: ChatMessage[],
-        steps: any[],
+        steps: AgentStep[],
         thought: string,
         options?: AgentRuntimeOptions,
-        onStepUpdate?: (steps: any[]) => void
+        onStepUpdate?: (steps: AgentStep[]) => void
     ) {
         this.stateManager.transition(AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
 
@@ -358,8 +374,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             const duration = Date.now() - startTime;
 
             let obs = result.result;
-            const limit = ['load_skill', 'read'].includes(fnName) ? 32000 : 2000;
-            if (obs && obs.length > limit) obs = obs.substring(0, limit) + `\n... [Truncated ${obs.length} chars]`;
+            obs = ContextManager.truncateToolOutput(fnName, obs);
             if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
 
             this.recordToolResult(tc.id, obs, messages, newMessages);
@@ -368,11 +383,11 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             step.duration = duration;
             onStepUpdate?.([...steps]);
 
-            this.dehydrateContext(fnName, tc.id, messages);
+            ContextManager.dehydrateToolCall(fnName, tc.id, messages);
         }
     }
 
-    private async checkAuthorization(tc: any, tool: ITool, args: any, thought: string, steps: any[], options?: AgentRuntimeOptions, onStepUpdate?: (steps: any[]) => void): Promise<boolean> {
+    private async checkAuthorization(tc: any, tool: ITool, args: any, thought: string, steps: AgentStep[], options?: AgentRuntimeOptions, onStepUpdate?: (steps: AgentStep[]) => void): Promise<boolean> {
         const requestId = Math.random().toString(36).substring(7);
         const req: ToolExecutionRequest = { requestId, toolName: tc.function.name, definition: tool.getDefinition(), args, tool };
         const decision = this.toolGuard.evaluateRequest(req);
@@ -402,29 +417,15 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
         newMessages.push(msg);
     }
 
-    private dehydrateContext(name: string, id: string, messages: ChatMessage[]) {
-        if (!['write', 'edit'].includes(name)) return;
-        const assistantMsg = messages.find(m => m.role === 'assistant' && m.tool_calls?.some(tc => tc.id === id));
-        if (!assistantMsg?.tool_calls) return;
-        const tc = assistantMsg.tool_calls.find(tc => tc.id === id);
-        if (!tc) return;
-        try {
-            const args = JSON.parse(tc.function.arguments);
-            let modified = false;
-            if (args.content?.length > 1000) { args.content = `<omitted ${args.content.length} chars>`; modified = true; }
-            if (args.target?.length > 500) { args.target = `<omitted ${args.target.length} chars>`; modified = true; }
-            if (args.replacement?.length > 500) { args.replacement = `<omitted ${args.replacement.length} chars>`; modified = true; }
-            if (modified) tc.function.arguments = JSON.stringify(args);
-        } catch { }
-    }
 
-    private handleMaxSteps(steps: any[], newMessages: ChatMessage[], onStream?: (c: string) => void) {
+
+    private handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[], onStream?: (c: string) => void) {
         const warning = `\n\n---\n⚠️ **Max steps reached (50)**\nSend a message to continue.`;
         onStream?.(warning);
         return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
     }
 
-    private handleError(error: any, steps: any[], newMessages: ChatMessage[]) {
+    private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[]) {
         console.error('[AgentRuntime] Error:', error);
         const state = error.message?.includes('aborted') ? AgentState.Aborted : AgentState.Error;
         this.stateManager.transition(state, error.message);
