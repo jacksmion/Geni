@@ -151,7 +151,7 @@ Usage:
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
             // Use shell: true to execute command string
-            const shellOption = isWindows ? 'cmd.exe' : '/bin/bash';
+            const shellOption = isWindows ? (process.env.comspec || 'cmd.exe') : '/bin/bash';
 
             // Construct arguments based on platform
             // spawn(shell, [args], options)
@@ -163,7 +163,7 @@ Usage:
                 cwd,
                 stdio: ['ignore', 'pipe', 'pipe'],
                 windowsHide: true,
-                // env: { ...process.env, FORCE_COLOR: '0' } // Optional: enforce no color
+                env: process.env // 显式传递环境变量，防止丢失 PATH
             });
 
             const stdoutChunks: Buffer[] = [];
