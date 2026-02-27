@@ -107,24 +107,19 @@ export class ToolGuard {
         // 安全工具（只读）
         'read': ToolTrustLevel.Safe,
         'list': ToolTrustLevel.Safe,
+        'glob': ToolTrustLevel.Safe,
+        'grep': ToolTrustLevel.Safe,
         'load_skill': ToolTrustLevel.Safe,
-        'search_files': ToolTrustLevel.Safe,
-        'get_file_info': ToolTrustLevel.Safe,
+        'read_plan': ToolTrustLevel.Safe,
 
         // 低风险工具
         'write': ToolTrustLevel.Low,
-        'create_directory': ToolTrustLevel.Low,
-
-        // 中等风险工具
-        'delete_file': ToolTrustLevel.Medium,
-        'move_file': ToolTrustLevel.Medium,
-        'rename_file': ToolTrustLevel.Medium,
+        'edit': ToolTrustLevel.Low,
+        'create_plan': ToolTrustLevel.Low,
+        'update_task_status': ToolTrustLevel.Low,
 
         // 高风险工具
-        'execute_command': ToolTrustLevel.Dangerous,
         'bash': ToolTrustLevel.Dangerous,
-        'python_exec': ToolTrustLevel.Dangerous,
-        'run_script': ToolTrustLevel.Dangerous
     };
 
     constructor(authorizationCallback?: AuthorizationCallback) {

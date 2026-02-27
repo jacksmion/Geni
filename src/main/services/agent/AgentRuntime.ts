@@ -431,6 +431,3 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
         return { finalAnswer: `Error: ${error.message}`, steps, newMessages };
     }
 }
-
-// 向后兼容: 保留旧类名导出别名
-export { AgentRuntime as OpenAIAgentService };

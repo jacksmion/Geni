@@ -31,7 +31,7 @@ export function MessageList() {
 
     for (let i = 0; i < messages.length; i++) {
         const msg = messages[i];
-        if (skipIds.has(msg.id)) continue;
+        if (msg.id && skipIds.has(msg.id)) continue;
 
         // Ensure we are skipping tool outputs as they are handled inside steps or merged (if logic changes later)
         // But the primary goal here is to merge Assistant (Tool Call) + Assistant (Answer)
@@ -57,7 +57,7 @@ export function MessageList() {
                         steps: msg.steps || nextMsg.steps,
                     };
                     groupedMessages.push(mergedMsg);
-                    skipIds.add(nextMsg.id); // Skip the answer message in main loop
+                    if (nextMsg.id) skipIds.add(nextMsg.id); // Skip the answer message in main loop
                     continue;
                 }
             }
@@ -313,11 +313,11 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             {isUser ? (
                                 <>
                                     <CopyButton text={content} className="p-0.5" />
-                                    <span>{new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} · You</span>
+                                    <span>{new Date(message.timestamp || Date.now()).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} · You</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Geni · {new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span>Geni · {new Date(message.timestamp || Date.now()).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                                     <CopyButton text={content} className="p-0.5" />
                                 </>
                             )}

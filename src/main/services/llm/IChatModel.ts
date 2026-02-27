@@ -9,55 +9,9 @@
  * - 支持 User/Assistant/System/Tool 四种消息角色
  */
 
-// ============================================================================
-// 消息类型定义
-// ============================================================================
-
-/**
- * 消息角色枚举
- */
-export type ChatMessageRole = 'user' | 'assistant' | 'system' | 'tool';
-
-/**
- * 工具调用定义 - 统一格式
- */
-export interface ToolCall {
-    /** 工具调用的唯一标识符 */
-    id: string;
-    /** 工具类型 (目前只支持 'function') */
-    type: 'function';
-    /** 函数调用详情 */
-    function: {
-        /** 函数名称 */
-        name: string;
-        /** 函数参数 (JSON 字符串) */
-        arguments: string;
-    };
-}
-
-/**
- * 统一消息格式
- * 
- * 支持四种消息角色:
- * - user: 用户消息
- * - assistant: 助手消息 (可能包含工具调用)
- * - system: 系统提示
- * - tool: 工具执行结果
- */
-export interface ChatMessage {
-    /** 消息角色 */
-    role: ChatMessageRole;
-    /** 消息内容 (对于 tool 角色，这是工具执行结果) */
-    content: string | null;
-    /** 工具调用列表 (仅 assistant 角色使用) */
-    tool_calls?: ToolCall[];
-    /** 工具调用 ID (仅 tool 角色使用，对应 ToolCall.id) */
-    tool_call_id?: string;
-    /** 推理内容 (用于 DeepSeek R1 等推理模型) */
-    reasoning_content?: string;
-    /** UI 展示用的步骤追踪 (应用层扩展) */
-    steps?: any[];
-}
+// Re-export unified types from common (Single Source of Truth)
+import type { ChatMessageRole, ChatMessage, ToolCall } from '../../../common/types/chat';
+export type { ChatMessageRole, ChatMessage, ToolCall };
 
 // ============================================================================
 // 流式事件类型定义

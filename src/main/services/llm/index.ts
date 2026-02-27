@@ -23,7 +23,7 @@ export type {
 } from './IChatModel';
 
 // 工厂
-export { createChatModel, ChatModelManager, chatModelManager } from './ChatModelFactory';
+export { createChatModel } from './ChatModelFactory';
 export type { SupportedProvider } from './ChatModelFactory';
 
 // 适配器 (通常不需要直接使用，通过工厂创建)

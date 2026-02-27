@@ -1,18 +1,18 @@
-# Cowork Project - AI Agent Documentation
+# Geni Project - AI Agent Documentation
 
-> **Last Updated**: 2026-02-07  
-> **Architecture Version**: V3.0 - Layered Architecture
+> **Last Updated**: 2026-02-27  
+> **Architecture Version**: V3.1 - Layered Architecture
 
 ## 1. Project Overview
 
-**Cowork** is an Electron-based AI coding assistant designed to act as a "Virtual Pair Programmer". It adopts a **Layered Architecture** with clear separation of concerns:
+**Geni** is an Electron-based AI coding assistant designed to act as a "Virtual Pair Programmer". It adopts a **Layered Architecture** with clear separation of concerns:
 
 - **Agent Kernel**: Core runtime with explicit state machine
 - **Cognitive Layer**: LLM provider abstraction (OpenAI/Claude/DeepSeek)
 - **Capability Layer**: Tools (Functions) + Skills (Knowledge)
 - **Infrastructure Layer**: Session management and persistence
 
-## 2. Architecture (V3: Layered Architecture)
+## 2. Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -28,7 +28,7 @@
 │         OpenAIAdapter │ AnthropicAdapter │ ChatModelFactory      │
 ├─────────────────────────────────────────────────────────────────┤
 │                 Capability Layer (Tools + Skills)                │
-│   ToolRegistry │ Core Tools │ MCP Manager │ SkillRegistry        │
+│   ToolRegistry │ CoreToolManager │ MCP Manager │ SkillRegistry  │
 ├─────────────────────────────────────────────────────────────────┤
 │                Infrastructure (Session + Storage)                │
 │              SessionManager │ SessionStorage                     │
@@ -40,8 +40,9 @@
 - **Tool-First Philosophy**: The Agent's core loop is `Think -> Act (Call Tool) -> Observe (Result) -> Reflect`.
 - **ITool Interface**: The universal atom of capability. Everything is wrapped as an `ITool`.
 - **Skill as Data**: Skills are "knowledge capsules" (SOP, expert experience), not executable functions.
-- **Lazy Loading**: System Prompt only contains skill catalog; full content loaded via `read_skill`.
+- **Lazy Loading**: System Prompt only contains skill catalog; full content loaded via `load_skill`.
 - **Model Agnostic**: Single interface (`IChatModel`) for all LLM providers.
+- **Single Source of Truth for Types**: All shared types (`ChatMessage`, `ToolCall`, `AgentStep`) defined in `common/types/`.
 
 ### 2.2 System Layers
 
@@ -126,6 +127,7 @@ interface IChatModel {
 | Event Type | Description |
 |:-----------|:------------|
 | `content_delta` | Text content increment |
+| `reasoning_delta` | Reasoning content increment (DeepSeek R1) |
 | `tool_call_delta` | Tool call argument increment |
 | `message_start` | Message began |
 | `message_end` | Message completed (with usage stats) |
@@ -137,20 +139,27 @@ interface IChatModel {
 
 Central registry for all available tools. Maps tool names to implementations.
 
-### 5.2 Built-in Tools (`src/main/services/tools/core/`)
+### 5.2 CoreToolManager (`src/main/services/tools/core/CoreToolManager.ts`)
+
+Manages lifecycle of built-in tools: registration, refresh on settings change, trust levels.
+
+### 5.3 Built-in Tools (`src/main/services/tools/core/`)
 
 | Tool Name | Class | Description |
 |:----------|:------|:------------|
+| `list` | `ListDirTool` | Lists files and directories in a path |
+| `read` | `ReadFileTool` | Reads file content with line range support |
+| `write` | `WriteFileTool` | Writes/overwrites/appends file content |
+| `edit` | `FileEditTool` | Smart search & replace in files |
 | `bash` | `BashTool` | Executes shell commands (PowerShell/Bash) |
-| `read_file` | `FileSystemTool` | Reads file content |
-| `write_file` | `FileEditTool` | Writes/Overwrites file content |
-| `replace_content` | `FileEditTool` | Smart search & replace in files |
-| `file_search` | `FileSearchTool` | Finds files via regex/glob |
-| `python_exec` | `PythonExecTool` | Runs Python scripts |
-| `environment_info` | `EnvironmentInfoTool` | Returns system environment info |
-| `read_skill` | `SkillReaderTool` | Loads full instructions for a specific skill |
+| `glob` | `GlobTool` | Finds files via glob patterns |
+| `grep` | `GrepTool` | Searches for text patterns within files |
+| `load_skill` | `SkillLoaderTool` | Loads full instructions for a specific skill |
+| `create_plan` | `CreatePlanTool` | Creates a new project plan |
+| `read_plan` | `ReadPlanTool` | Reads an existing plan |
+| `update_task_status` | `UpdateTaskStatusTool` | Updates a task in a plan |
 
-### 5.3 MCP Integration (`src/main/services/tools/mcp/`)
+### 5.4 MCP Integration (`src/main/services/tools/mcp/`)
 
 Model Context Protocol support for external tool servers:
 
@@ -163,12 +172,12 @@ Supports both **Stdio** and **SSE** transport methods.
 
 ## 6. Skill System
 
-### 6.1 Skill Philosophy (Claude Skills Aligned)
+### 6.1 Skill Philosophy
 
 Skills are **"pluggable knowledge capsules"**:
 - **Nature**: NOT executable code, but SOP, expert experience, prompt templates
 - **Purpose**: Let Agent "download" expert thinking patterns for specific tasks
-- **Consumption**: Lazy Loading via `read_skill` tool
+- **Consumption**: Lazy Loading via `load_skill` tool
 
 ### 6.2 Skill Components (`src/main/services/skills/`)
 
@@ -176,7 +185,6 @@ Skills are **"pluggable knowledge capsules"**:
 |:----------|:-----|:--------|
 | `SkillParser` | `core/SkillParser.ts` | Parses SKILL.md frontmatter (zod validation) |
 | `SkillRegistry` | `core/SkillRegistry.ts` | Skill registration center |
-| `SkillReader` | `runtime/SkillReader.ts` | `read_skill` tool implementation |
 
 ### 6.3 SKILL.md Format
 
@@ -214,9 +222,25 @@ interface ChatSession {
 }
 ```
 
-## 8. IPC & Controllers
+## 8. Shared Type System (`src/common/types/`)
 
-### 8.1 Controller Layer (`src/main/controllers/`)
+All shared types are defined in `src/common/types/` as the **Single Source of Truth**:
+
+| Type | File | Used By |
+|:-----|:-----|:--------|
+| `ChatMessage` | `chat.ts` | LLM layer, Agent, Session, UI |
+| `ToolCall` | `chat.ts` | LLM layer, Agent, UI |
+| `AgentStep` | `chat.ts` | Agent, UI |
+| `ChatSession` | `chat.ts` | Session, UI |
+| `ITool` | `tool.ts` | Tools, Agent |
+| `Skill` | `skill.ts` | Skills, Agent |
+| `AppSettings` | `settings.ts` | All layers |
+
+> **Important**: The LLM layer (`IChatModel.ts`) re-exports `ChatMessage`, `ToolCall`, and `ChatMessageRole` from `common/types/chat.ts`. Do NOT define duplicate types.
+
+## 9. IPC & Controllers
+
+### 9.1 Controller Layer (`src/main/controllers/`)
 
 | Controller | File | Purpose |
 |:-----------|:-----|:--------|
@@ -225,7 +249,7 @@ interface ChatSession {
 | `SystemController` | `SystemController.ts` | Settings, file dialogs, LLM test |
 | `ToolController` | `ToolController.ts` | Skill toggle, MCP management |
 
-### 8.2 IPC Channels (`src/common/ipc/channels.ts`)
+### 9.2 IPC Channels (`src/common/ipc/channels.ts`)
 
 ```typescript
 // Agent
@@ -244,124 +268,124 @@ system:get-settings, system:save-settings, system:select-file, system:test-llm
 tool:get-skills, tool:toggle-skill, tool:mcp-connect, tool:mcp-list-tools
 ```
 
-### 8.3 AppRouter (`src/main/router.ts`)
+### 9.3 AppRouter (`src/main/router.ts`)
 
 Acts as the **Dependency Injection Container**:
 - Instantiates all services and controllers
 - Wires dependencies together
 - Initializes all IPC handlers
 
-## 9. Directory Structure
+## 10. Directory Structure
 
 ```
-d:/VibeCode/cowork/
-├── src/
-│   ├── common/                    # Shared Types & IPC
-│   │   ├── ipc/
-│   │   │   └── channels.ts        # IPC channel constants
-│   │   └── types/
-│   │       ├── agent.ts           # Agent types
-│   │       ├── agentEvents.ts     # IPC request/response types
-│   │       ├── chat.ts            # ChatSession, ChatMessage
-│   │       ├── settings.ts        # AppSettings
-│   │       ├── skill.ts           # Skill types
-│   │       └── tool.ts            # ITool, ToolDefinition
-│   ├── main/                      # Backend Logic
-│   │   ├── main.ts                # Entry point (slim, ~109 lines)
-│   │   ├── preload.ts             # Electron preload bridge
-│   │   ├── router.ts              # AppRouter (DI Container)
-│   │   ├── controllers/           # IPC Controllers
-│   │   │   ├── AgentController.ts
-│   │   │   ├── SessionController.ts
-│   │   │   ├── SystemController.ts
-│   │   │   └── ToolController.ts
-│   │   └── services/
-│   │       ├── agent/             # Agent Kernel
-│   │       │   ├── AgentRuntime.ts
-│   │       │   ├── PromptBuilder.ts
-│   │       │   ├── ToolGuard.ts
-│   │       │   ├── ContextManager.ts
-│   │       │   ├── TokenCounter.ts
-│   │       │   ├── Summarizer.ts
-│   │       │   └── state/
-│   │       │       └── AgentState.ts
-│   │       ├── llm/               # Cognitive Layer
-│   │       │   ├── IChatModel.ts
-│   │       │   ├── ChatModelFactory.ts
-│   │       │   └── providers/
-│   │       │       ├── OpenAIAdapter.ts
-│   │       │       └── AnthropicAdapter.ts
-│   │       ├── tools/             # Capability Layer - Hard
-│   │       │   ├── ToolRegistry.ts
-│   │       │   ├── core/          # Built-in tools
-│   │       │   │   ├── BashTool.ts
-│   │       │   │   ├── FileSystemTool.ts
-│   │       │   │   ├── FileEditTool.ts
-│   │       │   │   ├── FileSearchTool.ts
-│   │       │   │   ├── PythonExecTool.ts
-│   │       │   │   ├── EnvironmentInfoTool.ts
-│   │       │   │   └── SkillReaderTool.ts
-│   │       │   └── mcp/           # MCP Integration
-│   │       │       ├── McpManager.ts
-│   │       │       └── McpToolAdapter.ts
-│   │       ├── skills/            # Capability Layer - Soft
-│   │       │   ├── core/
-│   │       │   │   ├── SkillParser.ts
-│   │       │   │   └── SkillRegistry.ts
-│   │       │   └── runtime/
-│   │       │       └── SkillReader.ts
-│   │       ├── session/           # Infrastructure Layer
-│   │       │   ├── SessionManager.ts
-│   │       │   └── SessionStorage.ts
-│   │       └── ConfigManager.ts
-│   └── renderer/                  # Frontend UI
-│       ├── store/                 # Zustand State
-│       │   └── useChatStore.ts
-│       └── components/            # React Components
-├── skills/                        # Skill definitions (SKILL.md files)
-├── docs/                          # Documentation
-│   ├── Architecture_and_Skills_Revamp.md  # Architecture blueprint
-│   └── Refactoring_Tasks.md       # Refactoring task list
-└── package.json
+src/
+├── common/                    # Shared Types & IPC
+│   ├── ipc/
+│   │   └── channels.ts        # IPC channel constants
+│   └── types/
+│       ├── chat.ts            # ChatMessage, ToolCall, AgentStep, ChatSession (SSoT)
+│       ├── agentEvents.ts     # IPC request/response types
+│       ├── settings.ts        # AppSettings
+│       ├── skill.ts           # Skill types
+│       └── tool.ts            # ITool, ToolDefinition
+├── main/                      # Backend Logic
+│   ├── main.ts                # Entry point
+│   ├── preload.ts             # Electron preload bridge
+│   ├── router.ts              # AppRouter (DI Container)
+│   ├── controllers/           # IPC Controllers
+│   │   ├── AgentController.ts
+│   │   ├── SessionController.ts
+│   │   ├── SystemController.ts
+│   │   └── ToolController.ts
+│   └── services/
+│       ├── agent/             # Agent Kernel
+│       │   ├── AgentRuntime.ts
+│       │   ├── IAgent.ts
+│       │   ├── PromptBuilder.ts
+│       │   ├── ToolGuard.ts
+│       │   ├── ContextManager.ts
+│       │   ├── TokenCounter.ts
+│       │   ├── Summarizer.ts
+│       │   └── state/
+│       │       └── AgentState.ts
+│       ├── llm/               # Cognitive Layer
+│       │   ├── IChatModel.ts   # Interface + re-exports from common
+│       │   ├── ChatModelFactory.ts
+│       │   └── providers/
+│       │       ├── OpenAIAdapter.ts
+│       │       └── AnthropicAdapter.ts
+│       ├── tools/             # Capability Layer - Hard
+│       │   ├── ToolRegistry.ts
+│       │   ├── core/          # Built-in tools
+│       │   │   ├── CoreToolManager.ts
+│       │   │   ├── BashTool.ts
+│       │   │   ├── ListDirTool.ts
+│       │   │   ├── ReadFileTool.ts
+│       │   │   ├── WriteFileTool.ts
+│       │   │   ├── FileEditTool.ts
+│       │   │   ├── GlobTool.ts
+│       │   │   ├── GrepTool.ts
+│       │   │   ├── SkillLoaderTool.ts
+│       │   │   └── planning/
+│       │   │       ├── CreatePlanTool.ts
+│       │   │       ├── ReadPlanTool.ts
+│       │   │       └── UpdateTaskStatusTool.ts
+│       │   └── mcp/           # MCP Integration
+│       │       ├── McpManager.ts
+│       │       └── McpToolAdapter.ts
+│       ├── skills/            # Capability Layer - Soft
+│       │   └── core/
+│       │       ├── SkillParser.ts
+│       │       └── SkillRegistry.ts
+│       ├── session/           # Infrastructure Layer
+│       │   ├── SessionManager.ts
+│       │   └── SessionStorage.ts
+│       ├── ConfigManager.ts
+│       └── PathManager.ts
+└── renderer/                  # Frontend UI
+    ├── store/                 # Zustand State
+    │   └── useChatStore.ts
+    └── components/            # React Components
 ```
 
-## 10. Development Guidelines
+## 11. Development Guidelines
 
-### 10.1 Adding a New Tool
+### 11.1 Adding a New Tool
 
 1. Create a class implementing `ITool` in `src/main/services/tools/core/`
 2. Define `getDefinition()` with `input_schema` using JSON Schema
 3. Implement `execute(input)` method
-4. Set `requireConfirmation` for dangerous operations
-5. Register in `main.ts` via `toolRegistry.register(new YourTool())`
+4. Register in `CoreToolManager.ts` `toolFactories` map
 
-### 10.2 Adding a New LLM Provider
+### 11.2 Adding a New LLM Provider
 
 1. Create adapter implementing `IChatModel` in `src/main/services/llm/providers/`
 2. Implement `stream()` method converting provider events to `ChatStreamEvent`
 3. Add provider to `ChatModelFactory.createChatModel()`
 4. Update `normalizeProviderId()` for provider aliases
 
-### 10.3 Adding a New Skill
+### 11.3 Adding a New Skill
 
 1. Create directory under `skills/`
 2. Create `SKILL.md` with frontmatter (id, name, description, version)
 3. Write detailed instructions in markdown body
 4. Skills are auto-loaded on startup
 
-### 10.4 Modifying Agent Logic
+### 11.4 Modifying Agent Logic
 
 - Core loop: `src/main/services/agent/AgentRuntime.ts`
 - State transitions: `src/main/services/agent/state/AgentState.ts`
 - Security: `src/main/services/agent/ToolGuard.ts`
 - Ensure `onStream` and `onStepUpdate` callbacks are called for UI sync
 
-### 10.5 State Changes
+### 11.5 Type Changes
 
-- Message formats: Update `src/common/types/chat.ts` AND `src/renderer/store/useChatStore.ts`
+- **All shared types**: Define in `src/common/types/` (Single Source of Truth)
+- **LLM layer**: Re-exports from common via `IChatModel.ts`
+- **Never define duplicate types** across layers
 - IPC protocols: Update `src/common/ipc/channels.ts` AND `src/main/preload.ts`
 
-## 11. Key Files Quick Reference
+## 12. Key Files Quick Reference
 
 | Purpose | File Path |
 |:--------|:----------|
@@ -370,9 +394,9 @@ d:/VibeCode/cowork/
 | Agent Core | `src/main/services/agent/AgentRuntime.ts` |
 | LLM Interface | `src/main/services/llm/IChatModel.ts` |
 | Tool Registry | `src/main/services/tools/ToolRegistry.ts` |
+| Tool Manager | `src/main/services/tools/core/CoreToolManager.ts` |
 | Skill Registry | `src/main/services/skills/core/SkillRegistry.ts` |
 | Session Manager | `src/main/services/session/SessionManager.ts` |
+| Shared Types | `src/common/types/chat.ts` |
 | IPC Channels | `src/common/ipc/channels.ts` |
 | Preload Bridge | `src/main/preload.ts` |
-| Chat Types | `src/common/types/chat.ts` |
-| Tool Types | `src/common/types/tool.ts` |

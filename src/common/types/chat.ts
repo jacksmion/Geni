@@ -1,4 +1,6 @@
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
+/** Alias for backward compatibility with LLM layer */
+export type ChatMessageRole = MessageRole;
 
 export interface AgentStep {
     thought?: string;
@@ -7,10 +9,11 @@ export interface AgentStep {
     observation?: string;
     isComplete: boolean;
     duration?: number; // 耗时(毫秒)
+    isError?: boolean;
 }
 
 /**
- * Enhanced Tool Call for storage and UI
+ * Unified Tool Call format
  */
 export interface ToolCall {
     id: string;
@@ -21,15 +24,25 @@ export interface ToolCall {
     };
 }
 
+/**
+ * Unified ChatMessage format
+ *
+ * Used across all layers:
+ * - LLM layer: wire format for API communication (id/timestamp not needed)
+ * - Agent layer: runtime processing
+ * - Session layer: persistence (id/timestamp required)
+ * - UI layer: display (id/timestamp required)
+ */
 export interface ChatMessage {
-    id: string;
+    id?: string;
     role: MessageRole;
     content: string | null;
-    timestamp: number;
+    timestamp?: number;
     // LLM Specific
     tool_calls?: ToolCall[];
     tool_call_id?: string;
-    // UI Specific
+    reasoning_content?: string;
+    // Agent / UI Specific
     steps?: AgentStep[];
     isError?: boolean;
 }
