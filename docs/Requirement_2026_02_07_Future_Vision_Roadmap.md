@@ -1,4 +1,4 @@
-# Cowork Project - Future Vision & Roadmap
+# Geni Project - Future Vision & Roadmap
 
 > **Last Updated**: 2026-02-07
 > **Status**: Planning Phase
