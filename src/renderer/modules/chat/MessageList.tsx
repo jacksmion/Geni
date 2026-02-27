@@ -216,17 +216,17 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             text-slate-900 dark:text-zinc-100
                             
                             /* Paragraph styling */
-                            prose-p:text-[15.5px] prose-p:leading-7 prose-p:my-4 prose-p:last:mb-0
+                            prose-p:text-[14.5px] prose-p:leading-relaxed prose-p:my-3 prose-p:last:mb-0
                             
                             /* Heading styling */
                             prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-                            prose-h1:text-2xl prose-h1:mt-8 prose-h1:mb-4
-                            prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3
-                            prose-h3:text-lg prose-h3:mt-5 prose-h3:mb-2
+                            prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
+                            prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
+                            prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
                             
                             /* List styling - The Core Fix */
-                            prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
-                            prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
+                            prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px]
+                            prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px]
                             prose-li:my-1 prose-li:pl-1
                             prose-li:prose-p:my-0 /* Fixes gap in loose lists */
                             prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
@@ -242,20 +242,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                    p: ({ children }) => {
-                                        const childrenArray = React.Children.toArray(children);
-
-
-
-
-                                        // 自动检测 Emoji 开头的行并添加间距
-                                        const firstChild = childrenArray[0];
-                                        if (typeof firstChild === 'string' && /^[\u{1F300}-\u{1F9FF}]/u.test(firstChild)) {
-                                            return <p className="flex items-start gap-2 h-auto py-1">{children}</p>;
-                                        }
-
-                                        return <p>{children}</p>;
-                                    },
+                                    p: ({ children }) => <p>{children}</p>,
                                     ul: ({ className, ...props }) => <ul className={cn("list-disc pl-6 my-3 space-y-1", className)} {...props} />,
                                     ol: ({ className, ...props }) => <ol className={cn("list-decimal pl-6 my-3 space-y-1", className)} {...props} />,
                                     li: ({ className, ...props }) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
