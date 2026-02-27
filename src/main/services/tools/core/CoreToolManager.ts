@@ -8,7 +8,7 @@ import { FileEditTool } from './FileEditTool';
 import { GlobTool } from './GlobTool';
 import { GrepTool } from './GrepTool';
 import { SkillLoaderTool } from './SkillLoaderTool';
-import { CreatePlanTool, UpdateTaskStatusTool, ReadPlanTool } from './planning/PlanningTools';
+import { TodoWriteTool, TodoReadTool } from './TodoTool';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
 
@@ -41,9 +41,8 @@ export class CoreToolManager {
             'edit': () => new FileEditTool(this.workspacePath),
             'glob': () => new GlobTool(this.workspacePath),
             'grep': () => new GrepTool(this.workspacePath),
-            'create_plan': () => new CreatePlanTool(this.workspacePath),
-            'update_task_status': () => new UpdateTaskStatusTool(this.workspacePath),
-            'read_plan': () => new ReadPlanTool(this.workspacePath),
+            'todowrite': () => new TodoWriteTool(),
+            'todoread': () => new TodoReadTool(),
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager)
         };
 
@@ -53,9 +52,8 @@ export class CoreToolManager {
             'read',
             'glob',
             'grep',
-            'read_plan',
-            'create_plan',
-            'update_task_status',
+            'todowrite',
+            'todoread',
             'load_skill'
         ];
 
@@ -95,12 +93,11 @@ export class CoreToolManager {
             'read',
             'glob',
             'grep',
-            'read_plan',
-            'create_plan',
-            'update_task_status',
+            'todowrite',
+            'todoread',
             'load_skill'
         ];
-        const hiddenTools = ['create_plan', 'update_task_status', 'read_plan', 'load_skill'];
+        const hiddenTools = ['todowrite', 'todoread', 'load_skill'];
 
         // This is a static list of all core tools we support, with their descriptions
         const allCoreTools = [
@@ -111,9 +108,8 @@ export class CoreToolManager {
             { name: 'edit', description: 'Edit existing files with advanced matching' },
             { name: 'glob', description: 'Search for files using glob patterns' },
             { name: 'grep', description: 'Search for text patterns within files' },
-            { name: 'create_plan', description: 'Create a new project plan' },
-            { name: 'update_task_status', description: 'Update a task in a plan' },
-            { name: 'read_plan', description: 'Read an existing plan' },
+            { name: 'todowrite', description: 'Create or update the todo list' },
+            { name: 'todoread', description: 'Read the current todo list' },
             { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' }
         ];
 
@@ -137,8 +133,8 @@ export class CoreToolManager {
         // We use the full list to ensure even currently disabled or hidden tools are cleaned up from registry
         const allCoreTools = [
             'list', 'read', 'write', 'bash', 'edit',
-            'glob', 'grep', 'create_plan', 'update_task_status',
-            'read_plan', 'load_skill'
+            'glob', 'grep', 'todowrite', 'todoread',
+            'load_skill'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));
 

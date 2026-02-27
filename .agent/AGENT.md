@@ -155,9 +155,8 @@ Manages lifecycle of built-in tools: registration, refresh on settings change, t
 | `glob` | `GlobTool` | Finds files via glob patterns |
 | `grep` | `GrepTool` | Searches for text patterns within files |
 | `load_skill` | `SkillLoaderTool` | Loads full instructions for a specific skill |
-| `create_plan` | `CreatePlanTool` | Creates a new project plan |
-| `read_plan` | `ReadPlanTool` | Reads an existing plan |
-| `update_task_status` | `UpdateTaskStatusTool` | Updates a task in a plan |
+| `todowrite` | `TodoWriteTool` | Creates/updates the entire todo list |
+| `todoread` | `TodoReadTool` | Reads the current todo list |
 
 ### 5.4 MCP Integration (`src/main/services/tools/mcp/`)
 
@@ -326,10 +325,7 @@ src/
 │       │   │   ├── GlobTool.ts
 │       │   │   ├── GrepTool.ts
 │       │   │   ├── SkillLoaderTool.ts
-│       │   │   └── planning/
-│       │   │       ├── CreatePlanTool.ts
-│       │   │       ├── ReadPlanTool.ts
-│       │   │       └── UpdateTaskStatusTool.ts
+│       │   │   └── TodoTool.ts
 │       │   └── mcp/           # MCP Integration
 │       │       ├── McpManager.ts
 │       │       └── McpToolAdapter.ts

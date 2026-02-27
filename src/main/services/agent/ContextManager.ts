@@ -204,9 +204,9 @@ export class ContextManager {
         try {
             const args = JSON.parse(tc.function.arguments);
             let modified = false;
-            if (args.content?.length > 1000) { args.content = `<omitted ${args.content.length} chars>`; modified = true; }
-            if (args.target?.length > 500) { args.target = `<omitted ${args.target.length} chars>`; modified = true; }
-            if (args.replacement?.length > 500) { args.replacement = `<omitted ${args.replacement.length} chars>`; modified = true; }
+            if (args.content?.length > 1000) { args.content = `[FILE_CONTENT_DEHYDRATED: ${args.content.length} chars written to disk — do not reuse this placeholder]`; modified = true; }
+            if (args.target?.length > 500) { args.target = `[MATCH_TARGET_DEHYDRATED: ${args.target.length} chars — do not reuse this placeholder]`; modified = true; }
+            if (args.replacement?.length > 500) { args.replacement = `[REPLACEMENT_DEHYDRATED: ${args.replacement.length} chars — do not reuse this placeholder]`; modified = true; }
             if (modified) tc.function.arguments = JSON.stringify(args);
         } catch { }
     }

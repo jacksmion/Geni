@@ -58,6 +58,16 @@ export class FileEditTool implements ITool {
             if (!target) throw new Error('Target string is empty');
             if (target === replacement) throw new Error('Target and replacement are identical');
 
+            // Guard: Detect dehydrated placeholder that LLM may have copied from history
+            if (target?.includes('DEHYDRATED:') || target?.includes('<omitted ') ||
+                replacement?.includes('DEHYDRATED:') || replacement?.includes('<omitted ')) {
+                return {
+                    toolName: 'edit',
+                    isError: true,
+                    result: "Error: The target or replacement contains a dehydrated placeholder from conversation history. You must provide the actual content — not a placeholder. Please regenerate and try again."
+                };
+            }
+
             let content = await fs.readFile(fullPath, 'utf-8');
 
             // Use the robust replacement logic

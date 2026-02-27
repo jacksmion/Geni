@@ -62,6 +62,15 @@ export class WriteFileTool implements ITool {
             };
         }
 
+        // Guard: Detect dehydrated placeholder content that LLM may have copied from history
+        if (content.includes('DEHYDRATED:') || content.includes('<omitted ')) {
+            return {
+                toolName: 'write',
+                isError: true,
+                result: "Error: The 'content' argument contains a dehydrated placeholder from conversation history. You must provide the actual, complete file content — not a placeholder. Please regenerate the full content and try again."
+            };
+        }
+
         // Security Check: Prevent directory traversal outside root
         const fullPath = path.resolve(this.allowedRoot, relPath);
         if (!fullPath.startsWith(this.allowedRoot)) {
