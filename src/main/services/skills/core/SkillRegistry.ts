@@ -2,8 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SkillObject, SkillParser } from './SkillParser';
 import { existsSync } from 'fs';
-
-export type SkillSource = 'builtin' | 'global' | 'project';
+export type SkillSource = 'builtin' | 'global' | 'project' | 'dotAgents';
 
 export class SkillRegistry {
     private skills: Map<string, SkillObject> = new Map();

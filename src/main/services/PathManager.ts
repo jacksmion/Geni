@@ -23,6 +23,7 @@ export class PathManager {
     private sessionsDir: string;
     private globalSkillsDir: string;
     private builtinSkillsDir: string;
+    private dotAgentsDir: string;
     private migrationMarkerFile: string;
 
     // Legacy paths (for migration)
@@ -40,6 +41,8 @@ export class PathManager {
         this.globalSkillsDir = path.join(this.rootDir, 'skills');
         // Built-in skills: {appRoot}/skills/ (app root in dev, or packaged app root in prod)
         this.builtinSkillsDir = path.join(appPath, 'skills');
+        // Legacy external agents directory
+        this.dotAgentsDir = path.join(os.homedir(), '.agents', 'skills');
         this.migrationMarkerFile = path.join(this.rootDir, '.migrated');
 
         // Legacy paths (for migration)
@@ -137,10 +140,10 @@ export class PathManager {
     /**
      * Get all skills load paths (in priority order)
      * @param workspacePath - The workspace path for project skills
-     * @returns [builtin, global, project] - project skills override global, global override builtin
+     * @returns [builtin, dotAgents, global, project]
      */
     public getSkillsLoadPaths(workspacePath: string): string[] {
-        return [this.builtinSkillsDir, this.globalSkillsDir, this.getProjectSkillsDir(workspacePath)];
+        return [this.builtinSkillsDir, this.dotAgentsDir, this.globalSkillsDir, this.getProjectSkillsDir(workspacePath)];
     }
 
     // ==================== Directory Existence Checks ====================
@@ -167,16 +170,25 @@ export class PathManager {
     }
 
     /**
+     * Check if .agents directory exists
+     */
+    public dotAgentsExists(): boolean {
+        return fs.existsSync(this.dotAgentsDir);
+    }
+
+    /**
      * Get skills load info (which directories exist)
      */
     public getSkillsLoadInfo(workspacePath: string): {
         builtin: { path: string; exists: boolean };
         global: { path: string; exists: boolean };
+        dotAgents: { path: string; exists: boolean };
         project: { path: string; exists: boolean };
     } {
         return {
             builtin: { path: this.builtinSkillsDir, exists: this.builtinSkillsExists() },
             global: { path: this.globalSkillsDir, exists: this.globalSkillsExists() },
+            dotAgents: { path: this.dotAgentsDir, exists: this.dotAgentsExists() },
             project: { path: this.getProjectSkillsDir(workspacePath), exists: this.projectSkillsExists(workspacePath) }
         };
     }

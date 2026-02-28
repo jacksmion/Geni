@@ -82,8 +82,7 @@ app.whenReady().then(async () => {
     // Check which skills directories exist before loading
     const skillsInfo = pathManager.getSkillsLoadInfo(workspacePath);
     console.log('[Main] Skills directories status:', skillsInfo);
-
-    const skillsToLoad: Array<{ path: string; source: 'builtin' | 'global' | 'project' }> = [];
+    const skillsToLoad: Array<{ path: string; source: 'builtin' | 'global' | 'project' | 'dotAgents' }> = [];
 
     // Built-in skills (should always exist)
     if (skillsInfo.builtin.exists) {
@@ -99,6 +98,14 @@ app.whenReady().then(async () => {
         console.log('[Main] Will load global skills from:', skillsInfo.global.path);
     } else {
         console.log('[Main] Global skills directory not found, skipping:', skillsInfo.global.path);
+    }
+
+    // dotAgents skills (~/.agents/skills)
+    if (skillsInfo.dotAgents.exists) {
+        skillsToLoad.push({ path: skillsInfo.dotAgents.path, source: 'dotAgents' });
+        console.log('[Main] Will load dotAgents skills from:', skillsInfo.dotAgents.path);
+    } else {
+        console.log('[Main] dotAgents skills directory not found, skipping:', skillsInfo.dotAgents.path);
     }
 
     // Project skills (may not exist for projects without custom skills)
