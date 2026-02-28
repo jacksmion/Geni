@@ -74,6 +74,7 @@ export class AgentRuntime implements IAgentService {
     private toolGuard: ToolGuard;
     private contextManager: ContextManager;
     private summarizer: Summarizer;
+    private stateChangeCallback?: (event: AgentStateEvent) => void;
 
     constructor(settings: AppSettings, toolRegistry: ToolRegistry) {
         this.settings = settings;
@@ -98,8 +99,11 @@ export class AgentRuntime implements IAgentService {
      * 设置状态变更回调
      */
     public setStateChangeCallback(callback: (event: AgentStateEvent) => void): void {
+        this.stateChangeCallback = callback;
         this.stateManager = new AgentStateManager(callback);
     }
+
+    private authCallback?: (request: ToolExecutionRequest, decision: AuthorizationDecision) => Promise<UserApprovalContext>;
 
     /**
      * 设置授权请求回调
@@ -107,6 +111,7 @@ export class AgentRuntime implements IAgentService {
     public setAuthorizationCallback(
         callback: (request: ToolExecutionRequest, decision: AuthorizationDecision) => Promise<UserApprovalContext>
     ): void {
+        this.authCallback = callback;
         this.toolGuard.setAuthorizationCallback(callback);
     }
 
@@ -125,8 +130,8 @@ export class AgentRuntime implements IAgentService {
         onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult> {
         // Create session-specific managers to ensure concurrency safety
-        const sessionStateManager = new AgentStateManager(options?.onStateChange);
-        const sessionToolGuard = new ToolGuard(options?.onAuthorizationRequired);
+        const sessionStateManager = new AgentStateManager(options?.onStateChange || this.stateChangeCallback);
+        const sessionToolGuard = new ToolGuard(options?.onAuthorizationRequired || this.authCallback);
 
         // Update instance properties for potential external getState() calls
         this.stateManager = sessionStateManager;

@@ -137,14 +137,14 @@ export class ToolGuard {
      * 获取工具的信任级别
      */
     getToolTrustLevel(toolName: string, tool?: ITool): ToolTrustLevel {
-        // 1. 优先查找已知映射
-        if (this.trustLevelMap[toolName]) {
-            return this.trustLevelMap[toolName];
+        // 1. 检查工具实例是否明确声明了需要确认 (这来源于用户的配置或工具强制要求)
+        if (tool?.requireConfirmation !== undefined) {
+            return tool.requireConfirmation ? ToolTrustLevel.High : ToolTrustLevel.Safe;
         }
 
-        // 2. 检查工具是否声明需要确认
-        if (tool?.requireConfirmation !== undefined) {
-            return tool.requireConfirmation ? ToolTrustLevel.High : ToolTrustLevel.Low;
+        // 2. 查找已知启发式映射后备字典
+        if (this.trustLevelMap[toolName]) {
+            return this.trustLevelMap[toolName];
         }
 
         // 3. 基于工具名称的启发式判断
