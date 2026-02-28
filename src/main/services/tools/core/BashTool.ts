@@ -35,6 +35,7 @@ function decodeOutput(buffer: Buffer): string {
 export class BashTool implements ITool {
     requireConfirmation = true;
     private allowedRoot: string;
+    private allowedPaths: string[];
     private currentCwd: string;
 
     // Configuration
@@ -43,15 +44,21 @@ export class BashTool implements ITool {
     private readonly OUTPUT_TRUNCATE_TAIL = 10 * 1024;
     private readonly DEFAULT_TIMEOUT = 60 * 1000;
 
-    constructor(rootPath: string = process.cwd()) {
+    constructor(rootPath: string = process.cwd(), allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(rootPath);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
         this.currentCwd = this.allowedRoot;
     }
 
-    public setRoot(newRoot: string) {
+    public setRoot(newRoot: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(newRoot);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
         // Reset CWD to new root to ensure safety/consistency
         this.currentCwd = this.allowedRoot;
+    }
+
+    protected isPathAllowed(targetPath: string): boolean {
+        return this.allowedPaths.some(p => targetPath.startsWith(p));
     }
 
     getDefinition(): ToolDefinition {
@@ -115,6 +122,13 @@ Usage:
         let effectiveCwd = this.currentCwd;
         if (cwd) {
             effectiveCwd = path.resolve(this.currentCwd, cwd);
+            if (!this.isPathAllowed(effectiveCwd)) {
+                return {
+                    toolName: 'bash',
+                    isError: true,
+                    result: `Access Denied: cwd '${cwd}' is outside the allowed workspaces.`
+                };
+            }
         }
 
         // Handle 'cd' commands to update state
@@ -125,6 +139,13 @@ Usage:
             if (targetPath) {
                 try {
                     const newPath = path.resolve(effectiveCwd, targetPath);
+                    if (!this.isPathAllowed(newPath)) {
+                        return {
+                            toolName: 'bash',
+                            isError: true,
+                            result: `Access Denied: Path '${targetPath}' is outside the allowed workspaces.`
+                        };
+                    }
                     // In a real implementation, we should check if dir exists using fs.stat
                     // For now, we assume it exists and let the next command fail if it doesn't
                     this.currentCwd = newPath;

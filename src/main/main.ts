@@ -121,7 +121,7 @@ app.whenReady().then(async () => {
     console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills`);
 
     // 4. Register Built-in Tools
-    const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath);
+    const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath, pathManager);
     coreToolManager.initialize();
 
     // 5. Initialize Services

@@ -5,13 +5,20 @@ import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/t
 
 export class ReadFileTool implements ITool {
     private allowedRoot: string;
+    private allowedPaths: string[];
 
-    constructor(rootPath: string) {
+    constructor(rootPath: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(rootPath);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
-    public setRoot(newRoot: string) {
+    public setRoot(newRoot: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(newRoot);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+    }
+
+    protected isPathAllowed(targetPath: string): boolean {
+        return this.allowedPaths.some(p => targetPath.startsWith(p));
     }
 
     getDefinition(): ToolDefinition {
@@ -66,12 +73,12 @@ export class ReadFileTool implements ITool {
             ? path.normalize(relPath)
             : path.resolve(this.allowedRoot, relPath);
 
-        // Security Check: Prevent directory traversal outside root
-        if (!fullPath.startsWith(this.allowedRoot)) {
+        // Security Check: Prevent directory traversal outside allowed paths
+        if (!this.isPathAllowed(fullPath)) {
             return {
                 toolName: 'read',
                 isError: true,
-                result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
+                result: `Access Denied: Path '${relPath}' is outside the allowed workspaces.`
             };
         }
 

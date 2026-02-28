@@ -17,6 +17,7 @@ interface FileResult {
 
 export class GrepTool implements ITool {
     private allowedRoot: string;
+    private allowedPaths: string[];
     private readonly MAX_TOTAL_MATCHES = 1000;
     private readonly MAX_LINE_LENGTH = 500;
     private readonly DEFAULT_EXTENSIONS = [
@@ -26,12 +27,18 @@ export class GrepTool implements ITool {
         '.rs', '.php', '.rb', '.sh', '.bat', '.cmd', '.ps1'
     ];
 
-    constructor(rootPath: string) {
+    constructor(rootPath: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(rootPath);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
-    public setRoot(newRoot: string) {
+    public setRoot(newRoot: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(newRoot);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+    }
+
+    protected isPathAllowed(targetPath: string): boolean {
+        return this.allowedPaths.some(p => targetPath.startsWith(p));
     }
 
     getDefinition(): ToolDefinition {
@@ -72,8 +79,12 @@ export class GrepTool implements ITool {
 
         let startDir = searchPath ? path.resolve(this.allowedRoot, searchPath) : this.allowedRoot;
         // Ensure startDir is within allowedRoot
-        if (!startDir.startsWith(this.allowedRoot)) {
-            startDir = this.allowedRoot; // Fallback or could error. Let's be safe.
+        if (!this.isPathAllowed(startDir)) {
+            return {
+                toolName: 'grep',
+                isError: true,
+                result: `Access Denied: Path '${searchPath}' is outside the allowed workspaces.`
+            };
         }
 
         try {

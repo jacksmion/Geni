@@ -11,18 +11,21 @@ import { SkillLoaderTool } from './SkillLoaderTool';
 import { TodoWriteTool, TodoReadTool } from './TodoTool';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
+import { PathManager } from '../../PathManager';
 
 export class CoreToolManager {
     private registry: ToolRegistry;
     private configManager: ConfigManager;
     private skillRegistry: SkillRegistry;
     private workspacePath: string;
+    private pathManager: PathManager;
 
-    constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string) {
+    constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string, pathManager: PathManager) {
         this.registry = registry;
         this.configManager = configManager;
         this.skillRegistry = skillRegistry;
         this.workspacePath = workspacePath;
+        this.pathManager = pathManager;
     }
 
     /**
@@ -32,15 +35,18 @@ export class CoreToolManager {
         const settings = this.configManager.load();
         const coreToolSettings = settings.coreToolSettings || {};
 
+        // Determine allowed paths
+        const allowedPaths = this.pathManager.getSkillsLoadPaths(this.workspacePath);
+
         // Define all available core tools and their factory functions
         const toolFactories: Record<string, () => any> = {
-            'list': () => new ListDirTool(this.workspacePath),
-            'read': () => new ReadFileTool(this.workspacePath),
+            'list': () => new ListDirTool(this.workspacePath, allowedPaths),
+            'read': () => new ReadFileTool(this.workspacePath, allowedPaths),
             'write': () => new WriteFileTool(this.workspacePath),
-            'bash': () => new BashTool(this.workspacePath),
+            'bash': () => new BashTool(this.workspacePath, allowedPaths),
             'edit': () => new FileEditTool(this.workspacePath),
-            'glob': () => new GlobTool(this.workspacePath),
-            'grep': () => new GrepTool(this.workspacePath),
+            'glob': () => new GlobTool(this.workspacePath, allowedPaths),
+            'grep': () => new GrepTool(this.workspacePath, allowedPaths),
             'todowrite': () => new TodoWriteTool(),
             'todoread': () => new TodoReadTool(),
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager)

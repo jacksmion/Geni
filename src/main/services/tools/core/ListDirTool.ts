@@ -4,6 +4,7 @@ import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/t
 
 export class ListDirTool implements ITool {
     private allowedRoot: string;
+    private allowedPaths: string[];
     private readonly IGNORE_PATTERNS = new Set([
         "node_modules", "__pycache__", ".git", "dist", "build", "target", "vendor",
         "bin", "obj", ".idea", ".vscode", ".zig-cache", "zig-out", ".coverage",
@@ -11,12 +12,18 @@ export class ListDirTool implements ITool {
     ]);
     private readonly LIMIT = 100;
 
-    constructor(rootPath: string) {
+    constructor(rootPath: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(rootPath);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
-    public setRoot(newRoot: string) {
+    public setRoot(newRoot: string, allowedPaths: string[] = []) {
         this.allowedRoot = path.resolve(newRoot);
+        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+    }
+
+    protected isPathAllowed(targetPath: string): boolean {
+        return this.allowedPaths.some(p => targetPath.startsWith(p));
     }
 
     getDefinition(): ToolDefinition {
@@ -39,13 +46,16 @@ export class ListDirTool implements ITool {
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { path: relPath } = args;
 
-        // Security Check: Prevent directory traversal outside root
-        const fullPath = path.resolve(this.allowedRoot, relPath);
-        if (!fullPath.startsWith(this.allowedRoot)) {
+        // Security Check: Prevent directory traversal outside allowed paths
+        let fullPath = path.isAbsolute(relPath)
+            ? path.normalize(relPath)
+            : path.resolve(this.allowedRoot, relPath);
+
+        if (!this.isPathAllowed(fullPath)) {
             return {
                 toolName: 'list',
                 isError: true,
-                result: `Access Denied: Path '${relPath}' is outside the allowed workspace.`
+                result: `Access Denied: Path '${relPath}' is outside the allowed workspaces.`
             };
         }
 
