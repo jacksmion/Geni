@@ -250,8 +250,8 @@ export function Composer() {
         : workspacePath
 
     return (
-        <div className="w-full px-4 pb-6 z-10 bg-transparent shrink-0">
-            <div className="max-w-4xl mx-auto relative">
+        <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pb-6 z-10 bg-transparent shrink-0">
+            <div className="relative w-full">
                 {/* Main Composer Box */}
                 <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-all focus-within:shadow-lg focus-within:border-indigo-400/40 dark:focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/5 dark:focus-within:ring-indigo-500/10">
 
