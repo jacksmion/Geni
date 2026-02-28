@@ -113,12 +113,12 @@ export function SessionSidebar() {
                     {/* Section Header */}
                     <div className="flex items-center justify-between min-w-[200px]">
                         <h2 className="text-[11px] font-semibold text-slate-500 dark:text-zinc-500 select-none">
-                            对话列表
+                            任务列表
                         </h2>
                         <button
                             onClick={() => createSession()}
                             className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
-                            title="新建话题"
+                            title="新建任务"
                         >
                             <Plus size={16} strokeWidth={2.5} />
                         </button>
@@ -132,7 +132,7 @@ export function SessionSidebar() {
                         />
                         <input
                             type="text"
-                            placeholder="搜索对话..."
+                            placeholder="搜索任务..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full h-8.5 pl-9 pr-3 bg-slate-200/50 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] border-transparent dark:border-transparent focus:border-indigo-500/30 focus:bg-white dark:focus:bg-white/5 rounded-lg text-xs text-slate-900 dark:text-gray-100 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-zinc-600 font-medium"
@@ -199,8 +199,8 @@ export function SessionSidebar() {
                                                     </form>
                                                 ) : (
                                                     <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                                                        <span className="truncate select-none text-[13px]" title={session.title || '新对话'}>
-                                                            {session.title || '新对话'}
+                                                        <span className="truncate select-none text-[13px]" title={session.title || '新任务'}>
+                                                            {session.title || '新任务'}
                                                         </span>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
@@ -242,13 +242,13 @@ export function SessionSidebar() {
                     {Object.keys(groupedSessions).length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
                             <Search size={24} className="mb-2 opacity-20" />
-                            <span className="text-xs">未找到匹配的对话</span>
+                            <span className="text-xs">未找到匹配的任务</span>
                         </div>
                     )}
                 </div>
 
                 <div className="px-4 py-3 border-t border-slate-200 dark:border-white/5 text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
-                    {Object.values(sessions).length} 个活跃对话
+                    {Object.values(sessions).length} 个活跃任务
                 </div>
             </div>
         </>

@@ -33,14 +33,14 @@ export function ChatLayout() {
                         {currentSession ? (
                             <div className="flex items-center gap-2 min-w-0">
                                 <h1 className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
-                                    {currentSession.title || '新对话'}
+                                    {currentSession.title || '新任务'}
                                 </h1>
                                 <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0 tabular-nums">
                                     {new Date(currentSession.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-400 dark:text-zinc-600">选择一个对话...</div>
+                            <div className="text-xs text-slate-400 dark:text-zinc-600">选择一个任务...</div>
                         )}
                     </div>
 

@@ -32,7 +32,7 @@ const createDefaultSession = (): ChatSession => {
     const id = crypto.randomUUID();
     return {
         id,
-        title: '新对话',
+        title: '新任务',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [{
@@ -90,7 +90,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
                 const defaultSes: ChatSession = {
                     id: newSes.id,
-                    title: '新对话',
+                    title: '新任务',
                     createdAt: newSes.createdAt,
                     updatedAt: newSes.createdAt,
                     messages: [welcomeMessage]
@@ -113,7 +113,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     createSession: async (title) => {
         try {
             const backendSes = await window.electronAPI.session.create();
-            const sessionTitle = title || '新对话';
+            const sessionTitle = title || '新任务';
 
             const welcomeMessage = {
                 id: 'init-' + backendSes.id,
