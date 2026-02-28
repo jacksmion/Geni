@@ -74,7 +74,6 @@ export class AgentRuntime implements IAgentService {
     private toolGuard: ToolGuard;
     private contextManager: ContextManager;
     private summarizer: Summarizer;
-    private cachedChatModel: IChatModel | null = null;
 
     constructor(settings: AppSettings, toolRegistry: ToolRegistry) {
         this.settings = settings;
@@ -83,14 +82,13 @@ export class AgentRuntime implements IAgentService {
             defaultBasePrompt: settings.systemPrompt
         });
         this.stateManager = new AgentStateManager();
-        this.toolGuard = defaultToolGuard;
+        this.toolGuard = new ToolGuard(); // Use independent instance instead of global defaultToolGuard
         this.contextManager = new ContextManager({ maxTokens: 32000, preserveRecentMessages: 20 });
         this.summarizer = new Summarizer();
     }
 
     public updateSettings(settings: AppSettings) {
         this.settings = settings;
-        this.cachedChatModel = null; // Invalidate cached model on settings change
         if (settings.systemPrompt) {
             this.promptBuilder.updateConfig({ defaultBasePrompt: settings.systemPrompt });
         }
@@ -126,8 +124,15 @@ export class AgentRuntime implements IAgentService {
         onStream?: (chunk: string, reset?: boolean) => void,
         onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult> {
-        this.initOptions(options);
-        this.stateManager.transition(AgentState.Thinking, 'Starting agent execution');
+        // Create session-specific managers to ensure concurrency safety
+        const sessionStateManager = new AgentStateManager(options?.onStateChange);
+        const sessionToolGuard = new ToolGuard(options?.onAuthorizationRequired);
+
+        // Update instance properties for potential external getState() calls
+        this.stateManager = sessionStateManager;
+        this.toolGuard = sessionToolGuard;
+
+        sessionStateManager.transition(AgentState.Thinking, 'Starting agent execution');
 
         const chatModel = this.createChatModel(options);
         const chatModelTools = this.convertTools(tools);
@@ -144,10 +149,10 @@ export class AgentRuntime implements IAgentService {
                 onStream?.('', true);
 
                 // 1. 上下文优化
-                messages = await this.optimizeContext(messages, chatModel, options);
+                messages = await this.optimizeContext(messages, chatModel, sessionStateManager, options);
 
                 // 2. LLM 轮次执行
-                this.stateManager.transition(AgentState.Thinking, `Thinking...`);
+                sessionStateManager.transition(AgentState.Thinking, `Thinking...`);
                 const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
                     messages, chatModel, chatModelTools, options, onStream
                 );
@@ -162,49 +167,31 @@ export class AgentRuntime implements IAgentService {
 
                 // 3. 工具处理
                 if (toolCalls.length > 0) {
-                    await this.handleToolCalls(toolCalls, tools, messages, newMessages, steps, currentReasoning || currentContent, options, onStepUpdate);
+                    await this.handleToolCalls(toolCalls, tools, messages, newMessages, steps, currentReasoning || currentContent, sessionStateManager, sessionToolGuard, options, onStepUpdate);
                 } else {
                     return { finalAnswer: currentContent, steps, newMessages };
                 }
             }
             return this.handleMaxSteps(steps, newMessages, onStream);
         } catch (error: any) {
-            return this.handleError(error, steps, newMessages);
+            return this.handleError(error, steps, newMessages, sessionStateManager);
         } finally {
-            this.stateManager.transition(AgentState.Idle, 'Execution finished');
-        }
-    }
-
-    private initOptions(options?: AgentRuntimeOptions) {
-        if (options?.onStateChange) {
-            this.stateManager = new AgentStateManager(options.onStateChange);
-        }
-        if (options?.onAuthorizationRequired) {
-            this.toolGuard.setAuthorizationCallback(options.onAuthorizationRequired);
+            sessionStateManager.transition(AgentState.Idle, 'Execution finished');
         }
     }
 
     private createChatModel(options?: AgentRuntimeOptions): IChatModel {
-        // Reuse cached model if settings haven't changed
-        if (this.cachedChatModel && !options?.model) {
-            return this.cachedChatModel;
-        }
-
         const activeProvider = this.settings.llm.activeProvider || 'OpenAI';
         const providers = this.settings.llm.providers || {};
         const config = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
 
-        const model = createChatModel(activeProvider, {
+        // Always create a new model instance for each request to avoid cache poisoning/safety issues during concurrent runs
+        return createChatModel(activeProvider, {
             apiKey: config.apiKey || '',
             baseUrl: config.baseUrl,
             model: options?.model || config.model,
             temperature: config.temperature,
         });
-
-        if (!options?.model) {
-            this.cachedChatModel = model;
-        }
-        return model;
     }
 
     private convertTools(tools: ITool[]): ChatModelToolDefinition[] {
@@ -249,12 +236,12 @@ export class AgentRuntime implements IAgentService {
         return messages;
     }
 
-    private async optimizeContext(messages: ChatMessage[], chatModel: IChatModel, options?: AgentRuntimeOptions): Promise<ChatMessage[]> {
+    private async optimizeContext(messages: ChatMessage[], chatModel: IChatModel, sessionStateManager: AgentStateManager, options?: AgentRuntimeOptions): Promise<ChatMessage[]> {
         const maxTokens = options?.maxContextTokens || 32000;
         let optimized = [...messages];
 
         if (Summarizer.shouldSummarize(optimized, maxTokens)) {
-            this.stateManager.transition(AgentState.Thinking, 'Summarizing history...');
+            sessionStateManager.transition(AgentState.Thinking, 'Summarizing history...');
             try {
                 optimized = await this.summarizer.summarize(optimized, chatModel);
             } catch (e) {
@@ -327,10 +314,12 @@ export class AgentRuntime implements IAgentService {
         newMessages: ChatMessage[],
         steps: AgentStep[],
         thought: string,
+        sessionStateManager: AgentStateManager,
+        sessionToolGuard: ToolGuard,
         options?: AgentRuntimeOptions,
         onStepUpdate?: (steps: AgentStep[]) => void
     ) {
-        this.stateManager.transition(AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
+        sessionStateManager.transition(AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
 
         for (const tc of toolCalls) {
             if (options?.signal?.aborted) break;
@@ -352,7 +341,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             const tool = tools.find(t => t.getDefinition().name === fnName);
             if (!tool) continue;
 
-            const authorized = await this.checkAuthorization(tc, tool, args, thought, steps, options, onStepUpdate);
+            const authorized = await this.checkAuthorization(tc, tool, args, thought, steps, sessionToolGuard, options, onStepUpdate);
             if (options?.signal?.aborted) break;
             if (!authorized) {
                 const denial = `[Authorization Denied] User declined tool "${fnName}".`;
@@ -361,7 +350,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             }
 
             const startTime = Date.now();
-            this.stateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
+            sessionStateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
 
             let step = steps.find(s => s.tool === fnName && !s.isComplete);
             if (!step) {
@@ -370,7 +359,22 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             }
             onStepUpdate?.([...steps]);
 
-            const result = await this.toolRegistry.executeTool(fnName, args, options?.signal);
+            let result;
+            if (options?.signal) {
+                const executePromise = this.toolRegistry.executeTool(fnName, args, options?.signal);
+                result = await new Promise<any>((resolve, reject) => {
+                    const onAbort = () => reject(new Error('Agent execution aborted by user.'));
+                    if (options.signal!.aborted) return onAbort();
+
+                    options.signal!.addEventListener('abort', onAbort);
+                    executePromise.then(resolve).catch(reject).finally(() => {
+                        options.signal!.removeEventListener('abort', onAbort);
+                    });
+                });
+            } else {
+                result = await this.toolRegistry.executeTool(fnName, args);
+            }
+
             const duration = Date.now() - startTime;
 
             let obs = result.result;
@@ -385,16 +389,16 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
         }
     }
 
-    private async checkAuthorization(tc: any, tool: ITool, args: any, thought: string, steps: AgentStep[], options?: AgentRuntimeOptions, onStepUpdate?: (steps: AgentStep[]) => void): Promise<boolean> {
+    private async checkAuthorization(tc: any, tool: ITool, args: any, thought: string, steps: AgentStep[], sessionToolGuard: ToolGuard, options?: AgentRuntimeOptions, onStepUpdate?: (steps: AgentStep[]) => void): Promise<boolean> {
         const requestId = Math.random().toString(36).substring(7);
         const req: ToolExecutionRequest = { requestId, toolName: tc.function.name, definition: tool.getDefinition(), args, tool };
-        const decision = this.toolGuard.evaluateRequest(req);
+        const decision = sessionToolGuard.evaluateRequest(req);
 
         if (decision.requiresUserConfirmation) {
             steps.push({ thought, tool: tc.function.name, toolInput: JSON.stringify(args), isComplete: false, isWaitingAuthorization: true, authRequestId: req.requestId, authReason: decision.reason });
             onStepUpdate?.([...steps]);
 
-            const authorized = await this.toolGuard.checkAuthorization(req);
+            const authorized = await sessionToolGuard.checkAuthorization(req);
             if (options?.signal?.aborted) return false;
 
             const step = steps[steps.length - 1];
@@ -423,10 +427,10 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
         return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
     }
 
-    private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[]) {
+    private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], sessionStateManager: AgentStateManager) {
         console.error('[AgentRuntime] Error:', error);
         const state = error.message?.includes('aborted') ? AgentState.Aborted : AgentState.Error;
-        this.stateManager.transition(state, error.message);
+        sessionStateManager.transition(state, error.message);
         return { finalAnswer: `Error: ${error.message}`, steps, newMessages };
     }
 }
