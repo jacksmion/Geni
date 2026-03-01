@@ -12,6 +12,7 @@ import { TodoWriteTool, TodoReadTool } from './TodoTool';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
 import { PathManager } from '../../PathManager';
+import { WebFetchTool } from './WebFetchTool';
 
 export class CoreToolManager {
     private registry: ToolRegistry;
@@ -49,7 +50,8 @@ export class CoreToolManager {
             'grep': () => new GrepTool(this.workspacePath, allowedPaths),
             'todowrite': () => new TodoWriteTool(),
             'todoread': () => new TodoReadTool(),
-            'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager)
+            'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager),
+            'web_fetch': () => new WebFetchTool()
         };
 
         // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
@@ -60,7 +62,8 @@ export class CoreToolManager {
             'grep',
             'todowrite',
             'todoread',
-            'load_skill'
+            'load_skill',
+            'web_fetch'
         ];
 
         // Register each tool if not explicitly disabled
@@ -101,7 +104,8 @@ export class CoreToolManager {
             'grep',
             'todowrite',
             'todoread',
-            'load_skill'
+            'load_skill',
+            'web_fetch'
         ];
         const hiddenTools = ['todowrite', 'todoread', 'load_skill'];
 
@@ -116,7 +120,8 @@ export class CoreToolManager {
             { name: 'grep', description: 'Search for text patterns within files' },
             { name: 'todowrite', description: 'Create or update the todo list' },
             { name: 'todoread', description: 'Read the current todo list' },
-            { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' }
+            { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' },
+            { name: 'web_fetch', description: 'Fetch and parse web page content into Markdown' }
         ];
 
         return allCoreTools
@@ -140,7 +145,7 @@ export class CoreToolManager {
         const allCoreTools = [
             'list', 'read', 'write', 'bash', 'edit',
             'glob', 'grep', 'todowrite', 'todoread',
-            'load_skill'
+            'load_skill', 'web_fetch'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));
 
