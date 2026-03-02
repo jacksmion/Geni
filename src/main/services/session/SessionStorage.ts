@@ -29,14 +29,14 @@ export class SessionStorage {
     /**
      * 获取所有会话列表 (从索引文件或内存缓存)
      */
-    public getIndex(): SessionMeta[] {
+    public async getIndex(): Promise<SessionMeta[]> {
         if (this.cachedIndex) {
             return this.cachedIndex;
         }
 
         try {
             if (fs.existsSync(this.indexFile)) {
-                const data = fs.readFileSync(this.indexFile, 'utf8');
+                const data = await fs.promises.readFile(this.indexFile, 'utf8');
                 this.cachedIndex = JSON.parse(data) as SessionMeta[];
                 return this.cachedIndex;
             }
@@ -51,11 +51,11 @@ export class SessionStorage {
     /**
      * 加载完整会话数据
      */
-    public loadSession(id: string): ChatSession | undefined {
+    public async loadSession(id: string): Promise<ChatSession | undefined> {
         const filePath = path.join(this.storageDir, `${id}.json`);
         try {
             if (fs.existsSync(filePath)) {
-                const data = fs.readFileSync(filePath, 'utf8');
+                const data = await fs.promises.readFile(filePath, 'utf8');
                 const session = JSON.parse(data) as ChatSession;
                 console.log(`[SessionStorage] Loaded ${id} from disk. Messages: ${session.messages?.length || 0}`);
                 return session;
@@ -69,10 +69,10 @@ export class SessionStorage {
     /**
      * 保存完整会话数据并更新索引（异步防阻塞）
      */
-    public saveSession(session: ChatSession): boolean {
+    public async saveSession(session: ChatSession): Promise<boolean> {
         try {
             // 1. 同步更新索引到内存，并发起异步落盘
-            this.updateIndex(session);
+            await this.updateIndex(session);
 
             // 2. 异步保存物理文件
             const filePath = path.join(this.storageDir, `${session.id}.json`);
@@ -94,7 +94,7 @@ export class SessionStorage {
     /**
      * 物理删除会话
      */
-    public deleteSession(id: string): boolean {
+    public async deleteSession(id: string): Promise<boolean> {
         try {
             const filePath = path.join(this.storageDir, `${id}.json`);
             if (fs.existsSync(filePath)) {
@@ -104,7 +104,7 @@ export class SessionStorage {
                 });
             }
 
-            const list = this.getIndex();
+            const list = await this.getIndex();
             const newList = list.filter(s => s.id !== id);
 
             // 更新内存缓存并发起异步写
@@ -121,8 +121,8 @@ export class SessionStorage {
         }
     }
 
-    private updateIndex(session: ChatSession) {
-        const list = this.getIndex();
+    private async updateIndex(session: ChatSession) {
+        const list = await this.getIndex();
         const index = list.findIndex(s => s.id === session.id);
 
         const meta: SessionMeta = {

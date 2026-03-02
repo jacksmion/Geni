@@ -118,7 +118,7 @@ export class AgentController {
             // 1. Resolve Session
             let sid = sessionId;
             if (!sid) {
-                const newSession = this.sessionManager.createSession();
+                const newSession = await this.sessionManager.createSession();
                 sid = newSession.id;
             }
             this.currentSessionId = sid;

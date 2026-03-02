@@ -22,7 +22,7 @@ export class SessionManager {
     /**
      * 创建新会话
      */
-    public createSession(title: string = 'New Chat'): ChatSession {
+    public async createSession(title: string = 'New Chat'): Promise<ChatSession> {
         const id = randomUUID();
         const session: ChatSession = {
             id,
@@ -35,7 +35,7 @@ export class SessionManager {
         };
 
         this.sessions.set(id, session);
-        this.storage.saveSession(session);
+        await this.storage.saveSession(session);
         return session;
     }
 
@@ -50,7 +50,7 @@ export class SessionManager {
 
         // 2. 尝试从磁盘加载
         console.log(`[SessionManager] Loading session ${id} from disk...`);
-        const session = this.storage.loadSession(id);
+        const session = await this.storage.loadSession(id);
         if (session) {
             this.sessions.set(id, session);
             return session;
@@ -62,7 +62,7 @@ export class SessionManager {
     /**
      * 删除会话
      */
-    public deleteSession(id: string): boolean {
+    public async deleteSession(id: string): Promise<boolean> {
         this.sessions.delete(id);
         return this.storage.deleteSession(id);
     }
@@ -77,7 +77,7 @@ export class SessionManager {
         Object.assign(session, updates);
         session.updatedAt = Date.now();
 
-        this.storage.saveSession(session);
+        await this.storage.saveSession(session);
         return session;
     }
 
@@ -115,14 +115,14 @@ export class SessionManager {
     /**
      * 获取所有会话元数据列表
      */
-    public listSessions(): SessionMeta[] {
+    public async listSessions(): Promise<SessionMeta[]> {
         return this.storage.getIndex();
     }
 
     /**
      * 保存会话 (用于强制保存)
      */
-    public saveSession(session: ChatSession): boolean {
+    public async saveSession(session: ChatSession): Promise<boolean> {
         this.sessions.set(session.id, session);
         return this.storage.saveSession(session);
     }

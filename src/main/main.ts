@@ -105,9 +105,12 @@ app.whenReady().then(async () => {
         console.log('[Main] Project skills directory not found, skipping:', skillsInfo.project.path);
     }
 
-    // Load skills from existing directories only
-    await skillRegistry.loadFromDirectories(skillsToLoad);
-    console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills`);
+    // Load skills from existing directories only (Non-blocking)
+    skillRegistry.loadFromDirectories(skillsToLoad).then(() => {
+        console.log(`[Main] Loaded ${skillRegistry.getAll().length} skills`);
+    }).catch(e => {
+        console.error('[Main] Error loading skills:', e);
+    });
 
     // 4. Register Built-in Tools
     const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath, pathManager);

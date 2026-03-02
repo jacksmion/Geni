@@ -34,7 +34,7 @@ export class SessionController {
     }
 
     private async handleCreate(event: IpcMainInvokeEvent): Promise<SessionCreateResponse> {
-        const session = this.sessionManager.createSession();
+        const session = await this.sessionManager.createSession();
         return {
             id: session.id,
             createdAt: session.createdAt
