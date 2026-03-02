@@ -110,8 +110,7 @@ export class SystemController {
             config: this.pathManager.getConfigFile(),
             sessions: this.pathManager.getSessionsDir(),
             globalSkills: this.pathManager.getGlobalSkillsDir(),
-            builtinSkills: this.pathManager.getBuiltinSkillsDir(),
-            migration: this.pathManager.getMigrationInfo()
+            builtinSkills: this.pathManager.getBuiltinSkillsDir()
         };
     }
 

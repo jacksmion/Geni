@@ -49,17 +49,6 @@ app.whenReady().then(async () => {
     // 0. PathManager (must be first, after app.whenReady())
     const pathManager = new PathManager();
 
-    // 0.5. Data migration (if needed)
-    if (pathManager.needsMigration()) {
-        console.log('[Main] Migration needed, starting migration...');
-        const migrationResult = await pathManager.migrate();
-        if (migrationResult.success) {
-            console.log('[Main] Migration completed:', migrationResult.details);
-        } else {
-            console.error('[Main] Migration failed:', migrationResult.details);
-        }
-    }
-
     // 1. Initialize Config (with PathManager)
     const configManager = new ConfigManager(pathManager);
     const appSettings = configManager.load();
