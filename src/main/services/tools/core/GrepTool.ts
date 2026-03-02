@@ -44,29 +44,29 @@ export class GrepTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'grep',
-            description: 'Search for string patterns in files using smart filtering and sorting. Returns results grouped by file and sorted by modification time (most recent first).',
+            description: 'Search for string patterns in files using regex or literal strings.',
             input_schema: {
                 type: 'object',
                 properties: {
                     pattern: {
                         type: 'string',
-                        description: 'The text or regex pattern to search for.'
+                        description: 'Pattern to search for'
                     },
                     path: {
                         type: 'string',
-                        description: 'Directory to search in (relative to root). Defaults to root.'
+                        description: 'Directory to search in (relative to root)'
                     },
                     include: {
                         type: 'string',
-                        description: 'Comma-separated extensions or patterns to include (e.g., "ts,js", "*.test.ts"). If omitted, searches common text files.'
+                        description: 'Comma-separated file extensions or patterns to include'
                     },
                     caseInsensitive: {
                         type: 'boolean',
-                        description: 'Whether to ignore case. Defaults to false.'
+                        description: 'Ignore case (default false)'
                     },
                     isRegex: {
                         type: 'boolean',
-                        description: 'Whether to treat pattern as a regular expression. Defaults to true. Set to false for literal string search.'
+                        description: 'Treat pattern as regex (default true)'
                     }
                 },
                 required: ['pattern']

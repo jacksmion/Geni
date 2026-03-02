@@ -23,26 +23,26 @@ export class GlobTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'glob',
-            description: 'Find files matching a glob pattern (e.g., **/*.ts, src/services/*.js). Supports standard glob patterns including braces, negation, and wildcards. Results are sorted by modification time (newest first) and limited to top 100 matches to save context.',
+            description: 'Find files matching a glob pattern (e.g., **/*.ts, src/services/*.js).',
             input_schema: {
                 type: 'object',
                 properties: {
                     pattern: {
                         type: 'string',
-                        description: 'The glob pattern to search for (e.g., "src/**/*.ts", "!**/*.test.ts").'
+                        description: 'The glob pattern'
                     },
                     path: {
                         type: 'string',
-                        description: 'Directory to search in (relative to root). Defaults to root if omitted. DO NOT enter "undefined" or "null" - simply omit it for the default behavior.'
+                        description: 'Directory to search in (relative to root)'
                     },
                     exclude: {
                         type: 'array',
                         items: { type: 'string' },
-                        description: 'Patterns to exclude (e.g., ["**/dist/**"]). Defaults to ["**/node_modules/**", "**/.git/**"].'
+                        description: 'Patterns to exclude'
                     },
                     limit: {
                         type: 'number',
-                        description: 'Max results to return. Default 100.'
+                        description: 'Max results (default 100)'
                     }
                 },
                 required: ['pattern']

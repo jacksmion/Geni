@@ -17,31 +17,10 @@ export class SkillLoaderTool implements ITool {
     ) { }
 
     getDefinition(): ToolDefinition {
-        // Get enabled skills for the description
-        const allSkills = this.skillRegistry.getAll();
-        const settings = this.configManager.load();
-        const skillSettings = settings.skillSettings || {};
-
-        const enabledSkills = allSkills.filter(s => {
-            const saved = skillSettings[s.id];
-            return saved ? saved.enabled : true; // Default true
-        });
-
-        const skillListLines = enabledSkills.map(s => `  - **${s.id}**: ${s.description}`);
-
         const description = [
-            "Load a specialized skill that provides domain-specific instructions and workflows.",
-            "",
-            "When you recognize that a task matches one of the available skills listed below, use this tool to load the full skill instructions.",
-            "",
-            "The skill will inject detailed instructions, workflows, and access to bundled resources (scripts, references, templates) into the conversation context.",
-            "",
-            "TOOL OUTPUT includes a `<skill_content name=\"...\">` block with the loaded content.",
-            "",
-            "### Available Skills:",
-            ...skillListLines,
-            "",
-            "**Usage**: Call this tool with the skill ID to access its full potential."
+            "Load a specialized skill by its ID that provides domain-specific instructions and workflows.",
+            "You can find the list of available skills and their IDs in your System Prompt.",
+            "Use this tool to load the full skill instructions when needed."
         ].join('\n');
 
         return {

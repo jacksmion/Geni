@@ -23,26 +23,14 @@ export class WriteFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'write',
-            description: 'Write content to a file. Automatically creates directories. Supports append mode and idempotency checks.',
+            description: 'Write content to a file. Supports append and idempotency.',
             input_schema: {
                 type: 'object',
                 properties: {
-                    path: {
-                        type: 'string',
-                        description: 'Relative path to the file'
-                    },
-                    content: {
-                        type: 'string',
-                        description: 'Content to write to the file'
-                    },
-                    append: {
-                        type: 'boolean',
-                        description: 'If true, appends content to the end of the file instead of overwriting. Default is false.'
-                    },
-                    ignoreIfExists: {
-                        type: 'boolean',
-                        description: 'If true, the operation will be skipped if the file already exists. Default is false.'
-                    }
+                    path: { type: 'string', description: 'Relative path to file' },
+                    content: { type: 'string', description: 'Content to write' },
+                    append: { type: 'boolean', description: 'True to append instead of overwrite' },
+                    ignoreIfExists: { type: 'boolean', description: 'True to skip if file exists' }
                 },
                 required: ['path', 'content']
             }

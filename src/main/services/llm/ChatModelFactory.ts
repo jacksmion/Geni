@@ -67,6 +67,11 @@ function normalizeProviderId(providerId: string): SupportedProvider {
 }
 
 /**
+ * ChatModel 缓存字典 (避免重复实例化导致的 TCP/TLS 握手延时)
+ */
+const modelCache = new Map<string, IChatModel>();
+
+/**
  * 创建 ChatModel 实例
  * 
  * @param providerId - 提供商标识符 (例如: 'openai', 'anthropic', 'deepseek')
@@ -79,11 +84,24 @@ export function createChatModel(
 ): IChatModel {
     const normalizedId = normalizeProviderId(providerId);
 
-    // Anthropic 使用独立的适配器
-    if (normalizedId === 'anthropic') {
-        return new AnthropicAdapter(config);
+    // 构建 Cache Key (只有实质性配置参数变更才新建)
+    const cacheKey = `${normalizedId}:${config.apiKey || ''}:${config.baseUrl || ''}:${config.model || ''}:${config.temperature || 0}`;
+
+    if (modelCache.has(cacheKey)) {
+        return modelCache.get(cacheKey)!;
     }
 
-    // 其他使用 OpenAI 兼容接口
-    return new OpenAIAdapter(config);
+    let model: IChatModel;
+
+    // Anthropic 使用独立的适配器
+    if (normalizedId === 'anthropic') {
+        model = new AnthropicAdapter(config);
+    } else {
+        // 其他使用 OpenAI 兼容接口
+        model = new OpenAIAdapter(config);
+    }
+
+    // 将新实例加入缓存
+    modelCache.set(cacheKey, model);
+    return model;
 }

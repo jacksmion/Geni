@@ -66,18 +66,7 @@ export class BashTool implements ITool {
 
         return {
             name: 'bash',
-            description: `Execute a shell command with persistent working directory support.
-Target Environment: ${isWindows ? 'Windows PowerShell' : 'Linux/Mac Bash'}.
-Current Working Directory: ${this.currentCwd}
-
-Features:
-1. State Persistence: 'cd' commands update the tool's internal state.
-2. Safety: Output is automatically truncated if too long.
-3. Timeout: Commands time out after 60s by default.
-
-Usage:
-- Use 'cwd' parameter to effectively 'cd' for a single command.
-- For interactive commands (like 'npm init'), use non-interactive flags (e.g. 'npm init -y').`,
+            description: `Execute a shell command with persistent working directory support.`,
             input_schema: {
                 type: 'object',
                 properties: {

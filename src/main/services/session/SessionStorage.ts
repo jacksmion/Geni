@@ -13,6 +13,7 @@ import { PathManager } from '../PathManager';
 export class SessionStorage {
     private storageDir: string;
     private indexFile: string;
+    private cachedIndex: SessionMeta[] | null = null;
 
     constructor(pathManager: PathManager) {
         this.storageDir = pathManager.getSessionsDir();
@@ -26,18 +27,25 @@ export class SessionStorage {
     }
 
     /**
-     * 获取所有会话列表 (从索引文件)
+     * 获取所有会话列表 (从索引文件或内存缓存)
      */
     public getIndex(): SessionMeta[] {
+        if (this.cachedIndex) {
+            return this.cachedIndex;
+        }
+
         try {
             if (fs.existsSync(this.indexFile)) {
                 const data = fs.readFileSync(this.indexFile, 'utf8');
-                return JSON.parse(data) as SessionMeta[];
+                this.cachedIndex = JSON.parse(data) as SessionMeta[];
+                return this.cachedIndex;
             }
         } catch (error) {
             console.error('[SessionStorage] Failed to load index:', error);
         }
-        return [];
+
+        this.cachedIndex = [];
+        return this.cachedIndex;
     }
 
     /**
@@ -59,40 +67,56 @@ export class SessionStorage {
     }
 
     /**
-     * 保存完整会话数据并更新索引
+     * 保存完整会话数据并更新索引（异步防阻塞）
      */
     public saveSession(session: ChatSession): boolean {
         try {
-            // 1. 保存物理文件
-            const filePath = path.join(this.storageDir, `${session.id}.json`);
-            fs.writeFileSync(filePath, JSON.stringify(session, null, 2), 'utf8');
-            console.log(`[SessionStorage] Saved ${session.id} to disk. Messages: ${session.messages?.length || 0}`);
-
-            // 2. 同步更新索引
+            // 1. 同步更新索引到内存，并发起异步落盘
             this.updateIndex(session);
+
+            // 2. 异步保存物理文件
+            const filePath = path.join(this.storageDir, `${session.id}.json`);
+            fs.promises.writeFile(filePath, JSON.stringify(session, null, 2), 'utf8')
+                .then(() => {
+                    console.log(`[SessionStorage] Saved ${session.id} to disk async. Messages: ${session.messages?.length || 0}`);
+                })
+                .catch(error => {
+                    console.error('[SessionStorage] Failed to save session async:', error);
+                });
+
             return true;
         } catch (error) {
-            console.error('[SessionStorage] Failed to save session:', error);
+            console.error('[SessionStorage] Failed to initiate save session:', error);
             return false;
         }
     }
 
     /**
-     *物理删除会话
+     * 物理删除会话
      */
     public deleteSession(id: string): boolean {
         try {
             const filePath = path.join(this.storageDir, `${id}.json`);
             if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
+                // 异步删除
+                fs.promises.unlink(filePath).catch(error => {
+                    console.error('[SessionStorage] Failed to unlink session file:', error);
+                });
             }
 
             const list = this.getIndex();
             const newList = list.filter(s => s.id !== id);
-            fs.writeFileSync(this.indexFile, JSON.stringify(newList, null, 2), 'utf8');
+
+            // 更新内存缓存并发起异步写
+            this.cachedIndex = newList;
+            fs.promises.writeFile(this.indexFile, JSON.stringify(newList, null, 2), 'utf8')
+                .catch(error => {
+                    console.error('[SessionStorage] Failed to asynchronously update index after delete:', error);
+                });
+
             return true;
         } catch (error) {
-            console.error('[SessionStorage] Failed to delete session:', error);
+            console.error('[SessionStorage] Failed to initiate delete session:', error);
             return false;
         }
     }
@@ -117,6 +141,12 @@ export class SessionStorage {
 
         // 保持按更新时间排序
         list.sort((a, b) => b.updatedAt - a.updatedAt);
-        fs.writeFileSync(this.indexFile, JSON.stringify(list, null, 2), 'utf8');
+
+        // 更新内存缓存
+        this.cachedIndex = list;
+
+        // 异步写入磁盘
+        fs.promises.writeFile(this.indexFile, JSON.stringify(list, null, 2), 'utf8')
+            .catch(err => console.error('[SessionStorage] Failed to explicitly update index:', err));
     }
 }

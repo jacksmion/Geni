@@ -108,6 +108,8 @@ export class AgentController {
      * Handle Agent Start Request
      */
     private async handleStart(event: IpcMainInvokeEvent, payload: AgentStartRequest): Promise<AgentStartResponse> {
+        const pipelineStartTime = performance.now();
+        console.log(`\n[AgentPerf] ===== Pipeline Start (Received Request from UI) =====`);
         this.activeWebContents = event.sender;
 
         try {
@@ -147,6 +149,9 @@ export class AgentController {
                 skills: skillList
             };
 
+            const prepTime = performance.now() - pipelineStartTime;
+            console.log(`[AgentPerf] Pipeline Preparation (Session & Config Load): ${prepTime.toFixed(2)}ms`);
+
             // 5. Run Agent
             const result = await this.agentRuntime.run(
                 prompt,
@@ -179,6 +184,8 @@ export class AgentController {
                     await this.sessionManager.addMessage(sid, msg as any);
                 }
             }
+
+            console.log(`[AgentPerf] ===== Pipeline End (UI Notified, Database Written): ${(performance.now() - pipelineStartTime).toFixed(2)}ms =====\n`);
 
             return { success: true, sessionId: sid };
 

@@ -24,26 +24,14 @@ export class ReadFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'read',
-            description: 'Read the contents of a file. Supports line ranges, line numbering, and automatic truncation for large files.',
+            description: 'Read the contents of a file.',
             input_schema: {
                 type: 'object',
                 properties: {
-                    path: {
-                        type: 'string',
-                        description: 'Path to the file (relative to workspace root or absolute path within workspace)'
-                    },
-                    start_line: {
-                        type: 'integer',
-                        description: 'Start line number (1-indexed). Optional.'
-                    },
-                    end_line: {
-                        type: 'integer',
-                        description: 'End line number (inclusive). Optional.'
-                    },
-                    with_line_numbers: {
-                        type: 'boolean',
-                        description: 'If true, adds line numbers to the output. Useful for code editing.'
-                    }
+                    path: { type: 'string', description: 'Path to file' },
+                    start_line: { type: 'integer', description: 'Start line (1-indexed)' },
+                    end_line: { type: 'integer', description: 'End line (inclusive)' },
+                    with_line_numbers: { type: 'boolean', description: 'Include line numbers' }
                 },
                 required: ['path']
             }

@@ -23,7 +23,7 @@ export class FileEditTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'edit',
-            description: 'Edit a file by replacing a target string with a new string. This tool is significantly more efficient than write for modifying large files. ALWAYS prefer this tool over write when updating existing files to avoid context length limits and potential output truncation.',
+            description: 'Edit a file by replacing a target string with a new string. Target must be exactly matched.',
             input_schema: {
                 type: 'object',
                 properties: {

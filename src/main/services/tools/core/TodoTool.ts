@@ -85,7 +85,7 @@ export class TodoWriteTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'todowrite',
-            description: 'Create or update the entire todo list. Provide the full list of todo items, including any existing ones you want to keep. Items not included will be removed.',
+            description: 'Create or update the entire todo list. Items not included will be removed.',
             input_schema: {
                 type: 'object',
                 properties: {
@@ -97,21 +97,21 @@ export class TodoWriteTool implements ITool {
                             properties: {
                                 id: {
                                     type: 'string',
-                                    description: 'Unique identifier for the todo item (e.g. "1", "2", or a short slug).'
+                                    description: 'Unique ID'
                                 },
                                 content: {
                                     type: 'string',
-                                    description: 'Description of the todo item.'
+                                    description: 'Description'
                                 },
                                 status: {
                                     type: 'string',
                                     enum: ['pending', 'in_progress', 'completed'],
-                                    description: 'Current status of the todo item.'
+                                    description: 'Status'
                                 },
                                 priority: {
                                     type: 'string',
                                     enum: ['high', 'medium', 'low'],
-                                    description: 'Optional priority level.'
+                                    description: 'Optional priority'
                                 }
                             },
                             required: ['id', 'content', 'status']

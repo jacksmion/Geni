@@ -18,6 +18,8 @@
  *  ✅ 集成 IChatModel 到 AgentRuntime
  */
 
+import fs from 'fs';
+import path from 'path';
 import { IAgentService, AgentRunOptions, AgentRunResult, AgentStep } from './IAgent';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
@@ -150,11 +152,16 @@ export class AgentRuntime implements IAgentService {
 
         try {
             while (loopCount++ < MAX_LOOPS) {
+                const roundStartTime = performance.now();
+                console.log(`\n[AgentPerf] ===== Loop ${loopCount} Start =====`);
+
                 if (options?.signal?.aborted) throw new Error('Agent execution aborted by user.');
                 onStream?.('', true);
 
                 // 1. 上下文优化
+                const optStartTime = performance.now();
                 messages = await this.optimizeContext(messages, chatModel, sessionStateManager, options);
+                console.log(`[AgentPerf] Context Optimization: ${(performance.now() - optStartTime).toFixed(2)}ms`);
 
                 // 2. LLM 轮次执行
                 sessionStateManager.transition(AgentState.Thinking, `Thinking...`);
@@ -174,8 +181,10 @@ export class AgentRuntime implements IAgentService {
                 if (toolCalls.length > 0) {
                     await this.handleToolCalls(toolCalls, tools, messages, newMessages, steps, currentReasoning || currentContent, sessionStateManager, sessionToolGuard, options, onStepUpdate);
                 } else {
+                    console.log(`[AgentPerf] ===== Loop ${loopCount} Total: ${(performance.now() - roundStartTime).toFixed(2)}ms =====`);
                     return { finalAnswer: currentContent, steps, newMessages };
                 }
+                console.log(`[AgentPerf] ===== Loop ${loopCount} Total: ${(performance.now() - roundStartTime).toFixed(2)}ms =====`);
             }
             return this.handleMaxSteps(steps, newMessages, onStream);
         } catch (error: any) {
@@ -277,7 +286,25 @@ export class AgentRuntime implements IAgentService {
         let isReasoning = false;
         const accumulators = new Map<number, ToolCallAccumulator>();
 
+        // 计算 Payload 大小并打印 JSON (出于容错和日志长度限制)
+        try {
+            const messagesJson = JSON.stringify(messages, null, 2);
+            const toolsJson = chatOptions.tools ? JSON.stringify(chatOptions.tools, null, 2) : '[]';
+            const messagesSizeKb = (new TextEncoder().encode(messagesJson).length / 1024).toFixed(2);
+            const toolsSizeKb = (new TextEncoder().encode(toolsJson).length / 1024).toFixed(2);
+            console.log(`[AgentPerf] Sending Payload to LLM -> Messages: ${messagesSizeKb} KB, Tools: ${toolsSizeKb} KB`);
+        } catch (e) {
+            console.warn('[AgentPerf] Failed to calculate payload JSON size:', e);
+        }
+
+        const llmStartTime = performance.now();
+        let firstTokenReceived = false;
+
         for await (const event of chatModel.stream(messages, chatOptions)) {
+            if (!firstTokenReceived && (event.type === 'content_delta' || event.type === 'tool_call_delta' || event.type === 'reasoning_delta')) {
+                console.log(`[AgentPerf] LLM TTFT (Real Time To First Token): ${(performance.now() - llmStartTime).toFixed(2)}ms`);
+                firstTokenReceived = true;
+            }
             switch (event.type) {
                 case 'content_delta':
                     if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
@@ -300,6 +327,8 @@ export class AgentRuntime implements IAgentService {
                     throw new Error(event.error.message);
             }
         }
+
+        console.log(`[AgentPerf] LLM Total Generation Time: ${(performance.now() - llmStartTime).toFixed(2)}ms`);
 
         return {
             currentContent,
@@ -381,6 +410,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             }
 
             const duration = Date.now() - startTime;
+            console.log(`[AgentPerf] Tool [${fnName}] Execution Time: ${duration}ms`);
 
             let obs = result.result;
             obs = ContextManager.truncateToolOutput(fnName, obs);
