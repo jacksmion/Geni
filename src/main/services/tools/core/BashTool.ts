@@ -1,7 +1,8 @@
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 import os from 'os';
 import path from 'path';
+import fs from 'fs';
 import { z } from 'zod';
 
 /**
@@ -30,6 +31,63 @@ function decodeOutput(buffer: Buffer): string {
         // 非 Windows 环境下如果 UTF-8 失败，回退到非致命 UTF-8
         return buffer.toString('utf8');
     }
+}
+
+interface ResolvedShell {
+    shell: string;
+    args: (command: string) => string[];
+}
+
+/**
+ * 解析 Windows 上可用的 Shell，按优先级尝试：
+ * 1. pwsh.exe (PowerShell 7+)
+ * 2. powershell.exe (完整绝对路径，Windows PowerShell 5.x)
+ * 3. cmd.exe (最终回退)
+ */
+function resolveWindowsShell(): ResolvedShell {
+    // 1. 尝试 pwsh.exe (PowerShell 7+)，通过 where 命令查找
+    try {
+        const pwshPath = execFileSync('where.exe', ['pwsh.exe'], {
+            encoding: 'utf-8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+            windowsHide: true,
+            timeout: 3000
+        }).trim().split(/\r?\n/)[0];
+
+        if (pwshPath && fs.existsSync(pwshPath)) {
+            return {
+                shell: pwshPath,
+                args: (cmd) => ['-NoProfile', '-Command', cmd]
+            };
+        }
+    } catch { /* pwsh not found, continue */ }
+
+    // 2. 使用完整路径的 powershell.exe (Windows PowerShell 5.x)
+    const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+    const psFullPath = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    if (fs.existsSync(psFullPath)) {
+        return {
+            shell: psFullPath,
+            args: (cmd) => ['-NoProfile', '-Command', cmd]
+        };
+    }
+
+    // 3. 最终回退到 cmd.exe
+    const cmdPath = path.join(systemRoot, 'System32', 'cmd.exe');
+    return {
+        shell: fs.existsSync(cmdPath) ? cmdPath : 'cmd.exe',
+        args: (cmd) => ['/c', cmd]
+    };
+}
+
+// 缓存解析结果，避免每次命令执行都重新查找
+let cachedWindowsShell: ResolvedShell | null = null;
+
+function getWindowsShell(): ResolvedShell {
+    if (!cachedWindowsShell) {
+        cachedWindowsShell = resolveWindowsShell();
+    }
+    return cachedWindowsShell;
 }
 
 export class BashTool implements ITool {
@@ -160,16 +218,21 @@ export class BashTool implements ITool {
     private runCommand(command: string, cwd: string, timeout: number, signal?: AbortSignal): Promise<ToolExecutionResult> {
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
-            // For powershell: powershell.exe -Command "command"
-            const shellOption = isWindows ? 'powershell.exe' : '/bin/bash';
 
-            // Construct arguments based on platform
-            // spawn(shell, [args], options)
-            // For bash: /bin/bash -c "command"
-            // For powershell: powershell.exe -Command "command"
-            const shellArgs = isWindows ? ['-Command', command] : ['-c', command];
+            // 解析 Shell 和参数
+            let shellExe: string;
+            let shellArgs: string[];
 
-            const child = spawn(shellOption, shellArgs, {
+            if (isWindows) {
+                const resolved = getWindowsShell();
+                shellExe = resolved.shell;
+                shellArgs = resolved.args(command);
+            } else {
+                shellExe = '/bin/bash';
+                shellArgs = ['-c', command];
+            }
+
+            const child = spawn(shellExe, shellArgs, {
                 cwd,
                 stdio: ['ignore', 'pipe', 'pipe'],
                 windowsHide: true,
