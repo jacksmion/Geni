@@ -29,6 +29,8 @@ import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentSta
 import { ToolGuard, defaultToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
 import { ContextManager } from './ContextManager';
 import { Summarizer } from './Summarizer';
+import { withRetry, DEFAULT_LLM_RETRY, DEFAULT_TOOL_RETRY } from './RetryPolicy';
+import { classifyError, ErrorCategory } from './ErrorClassifier';
 
 // Phase 2: 认知层抽象
 import {
@@ -166,7 +168,7 @@ export class AgentRuntime implements IAgentService {
                 // 2. LLM 轮次执行
                 sessionStateManager.transition(AgentState.Thinking, `Thinking...`);
                 const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
-                    messages, chatModel, chatModelTools, options, onStream
+                    messages, chatModel, chatModelTools, sessionStateManager, options, onStream
                 );
 
                 const assistantMsg: ChatMessage = {
@@ -273,78 +275,92 @@ export class AgentRuntime implements IAgentService {
         messages: ChatMessage[],
         chatModel: IChatModel,
         chatModelTools: ChatModelToolDefinition[],
+        sessionStateManager: AgentStateManager,
         options?: AgentRuntimeOptions,
         onStream?: (chunk: string) => void
     ) {
-        const chatOptions: ChatModelOptions = {
-            model: options?.model,
-            temperature: options?.temperature,
-            tools: chatModelTools.length > 0 ? chatModelTools : undefined,
-            tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
-            signal: options?.signal,
-        };
+        return withRetry(
+            async () => {
+                const chatOptions: ChatModelOptions = {
+                    model: options?.model,
+                    temperature: options?.temperature,
+                    tools: chatModelTools.length > 0 ? chatModelTools : undefined,
+                    tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
+                    signal: options?.signal,
+                };
 
-        let currentContent = '';
-        let currentReasoning = '';
-        let isReasoning = false;
-        const accumulators = new Map<number, ToolCallAccumulator>();
+                let currentContent = '';
+                let currentReasoning = '';
+                let isReasoning = false;
+                const accumulators = new Map<number, ToolCallAccumulator>();
 
-        // 计算 Payload 大小并打印 JSON (出于容错和日志长度限制)
-        try {
-            const messagesJson = JSON.stringify(messages, null, 2);
-            const toolsJson = chatOptions.tools ? JSON.stringify(chatOptions.tools, null, 2) : '[]';
-            const messagesSizeKb = (new TextEncoder().encode(messagesJson).length / 1024).toFixed(2);
-            const toolsSizeKb = (new TextEncoder().encode(toolsJson).length / 1024).toFixed(2);
-            console.log(`[AgentPerf] Sending Payload to LLM -> Messages: ${messagesSizeKb} KB, Tools: ${toolsSizeKb} KB`);
-        } catch (e) {
-            console.warn('[AgentPerf] Failed to calculate payload JSON size:', e);
-        }
+                // 计算 Payload 大小并打印 JSON (出于容错和日志长度限制)
+                try {
+                    const messagesJson = JSON.stringify(messages, null, 2);
+                    const toolsJson = chatOptions.tools ? JSON.stringify(chatOptions.tools, null, 2) : '[]';
+                    const messagesSizeKb = (new TextEncoder().encode(messagesJson).length / 1024).toFixed(2);
+                    const toolsSizeKb = (new TextEncoder().encode(toolsJson).length / 1024).toFixed(2);
+                    console.log(`[AgentPerf] Sending Payload to LLM -> Messages: ${messagesSizeKb} KB, Tools: ${toolsSizeKb} KB`);
+                } catch (e) {
+                    console.warn('[AgentPerf] Failed to calculate payload JSON size:', e);
+                }
 
-        const llmStartTime = performance.now();
-        let firstTokenReceived = false;
+                const llmStartTime = performance.now();
+                let firstTokenReceived = false;
 
-        for await (const event of chatModel.stream(messages, chatOptions)) {
-            if (options?.signal?.aborted) {
-                throw new Error('Agent execution aborted by user.');
-            }
-            if (!firstTokenReceived && (event.type === 'content_delta' || event.type === 'tool_call_delta' || event.type === 'reasoning_delta')) {
-                console.log(`[AgentPerf] LLM TTFT (Real Time To First Token): ${(performance.now() - llmStartTime).toFixed(2)}ms`);
-                firstTokenReceived = true;
-            }
-            switch (event.type) {
-                case 'content_delta':
-                    if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
-                    currentContent += event.delta;
-                    onStream?.(event.delta);
-                    break;
-                case 'reasoning_delta':
-                    if (!isReasoning) { isReasoning = true; onStream?.('```thinking\n'); }
-                    currentReasoning += event.delta;
-                    onStream?.(event.delta);
-                    break;
-                case 'tool_call_delta':
-                    const acc = accumulators.get(event.index) || { id: '', name: '', arguments: '', type: 'function' };
-                    if (event.id) acc.id = event.id;
-                    if (event.name) acc.name = event.name;
-                    if (event.arguments_delta) acc.arguments += event.arguments_delta;
-                    accumulators.set(event.index, acc);
-                    break;
-                case 'error':
-                    throw new Error(event.error.message);
-            }
-        }
+                for await (const event of chatModel.stream(messages, chatOptions)) {
+                    if (options?.signal?.aborted) {
+                        throw new Error('Agent execution aborted by user.');
+                    }
+                    if (!firstTokenReceived && (event.type === 'content_delta' || event.type === 'tool_call_delta' || event.type === 'reasoning_delta')) {
+                        console.log(`[AgentPerf] LLM TTFT (Real Time To First Token): ${(performance.now() - llmStartTime).toFixed(2)}ms`);
+                        firstTokenReceived = true;
+                    }
+                    switch (event.type) {
+                        case 'content_delta':
+                            if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
+                            currentContent += event.delta;
+                            onStream?.(event.delta);
+                            break;
+                        case 'reasoning_delta':
+                            if (!isReasoning) { isReasoning = true; onStream?.('```thinking\n'); }
+                            currentReasoning += event.delta;
+                            onStream?.(event.delta);
+                            break;
+                        case 'tool_call_delta':
+                            const acc = accumulators.get(event.index) || { id: '', name: '', arguments: '', type: 'function' };
+                            if (event.id) acc.id = event.id;
+                            if (event.name) acc.name = event.name;
+                            if (event.arguments_delta) acc.arguments += event.arguments_delta;
+                            accumulators.set(event.index, acc);
+                            break;
+                        case 'error':
+                            throw new Error(event.error.message);
+                    }
+                }
 
-        console.log(`[AgentPerf] LLM Total Generation Time: ${(performance.now() - llmStartTime).toFixed(2)}ms`);
+                console.log(`[AgentPerf] LLM Total Generation Time: ${(performance.now() - llmStartTime).toFixed(2)}ms`);
 
-        return {
-            currentContent,
-            currentReasoning,
-            toolCalls: Array.from(accumulators.values()).map(acc => ({
-                id: acc.id,
-                type: acc.type as 'function',
-                function: { name: acc.name, arguments: acc.arguments }
-            }))
-        };
+                return {
+                    currentContent,
+                    currentReasoning,
+                    toolCalls: Array.from(accumulators.values()).map(acc => ({
+                        id: acc.id,
+                        type: acc.type as 'function',
+                        function: { name: acc.name, arguments: acc.arguments }
+                    }))
+                };
+            },
+            DEFAULT_LLM_RETRY,
+            (attempt, error) => {
+                console.log(`[AgentRuntime] LLM call failed, retry ${attempt}:`, error.message);
+                sessionStateManager.transition(
+                    AgentState.Thinking,
+                    `API 调用失败，正在重试 (${attempt}/${DEFAULT_LLM_RETRY.maxRetries})...`
+                );
+            },
+            options?.signal
+        );
     }
 
     private async handleToolCalls(
@@ -400,19 +416,33 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             onStepUpdate?.([...steps]);
 
             let result;
-            if (options?.signal) {
-                const executePromise = this.toolRegistry.executeTool(fnName, args, options?.signal);
-                result = await new Promise<any>((resolve, reject) => {
-                    const onAbort = () => reject(new Error('Agent execution aborted by user.'));
-                    if (options.signal!.aborted) return onAbort();
+            try {
+                result = await withRetry(
+                    async () => {
+                        if (options?.signal) {
+                            const executePromise = this.toolRegistry.executeTool(fnName, args, options?.signal);
+                            return await new Promise<any>((resolve, reject) => {
+                                const onAbort = () => reject(new Error('Agent execution aborted by user.'));
+                                if (options.signal!.aborted) return onAbort();
 
-                    options.signal!.addEventListener('abort', onAbort);
-                    executePromise.then(resolve).catch(reject).finally(() => {
-                        options.signal!.removeEventListener('abort', onAbort);
-                    });
-                });
-            } else {
-                result = await this.toolRegistry.executeTool(fnName, args);
+                                options.signal!.addEventListener('abort', onAbort);
+                                executePromise.then(resolve).catch(reject).finally(() => {
+                                    options.signal!.removeEventListener('abort', onAbort);
+                                });
+                            });
+                        } else {
+                            return await this.toolRegistry.executeTool(fnName, args);
+                        }
+                    },
+                    DEFAULT_TOOL_RETRY,
+                    (attempt, error) => {
+                        console.log(`[AgentRuntime] Tool ${fnName} failed, retry ${attempt}:`, error.message);
+                        sessionStateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName} (Retry ${attempt})`, { tool: fnName });
+                    },
+                    options?.signal
+                );
+            } catch (err: any) {
+                result = { isError: true, result: String(err) };
             }
 
             const duration = Date.now() - startTime;
@@ -470,8 +500,13 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
 
     private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], sessionStateManager: AgentStateManager) {
         console.error('[AgentRuntime] Error:', error);
-        const state = error.message?.includes('aborted') ? AgentState.Aborted : AgentState.Error;
-        sessionStateManager.transition(state, error.message);
-        return { finalAnswer: `Error: ${error.message}`, steps, newMessages };
+        const classified = classifyError(error);
+        const state = classified.category === ErrorCategory.Aborted ? AgentState.Aborted : AgentState.Error;
+        let finalMessage = `Error: ${classified.message}`;
+        if (classified.suggestedAction) {
+            finalMessage += `\n\n💡 建议: ${classified.suggestedAction}`;
+        }
+        sessionStateManager.transition(state, finalMessage);
+        return { finalAnswer: finalMessage, steps, newMessages };
     }
 }
