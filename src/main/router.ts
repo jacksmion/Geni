@@ -11,6 +11,7 @@ import { SkillRegistry } from './services/skills/core/SkillRegistry';
 import { McpManager } from './services/tools/mcp/McpManager';
 import { CoreToolManager } from './services/tools/core/CoreToolManager';
 import { PathManager } from './services/PathManager';
+import { IMServiceManager } from './services/im/IMServiceManager';
 
 /**
  * App Router
@@ -23,6 +24,7 @@ export class AppRouter {
     private sessionController: SessionController;
     private systemController: SystemController;
     private toolController: ToolController;
+    private imServiceManager: IMServiceManager;
 
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
@@ -56,6 +58,8 @@ export class AppRouter {
         // Controllers
         this.systemController = new SystemController(this.configManager, pathManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
+
+        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController);
 
         this.agentController = new AgentController(
             settings,
@@ -103,6 +107,8 @@ export class AppRouter {
                     }
                 }
             }
+            // 5. Update IM Services
+            await this.imServiceManager.updateSettings(newSettings);
         });
     }
 
@@ -114,6 +120,8 @@ export class AppRouter {
         this.sessionController.registerHandlers();
         this.systemController.registerHandlers();
         this.toolController.registerHandlers();
+
+        this.imServiceManager.start().catch((err: any) => console.error('[AppRouter] Error starting IM Service Manager:', err));
 
         console.log('[AppRouter] IPC handlers registered.');
     }

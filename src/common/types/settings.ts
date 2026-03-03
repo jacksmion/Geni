@@ -38,6 +38,13 @@ export interface IMcpServerConfig {
     toolSettings?: Record<string, McpToolSetting>; // [originalToolName] -> settings
 }
 
+// Telegram 配置
+export interface TelegramConfig {
+    enabled: boolean;
+    token: string;
+    proxyUrl?: string;
+}
+
 export interface AppSettings {
     llm: LLMSettings;
     skillSettings: Record<string, SkillState>; // 技能ID -> 状态
@@ -47,6 +54,7 @@ export interface AppSettings {
     theme: 'dark' | 'light' | 'system';
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
     systemPrompt?: string; // 全局系统提示词
+    telegram?: TelegramConfig; // Telegram Bot 配置
 }
 
 // 默认的提供商配置
@@ -92,4 +100,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'dark',
     accentColor: 'indigo',
+    telegram: {
+        enabled: false,
+        token: '',
+        proxyUrl: '',
+    },
 };
