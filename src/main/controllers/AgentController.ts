@@ -65,8 +65,20 @@ export class AgentController {
 
             return new Promise((resolve) => {
                 const requestId = request.requestId || Math.random().toString(36).substring(7);
+                let settled = false;
 
-                // Broadcast request to renderer (could be used for notifications)
+                const cleanup = () => {
+                    ipcMain.removeListener(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
+                };
+
+                const settle = (result: { approved: boolean; rememberDecision?: boolean; message?: string }) => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    resolve(result);
+                };
+
+                // Broadcast request to renderer
                 this.broadcast(AGENT_EVENTS.AUTHORIZATION_REQUEST, {
                     requestId,
                     toolName: request.toolName,
@@ -75,25 +87,39 @@ export class AgentController {
                     reason: decision.reason
                 });
 
-                // Listen for response
+                // Listen for response from UI
                 const handler = (_event: any, response: any) => {
                     if (response && response.requestId === requestId) {
                         console.log(`[AgentController] Authorization response received: ${response.approved}`);
-                        ipcMain.removeListener(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
-                        resolve({
+                        settle({
                             approved: response.approved,
                             rememberDecision: response.remember
                         });
                     }
                 };
-
                 ipcMain.on(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
 
-                // Optional: Add a timeout to avoid hanging forever
+                // Listen for abort signal - if user clicks Stop, immediately deny authorization
+                if (this.currentSessionId) {
+                    const controller = this.abortControllers.get(this.currentSessionId);
+                    if (controller?.signal) {
+                        if (controller.signal.aborted) {
+                            settle({ approved: false, message: 'Aborted by user' });
+                            return;
+                        }
+                        const onAbort = () => {
+                            console.log(`[AgentController] Authorization aborted by user for tool: ${request.toolName}`);
+                            settle({ approved: false, message: 'Aborted by user' });
+                        };
+                        controller.signal.addEventListener('abort', onAbort, { once: true });
+                    }
+                }
+
+                // Timeout fallback to avoid hanging forever
                 setTimeout(() => {
-                    ipcMain.removeListener(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, handler);
-                    resolve({ approved: false, message: 'Authorization timed out' });
-                }, 10 * 60 * 1000); // 10 minutes timeout
+                    console.warn(`[AgentController] Authorization timed out for tool: ${request.toolName}`);
+                    settle({ approved: false, message: 'Authorization timed out' });
+                }, 5 * 60 * 1000); // 5 minutes timeout (reduced from 10)
             });
         });
     }
