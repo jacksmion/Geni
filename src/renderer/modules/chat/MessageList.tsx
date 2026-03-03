@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { Bot, User, CheckCircle2, Terminal, Copy, Check, Brain, ChevronDown, ChevronUp } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { ChatMessage } from '../../../common/types/chat'
@@ -11,6 +11,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { preprocessMarkdown } from '../../utils/markdown'
+
+const MermaidBlock = lazy(() => import('../../components/MermaidBlock'))
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -253,13 +255,24 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                         const codeString = String(children).replace(/\n$/, '')
 
                                         if (!inline && match && match[1] === 'thinking') {
-                                            // 检测思考块是否完整闭合
-                                            // 逻辑：检查整个 message.content 中是否存在闭合的 ```thinking ... ``` 结构
-                                            // 注意：这里简单判断是否存在闭合标记。更严谨的可能需要判断当前渲染的这个块是否闭合。
-                                            // 由于 thinking 只有一个，我们可以用全局判断。
                                             const isThinkingComplete = /```thinking[\s\S]*?```/.test(message.content || '');
-
                                             return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
+                                        }
+
+                                        // Mermaid diagram rendering
+                                        if (!inline && match && match[1] === 'mermaid') {
+                                            return (
+                                                <Suspense fallback={
+                                                    <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
+                                                        <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
+                                                            <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                                                            <span>Loading Mermaid...</span>
+                                                        </div>
+                                                    </div>
+                                                }>
+                                                    <MermaidBlock code={codeString} />
+                                                </Suspense>
+                                            )
                                         }
 
                                         return !inline && match ? (
