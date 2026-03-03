@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box } from 'lucide-react';
+import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { ScheduledTaskConfig } from '../../common/types/settings';
 import { clsx } from 'clsx';
@@ -16,7 +16,7 @@ function createEmptyTask(): ScheduledTaskConfig {
         name: '',
         enabled: false,
         prompt: '',
-        cronExpression: '0 * * * *',  // 默认每小时
+        cronExpression: '0 * * * *',
         enableTools: true,
         keepHistory: false,
         maxHistoryTurns: 10,
@@ -68,6 +68,7 @@ const SchedulerPage: React.FC = () => {
     const [editingTask, setEditingTask] = useState<ScheduledTaskConfig | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const [cronValidation, setCronValidation] = useState<{ valid: boolean; error?: string; nextRuns?: string[] } | null>(null);
     const [statuses, setStatuses] = useState<TaskStatusInfo[]>([]);
@@ -96,7 +97,6 @@ const SchedulerPage: React.FC = () => {
         }
     }, [selectedTask, isCreating]);
 
-    // 加载任务状态
     const refreshStatuses = useCallback(async () => {
         try {
             const result = await window.electronAPI.scheduler.getStatuses();
@@ -112,7 +112,6 @@ const SchedulerPage: React.FC = () => {
         return () => clearInterval(interval);
     }, [refreshStatuses]);
 
-    // 验证 cron
     const validateCron = useCallback(async (expression: string) => {
         if (!expression.trim()) {
             setCronValidation(null);
@@ -126,7 +125,6 @@ const SchedulerPage: React.FC = () => {
         }
     }, []);
 
-    // 加载某个任务的执行日志
     const loadTaskLogs = useCallback(async (taskId: string) => {
         setLoadingLogs(taskId);
         try {
@@ -143,7 +141,6 @@ const SchedulerPage: React.FC = () => {
         }
     }, []);
 
-    // 切到日志 tab 时加载
     useEffect(() => {
         if (activeTab === 'logs' && selectedTask) {
             loadTaskLogs(selectedTask.id);
@@ -184,8 +181,7 @@ const SchedulerPage: React.FC = () => {
             updatedTasks = [...tasks, editingTask];
             await saveTasks(updatedTasks);
             setIsCreating(false);
-            setSearchTerm(''); // clear search so it appears
-            // 找到新加的 index 并选中
+            setSearchTerm('');
             const newFiltered = updatedTasks.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
             const idx = newFiltered.findIndex(t => t.id === editingTask.id);
             if (idx >= 0) setSelectedIdx(idx);
@@ -199,25 +195,18 @@ const SchedulerPage: React.FC = () => {
         }
     };
 
-    const handleDeleteTask = async (taskId: string) => {
+    const confirmDeleteTask = async (taskId: string) => {
         const updatedTasks = tasks.filter(t => t.id !== taskId);
         await saveTasks(updatedTasks);
+        setDeleteConfirmId(null);
         if (selectedTask?.id === taskId) {
             setSelectedIdx(null);
             setEditingTask(null);
         }
     };
 
-    const handleToggleTask = async (taskId: string) => {
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, enabled: !t.enabled } : t
-        );
-        await saveTasks(updatedTasks);
-    };
-
     const handleTriggerTask = async (taskId: string) => {
         setTriggerResult({ taskId, message: '正在执行...', success: true });
-        // 切到日志页看看
         setActiveTab('logs');
         try {
             const result = await window.electronAPI.scheduler.triggerTask(taskId);
@@ -237,57 +226,45 @@ const SchedulerPage: React.FC = () => {
     const getStatus = (taskId: string) => statuses.find(s => s.taskId === taskId);
 
     return (
-        <div className="flex h-full w-full bg-slate-50 dark:bg-black/20 overflow-hidden animate-in fade-in duration-500">
-            {/* Left Sidebar: Task List */}
-            <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#18181b]/50 flex flex-col">
-                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center px-4 draggable shrink-0 bg-white dark:bg-[#18181b]">
+        <div className="flex h-full w-full bg-slate-50 dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500">
+            {/* Left Sidebar */}
+            <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#09090b] flex flex-col">
+                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0">
                     <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-amber-500/10 text-amber-500 rounded-lg">
-                            <Clock size={16} />
-                        </div>
+                        <Clock size={16} className="text-slate-800 dark:text-gray-100" />
                         <h1 className="text-sm font-bold text-slate-800 dark:text-gray-100 tracking-tight">
                             定时任务
                         </h1>
                     </div>
+                    <button
+                        onClick={handleAddTask}
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white transition-colors nodrag"
+                        title="新建任务"
+                    >
+                        <Plus size={16} />
+                    </button>
                 </header>
 
-                <div className="p-4 flex flex-col gap-4 flex-1 overflow-hidden">
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
-                            <input
-                                type="text"
-                                placeholder="搜索任务..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                            />
-                        </div>
-                        <button
-                            onClick={handleAddTask}
-                            className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors shadow-sm"
-                            title="新建任务"
-                        >
-                            <Plus size={16} />
-                        </button>
+                <div className="p-3 flex flex-col gap-3 flex-1 overflow-hidden">
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                        <input
+                            type="text"
+                            placeholder="搜索..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-slate-50 dark:bg-white/5 border-none rounded-lg py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-white/20 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                        />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
                         {isCreating && editingTask && (
-                            <button
-                                className="w-full text-left p-3 rounded-xl border transition-all duration-200 relative mb-1 bg-white dark:bg-white/5 border-amber-300 dark:border-amber-500/30 shadow-sm z-10"
-                            >
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-500 text-white shadow-lg">
-                                            <Plus size={16} />
-                                        </div>
-                                        <span className="font-semibold text-sm text-slate-900 dark:text-white">
-                                            {editingTask.name || '新建任务...'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </button>
+                            <div className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white flex items-center gap-2.5">
+                                <Plus size={14} className="text-slate-500" />
+                                <span className="font-medium text-sm truncate">
+                                    {editingTask.name || '新任务...'}
+                                </span>
+                            </div>
                         )}
 
                         {filteredTasks.map((task, idx) => {
@@ -296,50 +273,53 @@ const SchedulerPage: React.FC = () => {
                             const status = getStatus(task.id);
 
                             return (
-                                <button
+                                <div
                                     key={task.id}
+                                    className={clsx(
+                                        "w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group flex items-center justify-between cursor-pointer",
+                                        isSelected
+                                            ? "bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white"
+                                            : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-gray-400"
+                                    )}
                                     onClick={() => {
                                         setIsCreating(false);
                                         setSelectedIdx(idx);
                                     }}
-                                    className={clsx(
-                                        "w-full text-left p-3 rounded-xl border transition-all duration-200 group relative mb-1 flex flex-col gap-1",
-                                        isSelected
-                                            ? "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 shadow-sm z-10"
-                                            : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
-                                    )}
                                 >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5 overflow-hidden">
-                                            <div className={clsx(
-                                                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-300",
-                                                isSelected ? "bg-amber-500 text-white shadow-amber-500/20 shadow-lg" : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-gray-400"
-                                            )}>
-                                                <Clock size={16} />
-                                            </div>
-                                            <span className={clsx("font-semibold text-sm truncate", isSelected ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-gray-400")}>
+                                    <div className="flex flex-col gap-0.5 overflow-hidden w-full">
+                                        <div className="flex items-center gap-2">
+                                            <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", isActive ? "bg-green-500" : "bg-slate-300 dark:bg-gray-600")} />
+                                            <span className="font-medium text-sm truncate group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                                                 {task.name || '未命名'}
                                             </span>
                                         </div>
-                                        {isActive && (
-                                            <div className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">ON</div>
-                                        )}
+                                        <div className="flex items-center gap-2 pl-3.5">
+                                            <span className="text-[11px] text-slate-400 dark:text-gray-500 font-mono truncate">
+                                                {task.cronExpression}
+                                            </span>
+                                            {status?.isRunning && <span className="text-[10px] text-amber-500 animate-pulse">●</span>}
+                                            {!status?.isRunning && status?.lastRunStatus === 'error' && <span className="text-[10px] text-red-500">✕</span>}
+                                        </div>
                                     </div>
-                                    <div className="pl-[42px] flex items-center gap-2">
-                                        <code className="text-[10px] text-slate-400 dark:text-gray-500 font-mono bg-slate-100 dark:bg-white/5 px-1 py-0.5 rounded">
-                                            {task.cronExpression}
-                                        </code>
-                                        {status?.isRunning && <span className="text-[10px] text-amber-500 font-medium animate-pulse">● 运行中</span>}
-                                        {!status?.isRunning && status?.lastRunStatus === 'error' && <span className="text-[10px] text-red-500">✕ 失败</span>}
-                                    </div>
-                                </button>
+
+                                    {/* Inline Delete Button on Hover */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteConfirmId(task.id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all shrink-0 ml-2"
+                                        title="删除任务"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             );
                         })}
 
                         {!isCreating && filteredTasks.length === 0 && (
-                            <div className="text-center py-12 text-slate-400">
-                                <Box className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                <p className="text-sm">{searchTerm ? '未找到任务' : '暂无定时任务'}</p>
+                            <div className="text-center py-8 text-slate-400">
+                                <p className="text-sm">暂无任务</p>
                             </div>
                         )}
                     </div>
@@ -350,21 +330,57 @@ const SchedulerPage: React.FC = () => {
             <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#09090b]">
                 {(editingTask) ? (
                     <>
-                        {/* Header */}
-                        <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
-                            <div className="flex items-center gap-4">
-                                <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100">
-                                    {isCreating ? '新建任务' : editingTask.name || '任务设置'}
-                                </h1>
+                        <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 draggable shrink-0 bg-white dark:bg-[#09090b]">
+                            <div className="flex items-center gap-6 nodrag flex-1 border-r border-slate-200 dark:border-white/10 mr-4 pr-4">
+                                <input
+                                    type="text"
+                                    value={editingTask.name}
+                                    onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
+                                    placeholder="任务名称..."
+                                    className="w-full bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors"
+                                />
+                            </div>
 
-                                <div className="h-4 w-px bg-slate-200 dark:bg-white/10 mx-1" />
-
-                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-lg">
+                            <div className="flex items-center gap-3 nodrag shrink-0">
+                                {!isCreating && (
+                                    <>
+                                        <label className="flex items-center gap-2 cursor-pointer mr-2">
+                                            <span className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase">
+                                                {editingTask.enabled ? '启用' : '停用'}
+                                            </span>
+                                            <div
+                                                className={clsx(
+                                                    "w-9 h-5 rounded-full transition-colors relative",
+                                                    editingTask.enabled ? "bg-slate-800 dark:bg-white" : "bg-slate-200 dark:bg-white/10"
+                                                )}
+                                            >
+                                                <div className={clsx(
+                                                    "absolute top-1 left-1 w-3 h-3 rounded-full transition-transform duration-300",
+                                                    editingTask.enabled ? "translate-x-4 bg-white dark:bg-black" : "translate-x-0 bg-white dark:bg-gray-400"
+                                                )} />
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                className="hidden"
+                                                checked={editingTask.enabled}
+                                                onChange={e => setEditingTask({ ...editingTask, enabled: e.target.checked })}
+                                            />
+                                        </label>
+                                        <button
+                                            onClick={() => handleTriggerTask(editingTask.id)}
+                                            className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-gray-200 rounded-md transition-colors text-xs font-bold flex items-center gap-1.5"
+                                        >
+                                            <Play size={14} /> 运行
+                                        </button>
+                                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-1" />
+                                    </>
+                                )}
+                                <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setActiveTab('config')}
                                         className={clsx(
-                                            "px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all",
-                                            activeTab === 'config' ? "bg-white dark:bg-white/10 text-amber-600 dark:text-white shadow-sm" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
+                                            "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                                            activeTab === 'config' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
                                         )}
                                     >
                                         配置
@@ -373,8 +389,8 @@ const SchedulerPage: React.FC = () => {
                                         <button
                                             onClick={() => setActiveTab('logs')}
                                             className={clsx(
-                                                "px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all",
-                                                activeTab === 'logs' ? "bg-white dark:bg-white/10 text-amber-600 dark:text-white shadow-sm" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
+                                                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                                                activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
                                             )}
                                         >
                                             历史
@@ -382,100 +398,31 @@ const SchedulerPage: React.FC = () => {
                                     )}
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-3 nodrag">
-                                {!isCreating && (
-                                    <>
-                                        <button
-                                            onClick={() => handleTriggerTask(editingTask.id)}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-gray-300 rounded-lg transition-colors text-xs font-medium"
-                                        >
-                                            <Play size={14} /> 执行
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteTask(editingTask.id)}
-                                            className="text-red-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="删除"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </>
-                                )}
-                                <div className="w-12 border-l border-slate-200 dark:border-white/10 ml-2" />
-                            </div>
                         </header>
 
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
-                            <div className="max-w-3xl mx-auto">
+                        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+                            <div className="max-w-2xl mx-auto">
                                 {activeTab === 'config' ? (
-                                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300 pb-20">
-                                        {/* Status Card (Only if not creating) */}
-                                        {!isCreating && (
-                                            <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={clsx(
-                                                        "w-12 h-12 rounded-xl flex items-center justify-center text-xl",
-                                                        editingTask.enabled ? "bg-amber-500/10 text-amber-600" : "bg-slate-200 dark:bg-white/10 text-slate-400"
-                                                    )}>
-                                                        <Clock size={24} />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-base font-bold text-slate-800 dark:text-white leading-tight">启用定时任务</h3>
-                                                        <p className="text-sm text-slate-500 dark:text-gray-400 mt-0.5">任务将在后台依据设定周期自动执行</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newVal = !editingTask.enabled;
-                                                        setEditingTask({ ...editingTask, enabled: newVal });
-                                                        // Auto save toggles for convenience if we want, but better to let user click save
-                                                        // The user has to click save to persist, or we auto persist. Let's rely on save button for config parity.
-                                                        // Wait, for quick toggle it's better to auto save
-                                                    }}
-                                                    className={clsx(
-                                                        "w-12 h-6 rounded-full transition-all relative cursor-pointer ring-offset-2 focus:ring-2 focus:ring-amber-500",
-                                                        editingTask.enabled ? "bg-amber-500 shadow-lg shadow-amber-500/20" : "bg-slate-200 dark:bg-white/10"
-                                                    )}
-                                                >
-                                                    <div className={clsx(
-                                                        "absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-300",
-                                                        editingTask.enabled ? "translate-x-6" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
-                                        )}
+                                    <div className="space-y-8 animate-in fade-in duration-300 pb-12">
 
-                                        {/* Name & Prompt */}
-                                        <div className="space-y-5 p-6 bg-white dark:bg-[#09090b] border border-slate-200 dark:border-white/10 rounded-2xl">
-                                            <div className="space-y-1.5">
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">任务名称</label>
-                                                <input
-                                                    type="text"
-                                                    value={editingTask.name}
-                                                    onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
-                                                    placeholder="例：每日早间新闻简报生成"
-                                                    className="w-full px-4 py-2 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all"
-                                                />
-                                            </div>
-
-                                            <div className="space-y-1.5">
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">Prompt / 提示词</label>
-                                                <textarea
-                                                    value={editingTask.prompt}
-                                                    onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
-                                                    placeholder="明确告诉 AI 需要完成什么任务，需要使用哪些工具，输出格式要求等..."
-                                                    rows={6}
-                                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all resize-y"
-                                                />
-                                            </div>
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-semibold text-slate-700 dark:text-gray-300 flex items-center gap-2">
+                                                <FileText size={16} className="text-slate-400" />
+                                                Prompt 指令
+                                            </label>
+                                            <textarea
+                                                value={editingTask.prompt}
+                                                onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
+                                                placeholder="明确告诉 AI 需要完成什么任务，需要使用哪些工具，输出格式要求等..."
+                                                rows={5}
+                                                className="w-full p-4 bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-slate-400 dark:focus:border-white/20 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-slate-100 dark:focus:ring-white/5 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all resize-y"
+                                            />
                                         </div>
 
-                                        {/* Scheduled Expression */}
-                                        <div className="space-y-4 p-6 bg-white dark:bg-[#09090b] border border-slate-200 dark:border-white/10 rounded-2xl">
-                                            <div>
-                                                <h3 className="text-sm font-medium text-slate-800 dark:text-gray-100">调度周期 (Cron)</h3>
-                                                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1 mb-4">使用标准的 Linux Cron 表达式定制执行间隔。分 时 日 月 星期</p>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-gray-300">
+                                                <Clock size={16} className="text-slate-400" />
+                                                调度规则 (Cron)
                                             </div>
 
                                             <div className="flex gap-3">
@@ -489,7 +436,7 @@ const SchedulerPage: React.FC = () => {
                                                             validateCron(val);
                                                         }}
                                                         placeholder="0 * * * *"
-                                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-mono focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800 dark:text-gray-100 transition-all"
+                                                        className="w-full p-3 bg-slate-50/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-mono focus:outline-none focus:border-slate-400 dark:focus:border-white/20 text-slate-800 dark:text-gray-100 transition-all"
                                                     />
                                                 </div>
                                                 <select
@@ -500,7 +447,7 @@ const SchedulerPage: React.FC = () => {
                                                             validateCron(e.target.value);
                                                         }
                                                     }}
-                                                    className="w-40 px-4 py-2.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium focus:outline-none focus:border-amber-500 text-slate-700 dark:text-gray-300 cursor-pointer transition-all"
+                                                    className="w-40 px-3 border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 rounded-xl text-sm font-medium focus:outline-none text-slate-700 dark:text-gray-300 cursor-pointer"
                                                 >
                                                     <option value="">快速预设...</option>
                                                     {CRON_PRESETS.map(p => (
@@ -510,130 +457,117 @@ const SchedulerPage: React.FC = () => {
                                             </div>
 
                                             {cronValidation && (
-                                                <div className={`text-xs p-3 rounded-xl border ${cronValidation.valid ? 'bg-green-50 border-green-100 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400' : 'bg-red-50 border-red-100 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'}`}>
+                                                <div className={`text-xs px-1 ${cronValidation.valid ? 'text-green-600 dark:text-green-500' : 'text-red-500'}`}>
                                                     {cronValidation.valid ? (
-                                                        <div className="flex flex-col gap-1">
-                                                            <span className="font-semibold flex items-center gap-1"><CheckCircle2 size={12} /> 表达式有效</span>
-                                                            <div className="opacity-80 pl-4">
-                                                                下三次执行时间: {cronValidation.nextRuns?.slice(0, 3).join(' ｜ ')}
-                                                            </div>
-                                                        </div>
+                                                        <span>下次执行: {cronValidation.nextRuns?.[0] || '未知'}</span>
                                                     ) : (
-                                                        <span className="flex items-center gap-1"><AlertCircle size={12} /> 无效表达式: {cronValidation.error}</span>
+                                                        <span>无效表达式: {cronValidation.error}</span>
                                                     )}
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Advanced */}
-                                        <div className="space-y-4 p-6 bg-white dark:bg-[#09090b] border border-slate-200 dark:border-white/10 rounded-2xl">
-                                            <h3 className="text-sm font-medium text-slate-800 dark:text-gray-100">高级选项</h3>
+                                        <div className="space-y-3 pt-6 border-t border-slate-100 dark:border-white/5">
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editingTask.enableTools !== false}
+                                                    onChange={e => setEditingTask({ ...editingTask, enableTools: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-slate-800 focus:ring-slate-800 dark:text-white dark:focus:ring-white"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700 dark:text-gray-200">允许使用能力工具搜集信息</span>
+                                            </label>
 
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={editingTask.enableTools !== false}
-                                                        onChange={e => setEditingTask({ ...editingTask, enableTools: e.target.checked })}
-                                                        className="w-4 h-4 rounded border-slate-300 dark:border-gray-600 text-amber-500 focus:ring-amber-500"
-                                                    />
-                                                    <div>
-                                                        <span className="block text-sm font-medium text-slate-700 dark:text-gray-200">允许使用能力工具</span>
-                                                        <span className="block text-xs text-slate-400 mt-0.5">默认允许Agent自由使用工具搜集信息</span>
-                                                    </div>
-                                                </label>
-
-                                                <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={editingTask.keepHistory || false}
-                                                        onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
-                                                        className="w-4 h-4 rounded border-slate-300 dark:border-gray-600 text-amber-500 focus:ring-amber-500"
-                                                    />
-                                                    <div>
-                                                        <span className="block text-sm font-medium text-slate-700 dark:text-gray-200">保留任务对话历史</span>
-                                                        <span className="block text-xs text-slate-400 mt-0.5">将上下文带入下一次执行中</span>
-                                                    </div>
-                                                </label>
-                                            </div>
+                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editingTask.keepHistory || false}
+                                                    onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-slate-800 focus:ring-slate-800 dark:text-white dark:focus:ring-white"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700 dark:text-gray-200">保留任务对话历史</span>
+                                            </label>
 
                                             {editingTask.keepHistory && (
-                                                <div className="pl-2 flex items-center gap-3">
-                                                    <span className="text-sm text-slate-600 dark:text-gray-400">最大循环保留轮次:</span>
+                                                <div className="pl-7 flex items-center gap-2">
+                                                    <span className="text-xs text-slate-500">最大循环保留轮次:</span>
                                                     <input
                                                         type="number"
                                                         min={1}
                                                         max={100}
                                                         value={editingTask.maxHistoryTurns || 10}
                                                         onChange={e => setEditingTask({ ...editingTask, maxHistoryTurns: parseInt(e.target.value) || 10 })}
-                                                        className="w-24 px-3 py-1.5 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-gray-200"
+                                                        className="w-16 px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-sm focus:outline-none"
                                                     />
                                                 </div>
                                             )}
+                                        </div>
 
-                                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-xs text-slate-500 dark:text-gray-400">大模型源覆盖 (可选)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={editingTask.provider || ''}
-                                                        onChange={e => setEditingTask({ ...editingTask, provider: e.target.value || undefined })}
-                                                        placeholder="留空则使用全局默认 Provider"
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <label className="block text-xs text-slate-500 dark:text-gray-400">模型覆盖 (可选)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={editingTask.model || ''}
-                                                        onChange={e => setEditingTask({ ...editingTask, model: e.target.value || undefined })}
-                                                        placeholder="留空使用全局默认 Model"
-                                                        className="w-full px-3 py-2 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400"
-                                                    />
-                                                </div>
+                                        <div className="pt-8 flex items-center justify-between border-t border-slate-100 dark:border-white/5">
+                                            <div>
+                                                {saved && (
+                                                    <span className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                                                        <CheckCircle2 size={14} /> 已保存
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-3">
+                                                {isCreating && (
+                                                    <button
+                                                        onClick={handleCancelCreating}
+                                                        className="px-5 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                                                    >
+                                                        取消
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={handleSaveTask}
+                                                    disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
+                                                    className="px-6 py-2 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 disabled:bg-slate-200 dark:disabled:bg-white/10 text-white dark:text-black rounded-lg text-sm font-semibold transition-all flex items-center gap-2"
+                                                >
+                                                    <Save size={14} />
+                                                    {isCreating ? '创建' : '保存修改'}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                                    <div className="space-y-4 animate-in fade-in duration-300">
                                         <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-bold text-slate-800 dark:text-white">执行历史记录</h3>
+                                            <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
                                             <button
                                                 onClick={() => loadTaskLogs(editingTask.id)}
-                                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 rounded-lg text-xs font-medium transition-colors text-slate-600 dark:text-gray-300"
+                                                className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
                                             >
-                                                刷新记录
+                                                <History size={12} /> 刷新
                                             </button>
                                         </div>
 
                                         {triggerResult && triggerResult.taskId === editingTask.id && (
-                                            <div className={`p-4 rounded-xl text-sm font-medium ${triggerResult.success
-                                                ? 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400'
-                                                : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400'
+                                            <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
+                                                ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
+                                                : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
                                                 }`}>
+                                                {triggerResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                                                 {triggerResult.message}
                                             </div>
                                         )}
 
                                         {loadingLogs === editingTask.id ? (
-                                            <div className="text-center py-12 text-slate-400 dark:text-gray-500 text-sm">加载中...</div>
+                                            <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
                                         ) : (() => {
                                             const logs = taskLogs.get(editingTask.id);
                                             if (!logs || logs.length === 0) {
                                                 return (
-                                                    <div className="text-center py-16 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
-                                                        <History size={32} className="mx-auto text-slate-300 dark:text-gray-600 mb-3" />
-                                                        <p className="text-sm text-slate-500 dark:text-gray-400">该任务暂时没有任何执行记录</p>
+                                                    <div className="text-center py-16 text-slate-400">
+                                                        <History size={24} className="mx-auto opacity-30 mb-3" />
+                                                        <p className="text-sm">暂无记录</p>
                                                     </div>
                                                 );
                                             }
-
                                             return (
                                                 <div className="space-y-3">
-                                                    {logs.map(log => (
-                                                        <LogEntry key={log.id} log={log} />
-                                                    ))}
+                                                    {logs.map(log => <LogEntry key={log.id} log={log} />)}
                                                 </div>
                                             );
                                         })()}
@@ -641,48 +575,43 @@ const SchedulerPage: React.FC = () => {
                                 )}
                             </div>
                         </div>
-
-                        {/* Floating Action Bar (Save) */}
-                        {activeTab === 'config' && (
-                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center bg-white/80 dark:bg-black/80 backdrop-blur-md px-2 py-2 rounded-2xl shadow-2xl border border-slate-200 dark:border-white/10 z-20">
-                                {isCreating && (
-                                    <button
-                                        onClick={handleCancelCreating}
-                                        className="px-6 py-2.5 text-sm font-medium text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
-                                    >
-                                        取消
-                                    </button>
-                                )}
-                                <button
-                                    onClick={handleSaveTask}
-                                    disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
-                                    className="px-8 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 dark:disabled:bg-gray-800 disabled:text-slate-400 text-white rounded-xl text-sm font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2"
-                                >
-                                    <Save size={16} />
-                                    {isCreating ? '创建任务' : '保存修改'}
-                                </button>
-                                {saved && (
-                                    <span className="absolute -right-32 flex items-center gap-1.5 text-xs text-green-500 opacity-80 animate-in fade-in slide-in-from-left-2">
-                                        <CheckCircle2 size={14} /> saved
-                                    </span>
-                                )}
-                            </div>
-                        )}
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-6">
-                        <div className="w-20 h-20 bg-slate-50 dark:bg-white/5 rounded-3xl flex items-center justify-center -rotate-3 border border-slate-200 dark:border-white/10 shadow-sm">
-                            <Clock size={40} className="text-amber-500" />
-                        </div>
-                        <div className="text-center">
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-gray-200">定时任务 / Scheduler</h3>
-                            <p className="text-sm text-slate-500 dark:text-gray-500 mt-2 max-w-xs mx-auto">
-                                从左侧列表选择或新建一个定时任务。配置 Cron 表达式以周期性触发 AI 代理执行特定操作。
-                            </p>
-                        </div>
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                        <Clock size={32} className="opacity-20 mb-4" />
+                        <p className="text-sm">选择或新建一个定时任务</p>
                     </div>
                 )}
             </main>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmId && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 text-red-600 dark:text-red-500 mb-2">
+                            <AlertCircle size={20} />
+                            <h3 className="text-lg font-bold">删除确认</h3>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-gray-300 mt-2 mb-6">
+                            确定要删除这个定时任务吗？此操作无法撤销。
+                        </p>
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={() => confirmDeleteTask(deleteConfirmId)}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors"
+                            >
+                                确认删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
@@ -695,48 +624,37 @@ function LogEntry({ log }: { log: TaskLogEntry }) {
     const isSuccess = log.status === 'success';
 
     return (
-        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden hover:border-slate-300 dark:hover:border-white/20 transition-all">
+        <div className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden transition-all bg-white dark:bg-white/[0.02]">
             <div
-                className="flex items-center gap-4 px-5 py-3 cursor-pointer select-none"
+                className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5"
                 onClick={() => setExpanded(!expanded)}
             >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isSuccess ? 'bg-green-50 text-green-500 dark:bg-green-500/10' : 'bg-red-50 text-red-500 dark:bg-red-500/10'}`}>
+                <div className={`shrink-0 ${isSuccess ? 'text-green-500' : 'text-red-500'}`}>
                     {isSuccess ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                 </div>
-
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-slate-800 dark:text-gray-200">
+                        <span className="font-medium text-sm text-slate-800 dark:text-gray-200">
                             {new Date(log.startedAt).toLocaleString()}
                         </span>
-                        {log.stepCount !== undefined && log.stepCount > 0 && (
-                            <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-bold rounded">
-                                {log.stepCount} STEPS
-                            </span>
-                        )}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-gray-500 mt-0.5 truncate">
-                        耗时: {(log.durationMs / 1000).toFixed(1)}s
+                        <span className="text-xs text-slate-400">
+                            {(log.durationMs / 1000).toFixed(1)}s
+                        </span>
                     </div>
                 </div>
-
-                <div className="text-slate-300 dark:text-gray-600 transition-transform duration-300" style={{ transform: expanded ? 'rotate(180deg)' : '' }}>
-                    <ChevronDownIcon size={20} />
+                <div className={clsx("text-slate-400 transition-transform duration-200", expanded ? "rotate-180" : "")}>
+                    <ChevronDownIcon size={16} />
                 </div>
             </div>
 
             {expanded && (log.output || log.error) && (
-                <div className="px-5 pb-5 pt-1 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
-                    <div className="flex items-center gap-2 mb-2 text-slate-400 dark:text-gray-500">
-                        <FileText size={14} />
-                        <span className="text-xs font-bold uppercase tracking-wider">{log.error ? 'Error Message' : 'Output Result'}</span>
-                    </div>
+                <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-white/5">
                     {log.error ? (
-                        <pre className="text-sm text-red-600 dark:text-red-400 font-mono leading-relaxed whitespace-pre-wrap break-all custom-scrollbar overflow-x-hidden">
+                        <pre className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap word-break">
                             {log.error}
                         </pre>
                     ) : log.output ? (
-                        <pre className="text-[13px] text-slate-700 dark:text-gray-300 font-mono leading-relaxed whitespace-pre-wrap break-all custom-scrollbar overflow-x-hidden">
+                        <pre className="text-xs text-slate-600 dark:text-gray-400 font-mono whitespace-pre-wrap word-break">
                             {log.output}
                         </pre>
                     ) : null}
@@ -748,19 +666,8 @@ function LogEntry({ log }: { log: TaskLogEntry }) {
 
 function ChevronDownIcon(props: any) {
     return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="m6 9 6 6 6-6" />
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
     )
 }
