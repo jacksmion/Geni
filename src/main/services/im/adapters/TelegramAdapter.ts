@@ -31,7 +31,6 @@ export class TelegramAdapter implements IIMAdapter {
         await this.stop();
 
         if (!config.enabled || !config.token) {
-            console.log(`[TelegramAdapter] Aborted start: enabled=${config.enabled}, hasToken=${!!config.token}`);
             return;
         }
 
@@ -132,14 +131,21 @@ export class TelegramAdapter implements IIMAdapter {
     }
 
     public async stop(): Promise<void> {
+        let wasRunning = false;
         if (this.runner && this.runner.isRunning()) {
             await this.runner.stop();
+            wasRunning = true;
         }
+        if (this.bot) wasRunning = true;
+
         this.bot = null;
         this.pendingAuthPromises.clear();
         this.sessionMap.clear();
         this.throttleFns.clear();
-        console.log('[TelegramAdapter] Stopped.');
+
+        if (wasRunning) {
+            console.log('[TelegramAdapter] Stopped.');
+        }
     }
 
     public onMessage(handler: (message: IMMessage) => Promise<void>): void {

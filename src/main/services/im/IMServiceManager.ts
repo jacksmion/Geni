@@ -36,7 +36,6 @@ export class IMServiceManager {
     }
 
     public async start() {
-        console.log(`[IMServiceManager] Starting IM Service Manager. Currently registered adapters: ${Array.from(this.adapters.keys()).join(', ')}`);
         // Start adapters based on current settings
         await this.syncAdaptersWithSettings();
     }
@@ -63,12 +62,10 @@ export class IMServiceManager {
         const telegramAdapter = this.adapters.get('telegram');
         if (telegramAdapter) {
             const config = this.settings.telegram;
-            console.log(`[IMServiceManager] Syncing Telegram adapter. Config: enabled=${config?.enabled}, proxy=${config?.proxyUrl || 'none'}`);
             if (config?.enabled && config?.token) {
-                console.log(`[IMServiceManager] Starting Telegram adapter...`);
+                console.log(`[IMServiceManager] Syncing Telegram adapter...`);
                 await telegramAdapter.start(config).catch(e => console.error(`[IMServiceManager] Failed to start telegram adapter:`, e));
             } else {
-                console.log(`[IMServiceManager] Stopping Telegram adapter (disabled or missing token)...`);
                 await telegramAdapter.stop().catch(e => console.error(`[IMServiceManager] Failed to stop telegram adapter:`, e));
             }
         } else {
