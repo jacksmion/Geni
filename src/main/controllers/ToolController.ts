@@ -161,6 +161,11 @@ export class ToolController {
         });
     }
 
+    public getSkillObjectsByIds(ids: string[]): SkillObject[] {
+        const allSkills = this.skillRegistry.getAll();
+        return allSkills.filter(s => ids.includes(s.id));
+    }
+
     private handleGetSkills(): Skill[] {
         const skillObjects = this.skillRegistry.getAll();
         const settings = this.configManager.load();

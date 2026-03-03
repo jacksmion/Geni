@@ -131,7 +131,9 @@ export class AgentController {
             this.abortControllers.set(sid, controller);
 
             // 4. Prepare Runtime Options
-            const enabledSkillObjects = this.toolController.getEnabledSkillObjects();
+            const enabledSkillObjects = (payload.options?.skills)
+                ? this.toolController.getSkillObjectsByIds(payload.options.skills)
+                : this.toolController.getEnabledSkillObjects();
             const skillList: Skill[] = enabledSkillObjects.map(obj => ({
                 id: obj.id,
                 name: obj.name,

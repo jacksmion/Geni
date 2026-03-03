@@ -7,6 +7,7 @@ interface ChatState {
     isSending: boolean
     activeTab: 'chat' | 'skills' | 'scheduler' | 'settings'
     pendingAttachments: string[]
+    selectedSkillIds: string[] | null
     currentAgentEvent: any | null
 
     loadHistory: () => Promise<void>
@@ -23,6 +24,7 @@ interface ChatState {
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
+    setSelectedSkillIds: (ids: string[] | null) => void
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
 }
@@ -50,6 +52,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     isSending: false,
     activeTab: 'chat',
     pendingAttachments: [],
+    selectedSkillIds: null,
     currentAgentEvent: null,
 
     loadHistory: async () => {
@@ -292,6 +295,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     clearPendingAttachments: () => set({ pendingAttachments: [] }),
 
+    setSelectedSkillIds: (ids) => set({ selectedSkillIds: ids }),
+
     startNewChat: () => {
         get().createSession();
     },
@@ -353,9 +358,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         try {
             // Start Agent
+            const skillIds = get().selectedSkillIds;
             await window.electronAPI.agent.start({
                 sessionId: activeSessionId,
-                prompt: finalPrompt
+                prompt: finalPrompt,
+                options: skillIds !== null ? { skills: skillIds } : undefined
             });
             // Result comes via stream/events
         } catch (err: any) {
