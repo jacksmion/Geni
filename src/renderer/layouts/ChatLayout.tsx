@@ -19,7 +19,7 @@ export function ChatLayout() {
 
             <main className="flex-1 flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#09090b]">
                 {/* Header */}
-                <header className="h-11 border-b border-slate-100 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                <header className="h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-transparent pt-2">
                     {/* Left: Toggle + Title */}
                     <div className="flex items-center gap-2.5 overflow-hidden">
                         <button

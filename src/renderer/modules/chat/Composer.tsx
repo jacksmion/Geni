@@ -423,7 +423,7 @@ export function Composer() {
         <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pb-6 z-10 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
-                <div className="relative bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-[26px] shadow-sm hover:shadow-md transition-all focus-within:shadow-lg focus-within:border-indigo-400/40 dark:focus-within:border-indigo-500/30 focus-within:ring-4 focus-within:ring-indigo-500/5 dark:focus-within:ring-indigo-500/10">
+                <div className="relative bg-white/95 dark:bg-[#1e1e20]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.5)] focus-within:bg-white dark:focus-within:bg-[#222225] ring-1 ring-black/5 dark:ring-white/5 focus-within:ring-indigo-500/20 dark:focus-within:ring-indigo-500/30">
 
                     {/* Attachment Preview */}
                     {pendingAttachments.length > 0 && (
@@ -488,8 +488,8 @@ export function Composer() {
                                 isSending
                                     ? "bg-slate-100 dark:bg-white/10 text-red-500 dark:text-red-400 border-2 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10"
                                     : input.trim()
-                                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/30 scale-100 hover:scale-105"
-                                        : "bg-slate-200/80 text-slate-400 dark:bg-white/10 dark:text-zinc-600 opacity-50 cursor-not-allowed"
+                                        ? "bg-indigo-600 text-white shadow-[0_4px_16px_rgba(79,70,229,0.3)] hover:bg-indigo-700 hover:shadow-[0_6px_20px_rgba(79,70,229,0.4)] scale-100 hover:scale-[1.02]"
+                                        : "bg-slate-200/80 text-slate-400 dark:bg-white/10 dark:text-zinc-500 opacity-60 cursor-not-allowed"
                             )}
                         >
                             {isSending ? <Square size={10} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}

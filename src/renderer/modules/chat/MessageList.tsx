@@ -97,7 +97,7 @@ export function MessageList() {
     }, [messages]);
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
+        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
             {groupedMessages.map((msg) => (
                 <MessageItem key={msg.id} message={msg} />
             ))}
@@ -181,13 +181,13 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
     return (
         <div className={cn(
-            "flex gap-6 max-w-full group animate-in slide-in-from-bottom-2 duration-500 fade-in",
+            "flex gap-4 max-w-full group animate-in slide-in-from-bottom-2 duration-500 fade-in",
             isUser && "justify-end"
         )}>
             {/* ... avatar code stays the same ... */}
             {!isUser && (
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 shadow-sm mt-1">
-                    <Bot size={20} className="text-indigo-600 dark:text-indigo-400" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200 dark:border-white/5 shadow-sm mt-1">
+                    <Bot size={16} className="text-slate-700 dark:text-indigo-300" />
                 </div>
             )}
 
@@ -198,7 +198,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
             )}>
                 {/* User Message Bubble - High Contrast */}
                 {isUser && (
-                    <div className="select-text px-5 py-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-slate-900 dark:text-zinc-100 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
+                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/10 text-white text-[14.5px] font-medium leading-relaxed max-w-[85%]">
                         {content}
                     </div>
                 )}
@@ -338,8 +338,8 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
             {/* User Avatar - Right side */}
             {isUser && (
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-indigo-600 shadow-md shadow-indigo-500/20 text-white mt-1">
-                    <User size={20} />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/50 dark:to-violet-900/50 text-indigo-700 dark:text-indigo-300 mt-1">
+                    <User size={16} />
                 </div>
             )}
         </div>
