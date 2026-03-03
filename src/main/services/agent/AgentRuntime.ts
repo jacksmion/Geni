@@ -190,7 +190,9 @@ export class AgentRuntime implements IAgentService {
         } catch (error: any) {
             return this.handleError(error, steps, newMessages, sessionStateManager);
         } finally {
-            sessionStateManager.transition(AgentState.Idle, 'Execution finished');
+            if (sessionStateManager.getState() !== AgentState.Aborted) {
+                sessionStateManager.transition(AgentState.Idle, 'Execution finished');
+            }
         }
     }
 
@@ -302,6 +304,9 @@ export class AgentRuntime implements IAgentService {
         let firstTokenReceived = false;
 
         for await (const event of chatModel.stream(messages, chatOptions)) {
+            if (options?.signal?.aborted) {
+                throw new Error('Agent execution aborted by user.');
+            }
             if (!firstTokenReceived && (event.type === 'content_delta' || event.type === 'tool_call_delta' || event.type === 'reasoning_delta')) {
                 console.log(`[AgentPerf] LLM TTFT (Real Time To First Token): ${(performance.now() - llmStartTime).toFixed(2)}ms`);
                 firstTokenReceived = true;
