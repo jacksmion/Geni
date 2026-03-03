@@ -18,7 +18,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Application Layer (Controllers)                │
 │    AgentController │ SessionController │ SystemController        │
-│                     ToolController │ AppRouter (DI)              │
+│    ToolController │ SchedulerController │ AppRouter (DI)         │
 ├─────────────────────────────────────────────────────────────────┤
 │                        Agent Kernel                              │
 │   AgentRuntime │ PromptBuilder │ StateManager │ ToolGuard        │
@@ -155,6 +155,8 @@ Manages lifecycle of built-in tools: registration, refresh on settings change, t
 | `glob` | `GlobTool` | Finds files via glob patterns |
 | `grep` | `GrepTool` | Searches for text patterns within files |
 | `load_skill` | `SkillLoaderTool` | Loads full instructions for a specific skill |
+| `web_fetch` | `WebFetchTool` | Fetches webpage content and converts to markdown |
+| `environment_info` | `EnvironmentInfoTool` | Retrieves OS and project context information |
 | `todowrite` | `TodoWriteTool` | Creates/updates the entire todo list |
 | `todoread` | `TodoReadTool` | Reads the current todo list |
 
@@ -231,6 +233,8 @@ All shared types are defined in `src/common/types/` as the **Single Source of Tr
 | `ToolCall` | `chat.ts` | LLM layer, Agent, UI |
 | `AgentStep` | `chat.ts` | Agent, UI |
 | `ChatSession` | `chat.ts` | Session, UI |
+| `agent` | `agent.ts` | Agent core types |
+| `agentEvents` | `agentEvents.ts`| IPC request/response types |
 | `ITool` | `tool.ts` | Tools, Agent |
 | `Skill` | `skill.ts` | Skills, Agent |
 | `AppSettings` | `settings.ts` | All layers |
@@ -244,6 +248,7 @@ All shared types are defined in `src/common/types/` as the **Single Source of Tr
 | Controller | File | Purpose |
 |:-----------|:-----|:--------|
 | `AgentController` | `AgentController.ts` | Agent start/stop, event bridging |
+| `SchedulerController`| `SchedulerController.ts` | Schedules and manages timed background tasks |
 | `SessionController` | `SessionController.ts` | Session CRUD, history |
 | `SystemController` | `SystemController.ts` | Settings, file dialogs, LLM test |
 | `ToolController` | `ToolController.ts` | Skill toggle, MCP management |
@@ -282,6 +287,7 @@ src/
 │   ├── ipc/
 │   │   └── channels.ts        # IPC channel constants
 │   └── types/
+│       ├── agent.ts           # Core Agent types
 │       ├── chat.ts            # ChatMessage, ToolCall, AgentStep, ChatSession (SSoT)
 │       ├── agentEvents.ts     # IPC request/response types
 │       ├── settings.ts        # AppSettings
@@ -293,6 +299,7 @@ src/
 │   ├── router.ts              # AppRouter (DI Container)
 │   ├── controllers/           # IPC Controllers
 │   │   ├── AgentController.ts
+│   │   ├── SchedulerController.ts
 │   │   ├── SessionController.ts
 │   │   ├── SystemController.ts
 │   │   └── ToolController.ts
@@ -325,6 +332,8 @@ src/
 │       │   │   ├── GlobTool.ts
 │       │   │   ├── GrepTool.ts
 │       │   │   ├── SkillLoaderTool.ts
+│       │   │   ├── WebFetchTool.ts
+│       │   │   ├── EnvironmentInfoTool.ts
 │       │   │   └── TodoTool.ts
 │       │   └── mcp/           # MCP Integration
 │       │       ├── McpManager.ts
@@ -336,9 +345,18 @@ src/
 │       ├── session/           # Infrastructure Layer
 │       │   ├── SessionManager.ts
 │       │   └── SessionStorage.ts
+│       ├── scheduler/         # Automated Tasks
+│       │   └── SchedulerService.ts
+│       ├── im/                # Instant Messaging Layer
+│       │   ├── IIMAdapter.ts
+│       │   └── adapters/
 │       ├── ConfigManager.ts
 │       └── PathManager.ts
 └── renderer/                  # Frontend UI
+    ├── pages/                 # Full Page Components
+    │   ├── SchedulerPage.tsx
+    │   ├── Settings.tsx
+    │   └── settings/          # Tabbed settings view
     ├── store/                 # Zustand State
     │   └── useChatStore.ts
     └── components/            # React Components
