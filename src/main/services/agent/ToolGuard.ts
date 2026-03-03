@@ -208,7 +208,7 @@ export class ToolGuard {
             case ToolTrustLevel.Dangerous:
                 return {
                     allowed: false,
-                    reason: `High risk operation: ${request.toolName}`,
+                    reason: this.getHumanReadableReason(request),
                     requiresUserConfirmation: true,
                     trustLevel
                 };
@@ -287,6 +287,45 @@ export class ToolGuard {
             timestamp: Date.now(),
             expiresAt: ttl ? Date.now() + ttl : undefined
         });
+    }
+
+    /**
+     * 根据工具类型和参数生成人类可读的安全提示
+     */
+    private getHumanReadableReason(request: ToolExecutionRequest): string {
+        const name = request.toolName.toLowerCase();
+        const args = request.args || {};
+
+        // Bash / shell commands
+        if (name.includes('bash') || name.includes('shell') || name.includes('cmd') || name === 'exec') {
+            const cmd = args.command || args.cmd || '';
+            if (cmd) {
+                // Detect specific dangerous patterns
+                if (/\brm\b.*-rf?\b/.test(cmd) || /\bdel\b/i.test(cmd) || /Remove-Item/i.test(cmd)) {
+                    return '即将执行删除操作，请确认命令内容';
+                }
+                if (/\bnpm\s+install\b|\bpip\s+install\b|\bapt\s+install\b|\bbrew\s+install\b/i.test(cmd)) {
+                    return '即将安装软件包，请确认是否允许';
+                }
+                if (/\bcurl\b|\bwget\b|\bfetch\b/i.test(cmd)) {
+                    return '即将发起网络请求，请确认目标地址';
+                }
+            }
+            return '即将在终端执行命令，请确认命令内容';
+        }
+
+        // Delete / remove operations
+        if (name.includes('delete') || name.includes('remove')) {
+            return '此操作可能删除数据，且不可撤销';
+        }
+
+        // Run / exec operations
+        if (name.includes('run') || name.includes('exec')) {
+            return '即将执行外部程序，请确认操作安全';
+        }
+
+        // Generic fallback
+        return `此工具 (${request.toolName}) 涉及敏感操作，请确认是否允许`;
     }
 
     /**

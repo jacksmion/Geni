@@ -4,11 +4,11 @@ import SkillSettings from './pages/settings/SkillSettings'
 import SchedulerPage from './pages/SchedulerPage'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
-import { AuthorizationModal } from './components/modals/AuthorizationModal'
+
 import { useChatStore } from './store/useChatStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useLayoutStore } from './store/useLayoutStore'
-import { useModalStore } from './store/useModalStore'
+
 import { useBreakpoint } from './hooks/useBreakpoint'
 
 function App() {
@@ -22,13 +22,7 @@ function App() {
         loadHistory()
     }, [loadSettings, loadHistory])
 
-    // Register authorization request listener (connects main process ToolGuard to UI modal)
-    useEffect(() => {
-        const cleanup = window.electronAPI.agent.onAuthorizationRequest((request: any) => {
-            useModalStore.getState().pushAuthRequest(request)
-        })
-        return cleanup
-    }, [])
+
 
     // Auto collapse on mobile
     useEffect(() => {
@@ -78,8 +72,7 @@ function App() {
                 </main>
             )}
 
-            {/* Global Authorization Modal - must be at root level for z-index */}
-            <AuthorizationModal />
+
         </div>
     )
 }

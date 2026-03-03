@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -251,6 +251,73 @@ const TodoCard: React.FC<{ observation: string }> = ({ observation }) => {
     );
 };
 
+// ─── Inline Authorization UI Component ──────────────────────────────
+
+
+interface InlineAuthorizationUIProps {
+    reason?: string;
+    onAuthorize: (approved: boolean, remember?: boolean) => void;
+}
+
+const InlineAuthorizationUI: React.FC<InlineAuthorizationUIProps> = ({ reason, onAuthorize }) => {
+    // Keyboard shortcuts: Enter to approve, Esc to deny
+    React.useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            // Don't intercept if user is typing in an input field
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                onAuthorize(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onAuthorize(false);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [onAuthorize]);
+
+    return (
+        <div className="pl-[19px] mt-2 pr-1">
+            <div className="px-3 py-2.5 bg-amber-50 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-lg space-y-2">
+                <div className="flex gap-2 items-start">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="text-xs text-amber-800 dark:text-amber-200/80 leading-relaxed font-medium">
+                        {reason || '此工具涉及敏感操作，确认允许即可执行。'}
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1 border-t border-amber-500/10 mt-1">
+                    <button
+                        onClick={() => onAuthorize(false)}
+                        className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 rounded text-[11px] font-medium hover:bg-red-50 hover:text-red-500 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/20 transition-all"
+                    >
+                        <X className="w-3 h-3" />
+                        拒绝
+                        <kbd className="ml-0.5 text-[9px] text-slate-400 dark:text-zinc-600 font-normal">Esc</kbd>
+                    </button>
+                    <button
+                        onClick={() => onAuthorize(true, true)}
+                        className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-zinc-800 border border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-[11px] font-medium hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all"
+                    >
+                        <Clock className="w-3 h-3" />
+                        允许并记住 (1h)
+                    </button>
+                    <button
+                        onClick={() => onAuthorize(true)}
+                        className="flex items-center gap-1 px-3.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-semibold shadow-sm shadow-amber-500/20 transition-all active:scale-95"
+                    >
+                        <Check className="w-3 h-3" />
+                        确认允许
+                        <kbd className="ml-0.5 text-[9px] text-white/60 font-normal">↵</kbd>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // Tool Call Card Component
 const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -383,38 +450,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
 
             {/* Inline Authorization UI */}
             {step.isWaitingAuthorization && (
-                <div className="pl-[19px] mt-2 pr-1">
-                    <div className="px-3 py-2.5 bg-amber-50 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-lg space-y-2">
-                        <div className="flex gap-2 items-start">
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                            <div className="text-xs text-amber-800 dark:text-amber-200/80 leading-relaxed font-medium">
-                                <span className="font-bold">安全建议: </span>
-                                {step.authReason || '此工具涉及高风险操作，确认允许即可执行。'}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 pt-1 border-t border-amber-500/10 mt-1">
-                            <button
-                                onClick={() => handleAuthorization(false)}
-                                className="px-3 py-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 rounded text-[11px] font-medium hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all"
-                            >
-                                拒绝
-                            </button>
-                            <button
-                                onClick={() => handleAuthorization(true, true)}
-                                className="px-3 py-1 bg-white dark:bg-zinc-800 border border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-[11px] font-medium hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all"
-                            >
-                                允许并记住 (1h)
-                            </button>
-                            <button
-                                onClick={() => handleAuthorization(true)}
-                                className="px-3.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-semibold transition-all"
-                            >
-                                确认允许
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <InlineAuthorizationUI
+                    reason={step.authReason}
+                    onAuthorize={handleAuthorization}
+                />
             )}
 
             {/* Expanded Content View */}
