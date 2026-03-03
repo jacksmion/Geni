@@ -226,7 +226,8 @@ export class AgentRuntime implements IAgentService {
         const context = {
             basePrompt: options?.systemPrompt,
             workspacePath: this.settings.workspacePath,
-            skills: options?.skills
+            skills: options?.skills,
+            language: this.settings.language
         };
         const systemPrompt = this.promptBuilder.buildSystemPrompt(context);
 

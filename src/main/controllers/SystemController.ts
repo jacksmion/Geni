@@ -1,5 +1,4 @@
-
-import { ipcMain, dialog, shell } from 'electron';
+import { ipcMain, dialog, shell, app } from 'electron';
 import { SYSTEM_CHANNELS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
@@ -39,6 +38,14 @@ export class SystemController {
         // Merge
         const newSettings = { ...currentSettings, ...settings };
         this.configManager.save(newSettings);
+
+        // Update auto-start setting
+        if (settings.autoStart !== undefined) {
+            app.setLoginItemSettings({
+                openAtLogin: settings.autoStart,
+                path: app.getPath('exe'),
+            });
+        }
 
         // Notify listeners (e.g. AgentController to update runtime options, ToolController to reconnect MCP)
         if (this.onSettingsChanged) {

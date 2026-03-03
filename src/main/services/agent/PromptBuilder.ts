@@ -22,6 +22,8 @@ export interface AgentContext {
     workspacePath?: string;
     /** 启用的技能列表 */
     skills?: Skill[];
+    /** 工作语言 */
+    language?: 'zh' | 'en';
 }
 
 /**
@@ -37,7 +39,7 @@ const DEFAULT_CONFIG: PromptBuilderConfig = {
 You excel at complex problem-solving, comprehensive research, data analysis, system operations, and programming.
 
 # Core Guidelines
-- Working Language: Chinese (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in Chinese.
+- Working Language: {{LANGUAGE_INFO}}
 - Formatting: Speak naturally. Avoid using pure list and bullet-point formats.
 
 # Operational Best Practices
@@ -92,7 +94,13 @@ export class PromptBuilder {
      * 构建 Persona 部分
      */
     private buildPersona(context: AgentContext): string {
-        return context.basePrompt || this.config.defaultBasePrompt;
+        const base = context.basePrompt || this.config.defaultBasePrompt;
+
+        const langInfo = context.language === 'en'
+            ? "English (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in English."
+            : "Chinese (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in Chinese.";
+
+        return base.replace('{{LANGUAGE_INFO}}', langInfo);
     }
 
     /**

@@ -61,6 +61,14 @@ app.whenReady().then(async () => {
     }
     const workspacePath = appSettings.workspacePath;
 
+    // Apply autoStart on initialization to ensure consistency with the OS register
+    if (appSettings.autoStart !== undefined) {
+        app.setLoginItemSettings({
+            openAtLogin: appSettings.autoStart,
+            path: app.getPath('exe'),
+        });
+    }
+
     // 2. Initialize Registries
     const toolRegistry = new ToolRegistry();
     const skillRegistry = new SkillRegistry();

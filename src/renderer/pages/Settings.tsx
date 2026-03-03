@@ -14,7 +14,7 @@ export default function Settings() {
     const [activeSection, setActiveSection] = useState<SettingsSection>('models');
 
     const sections = [
-        { id: 'general', label: '常规设置', icon: Layout },
+        { id: 'general', label: '通用', icon: Layout },
         { id: 'models', label: '模型配置', icon: Globe },
         { id: 'persona', label: '个性化', icon: Sparkles },
         { id: 'mcp', label: 'MCP 服务器', icon: Database },

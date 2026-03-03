@@ -71,6 +71,8 @@ export interface AppSettings {
     workspacePath: string; // 当前工作空间路径
     theme: 'dark' | 'light' | 'system';
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
+    language: 'zh' | 'en'; // 语言设置
+    autoStart: boolean; // 开机自启动
     systemPrompt?: string; // 全局系统提示词
     telegram?: TelegramConfig; // Telegram Bot 配置
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
@@ -119,6 +121,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'dark',
     accentColor: 'indigo',
+    language: 'zh',
+    autoStart: false,
     telegram: {
         enabled: false,
         token: '',
