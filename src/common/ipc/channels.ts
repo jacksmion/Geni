@@ -56,3 +56,11 @@ export const TOOL_CHANNELS = {
     CORE_TOOL_TOGGLE: 'tool:core-tool-toggle',
     CORE_TOOL_SET_TRUST_LEVEL: 'tool:core-tool-set-trust-level',
 } as const;
+
+// Scheduler Channels
+export const SCHEDULER_CHANNELS = {
+    TRIGGER_TASK: 'scheduler:trigger-task',
+    GET_STATUSES: 'scheduler:get-statuses',
+    GET_LOGS: 'scheduler:get-logs',
+    VALIDATE_CRON: 'scheduler:validate-cron',
+} as const;

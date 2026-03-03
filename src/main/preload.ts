@@ -63,5 +63,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         coreToolList: () => ipcRenderer.invoke('tool:core-tool-list'),
         coreToolToggle: (toolName: string) => ipcRenderer.invoke('tool:core-tool-toggle', toolName),
         coreToolSetTrustLevel: (toolName: string, level: string) => ipcRenderer.invoke('tool:core-tool-set-trust-level', toolName, level)
+    },
+    scheduler: {
+        triggerTask: (taskId: string) => ipcRenderer.invoke('scheduler:trigger-task', taskId),
+        getStatuses: () => ipcRenderer.invoke('scheduler:get-statuses'),
+        getLogs: (taskId: string, limit?: number) => ipcRenderer.invoke('scheduler:get-logs', taskId, limit),
+        validateCron: (expression: string) => ipcRenderer.invoke('scheduler:validate-cron', expression),
     }
 })

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon, Sparkles, MessageSquare } from 'lucide-react';
+import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon, Sparkles, MessageSquare, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';

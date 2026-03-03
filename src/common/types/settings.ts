@@ -45,6 +45,24 @@ export interface TelegramConfig {
     proxyUrl?: string;
 }
 
+// 定时任务配置
+export interface ScheduledTaskConfig {
+    id: string;                    // 唯一标识
+    name: string;                  // 任务名称
+    enabled: boolean;              // 是否启用
+    prompt: string;                // 发给 LLM 的 prompt
+    cronExpression: string;        // cron 表达式
+
+    // 可选覆盖项
+    provider?: string;             // 覆盖使用的 LLM provider（默认使用全局）
+    model?: string;                // 覆盖使用的 model
+    enableTools?: boolean;         // 是否允许使用工具（默认 true）
+
+    // 上下文管理
+    keepHistory?: boolean;         // 是否保留历史对话（默认 false）
+    maxHistoryTurns?: number;      // 最大保留轮数（默认 10）
+}
+
 export interface AppSettings {
     llm: LLMSettings;
     skillSettings: Record<string, SkillState>; // 技能ID -> 状态
@@ -55,6 +73,7 @@ export interface AppSettings {
     accentColor: 'indigo' | 'emerald' | 'blue' | 'rose' | 'orange' | 'violet';
     systemPrompt?: string; // 全局系统提示词
     telegram?: TelegramConfig; // Telegram Bot 配置
+    scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
 }
 
 // 默认的提供商配置
@@ -105,4 +124,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
         token: '',
         proxyUrl: '',
     },
+    scheduledTasks: [],
 };

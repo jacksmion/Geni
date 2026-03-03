@@ -12,6 +12,9 @@ import { McpManager } from './services/tools/mcp/McpManager';
 import { CoreToolManager } from './services/tools/core/CoreToolManager';
 import { PathManager } from './services/PathManager';
 import { IMServiceManager } from './services/im/IMServiceManager';
+import { SchedulerService } from './services/scheduler/SchedulerService';
+import { SchedulerStorage } from './services/scheduler/SchedulerStorage';
+import { SchedulerController } from './controllers/SchedulerController';
 
 /**
  * App Router
@@ -25,6 +28,8 @@ export class AppRouter {
     private systemController: SystemController;
     private toolController: ToolController;
     private imServiceManager: IMServiceManager;
+    private schedulerService: SchedulerService;
+    private schedulerController: SchedulerController;
 
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
@@ -69,6 +74,17 @@ export class AppRouter {
         );
         this.sessionController = new SessionController(this.sessionManager);
 
+        // Scheduler
+        const schedulerStorage = new SchedulerStorage(pathManager);
+        this.schedulerService = new SchedulerService(
+            settings,
+            this.toolRegistry,
+            this.sessionManager,
+            this.toolController,
+            schedulerStorage
+        );
+        this.schedulerController = new SchedulerController(this.schedulerService);
+
         // Wiring
         this.systemController.setSettingsChangeCallback(async (newSettings) => {
             // 1. Update Agent Engine settings
@@ -109,6 +125,9 @@ export class AppRouter {
             }
             // 5. Update IM Services
             await this.imServiceManager.updateSettings(newSettings);
+
+            // 6. Sync Scheduled Tasks
+            this.schedulerService.syncWithSettings(newSettings);
         });
     }
 
@@ -120,8 +139,13 @@ export class AppRouter {
         this.sessionController.registerHandlers();
         this.systemController.registerHandlers();
         this.toolController.registerHandlers();
+        this.schedulerController.registerHandlers();
 
         this.imServiceManager.start().catch((err: any) => console.error('[AppRouter] Error starting IM Service Manager:', err));
+
+        // Start scheduled tasks from current settings
+        const currentSettings = this.configManager.load();
+        this.schedulerService.syncWithSettings(currentSettings);
 
         console.log('[AppRouter] IPC handlers registered.');
     }

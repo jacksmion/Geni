@@ -13,6 +13,7 @@ import { app } from 'electron';
 export class PathManager {
     private rootDir: string;
     private sessionsDir: string;
+    private schedulerDir: string;
     private globalSkillsDir: string;
     private builtinSkillsDir: string;
     private dotAgentsDir: string;
@@ -24,6 +25,7 @@ export class PathManager {
         // New unified structure: ~/.geni/
         this.rootDir = path.join(os.homedir(), '.geni');
         this.sessionsDir = path.join(this.rootDir, 'sessions');
+        this.schedulerDir = path.join(this.rootDir, 'scheduler');
         this.globalSkillsDir = path.join(this.rootDir, 'skills');
         // Built-in skills: {appRoot}/skills/ (app root in dev, or packaged app root in prod)
         this.builtinSkillsDir = path.join(appPath, 'skills');
@@ -41,6 +43,7 @@ export class PathManager {
         const dirs = [
             this.rootDir,
             this.sessionsDir,
+            this.schedulerDir,
             this.globalSkillsDir
         ];
 
@@ -75,6 +78,14 @@ export class PathManager {
      */
     public getSessionsDir(): string {
         return this.sessionsDir;
+    }
+
+    /**
+     * Get scheduler data directory
+     * @returns ~/.geni/scheduler/
+     */
+    public getSchedulerDir(): string {
+        return this.schedulerDir;
     }
 
     /**

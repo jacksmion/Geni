@@ -5,7 +5,7 @@ interface ChatState {
     sessions: Record<string, ChatSession>
     activeSessionId: string
     isSending: boolean
-    activeTab: 'chat' | 'skills' | 'settings'
+    activeTab: 'chat' | 'skills' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     currentAgentEvent: any | null
 
@@ -19,7 +19,7 @@ interface ChatState {
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
     setSending: (sending: boolean) => void
     setAgentEvent: (event: any | null) => void
-    setActiveTab: (tab: 'chat' | 'skills' | 'settings') => void
+    setActiveTab: (tab: 'chat' | 'skills' | 'scheduler' | 'settings') => void
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
