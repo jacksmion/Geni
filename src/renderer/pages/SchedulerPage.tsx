@@ -145,9 +145,13 @@ const SchedulerPage: React.FC = () => {
         }
     }, []);
 
+    // 定期刷新日志（仅在 logs 标签激活时）
     useEffect(() => {
         if (activeTab === 'logs' && selectedTask) {
             loadTaskLogs(selectedTask.id);
+            // 设置定期刷新
+            const interval = setInterval(() => loadTaskLogs(selectedTask.id), 10000);
+            return () => clearInterval(interval);
         }
     }, [activeTab, selectedTask?.id]);
 
@@ -356,17 +360,17 @@ const SchedulerPage: React.FC = () => {
                                     >
                                         配置
                                     </button>
-                                    {!isCreating && (
-                                        <button
-                                            onClick={() => setActiveTab('logs')}
-                                            className={clsx(
-                                                "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                                                activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
-                                            )}
-                                        >
-                                            历史
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => !isCreating && setActiveTab('logs')}
+                                        disabled={isCreating}
+                                        className={clsx(
+                                            "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                                            activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5",
+                                            isCreating && "opacity-40 cursor-not-allowed"
+                                        )}
+                                    >
+                                        历史
+                                    </button>
                                 </div>
                             </div>
                         </header>

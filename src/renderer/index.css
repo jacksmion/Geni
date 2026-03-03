@@ -58,7 +58,8 @@ body {
 
 button,
 a,
-textarea {
+textarea,
+input {
   -webkit-app-region: no-drag;
 }
 
