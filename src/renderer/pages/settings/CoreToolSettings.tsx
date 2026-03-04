@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TerminalSquare, Shield, AlertCircle, Box, Search, Database } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 interface CoreToolMetadata {
     name: string;
@@ -10,6 +11,7 @@ interface CoreToolMetadata {
 }
 
 export function CoreToolSettings() {
+    const { t } = useTranslation();
     const [tools, setTools] = useState<CoreToolMetadata[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -58,7 +60,7 @@ export function CoreToolSettings() {
                 <div className="animate-spin mr-3">
                     <Box size={20} />
                 </div>
-                正在加载工具...
+                {t('coreToolSettings.loading')}
             </div>
         );
     }
@@ -68,16 +70,16 @@ export function CoreToolSettings() {
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
-                        内置核心工具
+                        {t('coreToolSettings.title')}
                     </h2>
-                    <p className="text-sm text-slate-500 dark:text-gray-400">管理内置核心工具的启用状态和授权策略。</p>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">{t('coreToolSettings.desc')}</p>
                 </div>
 
                 <div className="relative group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
                     <input
                         type="text"
-                        placeholder="搜索工具..."
+                        placeholder={t('coreToolSettings.search')}
                         className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:bg-white dark:focus:bg-black/30 transition-all w-64"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -89,10 +91,10 @@ export function CoreToolSettings() {
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                         <tr>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">工具</th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">状态</th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">授权方式</th>
-                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">描述</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.tool')}</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.status')}</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.auth')}</th>
+                            <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.desc')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#18181b]">
@@ -134,12 +136,12 @@ export function CoreToolSettings() {
                                         )}
                                         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
                                     >
-                                        <option value="Ask">需确认 (Ask)</option>
-                                        <option value="Auto">自动批准 (Auto)</option>
+                                        <option value="Ask">{t('coreToolSettings.ask')}</option>
+                                        <option value="Auto">{t('coreToolSettings.auto')}</option>
                                     </select>
                                 </td>
                                 <td className="px-4 py-4 text-xs text-slate-500 dark:text-gray-400 leading-relaxed max-w-xs">
-                                    {tool.description || <span className="italic opacity-50">无描述</span>}
+                                    {tool.description || <span className="italic opacity-50">{t('coreToolSettings.noDesc')}</span>}
                                 </td>
                             </tr>
                         ))}
@@ -149,7 +151,7 @@ export function CoreToolSettings() {
                     <div className="px-6 py-12 text-center text-slate-400 italic text-sm">
                         <div className="flex flex-col items-center gap-2">
                             <Database className="opacity-20" size={32} />
-                            未发现匹配的内置工具
+                            {t('coreToolSettings.noMatch')}
                         </div>
                     </div>
                 )}
@@ -158,10 +160,9 @@ export function CoreToolSettings() {
             <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-4 border border-slate-200 dark:border-white/5 flex items-start gap-3">
                 <Shield className="text-indigo-500 dark:text-indigo-400 mt-0.5 shrink-0" size={18} />
                 <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-1">授权说明</h4>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-white mb-1">{t('coreToolSettings.authNoteTitle')}</h4>
                     <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
-                        设置为“自动批准 (Auto)”将允许 AI 在不显示确认对话框的情况下直接执行该工具。
-                        为了安全起见，建议仅在涉及文件读取或目录浏览等不修改系统状态的操作时使用此模式。
+                        {t('coreToolSettings.authNoteDesc')}
                     </p>
                 </div>
             </div>

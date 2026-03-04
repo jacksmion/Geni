@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Info, Globe, Database, Layout, ToyBrick, Box as BoxIcon, Sparkles, MessageSquare, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { GeneralSettings } from './settings/GeneralSettings';
 import { ModelSettings } from './settings/ModelSettings';
 import { McpSettings } from './settings/McpSettings';
@@ -11,16 +12,17 @@ import { ImSettings } from './settings/ImSettings';
 type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'im' | 'about';
 
 export default function Settings() {
+    const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState<SettingsSection>('models');
 
     const sections = [
-        { id: 'general', label: '通用', icon: Layout },
-        { id: 'models', label: '模型配置', icon: Globe },
-        { id: 'persona', label: '个性化', icon: Sparkles },
-        { id: 'mcp', label: 'MCP 服务器', icon: Database },
-        { id: 'tools', label: '内置工具', icon: BoxIcon },
-        { id: 'im', label: 'IM 集成', icon: MessageSquare },
-        { id: 'about', label: '关于我们', icon: Info },
+        { id: 'general', label: t('settings.sections.general'), icon: Layout },
+        { id: 'models', label: t('settings.sections.models'), icon: Globe },
+        { id: 'persona', label: t('settings.sections.persona'), icon: Sparkles },
+        { id: 'mcp', label: t('settings.sections.mcp'), icon: Database },
+        { id: 'tools', label: t('settings.sections.tools'), icon: BoxIcon },
+        { id: 'im', label: t('settings.sections.im'), icon: MessageSquare },
+        { id: 'about', label: t('settings.sections.about'), icon: Info },
     ] as const;
 
     return (
@@ -30,7 +32,7 @@ export default function Settings() {
                 <div className="px-3 py-4 mb-2">
                     <h2 className="text-sm font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
                         <SettingsIcon size={14} />
-                        设置
+                        {t('settings.title')}
                     </h2>
                 </div>
 
@@ -57,7 +59,7 @@ export default function Settings() {
                 <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
                     <div className="flex items-center gap-3">
                         <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100">
-                            {sections.find(s => s.id === activeSection)?.label || '设置'}
+                            {sections.find(s => s.id === activeSection)?.label || t('settings.title')}
                         </h1>
                     </div>
                     {/* 预留窗口控制按钮的空间 */}
@@ -90,7 +92,7 @@ export default function Settings() {
                                 G
                             </div>
                             <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Geni</h2>
-                            <p className="text-slate-500 dark:text-gray-400">Your personal spark for creativity & code</p>
+                            <p className="text-slate-500 dark:text-gray-400">{t('settings.about.slogan')}</p>
 
                             <div className="pt-8 text-xs text-slate-400">
                                 Version 1.0.0 (Beta) <br />

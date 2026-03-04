@@ -3,6 +3,7 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig } from '../../../
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import { Bot, Check, Globe, Key, Cpu, Zap, Search, Loader2, Plus, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // 定义支持的提供商元数据（图标、名称、状态等）
 const PROVIDER_META: Record<string, { icon: any, label: string, desc: string }> = {
@@ -14,6 +15,7 @@ const PROVIDER_META: Record<string, { icon: any, label: string, desc: string }> 
 
 export function ModelSettings() {
     const { settings, updateSettings } = useSettingsStore();
+    const { t } = useTranslation();
     // 本地状态：当前选中的 Provider（用于显示右侧详情），默认选中当前激活的 Provider
     const [selectedProvider, setSelectedProvider] = useState<string>(settings.llm.activeProvider || 'OpenAI');
     const [searchTerm, setSearchTerm] = useState('');
@@ -102,7 +104,7 @@ export function ModelSettings() {
 
     const handleDeleteProvider = (key: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (window.confirm(`确认删除 "${key}" 配置吗?`)) {
+        if (window.confirm(t('modelSettings.deleteConfirm', { key }))) {
             const { [key]: deleted, ...remainingProviders } = settings.llm.providers;
 
             // If deleting current, switch to default
@@ -170,7 +172,7 @@ export function ModelSettings() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                         <input
                             type="text"
-                            placeholder="搜索..."
+                            placeholder={t('modelSettings.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
@@ -179,7 +181,7 @@ export function ModelSettings() {
                     <button
                         onClick={() => setIsAdding(!isAdding)}
                         className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors"
-                        title="Add Custom Provider"
+                        title={t('modelSettings.addProvider')}
                     >
                         <Plus size={16} />
                     </button>
@@ -190,7 +192,7 @@ export function ModelSettings() {
                         <input
                             type="text"
                             autoFocus
-                            placeholder="Provider Name (e.g. My-LLM)"
+                            placeholder={t('modelSettings.namePlaceholder')}
                             value={newProviderName}
                             onChange={(e) => setNewProviderName(e.target.value)}
                             className="w-full bg-white dark:bg-black/20 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-2 py-1.5 text-xs focus:outline-none text-slate-900 dark:text-slate-100"
@@ -201,13 +203,13 @@ export function ModelSettings() {
                                 onClick={handleAddProvider}
                                 className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1.5 rounded-lg transition-colors"
                             >
-                                Add
+                                {t('modelSettings.add')}
                             </button>
                             <button
                                 onClick={() => setIsAdding(false)}
                                 className="flex-1 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-gray-400 text-xs py-1.5 rounded-lg hover:bg-slate-300 transition-colors"
                             >
-                                Cancel
+                                {t('modelSettings.cancel')}
                             </button>
                         </div>
                     </div>
@@ -215,7 +217,7 @@ export function ModelSettings() {
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                     {filteredProviders.map(key => {
-                        const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: 'Custom Provider' };
+                        const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: t('modelSettings.customProvider') };
                         const isSelected = selectedProvider === key;
                         const providerConfig = settings.llm.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
                         const isEnabled = providerConfig?.enabled ?? false;
@@ -245,13 +247,13 @@ export function ModelSettings() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                         {isEnabled && (
-                                            <div className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">ON</div>
+                                            <div className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">{t('modelSettings.on')}</div>
                                         )}
                                         {isCustom && (
                                             <div
                                                 onClick={(e) => handleDeleteProvider(key, e)}
                                                 className="p-1 rounded-md text-slate-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/20 transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Delete Provider"
+                                                title={t('modelSettings.deleteProvider')}
                                             >
                                                 <X size={14} />
                                             </div>
@@ -274,14 +276,14 @@ export function ModelSettings() {
                             <h2 className="text-lg font-semibold text-slate-800 dark:text-white">{PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
                             <a href="#" className="hidden text-xs text-indigo-500 hover:underline flex items-center gap-1">
                                 <Globe size={12} />
-                                官方文档
+                                {t('modelSettings.officialDocs')}
                             </a>
                         </div>
 
                         {/* Global Switch */}
                         <div className="flex items-center gap-3">
                             <span className="text-xs text-slate-500 dark:text-gray-400">
-                                {(settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider])?.enabled ? '当前已启用' : '点击启用此模型'}
+                                {(settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider])?.enabled ? t('modelSettings.currentlyEnabled') : t('modelSettings.clickToEnable')}
                             </span>
                             <button
                                 onClick={() => handleToggleProvider(selectedProvider)}
@@ -304,8 +306,8 @@ export function ModelSettings() {
                         {/* API Key */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center justify-between">
-                                <div className="flex items-center gap-2"><Key size={14} /> API 密钥</div>
-                                <span className="text-[10px] font-normal normal-case text-slate-400">仅存储于本地</span>
+                                <div className="flex items-center gap-2"><Key size={14} /> {t('modelSettings.apiKey')}</div>
+                                <span className="text-[10px] font-normal normal-case text-slate-400">{t('modelSettings.localOnly')}</span>
                             </label>
                             <input
                                 type="password"
@@ -319,7 +321,7 @@ export function ModelSettings() {
                         {/* Base URL */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <Globe size={14} /> API 地址 (Base URL)
+                                <Globe size={14} /> {t('modelSettings.apiUrl')}
                             </label>
                             <input
                                 type="text"
@@ -333,7 +335,7 @@ export function ModelSettings() {
                         {/* Model Name */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <Cpu size={14} /> 模型名称 (Model)
+                                <Cpu size={14} /> {t('modelSettings.modelName')}
                             </label>
                             <input
                                 type="text"
@@ -343,7 +345,7 @@ export function ModelSettings() {
                                 className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200"
                             />
                             <p className="text-[10px] text-slate-400 dark:text-gray-500">
-                                手动输入要使用的模型 ID，例如: gpt-4o, claude-3-5-sonnet-latest
+                                {t('modelSettings.modelDesc')}
                             </p>
                         </div>
 
@@ -355,7 +357,7 @@ export function ModelSettings() {
                                     className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 text-xs font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                                    测试连接
+                                    {t('modelSettings.testConnection')}
                                 </button>
 
                                 {testResult && (

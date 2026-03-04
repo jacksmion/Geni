@@ -1,8 +1,10 @@
 import React from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useTranslation } from 'react-i18next';
 
 export function GeneralSettings() {
     const { settings, updateSettings } = useSettingsStore();
+    const { t } = useTranslation();
 
     return (
         <div className="max-w-3xl space-y-8 animate-in fade-in duration-500">
@@ -15,22 +17,22 @@ export function GeneralSettings() {
             <section className="space-y-8">
                 {/* Language */}
                 <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">语言</span>
+                    <span className="text-sm font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.language')}</span>
                     <select
                         value={settings.language || 'zh'}
                         onChange={(e) => updateSettings({ language: e.target.value as 'zh' | 'en' })}
                         className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-slate-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32"
                     >
-                        <option value="zh">中文</option>
-                        <option value="en">English</option>
+                        <option value="zh">{t('generalSettings.zh')}</option>
+                        <option value="en">{t('generalSettings.en')}</option>
                     </select>
                 </div>
 
                 {/* Auto Start */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">开机自启动</h3>
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.autoStart')}</h3>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-gray-400">系统启动时自动运行应用</span>
+                        <span className="text-sm text-slate-600 dark:text-gray-400">{t('generalSettings.autoStartDesc')}</span>
                         <button
                             role="switch"
                             aria-checked={settings.autoStart || false}

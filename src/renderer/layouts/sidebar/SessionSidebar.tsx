@@ -4,6 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 export function SessionSidebar() {
     const { sessions, activeSessionId, switchSession, createSession, deleteSession, renameSession } = useChatStore();
@@ -13,6 +14,7 @@ export function SessionSidebar() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const { t } = useTranslation();
 
     // Grouping helper
     const getGroupLabel = (timestamp: number) => {
@@ -24,11 +26,11 @@ export function SessionSidebar() {
 
         const diffDays = Math.round((now.getTime() - dateMidnight.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 0) return '今天';
-        if (diffDays === 1) return '昨天';
-        if (diffDays <= 7) return '最近 7 天';
-        if (diffDays <= 30) return '最近 30 天';
-        return '更早以前';
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'yesterday';
+        if (diffDays <= 7) return 'last7Days';
+        if (diffDays <= 30) return 'last30Days';
+        return 'older';
     };
 
     // Relative time for session items
@@ -36,10 +38,10 @@ export function SessionSidebar() {
         const now = Date.now();
         const diff = now - timestamp;
         const minutes = Math.floor(diff / 60000);
-        if (minutes < 1) return '刚刚';
-        if (minutes < 60) return `${minutes}分钟前`;
+        if (minutes < 1) return t('sessionSidebar.relativeTime.justNow');
+        if (minutes < 60) return t('sessionSidebar.relativeTime.minutesAgo', { count: minutes });
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}小时前`;
+        if (hours < 24) return t('sessionSidebar.relativeTime.hoursAgo', { count: hours });
         const d = new Date(timestamp);
         return `${d.getMonth() + 1}/${d.getDate()}`;
     };
@@ -76,13 +78,13 @@ export function SessionSidebar() {
 
     const handleDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (confirm('确定要删除这个会话吗？')) {
+        if (confirm(t('sessionSidebar.confirmDelete'))) {
             deleteSession(id);
         }
     };
 
     // Custom order for groups
-    const groupOrder = ['今天', '昨天', '最近 7 天', '最近 30 天', '更早以前'];
+    const groupOrder = ['today', 'yesterday', 'last7Days', 'last30Days', 'older'];
 
     // If mobile and not collapsed, shown as an overlay. 
     // If tablet/desktop and collapsed, width is 0.
@@ -113,12 +115,12 @@ export function SessionSidebar() {
                     {/* Section Header */}
                     <div className="flex items-center justify-between min-w-[200px]">
                         <h2 className="text-[11px] font-semibold text-slate-500 dark:text-zinc-500 select-none">
-                            任务列表
+                            {t('sessionSidebar.title')}
                         </h2>
                         <button
                             onClick={() => createSession()}
                             className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
-                            title="新建任务"
+                            title={t('sessionSidebar.actions.new')}
                         >
                             <Plus size={16} strokeWidth={2.5} />
                         </button>
@@ -132,7 +134,7 @@ export function SessionSidebar() {
                         />
                         <input
                             type="text"
-                            placeholder="搜索任务..."
+                            placeholder={t('sessionSidebar.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full h-8.5 pl-9 pr-3 bg-slate-200/50 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] border-transparent dark:border-transparent focus:border-indigo-500/30 focus:bg-white dark:focus:bg-white/5 rounded-lg text-xs text-slate-900 dark:text-gray-100 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-zinc-600 font-medium"
@@ -151,7 +153,7 @@ export function SessionSidebar() {
                             <div key={group} className="mb-4 min-w-[200px]">
                                 <div className="px-3 mb-1.5 flex items-center gap-2">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-600">
-                                        {group}
+                                        {t(`sessionSidebar.groups.${group}`)}
                                     </span>
                                     <div className="h-[1px] flex-1 bg-slate-200/50 dark:bg-white/5" />
                                 </div>
@@ -199,8 +201,8 @@ export function SessionSidebar() {
                                                     </form>
                                                 ) : (
                                                     <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                                                        <span className="truncate select-none text-[13px]" title={session.title || '新任务'}>
-                                                            {session.title || '新任务'}
+                                                        <span className="truncate select-none text-[13px]" title={session.title || t('sessionSidebar.defaultTitle')}>
+                                                            {session.title || t('sessionSidebar.defaultTitle')}
                                                         </span>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
@@ -218,14 +220,14 @@ export function SessionSidebar() {
                                                         <button
                                                             onClick={(e) => handleStartEdit(e, session.id, session.title)}
                                                             className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                                                            title="重命名"
+                                                            title={t('sessionSidebar.actions.rename')}
                                                         >
                                                             <Edit2 size={12} />
                                                         </button>
                                                         <button
                                                             onClick={(e) => handleDelete(e, session.id)}
                                                             className="p-1 text-slate-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                                                            title="删除"
+                                                            title={t('sessionSidebar.actions.delete')}
                                                         >
                                                             <Trash2 size={12} />
                                                         </button>
@@ -242,13 +244,13 @@ export function SessionSidebar() {
                     {Object.keys(groupedSessions).length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
                             <Search size={24} className="mb-2 opacity-20" />
-                            <span className="text-xs">未找到匹配的任务</span>
+                            <span className="text-xs">{t('sessionSidebar.noMatch')}</span>
                         </div>
                     )}
                 </div>
 
                 <div className="px-4 py-3 border-t border-slate-200 dark:border-white/5 text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
-                    {Object.values(sessions).length} 个活跃任务
+                    {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
                 </div>
             </div>
         </>

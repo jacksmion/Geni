@@ -1,0 +1,173 @@
+{
+    "settings": {
+        "title": "Settings",
+        "sections": {
+            "general": "General",
+            "models": "Model Config",
+            "persona": "Persona",
+            "mcp": "MCP Servers",
+            "tools": "Built-in Tools",
+            "im": "IM Integration",
+            "about": "About"
+        },
+        "about": {
+            "slogan": "Your personal spark for creativity & code"
+        }
+    },
+    "sessionSidebar": {
+        "title": "Task List",
+        "search": "Search tasks...",
+        "defaultTitle": "New Task",
+        "confirmDelete": "Are you sure you want to delete this session?",
+        "noMatch": "No matching tasks found",
+        "activeSessions": "{{count}} active tasks",
+        "groups": {
+            "today": "Today",
+            "yesterday": "Yesterday",
+            "last7Days": "Last 7 Days",
+            "last30Days": "Last 30 Days",
+            "older": "Older"
+        },
+        "relativeTime": {
+            "justNow": "Just now",
+            "minutesAgo": "{{count}} min ago",
+            "hoursAgo": "{{count}} hr ago"
+        },
+        "actions": {
+            "new": "New Task",
+            "rename": "Rename",
+            "delete": "Delete"
+        }
+    },
+    "skillSettings": {
+        "title": "Skill Store",
+        "subtitle": "Extend AI assistant's professional capabilities · Enabled",
+        "search": "Search skills...",
+        "loading": "Loading skills library...",
+        "noDescription": "No description",
+        "noMatchTitle": "No skills found",
+        "emptyTitle": "No skills available",
+        "noMatchDesc": "Try using different keywords to search",
+        "emptyDesc": "Add a skill folder in your project's .geni/skills directory to be automatically discovered",
+        "actions": {
+            "enable": "Click to enable",
+            "disable": "Click to disable"
+        }
+    },
+    "generalSettings": {
+        "language": "Language",
+        "zh": "中文",
+        "en": "English",
+        "autoStart": "Auto Start",
+        "autoStartDesc": "Run application automatically on system startup"
+    },
+    "modelSettings": {
+        "search": "Search...",
+        "addProvider": "Add Custom Provider",
+        "namePlaceholder": "Provider Name (e.g. My-LLM)",
+        "add": "Add",
+        "cancel": "Cancel",
+        "deleteConfirm": "Are you sure to delete \"{{key}}\" config?",
+        "customProvider": "Custom Provider",
+        "on": "ON",
+        "deleteProvider": "Delete Provider",
+        "officialDocs": "Official Docs",
+        "currentlyEnabled": "Currently Enabled",
+        "clickToEnable": "Click to enable this model",
+        "apiKey": "API Key",
+        "localOnly": "Stored locally only",
+        "apiUrl": "API URL (Base URL)",
+        "modelName": "Model Name (Model)",
+        "modelDesc": "Manually enter the model ID to use, e.g.: gpt-4o",
+        "testConnection": "Test Connection",
+        "testing": "Testing...",
+        "connected": "Connected"
+    },
+    "personaSettings": {
+        "title": "Persona Settings",
+        "desc": "Define the Agent's identity, behavior guidelines, and response style",
+        "reset": "Reset to Default",
+        "save": "Save Changes",
+        "promptPlaceholder": "Enter system prompt to customize Agent behavior...",
+        "expertTip": "Expert Tip",
+        "expertDesc": "The system prompt is the 'soul' of the Agent. You can modify it to change its working language, style, and tool priority. Changes take effect on the next conversation."
+    },
+    "coreToolSettings": {
+        "title": "Built-in Core Tools",
+        "desc": "Manage enable status and authorization policies of built-in core tools.",
+        "search": "Search tools...",
+        "loading": "Loading tools...",
+        "columns": {
+            "tool": "Tool",
+            "status": "Status",
+            "auth": "Authorization",
+            "desc": "Description"
+        },
+        "ask": "Ask Confirmation",
+        "auto": "Auto-approve",
+        "noDesc": "No description",
+        "noMatch": "No matching built-in tools found",
+        "authNoteTitle": "Authorization Note",
+        "authNoteDesc": "Setting to 'Auto-approve' allows the AI to execute the tool directly without confirmation. For safety, it is recommended to use this mode only for read-only operations."
+    },
+    "mcpSettings": {
+        "addServer": "Add Server",
+        "serverIdPlaceholder": "Server Name (ID)",
+        "duplicateName": "Server name already exists!",
+        "add": "Add",
+        "cancel": "Cancel",
+        "unnamed": "Unnamed",
+        "on": "ON",
+        "noMatch": "No matching servers found",
+        "empty": "No servers available",
+        "search": "Search servers...",
+        "generalSettings": "General Settings",
+        "availableTools": "Available Tools",
+        "deleteServer": "Delete Server",
+        "connectionFailed": "Connection Failed",
+        "enableServer": "Enable Server",
+        "enableDesc": "Tools will be loaded automatically when enabled",
+        "name": "Name",
+        "nameDesc": "Unique identifier for the server",
+        "transport": "Transport Type",
+        "stdioDesc": "Stdio (Local Command)",
+        "sseDesc": "SSE (Remote Server)",
+        "url": "Server URL",
+        "urlDesc": "SSE endpoint address, usually ends with /sse",
+        "apiKey": "API Key (Optional)",
+        "localOnly": "Stored locally only",
+        "command": "Command",
+        "commandDesc": "Command to start the MCP server",
+        "args": "Arguments",
+        "argsDesc": "Space-separated command-line arguments",
+        "testConnection": "Test Connection",
+        "connecting": "Connecting...",
+        "connected": "Connected",
+        "notConnected": "Not Connected",
+        "notConnectedDesc": "Please connect the server in 'General Settings' to view available tools",
+        "toolsList": "Available Tools List",
+        "count": "Total {{count}}",
+        "columns": {
+            "tool": "Tool",
+            "status": "Status",
+            "auth": "Authorization",
+            "desc": "Description"
+        },
+        "ask": "Ask",
+        "auto": "Auto",
+        "noDesc": "No description",
+        "noToolsReturn": "This server returned no tools",
+        "noServerTitle": "No Server Selected",
+        "noServerDesc": "Select a server from the left list to configure"
+    },
+    "imSettings": {
+        "title": "Telegram Bot",
+        "desc": "Setup a Telegram Bot to summon your Geni agent on your mobile device.",
+        "tokenLabel": "Bot Token",
+        "tokenDesc": "Search @BotFather in Telegram to create a new Bot and get its Token.",
+        "proxyLabel": "HTTP Proxy URL (Optional)",
+        "proxyDesc": "Use a proxy if your network cannot connect to Telegram directly.",
+        "saving": "Save Config",
+        "saved": "Saved"
+    }
+}

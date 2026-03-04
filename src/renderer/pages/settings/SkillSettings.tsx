@@ -4,6 +4,7 @@ import {
     Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 
 // 统一的低饱和固态颜色
 const NEUTRAL_PALETTES = [
@@ -55,6 +56,7 @@ interface SkillRowProps {
 }
 
 const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
+    const { t } = useTranslation();
     const icon = getSkillIcon(skill.id);
 
     return (
@@ -91,7 +93,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
                         ? "text-slate-400 dark:text-gray-500"
                         : "text-slate-300 dark:text-gray-600"
                 )}>
-                    {skill.description || '暂无描述'}
+                    {skill.description || t('skillSettings.noDescription')}
                 </p>
             </div>
 
@@ -105,7 +107,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
                         ? "bg-emerald-500 shadow-sm shadow-emerald-500/30"
                         : "bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/15"
                 )}
-                title={skill.enabled ? '点击禁用' : '点击启用'}
+                title={skill.enabled ? t('skillSettings.actions.disable') : t('skillSettings.actions.enable')}
             >
                 <div className={clsx(
                     "absolute top-[2px] w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300",
@@ -117,6 +119,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
 };
 
 const SkillSettings: React.FC = () => {
+    const { t } = useTranslation();
     const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -153,7 +156,7 @@ const SkillSettings: React.FC = () => {
         return (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-                <span className="text-sm font-medium">正在加载技能库...</span>
+                <span className="text-sm font-medium">{t('skillSettings.loading')}</span>
             </div>
         );
     }
@@ -170,10 +173,10 @@ const SkillSettings: React.FC = () => {
                             </div>
                             <div>
                                 <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
-                                    技能商店
+                                    {t('skillSettings.title')}
                                 </h1>
                                 <p className="text-[11px] text-slate-400 dark:text-gray-500">
-                                    为 AI 助手扩展专业能力 · 已启用 <span className="text-emerald-500 font-bold">{enabledCount}</span> / {skills.length}
+                                    {t('skillSettings.subtitle')} <span className="text-emerald-500 font-bold">{enabledCount}</span> / {skills.length}
                                 </p>
                             </div>
                         </div>
@@ -186,7 +189,7 @@ const SkillSettings: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                         <input
                             type="text"
-                            placeholder="搜索技能..."
+                            placeholder={t('skillSettings.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
@@ -217,12 +220,12 @@ const SkillSettings: React.FC = () => {
                                 <Box size={28} className="text-slate-300 dark:text-gray-700" />
                             </div>
                             <h3 className="text-sm font-bold text-slate-600 dark:text-gray-300 mb-1">
-                                {searchTerm ? '未找到相关技能' : '暂无技能'}
+                                {searchTerm ? t('skillSettings.noMatchTitle') : t('skillSettings.emptyTitle')}
                             </h3>
                             <p className="text-xs text-slate-400 dark:text-gray-500 max-w-xs text-center">
                                 {searchTerm
-                                    ? '尝试使用其他关键词搜索'
-                                    : '在项目 .geni/skills 目录下添加技能文件夹即可自动发现'}
+                                    ? t('skillSettings.noMatchDesc')
+                                    : t('skillSettings.emptyDesc')}
                             </p>
                         </div>
                     )}
