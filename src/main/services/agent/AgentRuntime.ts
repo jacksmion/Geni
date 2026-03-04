@@ -166,7 +166,23 @@ export class AgentRuntime implements IAgentService {
                 // 2. LLM 轮次执行
                 sessionStateManager.transition(AgentState.Thinking, `Thinking...`);
                 const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
-                    messages, chatModel, chatModelTools, sessionStateManager, options, onStream
+                    messages, chatModel, chatModelTools, sessionStateManager, options, onStream,
+                    (activeToolCalls, content, reasoning) => {
+                        if (onStepUpdate) {
+                            const tempSteps = [...steps];
+                            for (const tc of activeToolCalls) {
+                                tempSteps.push({
+                                    thought: reasoning || content,
+                                    tool: tc.name,
+                                    toolInput: tc.arguments,
+                                    observation: '',
+                                    isComplete: false,
+                                    isError: false
+                                });
+                            }
+                            onStepUpdate(tempSteps);
+                        }
+                    }
                 );
 
                 const assistantMsg: ChatMessage = {
@@ -275,7 +291,8 @@ export class AgentRuntime implements IAgentService {
         chatModelTools: ChatModelToolDefinition[],
         sessionStateManager: AgentStateManager,
         options?: AgentRuntimeOptions,
-        onStream?: (chunk: string) => void
+        onStream?: (chunk: string) => void,
+        onToolCallDelta?: (toolCalls: any[], currentContent: string, currentReasoning: string) => void
     ) {
         return withRetry(
             async () => {
@@ -331,6 +348,9 @@ export class AgentRuntime implements IAgentService {
                             if (event.name) acc.name = event.name;
                             if (event.arguments_delta) acc.arguments += event.arguments_delta;
                             accumulators.set(event.index, acc);
+
+                            // Trigger callback to stream tool arguments to UI
+                            onToolCallDelta?.(Array.from(accumulators.values()), currentContent, currentReasoning);
                             break;
                         }
                         case 'error':

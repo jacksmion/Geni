@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { ChatMessage, ChatSession } from '../../common/types/chat'
 
+interface ActiveArtifact {
+    toolName: string;
+    path: string;
+    content: string;
+}
+
 interface ChatState {
     sessions: Record<string, ChatSession>
     activeSessionId: string
@@ -9,6 +15,7 @@ interface ChatState {
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
     currentAgentEvent: any | null
+    activeArtifact: ActiveArtifact | null
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -25,6 +32,7 @@ interface ChatState {
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
     setSelectedSkillIds: (ids: string[] | null) => void
+    setActiveArtifact: (artifact: ActiveArtifact | null) => void
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
 }
@@ -49,6 +57,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     pendingAttachments: [],
     selectedSkillIds: null,
     currentAgentEvent: null,
+    activeArtifact: null,
 
     loadHistory: async () => {
         try {
@@ -275,6 +284,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     clearPendingAttachments: () => set({ pendingAttachments: [] }),
 
     setSelectedSkillIds: (ids) => set({ selectedSkillIds: ids }),
+    setActiveArtifact: (artifact) => set({ activeArtifact: artifact }),
 
     startNewChat: () => {
         get().createSession();
@@ -306,6 +316,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         setSending(true);
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
+        get().setActiveArtifact(null); // Clear previous artifact on new message
 
         // --- Throttled Stream Mechanism ---
         let streamBuffer = '';
@@ -345,6 +356,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let pendingSteps: any[] | null = null;
         let isFlushingSteps = false;
 
+        // Parse partial JSON to extract path and content
+        const extractPathAndContent = (jsonStr: string) => {
+            let pathResult = '';
+            let contentResult = '';
+            try {
+                const parsed = JSON.parse(jsonStr);
+                pathResult = parsed.path || '';
+                contentResult = parsed.content || parsed.replacement || '';
+            } catch {
+                const pathMatch = jsonStr.match(/"path"\s*:\s*"([^"]*)/);
+                if (pathMatch) pathResult = pathMatch[1];
+
+                const contentMatch = jsonStr.match(/"(?:content|replacement)"\s*:\s*"/);
+                if (contentMatch) {
+                    const startIndex = contentMatch.index! + contentMatch[0].length;
+                    let extracted = jsonStr.slice(startIndex);
+                    // Extract up to the last unescaped quote (or just take the rest if not closed)
+                    // We'll do a simple unescape
+                    extracted = extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
+                    // Strip trailing quotes or brace from incomplete json string
+                    extracted = extracted.replace(/(?:")?\s*}\s*$/, '');
+                    if (extracted.endsWith('"')) extracted = extracted.slice(0, -1);
+                    contentResult = extracted;
+                }
+            }
+            return { path: pathResult, content: contentResult };
+        };
+
         const flushSteps = () => {
             if (!pendingSteps) {
                 isFlushingSteps = false;
@@ -358,6 +397,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 ...msg,
                 steps: stepsToFlush
             }));
+
+            // Check for active artifact (write or edit operations in progress)
+            let latestArtifact: ActiveArtifact | null = get().activeArtifact;
+            for (const step of stepsToFlush) {
+                if ((step.tool === 'write' || step.tool === 'edit') && step.toolInput) {
+                    const { path, content } = extractPathAndContent(step.toolInput);
+                    if (path || content) {
+                        latestArtifact = {
+                            toolName: step.tool,
+                            path: path || '...',
+                            content: content
+                        };
+                    }
+                }
+            }
+
+            if (latestArtifact &&
+                (latestArtifact.path !== get().activeArtifact?.path ||
+                    latestArtifact.content !== get().activeArtifact?.content)) {
+                get().setActiveArtifact(latestArtifact);
+            }
 
             // Limit step UI updates more heavily since they're large objects
             setTimeout(() => {
