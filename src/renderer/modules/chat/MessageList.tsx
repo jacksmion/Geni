@@ -196,9 +196,8 @@ function MessageItem({ message }: { message: ChatMessage }) {
                 "flex-1 min-w-0 flex flex-col",
                 isUser ? "items-end" : "items-start"
             )}>
-                {/* User Message Bubble - High Contrast */}
                 {isUser && (
-                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md shadow-indigo-500/10 text-white text-[14.5px] font-medium leading-relaxed max-w-[85%]">
+                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-slate-100 dark:bg-[#1e1e20] text-slate-800 dark:text-zinc-200 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
                         {content}
                     </div>
                 )}
@@ -338,7 +337,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
             {/* User Avatar - Right side */}
             {isUser && (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-indigo-100 to-indigo-200 dark:from-indigo-900/50 dark:to-violet-900/50 text-indigo-700 dark:text-indigo-300 mt-1">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-[#1e1e20] text-slate-600 dark:text-zinc-400 mt-1 border border-slate-200/50 dark:border-white/5">
                     <User size={16} />
                 </div>
             )}

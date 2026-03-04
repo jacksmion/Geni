@@ -35,7 +35,7 @@ export function ChatLayout() {
 
             <main className="flex-1 flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#0a0a0c]">
                 {/* Header */}
-                <header className="h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-transparent pt-2 absolute top-0 w-full">
+                <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md shadow-sm border-b border-slate-100 dark:border-white/5'}`}>
                     {/* Left: Toggle + Title */}
                     <div className="flex items-center gap-2.5 overflow-hidden">
                         <button
@@ -64,7 +64,7 @@ export function ChatLayout() {
                 {hasMessages ? (
                     <>
                         {/* Main Content Area */}
-                        <div className="flex-1 overflow-auto relative pt-11">
+                        <div className="flex-1 overflow-auto relative">
                             <MessageList />
                         </div>
 
