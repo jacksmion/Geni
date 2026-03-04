@@ -37,12 +37,7 @@ const createDefaultSession = (): ChatSession => {
         title: '新任务',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        messages: [{
-            id: 'init-1',
-            role: 'assistant',
-            content: '你好！我是 Geni，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
-            timestamp: Date.now()
-        }]
+        messages: []
     };
 }
 
@@ -84,24 +79,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 // Create via backend
                 const newSes = await window.electronAPI.session.create();
 
-                const welcomeMessage = {
-                    id: 'init-1',
-                    role: 'assistant' as const,
-                    content: '你好！我是 Geni，你的个人智能助手。\n专注于创作、办公与代码，随时准备为你提供全方位的支持。',
-                    timestamp: Date.now()
-                };
-
                 const defaultSes: ChatSession = {
                     id: newSes.id,
                     title: '新任务',
                     createdAt: newSes.createdAt,
                     updatedAt: newSes.createdAt,
-                    messages: [welcomeMessage]
+                    messages: []
                 };
 
-                // 保存标题和欢迎消息到后端
+                // 保存标题到后端
                 await window.electronAPI.session.save({ id: defaultSes.id, title: defaultSes.title });
-                await window.electronAPI.session.addMessage(defaultSes.id, welcomeMessage);
 
                 set({
                     sessions: { [defaultSes.id]: defaultSes },
@@ -118,24 +105,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const backendSes = await window.electronAPI.session.create();
             const sessionTitle = title || '新任务';
 
-            const welcomeMessage = {
-                id: 'init-' + backendSes.id,
-                role: 'assistant' as const,
-                content: '你好！我是 Geni，你的个人智能助手。',
-                timestamp: Date.now()
-            };
-
             const newSession: ChatSession = {
                 id: backendSes.id,
                 title: sessionTitle,
                 createdAt: backendSes.createdAt,
                 updatedAt: backendSes.createdAt,
-                messages: [welcomeMessage]
+                messages: []
             };
 
-            // 保存标题和欢迎消息到后端
+            // 保存标题到后端
             await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
-            await window.electronAPI.session.addMessage(newSession.id, welcomeMessage);
 
             set(state => ({
                 sessions: { ...state.sessions, [newSession.id]: newSession },
