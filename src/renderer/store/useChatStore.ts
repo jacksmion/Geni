@@ -398,16 +398,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 steps: stepsToFlush
             }));
 
-            // Check for active artifact (write or edit operations in progress)
+            // Check for active artifact (write, edit, read, bash)
             let latestArtifact: ActiveArtifact | null = get().activeArtifact;
             for (const step of stepsToFlush) {
-                if ((step.tool === 'write' || step.tool === 'edit') && step.toolInput) {
-                    const { path, content } = extractPathAndContent(step.toolInput);
-                    if (path || content) {
+                if (step.tool === 'write' || step.tool === 'edit') {
+                    if (step.toolInput) {
+                        const { path, content } = extractPathAndContent(step.toolInput);
+                        if (path || content) {
+                            latestArtifact = {
+                                toolName: step.tool,
+                                path: path || '...',
+                                content: content
+                            };
+                        }
+                    }
+                } else if (step.tool === 'bash') {
+                    let cmd = '> bash';
+                    try {
+                        const parsed = JSON.parse(step.toolInput || '{}');
+                        if (parsed.command || parsed.cmd) cmd = '> ' + (parsed.command || parsed.cmd);
+                    } catch {
+                        const cmdMatch = (step.toolInput || '').match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
+                        if (cmdMatch) cmd = '> ' + cmdMatch[1];
+                    }
+
+                    if (step.observation || step.streamingObservation || step.toolInput) {
+                        latestArtifact = {
+                            toolName: step.tool,
+                            path: cmd,
+                            content: step.observation || step.streamingObservation || 'Running...'
+                        };
+                    }
+                } else if (step.tool === 'read') {
+                    if (step.observation) {
+                        const { path } = extractPathAndContent(step.toolInput || '{}');
                         latestArtifact = {
                             toolName: step.tool,
                             path: path || '...',
-                            content: content
+                            content: step.observation
                         };
                     }
                 }

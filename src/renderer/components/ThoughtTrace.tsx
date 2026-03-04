@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X } from 'lucide-react';
+import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, Eye } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { preprocessMarkdown } from '../utils/markdown';
+import { useChatStore } from '../store/useChatStore';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -348,6 +349,65 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
         }
     };
 
+    const isArtifactTool = step.tool === 'write' || step.tool === 'edit' || step.tool === 'read' || step.tool === 'bash';
+
+    const handleOpenArtifact = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!step.toolInput && !step.observation) return;
+
+        let path = '';
+        let content = '';
+
+        if (step.tool === 'bash') {
+            let cmd = '> bash';
+            try {
+                const parsed = JSON.parse(step.toolInput || '{}');
+                if (parsed.command || parsed.cmd) cmd = '> ' + (parsed.command || parsed.cmd);
+            } catch {
+                const cmdMatch = (step.toolInput || '').match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
+                if (cmdMatch) cmd = '> ' + cmdMatch[1];
+            }
+            path = cmd;
+            content = step.observation || step.streamingObservation || 'Running...';
+        } else {
+            // Extract path
+            try {
+                const parsed = JSON.parse(step.toolInput || '{}');
+                path = parsed.path || parsed.file_path || parsed.target_file || '';
+            } catch {
+                const pathMatch = (step.toolInput || '').match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
+                if (pathMatch) path = pathMatch[1];
+            }
+
+            if (step.tool === 'read') {
+                // For read tools, the content is in the observation (output)
+                content = step.observation || '';
+            } else {
+                // For write/edit tools, the content is in the toolInput
+                try {
+                    const parsed = JSON.parse(step.toolInput || '{}');
+                    content = parsed.content || parsed.replacement || '';
+                } catch {
+                    const contentMatch = (step.toolInput || '').match(/"(?:content|replacement)"\s*:\s*"/);
+                    if (contentMatch) {
+                        const startIndex = contentMatch.index! + contentMatch[0].length;
+                        let extracted = (step.toolInput || '').slice(startIndex);
+                        extracted = extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
+                        extracted = extracted.replace(/(?:")?\s*}\s*$/, '');
+                        if (extracted.endsWith('"')) extracted = extracted.slice(0, -1);
+                        content = extracted;
+                    }
+                }
+            }
+        }
+
+        useChatStore.getState().setActiveArtifact({
+            toolName: step.tool!,
+            path: path || '...',
+            content: content
+        });
+    };
+
     // Clean tool name
     const getCleanName = (tool: string) => {
         if (!tool) return 'Unknown';
@@ -428,14 +488,26 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                 {/* Content Container */}
                 <div className="flex-1 min-w-0 flex flex-col pt-[1px]">
                     {/* Top line: Tool + Input */}
-                    <div className="flex flex-col gap-0.5 leading-[1.4]">
-                        <span className="text-[13px] font-bold text-slate-700 dark:text-zinc-300 tracking-tight">
-                            {displayName}
-                        </span>
-                        {inlineInput && (
-                            <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 break-all select-text font-normal pt-0.5 pr-4">
-                                {inlineInput}
+                    <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-0.5 leading-[1.4] pr-2">
+                            <span className="text-[13px] font-bold text-slate-700 dark:text-zinc-300 tracking-tight">
+                                {displayName}
                             </span>
+                            {inlineInput && (
+                                <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 break-all select-text font-normal pt-0.5">
+                                    {inlineInput}
+                                </span>
+                            )}
+                        </div>
+                        {isArtifactTool && (
+                            <button
+                                onClick={handleOpenArtifact}
+                                className="opacity-0 group-hover/card:opacity-100 flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-medium transition-opacity shrink-0 mr-2 border border-indigo-200/50 dark:border-indigo-500/20"
+                                title="Open in preview panel"
+                            >
+                                <Eye size={12} />
+                                预览
+                            </button>
                         )}
                     </div>
 

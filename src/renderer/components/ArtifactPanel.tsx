@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useChatStore } from '../store/useChatStore';
-import { FileCode, X } from 'lucide-react';
+import { FileCode, Terminal as TerminalIcon, X } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -17,18 +17,25 @@ export const ArtifactPanel: React.FC = () => {
 
     if (!activeArtifact) return null;
 
+    const isBash = activeArtifact.toolName === 'bash';
     const ext = activeArtifact.path.split('.').pop() || 'text';
-    let language = ext;
-    if (ext === 'js' || ext === 'jsx') language = 'javascript';
-    if (ext === 'ts' || ext === 'tsx') language = 'typescript';
-    if (ext === 'py') language = 'python';
+    let language = 'text';
+    if (isBash) language = 'bash';
+    else if (ext === 'js' || ext === 'jsx') language = 'javascript';
+    else if (ext === 'ts' || ext === 'tsx') language = 'typescript';
+    else if (ext === 'py') language = 'python';
+    else if (ext === 'json') language = 'json';
 
     return (
         <div className="w-full h-full flex flex-col bg-[#0d1117] shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between shrink-0 h-11 px-4 bg-[#161b22] border-b border-white/10">
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                    <FileCode size={15} className="text-blue-400 shrink-0" />
+                    {isBash ? (
+                        <TerminalIcon size={15} className="text-emerald-400 shrink-0" />
+                    ) : (
+                        <FileCode size={15} className="text-blue-400 shrink-0" />
+                    )}
                     <span className="text-[12.5px] font-mono text-slate-200 truncate">
                         {activeArtifact.path || 'Generating...'}
                     </span>
