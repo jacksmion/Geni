@@ -53,7 +53,7 @@ export class FileEditTool implements ITool {
         const { path: relPath, target, replacement, replaceAll } = args;
 
         // Security Check: Prevent directory traversal outside allowed paths
-        let fullPath = path.isAbsolute(relPath)
+        const fullPath = path.isAbsolute(relPath)
             ? path.normalize(relPath)
             : path.resolve(this.allowedRoot, relPath);
 
@@ -79,7 +79,7 @@ export class FileEditTool implements ITool {
                 };
             }
 
-            let content = await fs.readFile(fullPath, 'utf-8');
+            const content = await fs.readFile(fullPath, 'utf-8');
 
             // Use the robust replacement logic
             const newContent = replace(content, target, replacement, replaceAll);
@@ -151,7 +151,6 @@ function generateDiff(original: string, modified: string, filepath: string): str
     const modifiedLines = modified.split(/\r?\n/);
 
     let diff = `--- ${filepath}\n+++ ${filepath}\n`;
-    let hunkStarted = false;
     let originalIndex = 0;
     let modifiedIndex = 0;
 
@@ -159,8 +158,6 @@ function generateDiff(original: string, modified: string, filepath: string): str
     // We look for the first difference and the last difference to show the changed block.
 
     let startChange = -1;
-    let endChangeOriginal = -1;
-    let endChangeModified = -1;
 
     // Find start of change
     while (originalIndex < originalLines.length && modifiedIndex < modifiedLines.length) {
@@ -187,8 +184,8 @@ function generateDiff(original: string, modified: string, filepath: string): str
         modifiedEnd--;
     }
 
-    endChangeOriginal = originalEnd;
-    endChangeModified = modifiedEnd;
+    const endChangeOriginal = originalEnd;
+    const endChangeModified = modifiedEnd;
 
     // Add context (3 lines before)
     const contextStart = Math.max(0, startChange - 3);
@@ -204,7 +201,7 @@ function generateDiff(original: string, modified: string, filepath: string): str
     }
 
     // Output additions
-    const startInsert = startChange;
+
     // Important: The indices between original and modified have shifted. 
     // We need to print the modified lines corresponding to the change block.
     // The modified block starts at 'startChange' (since we walked together until then)
@@ -310,7 +307,7 @@ const BlockAnchorReplacer: Replacer = function* (content, find) {
         const actualBlockSize = endLine - startLine + 1;
 
         let similarity = 0;
-        let linesToCheck = Math.min(searchBlockSize - 2, actualBlockSize - 2); // Middle lines only
+        const linesToCheck = Math.min(searchBlockSize - 2, actualBlockSize - 2); // Middle lines only
 
         if (linesToCheck > 0) {
             for (let j = 1; j < searchBlockSize - 1 && j < actualBlockSize - 1; j++) {
@@ -358,7 +355,7 @@ const BlockAnchorReplacer: Replacer = function* (content, find) {
         const actualBlockSize = endLine - startLine + 1;
 
         let similarity = 0;
-        let linesToCheck = Math.min(searchBlockSize - 2, actualBlockSize - 2); // Middle lines only
+        const linesToCheck = Math.min(searchBlockSize - 2, actualBlockSize - 2); // Middle lines only
 
         if (linesToCheck > 0) {
             for (let j = 1; j < searchBlockSize - 1 && j < actualBlockSize - 1; j++) {
@@ -452,9 +449,6 @@ function replace(content: string, oldString: string, newString: string, replaceA
         throw new Error("oldString and newString must be different");
     }
 
-    let notFound = true;
-
-    // Ordered strategies: Exact -> Trimmed -> Block Anchor -> Whitespace Normalized
     const strategies = [
         SimpleReplacer,
         LineTrimmedReplacer,
@@ -467,7 +461,6 @@ function replace(content: string, oldString: string, newString: string, replaceA
             const index = content.indexOf(search);
             if (index === -1) continue;
 
-            notFound = false;
 
             if (replaceAll) {
                 return content.replaceAll(search, newString);
@@ -489,9 +482,7 @@ function replace(content: string, oldString: string, newString: string, replaceA
         }
     }
 
-    if (notFound) {
-        throw new Error("Target string not found in file (even with fuzzy matching). Please check the content again.");
-    }
+    throw new Error("Target string not found in file (even with fuzzy matching). Please check the content again.");
 
     return content;
 }

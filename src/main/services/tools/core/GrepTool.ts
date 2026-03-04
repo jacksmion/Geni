@@ -77,7 +77,7 @@ export class GrepTool implements ITool {
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { pattern, path: searchPath, include, caseInsensitive = false, isRegex = true } = args;
 
-        let startDir = searchPath ? path.resolve(this.allowedRoot, searchPath) : this.allowedRoot;
+        const startDir = searchPath ? path.resolve(this.allowedRoot, searchPath) : this.allowedRoot;
         // Ensure startDir is within allowedRoot
         if (!this.isPathAllowed(startDir)) {
             return {

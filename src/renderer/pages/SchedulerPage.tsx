@@ -619,6 +619,41 @@ const SchedulerPage: React.FC = () => {
 
 export default SchedulerPage;
 
+// ============ Helper Components ============
+function MarkdownCode({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '')
+    const codeString = String(children).replace(/\n$/, '')
+    const { settings } = useSettingsStore();
+    const syntaxTheme = settings.theme === 'dark' ? vscDarkPlus : oneLight;
+
+    return !inline && match ? (
+        <div className="not-prose rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+            <div className="px-3 py-1 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase">{match[1]}</span>
+            </div>
+            <SyntaxHighlighter
+                style={syntaxTheme}
+                language={match[1]}
+                PreTag="div"
+                customStyle={{
+                    margin: 0,
+                    padding: '0.75rem',
+                    background: 'transparent',
+                    fontSize: '12px',
+                    lineHeight: '1.6',
+                }}
+                {...props}
+            >
+                {codeString}
+            </SyntaxHighlighter>
+        </div>
+    ) : (
+        <code className="bg-indigo-50 dark:bg-indigo-500/10 px-1 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-xs" {...props}>
+            {children}
+        </code>
+    )
+}
+
 // ============ LogEntry 子组件 ============
 function LogEntry({ log }: { log: TaskLogEntry }) {
     const [expanded, setExpanded] = useState(false);
@@ -670,39 +705,7 @@ function LogEntry({ log }: { log: TaskLogEntry }) {
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                    code({ node, inline, className, children, ...props }: any) {
-                                        const match = /language-(\w+)/.exec(className || '')
-                                        const codeString = String(children).replace(/\n$/, '')
-                                        const { settings } = useSettingsStore();
-                                        const syntaxTheme = settings.theme === 'dark' ? vscDarkPlus : oneLight;
-
-                                        return !inline && match ? (
-                                            <div className="not-prose rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-                                                <div className="px-3 py-1 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase">{match[1]}</span>
-                                                </div>
-                                                <SyntaxHighlighter
-                                                    style={syntaxTheme}
-                                                    language={match[1]}
-                                                    PreTag="div"
-                                                    customStyle={{
-                                                        margin: 0,
-                                                        padding: '0.75rem',
-                                                        background: 'transparent',
-                                                        fontSize: '12px',
-                                                        lineHeight: '1.6',
-                                                    }}
-                                                    {...props}
-                                                >
-                                                    {codeString}
-                                                </SyntaxHighlighter>
-                                            </div>
-                                        ) : (
-                                            <code className="bg-indigo-50 dark:bg-indigo-500/10 px-1 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-xs" {...props}>
-                                                {children}
-                                            </code>
-                                        )
-                                    }
+                                    code: MarkdownCode
                                 }}
                             >
                                 {preprocessMarkdown(log.output)}

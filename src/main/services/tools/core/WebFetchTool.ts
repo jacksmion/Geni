@@ -54,7 +54,7 @@ export class WebFetchTool implements ITool {
             $('script, style, noscript, iframe, svg, nav, footer, header, aside').remove();
 
             // Extract main content or body
-            let mainHtml = $('main').html() || $('article').html() || $('body').html() || html;
+            const mainHtml = $('main').html() || $('article').html() || $('body').html() || html;
 
             // Convert to Markdown
             const markdown = NodeHtmlMarkdown.translate(mainHtml);

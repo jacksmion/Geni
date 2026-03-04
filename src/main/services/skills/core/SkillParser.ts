@@ -42,7 +42,7 @@ export class SkillParser {
             };
         } catch (error) {
             if (error instanceof z.ZodError) {
-                throw new Error(`Invalid skill metadata in ${filePath || 'content'}: ${JSON.stringify(error.format())}`);
+                throw new Error(`Invalid skill metadata in ${filePath || 'content'}: ${JSON.stringify(error.format())}`, { cause: error });
             }
             throw error;
         }

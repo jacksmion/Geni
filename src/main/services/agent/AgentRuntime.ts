@@ -18,15 +18,14 @@
  *  ✅ 集成 IChatModel 到 AgentRuntime
  */
 
-import fs from 'fs';
-import path from 'path';
+import { EventEmitter } from 'events';
 import { IAgentService, AgentRunOptions, AgentRunResult, AgentStep } from './IAgent';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings';
-import { PromptBuilder, AgentContext } from './PromptBuilder';
+import { PromptBuilder } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
-import { ToolGuard, defaultToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
+import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
 import { ContextManager } from './ContextManager';
 import { Summarizer } from './Summarizer';
 import { withRetry, DEFAULT_LLM_RETRY, DEFAULT_TOOL_RETRY } from './RetryPolicy';
@@ -36,7 +35,6 @@ import { classifyError, ErrorCategory } from './ErrorClassifier';
 import {
     IChatModel,
     ChatMessage,
-    ChatStreamEvent,
     ChatModelOptions,
     ChatModelToolDefinition,
     createChatModel,
@@ -327,13 +325,14 @@ export class AgentRuntime implements IAgentService {
                             currentReasoning += event.delta;
                             onStream?.(event.delta);
                             break;
-                        case 'tool_call_delta':
+                        case 'tool_call_delta': {
                             const acc = accumulators.get(event.index) || { id: '', name: '', arguments: '', type: 'function' };
                             if (event.id) acc.id = event.id;
                             if (event.name) acc.name = event.name;
                             if (event.arguments_delta) acc.arguments += event.arguments_delta;
                             accumulators.set(event.index, acc);
                             break;
+                        }
                         case 'error':
                             throw new Error(event.error.message);
                     }

@@ -206,7 +206,7 @@ export class SchedulerService {
 
             this.timers.set(task.id, timer);
         } catch (error: any) {
-            throw new Error(`Failed to parse cron expression "${task.cronExpression}": ${error.message}`);
+            throw new Error(`Failed to parse cron expression "${task.cronExpression}": ${error.message}`, { cause: error });
         }
     }
 

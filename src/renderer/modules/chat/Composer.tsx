@@ -209,7 +209,6 @@ function SkillSelector() {
             window.electronAPI.tools.getSkills().then(data => {
                 setSkills(data)
             })
-            setSearch('')
         }
     }, [isOpen])
 
@@ -250,7 +249,11 @@ function SkillSelector() {
         <div className="relative" ref={dropdownRef}>
             {/* Trigger Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={() => {
+                    const nextState = !isOpen;
+                    setIsOpen(nextState);
+                    if (nextState) setSearch('');
+                }}
                 className={cn(
                     "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all max-w-[200px]",
                     "hover:bg-slate-100 dark:hover:bg-white/5",

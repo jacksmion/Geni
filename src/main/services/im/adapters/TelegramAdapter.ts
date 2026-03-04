@@ -44,7 +44,7 @@ export class TelegramAdapter implements IIMAdapter {
                 this.bot = new Bot(config.token, {
                     client: {
                         baseFetchConfig: {
-                            // @ts-ignore: custom dispatcher for underlying native fetch / undici
+                            // @ts-expect-error: custom dispatcher for underlying native fetch / undici
                             dispatcher: new ProxyAgent({ uri: actualProxyUrl }),
                             compress: true,
                         }
@@ -229,7 +229,7 @@ export class TelegramAdapter implements IIMAdapter {
         const chatId = sessionId.replace('tg_', '');
         // Telegram message max limit is 4096. 
         // Truncate if exceeds. (A production impl might split into multiple messages)
-        let safeContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
+        const safeContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
 
         try {
             if (!ctx.messageId) {

@@ -14,28 +14,35 @@ export function SessionSidebar() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const [now, setNow] = useState(0);
     const { t } = useTranslation();
 
+    // Update current time every minute for relative labels
+    React.useEffect(() => {
+        setNow(Date.now());
+        const interval = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Grouping helper
-    const getGroupLabel = (timestamp: number) => {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
+    const getGroupLabel = React.useCallback((timestamp: number) => {
+        const todayAtMidnight = new Date(now);
+        todayAtMidnight.setHours(0, 0, 0, 0);
 
         const dateMidnight = new Date(timestamp);
         dateMidnight.setHours(0, 0, 0, 0);
 
-        const diffDays = Math.round((now.getTime() - dateMidnight.getTime()) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round((todayAtMidnight.getTime() - dateMidnight.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diffDays === 0) return 'today';
         if (diffDays === 1) return 'yesterday';
         if (diffDays <= 7) return 'last7Days';
         if (diffDays <= 30) return 'last30Days';
         return 'older';
-    };
+    }, [now]);
 
     // Relative time for session items
-    const getRelativeTime = (timestamp: number) => {
-        const now = Date.now();
+    const getRelativeTime = React.useCallback((timestamp: number) => {
         const diff = now - timestamp;
         const minutes = Math.floor(diff / 60000);
         if (minutes < 1) return t('sessionSidebar.relativeTime.justNow');
@@ -44,7 +51,7 @@ export function SessionSidebar() {
         if (hours < 24) return t('sessionSidebar.relativeTime.hoursAgo', { count: hours });
         const d = new Date(timestamp);
         return `${d.getMonth() + 1}/${d.getDate()}`;
-    };
+    }, [now, t]);
 
     // Filtered and Grouped sessions
     const groupedSessions = useMemo(() => {
@@ -60,7 +67,7 @@ export function SessionSidebar() {
         });
 
         return groups;
-    }, [sessions, searchTerm]);
+    }, [sessions, searchTerm, getGroupLabel]);
 
     const handleStartEdit = (e: React.MouseEvent, id: string, currentTitle: string) => {
         e.stopPropagation();

@@ -67,7 +67,7 @@ export class WriteFileTool implements ITool {
         }
 
         // Security Check: Prevent directory traversal outside allowed paths
-        let fullPath = path.isAbsolute(relPath)
+        const fullPath = path.isAbsolute(relPath)
             ? path.normalize(relPath)
             : path.resolve(this.allowedRoot, relPath);
 

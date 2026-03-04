@@ -182,7 +182,7 @@ export class AnthropicAdapter implements IChatModel {
                 case 'content_delta':
                     content += event.delta;
                     break;
-                case 'tool_call_delta':
+                case 'tool_call_delta': {
                     if (!toolCallAccumulators.has(event.index)) {
                         toolCallAccumulators.set(event.index, {
                             id: event.id || '',
@@ -195,6 +195,7 @@ export class AnthropicAdapter implements IChatModel {
                     if (event.name) acc.name = event.name;
                     if (event.arguments_delta) acc.arguments += event.arguments_delta;
                     break;
+                }
                 case 'error':
                     throw new Error(event.error.message);
             }

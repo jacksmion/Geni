@@ -25,10 +25,13 @@ export function PersonaSettings() {
     const { t } = useTranslation();
     const [localPrompt, setLocalPrompt] = useState(settings.systemPrompt || '');
     const [isDirty, setIsDirty] = useState(false);
+    const [prevSystemPrompt, setPrevSystemPrompt] = useState(settings.systemPrompt);
 
-    useEffect(() => {
+    if (settings.systemPrompt !== prevSystemPrompt) {
         setLocalPrompt(settings.systemPrompt || '');
-    }, [settings.systemPrompt]);
+        setPrevSystemPrompt(settings.systemPrompt);
+        setIsDirty(false);
+    }
 
     const handleSave = () => {
         updateSettings({ systemPrompt: localPrompt });

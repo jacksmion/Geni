@@ -4,7 +4,7 @@ import { ITool } from '@/common/types/tool';
 
 describe('ToolGuard', () => {
     let mockTool: ITool;
-    let mockCallback = vi.fn();
+    const mockCallback = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();

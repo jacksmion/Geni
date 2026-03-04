@@ -419,10 +419,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                             ? "bg-amber-50 border-amber-200/50 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 animate-pulse"
                             : "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 animate-pulse"
                 )}>
-                    {(() => {
-                        const Icon = getToolIcon(step.tool || '');
-                        return <Icon className="w-2.5 h-2.5" strokeWidth={2.5} />;
-                    })()}
+                    {React.createElement(getToolIcon(step.tool || ''), {
+                        className: "w-2.5 h-2.5",
+                        strokeWidth: 2.5
+                    })}
                 </div>
 
                 {/* Content Container */}

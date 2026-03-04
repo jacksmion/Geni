@@ -57,7 +57,7 @@ export class ReadFileTool implements ITool {
 
         // 1. Path Resolution & Security
         // Resolve path: supports both relative to root and absolute paths (if inside root)
-        let fullPath = path.isAbsolute(relPath)
+        const fullPath = path.isAbsolute(relPath)
             ? path.normalize(relPath)
             : path.resolve(this.allowedRoot, relPath);
 

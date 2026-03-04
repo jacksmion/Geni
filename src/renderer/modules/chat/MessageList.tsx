@@ -135,15 +135,15 @@ interface ThinkingBlockProps {
 }
 
 function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
-    const [isExpanded, setIsExpanded] = useState(!isComplete)
-    const prevCompleteRef = useRef(isComplete)
+    const [isExpanded, setIsExpanded] = useState(!isComplete);
+    const [prevIsComplete, setPrevIsComplete] = useState(isComplete);
 
-    useEffect(() => {
-        if (!prevCompleteRef.current && isComplete) {
-            setIsExpanded(false)
+    if (isComplete !== prevIsComplete) {
+        setPrevIsComplete(isComplete);
+        if (!prevIsComplete && isComplete) {
+            setIsExpanded(false);
         }
-        prevCompleteRef.current = isComplete
-    }, [isComplete])
+    }
 
     return (
         <div className="my-4 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden bg-white dark:bg-[#0c0c0e]">
@@ -321,11 +321,11 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             {isUser ? (
                                 <>
                                     <CopyButton text={content} className="p-0.5" />
-                                    <span>{new Date(message.timestamp || Date.now()).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })} · You</span>
+                                    <span>{message.timestamp ? new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''} · You</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Geni · {new Date(message.timestamp || Date.now()).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span>Geni {message.timestamp ? `· ${new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
                                     <CopyButton text={content} className="p-0.5" />
                                 </>
                             )}

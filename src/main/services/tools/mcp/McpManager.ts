@@ -116,7 +116,7 @@ export class McpManager {
                 connection.lastError = this.formatError(error, config);
             }
 
-            throw new Error(this.formatError(error, config));
+            throw new Error(this.formatError(error, config), { cause: error });
         }
     }
 

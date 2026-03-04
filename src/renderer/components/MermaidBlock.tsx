@@ -143,16 +143,19 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
         // Don't render empty or likely-incomplete code
         const trimmed = source.trim()
         if (!trimmed) {
-            setSvgContent('')
-            setError('')
-            setRendering(false)
+            setTimeout(() => {
+                setSvgContent('')
+                setError('')
+                setRendering(false)
+            }, 0)
             return
         }
 
-        setRendering(true)
+        // setRendering(true) - moved to inside setTimeout to avoid sync update in effect
 
         // Debounce: wait for code to stabilize (handles streaming)
         debounceTimerRef.current = setTimeout(async () => {
+            setRendering(true)
             const version = ++renderVersionRef.current
             const diagramId = `mermaid_${uniqueId}_${version}`
 
