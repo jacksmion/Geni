@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -16,13 +16,13 @@ import { CoreToolManager } from './services/tools/core/CoreToolManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-function createWindow() {
+function createWindow(isDark: boolean) {
     const preloadPath = path.join(__dirname, 'preload.js')
     console.log('[Main] Preload path:', preloadPath)
 
     const win = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: 880,
+        height: 640,
         webPreferences: {
             preload: preloadPath,
             nodeIntegration: false,
@@ -31,8 +31,8 @@ function createWindow() {
         },
         titleBarStyle: 'hidden',
         titleBarOverlay: {
-            color: '#ffffff',
-            symbolColor: '#71717a',
+            color: isDark ? '#0a0a0c' : '#ffffff',
+            symbolColor: isDark ? '#a1a1aa' : '#71717a',
             height: 44 // h-11 = 44px, synced with header height
         },
     })
@@ -67,6 +67,12 @@ app.whenReady().then(async () => {
             openAtLogin: appSettings.autoStart,
             path: app.getPath('exe'),
         });
+    }
+
+    // Apply init theme
+    const isDark = appSettings.theme === 'dark';
+    if (appSettings.theme) {
+        nativeTheme.themeSource = appSettings.theme as 'system' | 'light' | 'dark';
     }
 
     // 2. Initialize Registries
@@ -142,7 +148,7 @@ app.whenReady().then(async () => {
     const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager);
     appRouter.initialize();
 
-    createWindow();
+    createWindow(isDark);
 })
 
 app.on('window-all-closed', () => {

@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, app } from 'electron';
+import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow } from 'electron';
 import { SYSTEM_CHANNELS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
@@ -45,6 +45,23 @@ export class SystemController {
                 openAtLogin: settings.autoStart,
                 path: app.getPath('exe'),
             });
+        }
+
+        // Sync native theme and titleBarOverlay colors
+        if (settings.theme !== undefined) {
+            nativeTheme.themeSource = settings.theme as 'system' | 'light' | 'dark';
+            const wins = BrowserWindow.getAllWindows();
+            if (wins.length > 0) {
+                const isDark = settings.theme === 'dark';
+                try {
+                    wins[0].setTitleBarOverlay({
+                        color: isDark ? '#0a0a0c' : '#ffffff',
+                        symbolColor: isDark ? '#a1a1aa' : '#71717a'
+                    });
+                } catch (e) {
+                    // Ignore on non-Windows/Mac platforms
+                }
+            }
         }
 
         // Notify listeners (e.g. AgentController to update runtime options, ToolController to reconnect MCP)
