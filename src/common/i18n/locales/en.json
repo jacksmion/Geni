@@ -39,6 +39,10 @@
             "delete": "Delete"
         }
     },
+    "chatLayout": {
+        "startCollaborating": "Start Collaborating",
+        "assistantDesc": "A 24/7 personal assistant agent that gets work done for you"
+    },
     "skillSettings": {
         "title": "Skill Store",
         "subtitle": "Extend AI assistant's professional capabilities · Enabled",

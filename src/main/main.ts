@@ -21,7 +21,7 @@ function createWindow(isDark: boolean) {
     console.log('[Main] Preload path:', preloadPath)
 
     const win = new BrowserWindow({
-        width: 880,
+        width: 950,
         height: 640,
         webPreferences: {
             preload: preloadPath,

@@ -39,6 +39,10 @@
             "delete": "删除"
         }
     },
+    "chatLayout": {
+        "startCollaborating": "开始协作",
+        "assistantDesc": "你的 24/7 全天候私人智能体助理，随时为你完成工作"
+    },
     "skillSettings": {
         "title": "技能商店",
         "subtitle": "为 AI 助手扩展专业能力 · 已启用",
