@@ -252,19 +252,19 @@ function SkillSelector() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all",
+                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all max-w-[200px]",
                     "hover:bg-slate-100 dark:hover:bg-white/5",
                     selectedCount > 0
                         ? "text-violet-600 dark:text-violet-400"
                         : "text-slate-500 dark:text-zinc-400"
                 )}
             >
-                <Sparkles size={12} />
-                <span className="max-w-[100px] truncate">
+                <Sparkles size={12} className="shrink-0" />
+                <span className="truncate">
                     {skills.length === 0 ? 'Skills' : `${selectedCount} Skills`}
                 </span>
                 <ChevronDown size={11} className={cn(
-                    "text-slate-400 dark:text-zinc-500 transition-transform",
+                    "text-slate-400 dark:text-zinc-500 transition-transform shrink-0",
                     isOpen && "rotate-180"
                 )} />
             </button>
@@ -377,8 +377,17 @@ export function Composer() {
         sendMessage,
         pendingAttachments,
         addPendingAttachment,
-        removePendingAttachment
+        removePendingAttachment,
+        selectedSkillIds,
+        setSelectedSkillIds
     } = useChatStore()
+
+    const [skills, setSkills] = useState<Skill[]>([])
+
+    // Fetch skills to display their names in badges
+    useEffect(() => {
+        window.electronAPI.tools.getSkills().then(setSkills)
+    }, [])
 
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -425,18 +434,38 @@ export function Composer() {
                 {/* Main Composer Box */}
                 <div className="relative bg-white/95 dark:bg-[#1e1e20]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.5)] focus-within:bg-white dark:focus-within:bg-[#222225] ring-1 ring-black/5 dark:ring-white/5 focus-within:ring-indigo-500/20 dark:focus-within:ring-indigo-500/30">
 
-                    {/* Attachment Preview */}
-                    {pendingAttachments.length > 0 && (
-                        <div className="px-4 pt-3 flex flex-wrap gap-2">
+                    {/* Active Items Preview (Attachments & Custom Skills) */}
+                    {(pendingAttachments.length > 0 || (selectedSkillIds !== null && selectedSkillIds.length > 0)) && (
+                        <div className="px-5 pt-4 flex flex-wrap gap-2">
+                            {/* Skills */}
+                            {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
+                                const skill = skills.find(s => s.id === skillId)
+                                return (
+                                    <div key={`skill-${skillId}`} className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-lg px-2.5 py-1 font-medium text-[11.5px] text-violet-700 dark:text-violet-300">
+                                        <Sparkles size={12} />
+                                        <span>{skill?.name || skillId}</span>
+                                        <button
+                                            onClick={() => {
+                                                const newIds = selectedSkillIds.filter(id => id !== skillId);
+                                                setSelectedSkillIds(newIds.length === 0 ? [] : newIds);
+                                            }}
+                                            className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )
+                            })}
+                            {/* Attachments */}
                             {pendingAttachments.map((path, idx) => {
                                 const fileName = path.split(/[\\/]/).pop()
                                 return (
-                                    <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-lg px-2.5 py-1.5 text-xs group/file">
-                                        <FileText size={13} className="text-indigo-500" />
-                                        <span className="text-slate-600 dark:text-gray-300 max-w-[150px] truncate">{fileName}</span>
+                                    <div key={`file-${idx}`} className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 shadow-sm rounded-lg px-2.5 py-1 font-medium text-[11.5px] text-slate-700 dark:text-zinc-300">
+                                        <FileText size={12} className="text-indigo-500" />
+                                        <span className="max-w-[150px] truncate">{fileName}</span>
                                         <button
                                             onClick={() => removePendingAttachment(path)}
-                                            className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
+                                            className="ml-0.5 text-slate-400 hover:text-red-500 transition-colors"
                                         >
                                             <X size={12} />
                                         </button>
