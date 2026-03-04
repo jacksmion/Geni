@@ -307,19 +307,71 @@ export const useChatStore = create<ChatState>((set, get) => ({
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
 
-        // 3. Setup Stream Listeners
-        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
+        // --- Throttled Stream Mechanism ---
+        let streamBuffer = '';
+        let isFlushingStream = false;
+
+        const flushStream = () => {
+            if (!streamBuffer) {
+                isFlushingStream = false;
+                return;
+            }
+
+            const chunkToFlush = streamBuffer;
+            streamBuffer = '';
+
             get().updateLastMessage((msg) => ({
                 ...msg,
-                content: reset ? chunk : msg.content + chunk
+                content: msg.content + chunkToFlush
             }));
+
+            requestAnimationFrame(flushStream);
+        };
+
+        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
+            if (reset) {
+                streamBuffer = '';
+                get().updateLastMessage((msg) => ({ ...msg, content: chunk }));
+            } else {
+                streamBuffer += chunk;
+                if (!isFlushingStream) {
+                    isFlushingStream = true;
+                    requestAnimationFrame(flushStream);
+                }
+            }
         });
 
-        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
+        // --- Throttled Step Update Mechanism ---
+        let pendingSteps: any[] | null = null;
+        let isFlushingSteps = false;
+
+        const flushSteps = () => {
+            if (!pendingSteps) {
+                isFlushingSteps = false;
+                return;
+            }
+
+            const stepsToFlush = pendingSteps;
+            pendingSteps = null;
+
             get().updateLastMessage((msg) => ({
                 ...msg,
-                steps: steps
+                steps: stepsToFlush
             }));
+
+            // Limit step UI updates more heavily since they're large objects
+            setTimeout(() => {
+                if (pendingSteps) flushSteps();
+                else isFlushingSteps = false;
+            }, 100);
+        };
+
+        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
+            pendingSteps = steps;
+            if (!isFlushingSteps) {
+                isFlushingSteps = true;
+                flushSteps();
+            }
         });
 
         const cleanupError = window.electronAPI.agent.onError((err: any) => {
