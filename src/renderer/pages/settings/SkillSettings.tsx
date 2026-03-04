@@ -5,16 +5,16 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-// 为每个技能分配固定的渐变色
-const GRADIENT_PALETTES = [
-    { from: 'from-indigo-500', to: 'to-violet-600', bg: 'bg-indigo-500', ring: 'ring-indigo-500/20' },
-    { from: 'from-emerald-500', to: 'to-teal-600', bg: 'bg-emerald-500', ring: 'ring-emerald-500/20' },
-    { from: 'from-orange-500', to: 'to-amber-600', bg: 'bg-orange-500', ring: 'ring-orange-500/20' },
-    { from: 'from-pink-500', to: 'to-rose-600', bg: 'bg-pink-500', ring: 'ring-pink-500/20' },
-    { from: 'from-cyan-500', to: 'to-blue-600', bg: 'bg-cyan-500', ring: 'ring-cyan-500/20' },
-    { from: 'from-purple-500', to: 'to-fuchsia-600', bg: 'bg-purple-500', ring: 'ring-purple-500/20' },
-    { from: 'from-lime-500', to: 'to-green-600', bg: 'bg-lime-500', ring: 'ring-lime-500/20' },
-    { from: 'from-sky-500', to: 'to-indigo-600', bg: 'bg-sky-500', ring: 'ring-sky-500/20' },
+// 统一的低饱和固态颜色
+const NEUTRAL_PALETTES = [
+    { bg: 'bg-indigo-50 dark:bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400' },
+    { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400' },
+    { bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400' },
+    { bg: 'bg-violet-50 dark:bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400' },
+    { bg: 'bg-cyan-50 dark:bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400' },
+    { bg: 'bg-rose-50 dark:bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400' },
+    { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400' },
+    { bg: 'bg-sky-50 dark:bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400' },
 ];
 
 function hashString(str: string): number {
@@ -26,8 +26,8 @@ function hashString(str: string): number {
     return Math.abs(hash);
 }
 
-function getGradient(id: string) {
-    return GRADIENT_PALETTES[hashString(id) % GRADIENT_PALETTES.length];
+function getPalette(id: string) {
+    return NEUTRAL_PALETTES[hashString(id) % NEUTRAL_PALETTES.length];
 }
 
 // 技能图标 emoji
@@ -50,11 +50,11 @@ function getSkillIcon(id: string) {
 
 interface SkillRowProps {
     skill: Skill;
-    gradient: typeof GRADIENT_PALETTES[0];
+    palette: typeof NEUTRAL_PALETTES[0];
     onToggle: (id: string) => void;
 }
 
-const SkillRow: React.FC<SkillRowProps> = ({ skill, gradient, onToggle }) => {
+const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
     const icon = getSkillIcon(skill.id);
 
     return (
@@ -68,9 +68,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, gradient, onToggle }) => {
             {/* 图标 */}
             <div className={clsx(
                 "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base transition-all",
-                "bg-gradient-to-br shadow-sm",
-                gradient.from, gradient.to,
-                !skill.enabled && "grayscale opacity-70"
+                "border border-slate-200/50 dark:border-white/5",
+                palette.bg, palette.text,
+                !skill.enabled && "grayscale opacity-70 bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-zinc-500"
             )}>
                 <span>{icon}</span>
             </div>
@@ -165,8 +165,8 @@ const SkillSettings: React.FC = () => {
                 <div className="px-6 py-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl shadow-lg shadow-indigo-500/20">
-                                <Sparkles size={16} className="text-white" />
+                            <div className="p-2 bg-slate-100 dark:bg-[#1e1e20] rounded-xl border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-zinc-400">
+                                <Sparkles size={16} />
                             </div>
                             <div>
                                 <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
@@ -205,7 +205,7 @@ const SkillSettings: React.FC = () => {
                                     <SkillRow
                                         key={skill.id}
                                         skill={skill}
-                                        gradient={getGradient(skill.id)}
+                                        palette={getPalette(skill.id)}
                                         onToggle={handleToggle}
                                     />
                                 ))}

@@ -15,11 +15,6 @@ export function Sidebar() {
 
     return (
         <aside className="w-[50px] flex flex-col items-center py-4 bg-[#f9fafb] dark:bg-[#18181b] shrink-0 z-20 h-full transition-all duration-300">
-            {/* Brand Icon */}
-            <div className="mb-4 p-2 rounded-lg bg-indigo-600 text-white shadow-none">
-                <GeniLogo size={20} />
-            </div>
-
             {/* Navigation */}
             <nav className="flex-1 flex flex-col gap-2 w-full px-2">
                 {navItems.map((item) => (
@@ -70,8 +65,8 @@ function NavButton({ isActive, onClick, icon: Icon }: { isActive: boolean, onCli
             className={clsx(
                 "w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 group relative",
                 isActive
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:bg-slate-200/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5"
+                    ? "bg-slate-200/80 text-slate-800 dark:bg-white/10 dark:text-zinc-200"
+                    : "text-slate-400 hover:bg-slate-200/50 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5"
             )}
         >
             <Icon size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-105" />
