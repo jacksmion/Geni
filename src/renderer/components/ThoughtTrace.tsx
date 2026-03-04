@@ -323,7 +323,7 @@ const InlineAuthorizationUI: React.FC<InlineAuthorizationUIProps> = ({ reason, o
 };
 
 // Tool Call Card Component
-const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
+const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step, isLast }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -395,24 +395,34 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                 : 'Running...';
 
     return (
-        <div className="font-mono my-1 pl-1.5">
+        <div className="relative font-mono my-1 pl-1.5">
+            {/* Timeline Connecting Line */}
+            {!isLast && (
+                <div className="absolute left-[14px] top-[24px] bottom-[-14px] w-px bg-slate-200/60 dark:bg-zinc-800/60 z-0" />
+            )}
+
             {/* Inline Header */}
             <div
                 className={cn(
-                    "flex items-start gap-2.5",
+                    "relative z-10 flex items-start gap-2.5",
                     !isTodoTool && "cursor-pointer group/card hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors rounded -mx-2 px-2 py-1"
                 )}
                 onClick={() => !isTodoTool && setIsExpanded(!isExpanded)}
             >
-                {/* Dot Indicator */}
+                {/* Icon Indicator */}
                 <div className={cn(
-                    "mt-1.5 w-[6px] h-[6px] rounded-full shrink-0 shadow-sm",
+                    "mt-[2px] w-[18px] h-[18px] flex items-center justify-center rounded-md shrink-0 border shadow-sm",
                     step.isComplete
-                        ? "bg-emerald-500 shadow-emerald-500/20"
+                        ? "bg-emerald-50 border-emerald-200/50 text-emerald-500 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400"
                         : step.isWaitingAuthorization
-                            ? "bg-amber-500 animate-pulse shadow-amber-500/20"
-                            : "bg-red-500 animate-pulse shadow-red-500/20"
-                )} />
+                            ? "bg-amber-50 border-amber-200/50 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 animate-pulse"
+                            : "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 animate-pulse"
+                )}>
+                    {(() => {
+                        const Icon = getToolIcon(step.tool || '');
+                        return <Icon className="w-2.5 h-2.5" strokeWidth={2.5} />;
+                    })()}
+                </div>
 
                 {/* Content Container */}
                 <div className="flex-1 min-w-0 flex flex-col pt-[1px]">
@@ -564,7 +574,7 @@ const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) =>
                     {step.thought && !isDuplicate(step.thought) && <ThoughtText thought={step.thought} />}
 
                     {/* Show tool call card if exists */}
-                    {step.tool && <ToolCallCard step={step} />}
+                    {step.tool && <ToolCallCard step={step} isLast={idx === steps.length - 1} />}
                 </div>
             ))}
         </div>
