@@ -15,6 +15,7 @@ interface ThoughtStep {
     tool?: string;
     toolInput?: string;
     observation?: string;
+    streamingObservation?: string;
     isComplete?: boolean;
     duration?: number;
     authRequestId?: string;
@@ -384,12 +385,14 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
         if (!obs) return 0;
         return obs.split('\n').length;
     };
-    const outLines = getOutputLines(step.observation);
+    const outLines = getOutputLines(step.observation || step.streamingObservation);
     const outStats = step.isComplete
         ? `${outLines} line${outLines === 1 ? '' : 's'} of output`
         : step.isWaitingAuthorization
             ? 'Wait for authorization...'
-            : 'Running...';
+            : step.streamingObservation
+                ? `Running... (${outLines} lines)`
+                : 'Running...';
 
     return (
         <div className="font-mono my-1 pl-1.5">
@@ -482,10 +485,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                         )}
 
                         {/* Output */}
-                        {step.observation && (
+                        {(step.observation || step.streamingObservation) && (
                             <div>
                                 <div className="flex items-center justify-between mb-1 mt-3">
-                                    <div className="text-[9.5px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">Output</div>
+                                    <div className="text-[9.5px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">Output{step.isComplete ? '' : ' (Streaming...)'}</div>
                                     <button
                                         onClick={handleCopy}
                                         className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
@@ -494,10 +497,15 @@ const ToolCallCard: React.FC<{ step: ThoughtStep }> = ({ step }) => {
                                         {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                                     </button>
                                 </div>
-                                <pre className="text-slate-600 dark:text-zinc-400 whitespace-pre-wrap break-all bg-white dark:bg-white/[0.02] py-2 px-2.5 rounded-md border border-slate-100 dark:border-white/5 max-h-[300px] overflow-auto shadow-sm">
-                                    {step.observation.length > 3000
-                                        ? step.observation.slice(0, 3000) + '\n\n... (truncated)'
-                                        : step.observation}
+                                <pre className="text-slate-600 dark:text-zinc-400 whitespace-pre-wrap break-all flex flex-col-reverse bg-white dark:bg-white/[0.02] py-2 px-2.5 rounded-md border border-slate-100 dark:border-white/5 max-h-[300px] overflow-auto shadow-sm">
+                                    <div className="overflow-visible !flex !flex-col justify-end">
+                                        {(() => {
+                                            const obs = step.observation || step.streamingObservation || '';
+                                            return obs.length > 5000
+                                                ? obs.slice(0, 5000) + '\n\n... (truncated)'
+                                                : obs;
+                                        })()}
+                                    </div>
                                 </pre>
                             </div>
                         )}

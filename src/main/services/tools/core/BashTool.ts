@@ -146,7 +146,7 @@ export class BashTool implements ITool {
         };
     }
 
-    async execute(args: any, signal?: AbortSignal): Promise<ToolExecutionResult> {
+    async execute(args: any, signal?: AbortSignal, onStream?: (chunk: string) => void): Promise<ToolExecutionResult> {
         const Schema = z.object({
             command: z.string(),
             cwd: z.string().optional(),
@@ -212,10 +212,10 @@ export class BashTool implements ITool {
             }
         }
 
-        return this.runCommand(command, effectiveCwd, effectiveTimeout, signal);
+        return this.runCommand(command, effectiveCwd, effectiveTimeout, signal, onStream);
     }
 
-    private runCommand(command: string, cwd: string, timeout: number, signal?: AbortSignal): Promise<ToolExecutionResult> {
+    private runCommand(command: string, cwd: string, timeout: number, signal?: AbortSignal, onStream?: (chunk: string) => void): Promise<ToolExecutionResult> {
         return new Promise((resolve) => {
             const isWindows = os.platform() === 'win32';
 
@@ -245,8 +245,14 @@ export class BashTool implements ITool {
             let aborted = false;
 
             // Collect output
-            child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
-            child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+            child.stdout.on('data', (chunk: Buffer) => {
+                stdoutChunks.push(chunk);
+                if (onStream) onStream(decodeOutput(chunk));
+            });
+            child.stderr.on('data', (chunk: Buffer) => {
+                stderrChunks.push(chunk);
+                if (onStream) onStream(decodeOutput(chunk));
+            });
 
             // Setup abort listener
             const abortHandler = () => {

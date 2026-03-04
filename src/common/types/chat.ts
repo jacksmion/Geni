@@ -7,6 +7,7 @@ export interface AgentStep {
     tool?: string;
     toolInput?: string;
     observation?: string;
+    streamingObservation?: string;
     isComplete: boolean;
     duration?: number; // 耗时(毫秒)
     isError?: boolean;

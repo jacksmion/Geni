@@ -419,8 +419,23 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
             try {
                 result = await withRetry(
                     async () => {
+                        let lastStreamUpdate = 0;
+                        const toolOnStream = (chunk: string) => {
+                            if (!step) return;
+                            if (step.streamingObservation === undefined) {
+                                step.streamingObservation = '';
+                            }
+                            step.streamingObservation += chunk;
+
+                            const now = Date.now();
+                            if (now - lastStreamUpdate > 100) {
+                                onStepUpdate?.([...steps]);
+                                lastStreamUpdate = now;
+                            }
+                        };
+
                         if (options?.signal) {
-                            const executePromise = this.toolRegistry.executeTool(fnName, args, options?.signal);
+                            const executePromise = this.toolRegistry.executeTool(fnName, args, options?.signal, toolOnStream);
                             return await new Promise<any>((resolve, reject) => {
                                 const onAbort = () => reject(new Error('Agent execution aborted by user.'));
                                 if (options.signal!.aborted) return onAbort();
@@ -431,7 +446,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
                                 });
                             });
                         } else {
-                            return await this.toolRegistry.executeTool(fnName, args);
+                            return await this.toolRegistry.executeTool(fnName, args, undefined, toolOnStream);
                         }
                     },
                     DEFAULT_TOOL_RETRY,

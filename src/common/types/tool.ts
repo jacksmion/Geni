@@ -26,7 +26,7 @@ export interface ITool {
     /**
      * Execute the tool with parsed arguments
      */
-    execute(args: Record<string, any>, signal?: AbortSignal): Promise<ToolExecutionResult>;
+    execute(args: Record<string, any>, signal?: AbortSignal, onStream?: (chunk: string) => void): Promise<ToolExecutionResult>;
 
     /**
      * Needs user implementation approval?
