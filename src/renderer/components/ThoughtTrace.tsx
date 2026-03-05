@@ -422,6 +422,22 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
     // Format input inline
     const formatInputInline = (tool: string, input?: string) => {
         if (!input) return '';
+
+        const extractByRegex = () => {
+            const lower = tool.toLowerCase();
+            if (lower.includes('bash') || lower.includes('command')) {
+                const cmdMatch = input.match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
+                if (cmdMatch) return cmdMatch[1];
+            }
+            if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
+                const pathMatch = input.match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
+                if (pathMatch) return pathMatch[1];
+            }
+            // Add a small cleanup just in case
+            const clean = input.replace(/\\n/g, ' ').replace(/\\"/g, '"');
+            return clean.length > 50 ? clean.slice(0, 50) + '...' : clean;
+        };
+
         try {
             const parsed = JSON.parse(input);
             const lower = tool.toLowerCase();
@@ -433,9 +449,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                 return parsed.path || parsed.file_path || parsed.target_file || '';
             }
             // Format single line JSON
-            return JSON.stringify(parsed);
+            const str = JSON.stringify(parsed);
+            return str.length > 50 ? str.slice(0, 50) + '...' : str;
         } catch {
-            return input;
+            return extractByRegex();
         }
     };
 
@@ -447,13 +464,31 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
         return obs.split('\n').length;
     };
     const outLines = getOutputLines(step.observation || step.streamingObservation);
-    const outStats = step.isComplete
-        ? `${outLines} line${outLines === 1 ? '' : 's'} of output`
-        : step.isWaitingAuthorization
-            ? 'Wait for authorization...'
-            : step.streamingObservation
-                ? `Running... (${outLines} lines)`
-                : 'Running...';
+
+    const getStatusText = () => {
+        if (step.isWaitingAuthorization) return '等待授权...';
+
+        const isWrite = step.tool?.toLowerCase().includes('write') || step.tool?.toLowerCase().includes('edit');
+        const isBash = step.tool?.toLowerCase().includes('bash') || step.tool?.toLowerCase().includes('command');
+        const isRead = step.tool?.toLowerCase().includes('read');
+
+        if (step.isComplete) {
+            if (isWrite) return '写入 / 修改完成';
+            if (isBash) return '执行结束';
+            if (isRead) return `读取完成 (${outLines} 行)`;
+            return `输出 ${outLines} 行`;
+        }
+
+        if (step.streamingObservation || step.toolInput) {
+            if (isWrite) return '写入中...';
+            if (isBash) return '执行中...';
+            if (isRead) return '读取中...';
+            return `运行中... (${outLines > 0 ? outLines + '行' : ''})`;
+        }
+
+        return '准备运行...';
+    };
+    const outStats = getStatusText();
 
     return (
         <div className="relative font-mono my-1 pl-1.5">
@@ -468,7 +503,14 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                     "relative z-10 flex items-start gap-2.5",
                     !isTodoTool && "cursor-pointer group/card hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors rounded -mx-2 px-2 py-1"
                 )}
-                onClick={() => !isTodoTool && setIsExpanded(!isExpanded)}
+                onClick={(e) => {
+                    if (isTodoTool) return;
+                    if (isArtifactTool) {
+                        handleOpenArtifact(e);
+                    } else {
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
             >
                 {/* Icon Indicator */}
                 <div className={cn(
@@ -499,16 +541,6 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                 </span>
                             )}
                         </div>
-                        {isArtifactTool && (
-                            <button
-                                onClick={handleOpenArtifact}
-                                className="opacity-0 group-hover/card:opacity-100 flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-medium transition-opacity shrink-0 mr-2 border border-indigo-200/50 dark:border-indigo-500/20"
-                                title="Open in preview panel"
-                            >
-                                <Eye size={12} />
-                                预览
-                            </button>
-                        )}
                     </div>
 
                     {/* Bottom line: Stats */}
@@ -522,8 +554,8 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                             </span>
                         )}
                         {!isTodoTool && (
-                            <span className="opacity-0 group-hover/card:opacity-100 text-[10.5px] text-slate-400/70 dark:text-zinc-600/70 transition-opacity">
-                                · 点击查看
+                            <span className="opacity-0 group-hover/card:opacity-100 text-[10.5px] text-slate-400/70 dark:text-zinc-600/70 transition-opacity flex items-center gap-0.5">
+                                · {isArtifactTool ? '点击预览 ↗' : '点击查看'}
                             </span>
                         )}
                     </div>

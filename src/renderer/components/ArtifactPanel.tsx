@@ -1,12 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '../store/useChatStore';
-import { FileCode, Terminal as TerminalIcon, X } from 'lucide-react';
+import { FileCode, Terminal as TerminalIcon, X, Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export const ArtifactPanel: React.FC = () => {
     const { activeArtifact, setActiveArtifact } = useChatStore();
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [isCopied, setIsCopied] = useState(false);
 
     // Auto-scroll to bottom as content streams in
     useEffect(() => {
@@ -14,6 +15,13 @@ export const ArtifactPanel: React.FC = () => {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [activeArtifact?.content]);
+
+    const handleCopy = () => {
+        if (!activeArtifact?.content) return;
+        navigator.clipboard.writeText(activeArtifact.content);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
 
     if (!activeArtifact) return null;
 
@@ -43,17 +51,26 @@ export const ArtifactPanel: React.FC = () => {
                         {activeArtifact.toolName}
                     </span>
                 </div>
-                <button
-                    onClick={() => setActiveArtifact(null)}
-                    className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors"
-                    title="Close preview"
-                >
-                    <X size={15} />
-                </button>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={handleCopy}
+                        className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors"
+                        title="Copy content"
+                    >
+                        {isCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                    </button>
+                    <button
+                        onClick={() => setActiveArtifact(null)}
+                        className="p-1.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-colors"
+                        title="Close preview"
+                    >
+                        <X size={15} />
+                    </button>
+                </div>
             </div>
 
             {/* Editor Body */}
-            <div className="flex-1 overflow-auto relative bg-[#0d1117]" ref={scrollRef}>
+            <div className="flex-1 overflow-auto relative bg-[#0d1117] select-text" ref={scrollRef}>
                 <SyntaxHighlighter
                     language={language}
                     style={vscDarkPlus}
