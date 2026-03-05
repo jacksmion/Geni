@@ -90,7 +90,7 @@ export function ChatLayout() {
 
                 {/* Floating Right Panel: Artifact/Code Preview */}
                 {activeArtifact && (
-                    <aside className="absolute bottom-6 right-6 w-[480px] h-[550px] max-h-[80vh] max-w-[calc(100vw-300px)] bg-[#0d1117] flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-300 ease-out z-50 rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-800 dark:border-white/10">
+                    <aside className="absolute top-14 right-6 w-[480px] h-[550px] max-h-[calc(100vh-180px)] max-w-[calc(100vw-300px)] bg-[#0d1117] flex flex-col overflow-hidden animate-in slide-in-from-top-8 duration-300 ease-out z-50 rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-800 dark:border-white/10">
                         <ArtifactPanel />
                     </aside>
                 )}
