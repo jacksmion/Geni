@@ -11,6 +11,7 @@
  */
 
 import { Skill } from '../../../common/types/skill';
+import os from 'os';
 
 /**
  * Agent 上下文信息，用于构建 System Prompt
@@ -81,13 +82,41 @@ export class PromptBuilder {
         // 1. 基础 Prompt (Persona)
         parts.push(this.buildPersona(context));
 
-        // 2. 技能摘要 (Skill Summary)
+        // 2. 核心环境信息 (Environment Info)
+        const envInfo = this.buildEnvironmentInfo(context);
+        if (envInfo) {
+            parts.push(envInfo);
+        }
+
+        // 3. 技能摘要 (Skill Summary)
         const skillSummary = this.buildSkillSummary(context);
         if (skillSummary) {
             parts.push(skillSummary);
         }
 
         return parts.join('\n\n');
+    }
+
+    /**
+     * 构建核心环境信息
+     */
+    private buildEnvironmentInfo(context: AgentContext): string {
+        const lines: string[] = ['[System Environment]'];
+        lines.push(`- OS: ${os.platform()}`);
+
+        // Use YYYY-MM-DD format for date to avoid invalidating cache too frequently
+        // while still providing day-level context for git/file operations.
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        lines.push(`- Current Date: ${yyyy}-${mm}-${dd}`);
+
+        if (context.workspacePath) {
+            lines.push(`- Workspace: ${context.workspacePath}`);
+        }
+
+        return lines.join('\n');
     }
 
     /**
