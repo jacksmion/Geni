@@ -76,6 +76,7 @@ export interface AppSettings {
     systemPrompt?: string; // 全局系统提示词
     telegram?: TelegramConfig; // Telegram Bot 配置
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
+    recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
 }
 
 // 默认的提供商配置
@@ -129,4 +130,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
         proxyUrl: '',
     },
     scheduledTasks: [],
+    recentWorkspaces: [],
 };
