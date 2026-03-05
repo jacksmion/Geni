@@ -455,6 +455,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
         const isRead = step.tool?.toLowerCase().includes('read');
 
         if (step.isComplete) {
+            if (step.isError) return '执行失败 (格式错误/被截断)';
             if (isWrite) return '写入 / 修改完成';
             if (isBash) return '执行结束';
             if (isRead) return `读取完成 (${outLines} 行)`;
@@ -497,11 +498,13 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                 {/* Icon Indicator */}
                 <div className={cn(
                     "mt-[2px] w-[18px] h-[18px] flex items-center justify-center rounded-md shrink-0 border shadow-sm",
-                    step.isComplete
-                        ? "bg-emerald-50 border-emerald-200/50 text-emerald-500 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400"
-                        : step.isWaitingAuthorization
-                            ? "bg-amber-50 border-amber-200/50 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 animate-pulse"
-                            : "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 animate-pulse"
+                    step.isError
+                        ? "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
+                        : step.isComplete
+                            ? "bg-emerald-50 border-emerald-200/50 text-emerald-500 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400"
+                            : step.isWaitingAuthorization
+                                ? "bg-amber-50 border-amber-200/50 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 animate-pulse"
+                                : "bg-indigo-50 border-indigo-200/50 text-indigo-500 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 animate-pulse"
                 )}>
                     {React.createElement(getToolIcon(step.tool || ''), {
                         className: "w-2.5 h-2.5",

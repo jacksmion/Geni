@@ -1,4 +1,5 @@
 import { spawn, execFileSync } from 'child_process';
+import { StringDecoder } from 'string_decoder';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 import os from 'os';
 import path from 'path';
@@ -57,7 +58,7 @@ function resolveWindowsShell(): ResolvedShell {
         if (pwshPath && fs.existsSync(pwshPath)) {
             return {
                 shell: pwshPath,
-                args: (cmd) => ['-NoProfile', '-Command', cmd]
+                args: (cmd) => ['-NoProfile', '-Command', `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd}`]
             };
         }
     } catch { /* pwsh not found, continue */ }
@@ -68,7 +69,7 @@ function resolveWindowsShell(): ResolvedShell {
     if (fs.existsSync(psFullPath)) {
         return {
             shell: psFullPath,
-            args: (cmd) => ['-NoProfile', '-Command', cmd]
+            args: (cmd) => ['-NoProfile', '-Command', `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd}`]
         };
     }
 
@@ -76,7 +77,7 @@ function resolveWindowsShell(): ResolvedShell {
     const cmdPath = path.join(systemRoot, 'System32', 'cmd.exe');
     return {
         shell: fs.existsSync(cmdPath) ? cmdPath : 'cmd.exe',
-        args: (cmd) => ['/c', cmd]
+        args: (cmd) => ['/c', `chcp 65001>nul && ${cmd}`]
     };
 }
 
@@ -244,14 +245,17 @@ export class BashTool implements ITool {
             let timedOut = false;
             let aborted = false;
 
+            const stdoutDecoder = new StringDecoder('utf8');
+            const stderrDecoder = new StringDecoder('utf8');
+
             // Collect output
             child.stdout.on('data', (chunk: Buffer) => {
                 stdoutChunks.push(chunk);
-                if (onStream) onStream(decodeOutput(chunk));
+                if (onStream) onStream(stdoutDecoder.write(chunk));
             });
             child.stderr.on('data', (chunk: Buffer) => {
                 stderrChunks.push(chunk);
-                if (onStream) onStream(decodeOutput(chunk));
+                if (onStream) onStream(stderrDecoder.write(chunk));
             });
 
             // Setup abort listener
