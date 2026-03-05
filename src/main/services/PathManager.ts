@@ -27,8 +27,12 @@ export class PathManager {
         this.sessionsDir = path.join(this.rootDir, 'sessions');
         this.schedulerDir = path.join(this.rootDir, 'scheduler');
         this.globalSkillsDir = path.join(this.rootDir, 'skills');
-        // Built-in skills: {appRoot}/skills/ (app root in dev, or packaged app root in prod)
-        this.builtinSkillsDir = path.join(appPath, 'skills');
+        // Built-in skills: {appRoot}/skills/ in dev, or {resources}/skills/ in prod
+        if (app.isPackaged) {
+            this.builtinSkillsDir = path.join(process.resourcesPath, 'skills');
+        } else {
+            this.builtinSkillsDir = path.join(appPath, 'skills');
+        }
         // Legacy external agents directory
         this.dotAgentsDir = path.join(os.homedir(), '.agents', 'skills');
 
