@@ -62,7 +62,7 @@ export function ChatLayout() {
                             <StatusIndicator />
 
                             {/* Input Area */}
-                            <div className="shrink-0 bg-white dark:bg-[#0a0a0c]">
+                            <div className="shrink-0 relative z-20 bg-white dark:bg-[#0a0a0c]">
                                 <Composer />
                             </div>
                         </>

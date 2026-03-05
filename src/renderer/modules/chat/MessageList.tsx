@@ -146,19 +146,19 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
     }
 
     return (
-        <div className="my-4 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden bg-white dark:bg-[#0c0c0e]">
+        <div className="my-4 border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-white/[0.02] shadow-sm">
             <div
-                className="flex items-center justify-between px-4 py-2 bg-slate-50/50 dark:bg-white/[0.02] cursor-pointer hover:bg-slate-100/80 dark:hover:bg-white/5 transition-colors select-none"
+                className="flex items-center justify-between px-4 py-2.5 bg-transparent cursor-pointer hover:bg-slate-100/80 dark:hover:bg-white/5 transition-colors select-none"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-zinc-400">
-                    <Brain size={13} className="text-indigo-500/70" />
+                <div className="flex items-center gap-2 text-[13px] font-medium text-slate-600 dark:text-zinc-400">
+                    <Brain size={14} className="text-indigo-500/80" />
                     <span>Thinking Process</span>
                 </div>
-                {isExpanded ? <ChevronUp size={14} className="text-slate-400/70" /> : <ChevronDown size={14} className="text-slate-400/70" />}
+                {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
             </div>
             {isExpanded && (
-                <div className="not-prose select-text p-4 bg-slate-50/30 dark:bg-white/[0.01] text-[12.5px] leading-relaxed text-slate-500 dark:text-zinc-500 border-t border-slate-200 dark:border-white/5 font-mono whitespace-pre-wrap">
+                <div className="not-prose select-text p-5 bg-transparent text-[13px] leading-[1.7] text-slate-600 dark:text-zinc-400 border-t border-slate-200/80 dark:border-white/10 font-mono whitespace-pre-wrap">
                     {content}
                     {!isComplete && (
                         <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />
@@ -186,7 +186,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
         )}>
             {/* ... avatar code stays the same ... */}
             {!isUser && (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200 dark:border-white/5 shadow-sm mt-1">
+                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200/80 dark:border-white/10 shadow-sm mt-1">
                     <Bot size={16} className="text-slate-700 dark:text-indigo-300" />
                 </div>
             )}
@@ -217,7 +217,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             text-slate-900 dark:text-zinc-100
                             
                             /* Paragraph styling */
-                            prose-p:text-[14.5px] prose-p:leading-relaxed prose-p:my-3 prose-p:last:mb-0
+                            prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
                             
                             /* Heading styling */
                             prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
@@ -226,9 +226,9 @@ function MessageItem({ message }: { message: ChatMessage }) {
                             prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
                             
                             /* List styling - The Core Fix */
-                            prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px]
-                            prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px]
-                            prose-li:my-1 prose-li:pl-1
+                            prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
+                            prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
+                            prose-li:my-1.5 prose-li:pl-1
                             prose-li:prose-p:my-0 /* Fixes gap in loose lists */
                             prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
                             
@@ -337,7 +337,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
 
             {/* User Avatar - Right side */}
             {isUser && (
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-[#1e1e20] text-slate-600 dark:text-zinc-400 mt-1 border border-slate-200/50 dark:border-white/5">
+                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-slate-100 dark:bg-[#1e1e20] text-slate-600 dark:text-zinc-400 mt-1 border border-slate-200/80 dark:border-white/10 shadow-sm">
                     <User size={16} />
                 </div>
             )}
