@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { ChatMessage, ChatSession } from '../../common/types/chat'
+import { extractPathAndContent } from '../utils/artifact'
 
 interface ActiveArtifact {
     toolName: string;
@@ -357,32 +358,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let isFlushingSteps = false;
 
         // Parse partial JSON to extract path and content
-        const extractPathAndContent = (jsonStr: string) => {
-            let pathResult = '';
-            let contentResult = '';
-            try {
-                const parsed = JSON.parse(jsonStr);
-                pathResult = parsed.path || '';
-                contentResult = parsed.content || parsed.replacement || '';
-            } catch {
-                const pathMatch = jsonStr.match(/"path"\s*:\s*"([^"]*)/);
-                if (pathMatch) pathResult = pathMatch[1];
-
-                const contentMatch = jsonStr.match(/"(?:content|replacement)"\s*:\s*"/);
-                if (contentMatch) {
-                    const startIndex = contentMatch.index! + contentMatch[0].length;
-                    let extracted = jsonStr.slice(startIndex);
-                    // Extract up to the last unescaped quote (or just take the rest if not closed)
-                    // We'll do a simple unescape
-                    extracted = extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
-                    // Strip trailing quotes or brace from incomplete json string
-                    extracted = extracted.replace(/(?:")?\s*}\s*$/, '');
-                    if (extracted.endsWith('"')) extracted = extracted.slice(0, -1);
-                    contentResult = extracted;
-                }
-            }
-            return { path: pathResult, content: contentResult };
-        };
+        // using the shared utility from utils/artifact.ts
 
         const flushSteps = () => {
             if (!pendingSteps) {
@@ -403,7 +379,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             for (const step of stepsToFlush) {
                 if (step.tool === 'write' || step.tool === 'edit') {
                     if (step.toolInput) {
-                        const { path, content } = extractPathAndContent(step.toolInput);
+                        const { path, content } = extractPathAndContent(step.toolInput, step.tool);
                         if (path || content) {
                             latestArtifact = {
                                 toolName: step.tool,

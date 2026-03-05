@@ -26,13 +26,16 @@ export const ArtifactPanel: React.FC = () => {
     if (!activeArtifact) return null;
 
     const isBash = activeArtifact.toolName === 'bash';
+    const isEdit = activeArtifact.toolName === 'edit' || activeArtifact.toolName === 'replace_file_content' || activeArtifact.toolName === 'multi_replace_file_content';
     const ext = activeArtifact.path.split('.').pop() || 'text';
     let language = 'text';
     if (isBash) language = 'bash';
+    else if (isEdit) language = 'diff';
     else if (ext === 'js' || ext === 'jsx') language = 'javascript';
     else if (ext === 'ts' || ext === 'tsx') language = 'typescript';
     else if (ext === 'py') language = 'python';
     else if (ext === 'json') language = 'json';
+    else if (ext === 'html') language = 'html';
 
     return (
         <div className="w-full h-full flex flex-col bg-[#0d1117] shadow-2xl">

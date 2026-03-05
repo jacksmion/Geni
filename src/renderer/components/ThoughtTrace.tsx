@@ -4,6 +4,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { extractPathAndContent } from '../utils/artifact';
 import { preprocessMarkdown } from '../utils/markdown';
 import { useChatStore } from '../store/useChatStore';
 
@@ -370,34 +371,15 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             path = cmd;
             content = step.observation || step.streamingObservation || 'Running...';
         } else {
-            // Extract path
-            try {
-                const parsed = JSON.parse(step.toolInput || '{}');
-                path = parsed.path || parsed.file_path || parsed.target_file || '';
-            } catch {
-                const pathMatch = (step.toolInput || '').match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
-                if (pathMatch) path = pathMatch[1];
-            }
+            const extracted = extractPathAndContent(step.toolInput || '{}', step.tool);
+            path = extracted.path;
 
             if (step.tool === 'read') {
                 // For read tools, the content is in the observation (output)
                 content = step.observation || '';
             } else {
-                // For write/edit tools, the content is in the toolInput
-                try {
-                    const parsed = JSON.parse(step.toolInput || '{}');
-                    content = parsed.content || parsed.replacement || '';
-                } catch {
-                    const contentMatch = (step.toolInput || '').match(/"(?:content|replacement)"\s*:\s*"/);
-                    if (contentMatch) {
-                        const startIndex = contentMatch.index! + contentMatch[0].length;
-                        let extracted = (step.toolInput || '').slice(startIndex);
-                        extracted = extracted.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
-                        extracted = extracted.replace(/(?:")?\s*}\s*$/, '');
-                        if (extracted.endsWith('"')) extracted = extracted.slice(0, -1);
-                        content = extracted;
-                    }
-                }
+                // For write/edit tools, the content is extracted from the toolInput via shared utility
+                content = extracted.content;
             }
         }
 
