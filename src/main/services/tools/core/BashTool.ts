@@ -7,7 +7,7 @@ import fs from 'fs';
 import { z } from 'zod';
 
 /**
- * 智能解码 Buffer 为字符串，支持 UTF-8 和 Windows 下的 GBK 回退
+ * 智能解码 Buffer 为字符串，支持 UTF-8 和 Windows 下 GBK 回退
  */
 function decodeOutput(buffer: Buffer): string {
     if (!buffer || buffer.length === 0) return "";
@@ -32,6 +32,14 @@ function decodeOutput(buffer: Buffer): string {
         // 非 Windows 环境下如果 UTF-8 失败，回退到非致命 UTF-8
         return buffer.toString('utf8');
     }
+}
+
+/**
+ * 移除字符串中的 ANSI 转义序列（如颜色代码），防止 UI 显示乱码
+ */
+function stripAnsi(text: string): string {
+    const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+    return text.replace(ansiRegex, '');
 }
 
 interface ResolvedShell {
@@ -304,8 +312,8 @@ export class BashTool implements ITool {
                 const stdoutBuffer = Buffer.concat(stdoutChunks);
                 const stderrBuffer = Buffer.concat(stderrChunks);
 
-                let stdoutStr = decodeOutput(stdoutBuffer);
-                let stderrStr = decodeOutput(stderrBuffer);
+                let stdoutStr = stripAnsi(decodeOutput(stdoutBuffer));
+                let stderrStr = stripAnsi(decodeOutput(stderrBuffer));
 
                 // Truncate logic
                 if (stdoutStr.length > this.MAX_OUTPUT_LENGTH) {

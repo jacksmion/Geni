@@ -53,11 +53,11 @@ export const ArtifactPanel: React.FC = () => {
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate">
-                            {activeArtifact.path?.split(/[\\/]/).pop() || 'Generating...'}
+                        <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-100 uppercase tracking-widest">
+                            {activeArtifact.toolName}
                         </span>
-                        <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-mono uppercase tracking-wider">
-                            {activeArtifact.toolName} • {ext}
+                        <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono truncate max-w-[320px] lg:max-w-[450px]">
+                            {activeArtifact.path || 'Generating...'}
                         </span>
                     </div>
                 </div>
