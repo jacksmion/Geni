@@ -1,6 +1,7 @@
-import { Bot, Context, InlineKeyboard } from 'grammy';
+import { Bot, Context, InlineKeyboard, GrammyError, HttpError } from 'grammy';
 import { run, RunnerHandle } from '@grammyjs/runner';
-import { ProxyAgent } from 'undici';
+import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
 import { UserApprovalContext, ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
 import { TelegramConfig } from '../../../../common/types/settings';
@@ -35,21 +36,42 @@ export class TelegramAdapter implements IIMAdapter {
         }
 
         const actualProxyUrl = config.proxyUrl || process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-        console.log(`[TelegramAdapter] Initializing bot with proxy: ${actualProxyUrl || 'None'}`);
+        console.log(`[TelegramAdapter] Initializing bot with node-fetch and proxy: ${actualProxyUrl || 'None'}`);
 
         try {
             if (actualProxyUrl) {
-                // Grammy uses standard fetch API. 
-                // Native fetch in Node uses dispatcher, not agent.
+                // Use createRequire to support 'require' in ESM environment
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const { createRequire } = await import('module');
+                const localRequire = createRequire((import.meta as any).url);
+                const agent = new HttpsProxyAgent(actualProxyUrl);
+
                 this.bot = new Bot(config.token, {
                     client: {
-                        baseFetchConfig: {
-                            // @ts-expect-error: custom dispatcher for underlying native fetch / undici
-                            dispatcher: new ProxyAgent({ uri: actualProxyUrl }),
-                            compress: true,
-                        }
+                        // @ts-ignore
+                        fetch: async (url: any, options: any = {}) => {
+                            try {
+                                // Dynamically require node-fetch at runtime
+                                const nodeFetch = localRequire('node-fetch');
+                                
+                                // node-fetch@2 might fail with native AbortSignal (instanceof check)
+                                // We remove the signal to ensure compatibility with modern grammY options
+                                const { signal, ...restOptions } = options;
+
+                                return await nodeFetch(url, {
+                                    ...restOptions,
+                                    agent: agent,
+                                });
+                            } catch (err: any) {
+                                if (err && typeof err === 'object') {
+                                    err.url = url;
+                                }
+                                throw err;
+                            }
+                        },
                     }
                 });
+                console.log(`[TelegramAdapter] Proxy enabled (ESM Safe + Signal Sanitize): ${actualProxyUrl}`);
             } else {
                 this.bot = new Bot(config.token);
             }
@@ -58,8 +80,26 @@ export class TelegramAdapter implements IIMAdapter {
             const me = await this.bot.api.getMe();
             console.log(`[TelegramAdapter] Successfully connected! Bot username: @${me.username}`);
         } catch (e: any) {
-            console.error(`[TelegramAdapter] Failed to initialize bot or test connection. Error details:`, e.message);
-            // We DO NOT return here, sometimes getMe fails momentarily. We can still try starting the runner.
+            console.error(`[TelegramAdapter] ❌ Failed to initialize bot or test connection.`);
+
+            if (e instanceof HttpError) {
+                console.error(`[TelegramAdapter] HttpError (Network): ${e.message}`);
+                const inner = (e as any).error; // Grammy wraps the native fetch error in .error
+                if (inner) {
+                    console.error(`[TelegramAdapter] Failed URL: ${inner.url || 'N/A'}`);
+                    console.error(`[TelegramAdapter] Inner Error: ${inner.message || inner}`);
+                    if (inner.code) console.error(`[TelegramAdapter] Error Code: ${inner.code}`);
+                }
+            } else if (e instanceof GrammyError) {
+                console.error(`[TelegramAdapter] GrammyError (API): ${e.description}`);
+                console.error(`[TelegramAdapter] Error Code: ${e.error_code}`);
+            } else {
+                console.error(`[TelegramAdapter] Error: ${e.message || e}`);
+            }
+
+            if (e.stack) {
+                console.error(`Stack trace:\n${e.stack}`);
+            }
         }
 
         if (!this.bot) {
@@ -121,7 +161,17 @@ export class TelegramAdapter implements IIMAdapter {
         });
 
         this.bot.catch((err) => {
-            console.error('[TelegramAdapter] Polling Error:', err.message);
+            const ctx = err.ctx;
+            console.error(`[TelegramAdapter] Error while handling update ${ctx.update.update_id}:`);
+
+            const e = err.error;
+            if (e instanceof GrammyError) {
+                console.error("[TelegramAdapter] Request Error (Telegram API):", e.description);
+            } else if (e instanceof HttpError) {
+                console.error("[TelegramAdapter] Network Error:", e);
+            } else {
+                console.error("[TelegramAdapter] Unknown Error:", e);
+            }
         });
 
         // Start polling via grammy runner
