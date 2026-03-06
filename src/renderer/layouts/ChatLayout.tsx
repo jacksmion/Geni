@@ -15,6 +15,38 @@ export function ChatLayout() {
     const { activeTab, sessions, activeSessionId, activeArtifact } = useChatStore()
     const { sidebarCollapsed, toggleSidebar } = useLayoutStore()
     const { t } = useTranslation()
+
+    // Artifact 面板宽度与缩放逻辑
+    const [panelWidth, setPanelWidth] = React.useState(520)
+    const isResizing = React.useRef(false)
+
+    const startResizing = React.useCallback((e: React.MouseEvent) => {
+        isResizing.current = true
+        document.body.style.cursor = 'ew-resize'
+        document.body.style.userSelect = 'none'
+
+        const initialX = e.clientX
+        const initialWidth = panelWidth
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            if (!isResizing.current) return
+            const deltaX = moveEvent.clientX - initialX
+            const newWidth = Math.max(380, Math.min(initialWidth - deltaX, window.innerWidth - 400))
+            setPanelWidth(newWidth)
+        }
+
+        const onMouseUp = () => {
+            isResizing.current = false
+            document.body.style.cursor = 'default'
+            document.body.style.userSelect = 'auto'
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mouseup', onMouseUp)
+        }
+
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
+    }, [panelWidth])
+
     const currentSession = sessions[activeSessionId]
     const hasMessages = currentSession && currentSession.messages && currentSession.messages.length > 0;
 
@@ -23,7 +55,14 @@ export function ChatLayout() {
             {/* Session List Sidebar */}
             <SessionSidebar />
             <div className="flex-1 flex overflow-hidden relative">
-                <main className="flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#0a0a0c] w-full">
+                <main
+                    className="flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#0a0a0c] transition-all duration-300 ease-in-out"
+                    style={{
+                        marginRight: activeArtifact ? `${panelWidth + 12}px` : '0px',
+                        width: 'auto',
+                        flex: '1 1 0%'
+                    }}
+                >
                     {/* Header */}
                     <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md shadow-sm border-b border-slate-100 dark:border-white/5'}`}>
                         {/* Left: Toggle + Title */}
@@ -90,7 +129,15 @@ export function ChatLayout() {
 
                 {/* Floating Right Panel: Artifact/Code Preview */}
                 {activeArtifact && (
-                    <aside className="absolute top-14 right-6 w-[480px] h-[550px] max-h-[calc(100vh-180px)] max-w-[calc(100vw-300px)] bg-[#0d1117] flex flex-col overflow-hidden animate-in slide-in-from-top-8 duration-300 ease-out z-50 rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-800 dark:border-white/10">
+                    <aside
+                        style={{ width: `${panelWidth}px` }}
+                        className="absolute top-30 right-2 h-[calc(100vh-180px)] flex flex-col overflow-hidden animate-in slide-in-from-right-8 fade-in-0 duration-500 ease-out z-50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] border border-slate-200/10 dark:border-white/10 bg-white/80 dark:bg-[#0d1117]/85 backdrop-blur-2xl ring-1 ring-black/5"
+                    >
+                        {/* Left Resize Handle */}
+                        <div
+                            onMouseDown={startResizing}
+                            className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-blue-500/20 active:bg-blue-500/40 transition-colors z-50"
+                        />
                         <ArtifactPanel />
                     </aside>
                 )}
