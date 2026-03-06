@@ -182,19 +182,28 @@ export class TelegramAdapter implements IIMAdapter {
 
     public async stop(): Promise<void> {
         let wasRunning = false;
-        if (this.runner && this.runner.isRunning()) {
-            await this.runner.stop();
+        if (this.runner) {
+            if (this.runner.isRunning()) {
+                console.log('[TelegramAdapter] Stopping existing runner...');
+                await this.runner.stop();
+                // Add a small delay to allow Telegram servers to recognize the disconnection
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            this.runner = null;
             wasRunning = true;
         }
-        if (this.bot) wasRunning = true;
+        
+        if (this.bot) {
+            this.bot = null;
+            wasRunning = true;
+        }
 
-        this.bot = null;
         this.pendingAuthPromises.clear();
         this.sessionMap.clear();
         this.throttleFns.clear();
 
         if (wasRunning) {
-            console.log('[TelegramAdapter] Stopped.');
+            console.log('[TelegramAdapter] Stopped successfully.');
         }
     }
 
@@ -277,23 +286,95 @@ export class TelegramAdapter implements IIMAdapter {
         if (!ctx || ctx.buffer === ctx.lastSentBuffer) return; // No change
 
         const chatId = sessionId.replace('tg_', '');
-        // Telegram message max limit is 4096. 
-        // Truncate if exceeds. (A production impl might split into multiple messages)
-        const safeContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
+        // Limit total length to 4000
+        const rawContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
+        
+        // Convert Markdown to safe HTML for Telegram
+        const safeHtml = this.formatToTelegramHtml(rawContent);
 
         try {
+            const sendOptions: any = {
+                parse_mode: 'HTML',
+            };
+
             if (!ctx.messageId) {
-                const msg = await this.bot.api.sendMessage(chatId, safeContent);
+                const msg = await this.bot.api.sendMessage(chatId, safeHtml, sendOptions);
                 ctx.messageId = msg.message_id;
             } else {
-                await this.bot.api.editMessageText(chatId, ctx.messageId, safeContent);
+                await this.bot.api.editMessageText(chatId, ctx.messageId, safeHtml, sendOptions);
             }
             ctx.lastSentBuffer = ctx.buffer;
         } catch (e: any) {
-            // Ignore format errors like "message is not modified"
-            if (!e.message?.includes('message is not modified')) {
+            // If HTML parsing fails, fallback to plain text to prevent breaking the stream
+            if (e.message?.includes('can\'t parse entities')) {
+                console.warn('[TelegramAdapter] HTML Parse failed, falling back to plain text.');
+                try {
+                    if (ctx.messageId) {
+                        await this.bot.api.editMessageText(chatId, ctx.messageId, rawContent);
+                    }
+                } catch (innerE) {}
+            } else if (!e.message?.includes('message is not modified')) {
                 console.error(`[TelegramAdapter] Failed to edit/send message to ${chatId}:`, e.message);
             }
         }
+    }
+
+    /**
+     * Converts standard Markdown to Telegram-safe HTML.
+     * Includes auto-closing tags for streaming support.
+     */
+    private formatToTelegramHtml(markdown: string): string {
+        let html = markdown
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // 1. Headers to Bold (Telegram doesn't support real headers)
+        html = html.replace(/^#+ (.*)$/gm, '<b>$1</b>');
+
+        // 2. Bold: **text** -> <b>text</b>
+        html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+
+        // 3. Monospace/Code block: ```language\ncode\n``` -> <pre>code</pre>
+        html = html.replace(/```(?:[a-z]*)\n?([\s\S]*?)```/g, '<pre>$1</pre>');
+
+        // 4. Inline code: `code` -> <code>code</code>
+        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+        // 5. Links: [text](url) -> <a href="url">text</a>
+        html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
+        // --- STREAMING SAFETY: Auto-close tags ---
+        const openTags: string[] = [];
+        
+        // Match <b> and <pre> and <code>
+        const tagRegex = /<(b|pre|code|a|i)>/g;
+        const closeRegex = /<\/(b|pre|code|a|i)>/g;
+        
+        let match;
+        const openMatches = Array.from(html.matchAll(tagRegex));
+        const closeMatches = Array.from(html.matchAll(closeRegex)).map(m => m[1]);
+
+        // Simple stack-based repair (for bold, code, etc.)
+        // Check for common unclosed tags at the end of partial AI response
+        if (html.includes('**') && !html.match(/\*\*(.*?)\*\*/)) {
+            // Temporary bold if AI is in the middle of writing **something
+            // This is handled by regex above but if it's incomplete it's just raw symbols
+        }
+
+        // Specifically handle <pre> and <b> which are common in streaming
+        const preCount = (html.match(/<pre>/g) || []).length;
+        const preCloseCount = (html.match(/<\/pre>/g) || []).length;
+        if (preCount > preCloseCount) html += '</pre>';
+
+        const bCount = (html.match(/<b>/g) || []).length;
+        const bCloseCount = (html.match(/<\/b>/g) || []).length;
+        if (bCount > bCloseCount) html += '</b>';
+
+        const codeCount = (html.match(/<code>/g) || []).length;
+        const codeCloseCount = (html.match(/<\/code>/g) || []).length;
+        if (codeCount > codeCloseCount) html += '</code>';
+
+        return html;
     }
 }
