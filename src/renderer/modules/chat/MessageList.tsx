@@ -179,6 +179,21 @@ function MessageItem({ message }: { message: ChatMessage }) {
     const isDark = settings.theme === 'dark';
     const syntaxTheme = isDark ? vscDarkPlus : oneLight;
 
+    // Deduplicate content: if the message starts with the same text as the first step's thought,
+    // we hide it from the prose body to avoid double-rendering, since ThoughtTrace now always shows it.
+    let displayContent = processedContent;
+    if (!isUser && message.steps && message.steps.length > 0) {
+        const firstThought = message.steps[0].thought?.trim() || '';
+        const cleanContent = processedContent.trim();
+        if (firstThought && cleanContent.startsWith(firstThought)) {
+            if (cleanContent.length <= firstThought.length + 10) {
+                displayContent = '';
+            } else {
+                displayContent = cleanContent.substring(firstThought.length).trim();
+            }
+        }
+    }
+
     return (
         <div className={cn(
             "flex gap-4 max-w-full group animate-in slide-in-from-bottom-2 duration-500 fade-in",
@@ -307,7 +322,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                     }
                                 }}
                             >
-                                {processedContent}
+                                {displayContent}
                             </ReactMarkdown>
                         </div>
 

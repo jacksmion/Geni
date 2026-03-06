@@ -651,13 +651,13 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
 
     return (
         <div className="select-text prose prose-slate dark:prose-invert max-w-none 
-            text-[14px] text-slate-700 dark:text-zinc-300 leading-relaxed my-1.5 px-0.5 font-normal
+            text-[14.5px] text-slate-800 dark:text-zinc-200 leading-relaxed my-1.5 px-0.5 font-medium
             prose-p:my-1.5 prose-p:last:mb-0
             prose-headings:font-bold prose-headings:text-[15px] prose-headings:my-2
             prose-ul:my-1.5 prose-ul:list-disc prose-ul:pl-5
             prose-ol:my-1.5 prose-ol:list-decimal prose-ol:pl-5
             prose-li:my-0.5
-            prose-strong:text-slate-800 dark:prose-strong:text-zinc-200
+            prose-strong:text-slate-900 dark:prose-strong:text-zinc-100
             prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none"
         >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -670,23 +670,12 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
 const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) => {
     if (steps.length === 0) return null;
 
-    // Helper to check if thought is a duplicate of main content
-    const isDuplicate = (thought?: string): boolean => {
-        if (!thought || !contextContent) return false;
-
-        const cleanThought = thought.trim();
-        const cleanContext = contextContent.trim();
-
-        // Exact match or if context exactly contains the thought (for robust matching)
-        return cleanThought === cleanContext || (cleanContext.length > 0 && cleanContext.includes(cleanThought) && cleanContext.length < cleanThought.length + 20);
-    };
-
     return (
         <div className="flex flex-col mb-2">
             {steps.map((step, idx) => (
                 <div key={idx} className="flex flex-col w-full">
-                    {/* Show thought if exists and not duplicate */}
-                    {step.thought && !isDuplicate(step.thought) && <ThoughtText thought={step.thought} />}
+                    {/* Always show thought if exists to maintain Intent -> Action flow */}
+                    {step.thought && <ThoughtText thought={step.thought} />}
 
                     {/* Show tool call card if exists */}
                     {step.tool && <ToolCallCard step={step} isLast={idx === steps.length - 1} />}
