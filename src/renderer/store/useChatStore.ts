@@ -74,16 +74,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             if (list.length > 0) {
                 const activeId = list[0].id; // Most recent due to sort in backend
-                set({ sessions, activeSessionId: activeId });
 
-                // Lazy load active session messages
+                // Lazy load active session messages BEFORE setting as active to avoid flickering
                 const messages = await window.electronAPI.session.getHistory(activeId);
-                set(state => ({
-                    sessions: {
-                        ...state.sessions,
-                        [activeId]: { ...state.sessions[activeId], messages }
-                    }
-                }));
+                sessions[activeId].messages = messages;
+
+                set({ sessions, activeSessionId: activeId });
             } else {
                 // Init default if empty
                 // Create via backend
@@ -141,24 +137,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const session = sessions[id];
 
         if (session) {
-            set({ activeSessionId: id, activeTab: 'chat' });
-
             // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
                 try {
                     const messages = await window.electronAPI.session.getHistory(id);
-                    // If backend has messages, use them
-                    if (messages) {
-                        set(state => ({
-                            sessions: {
-                                ...state.sessions,
-                                [id]: { ...state.sessions[id], messages }
-                            }
-                        }));
-                    }
+                    set(state => ({
+                        sessions: {
+                            ...state.sessions,
+                            [id]: { ...state.sessions[id], messages }
+                        },
+                        activeSessionId: id,
+                        activeTab: 'chat'
+                    }));
                 } catch (error) {
                     console.error('Failed to load session history for id', id, ':', error);
+                    // Fallback to switching anyway
+                    set({ activeSessionId: id, activeTab: 'chat' });
                 }
+            } else {
+                set({ activeSessionId: id, activeTab: 'chat' });
             }
         }
     },
