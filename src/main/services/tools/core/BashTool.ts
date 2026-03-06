@@ -66,7 +66,7 @@ function resolveWindowsShell(): ResolvedShell {
         if (pwshPath && fs.existsSync(pwshPath)) {
             return {
                 shell: pwshPath,
-                args: (cmd) => ['-NoProfile', '-Command', `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd}`]
+                args: (cmd) => ['-NoProfile', '-Command', `& { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd} }`]
             };
         }
     } catch { /* pwsh not found, continue */ }
@@ -77,7 +77,7 @@ function resolveWindowsShell(): ResolvedShell {
     if (fs.existsSync(psFullPath)) {
         return {
             shell: psFullPath,
-            args: (cmd) => ['-NoProfile', '-Command', `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd}`]
+            args: (cmd) => ['-NoProfile', '-Command', `& { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; ${cmd} }`]
         };
     }
 
