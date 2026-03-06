@@ -12,22 +12,18 @@ import { ChatMessage } from '../llm/IChatModel';
 export class TokenCounter {
     /**
      * Estimate tokens for a string
-     *
-     * Strategy: split by character set for better accuracy
+     * 
+     * Strategy:
      * - ASCII (~1 token per 4 chars): English text, code, JSON
      * - Non-ASCII (~1 token per 1.5 chars): CJK, emoji, etc.
      */
     static count(text: string | null | undefined): number {
         if (!text) return 0;
-        let asciiCount = 0;
-        let nonAsciiCount = 0;
-        for (let i = 0; i < text.length; i++) {
-            if (text.charCodeAt(i) < 128) {
-                asciiCount++;
-            } else {
-                nonAsciiCount++;
-            }
-        }
+        const len = text.length;
+        // Optimization: Use regex to count non-ASCII characters instead of per-character loop.
+        // This is significantly faster for large strings.
+        const nonAsciiCount = (text.match(/[^\x00-\x7F]/g) || []).length;
+        const asciiCount = len - nonAsciiCount;
         return Math.ceil(asciiCount / 4 + nonAsciiCount / 1.5);
     }
 

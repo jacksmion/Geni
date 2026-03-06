@@ -27,6 +27,7 @@ import { PromptBuilder } from './PromptBuilder';
 import { AgentState, AgentStateManager, AgentStateEvent } from './state/AgentState';
 import { ToolGuard, ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from './ToolGuard';
 import { ContextManager } from './ContextManager';
+import { TokenCounter } from './TokenCounter';
 import { Summarizer } from './Summarizer';
 import { withRetry, DEFAULT_LLM_RETRY, DEFAULT_TOOL_RETRY } from './RetryPolicy';
 import { classifyError, ErrorCategory } from './ErrorClassifier';
@@ -309,15 +310,13 @@ export class AgentRuntime implements IAgentService {
                 let isReasoning = false;
                 const accumulators = new Map<number, ToolCallAccumulator>();
 
-                // 计算 Payload 大小并打印 JSON (出于容错和日志长度限制)
+                // Optimized Payload Logging: Don't use JSON.stringify for large objects in the main thread log
                 try {
-                    const messagesJson = JSON.stringify(messages, null, 2);
-                    const toolsJson = chatOptions.tools ? JSON.stringify(chatOptions.tools, null, 2) : '[]';
-                    const messagesSizeKb = (new TextEncoder().encode(messagesJson).length / 1024).toFixed(2);
-                    const toolsSizeKb = (new TextEncoder().encode(toolsJson).length / 1024).toFixed(2);
-                    console.log(`[AgentPerf] Sending Payload to LLM -> Messages: ${messagesSizeKb} KB, Tools: ${toolsSizeKb} KB`);
+                    const messagesTokens = TokenCounter.countMessages(messages);
+                    const toolsTokens = chatOptions.tools ? TokenCounter.countMessages([{ role: 'assistant', content: JSON.stringify(chatOptions.tools) }]) : 0;
+                    console.log(`[AgentPerf] Sending Payload to LLM -> Messages: ~${messagesTokens} tokens, Tools: ~${toolsTokens} tokens`);
                 } catch (e) {
-                    console.warn('[AgentPerf] Failed to calculate payload JSON size:', e);
+                    console.warn('[AgentPerf] Failed to estimate payload size:', e);
                 }
 
                 const llmStartTime = performance.now();

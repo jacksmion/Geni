@@ -25,6 +25,13 @@ export class AgentController {
     private currentSessionId: string | null = null;
     private abortControllers = new Map<string, AbortController>();
 
+    // IPC Throttling buffers
+    private streamBuffer: string = '';
+    private pendingSteps: any[] | null = null;
+    private throttleTimer: NodeJS.Timeout | null = null;
+    private throttleRef: number = 0;
+    private readonly THROTTLE_MS = 60; // 60ms ≈ 16fps, balance between smoothness and responsiveness
+
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
@@ -130,6 +137,38 @@ export class AgentController {
         }
     }
 
+    private startThrottling() {
+        this.throttleRef++;
+        if (this.throttleTimer) return;
+        this.throttleTimer = setInterval(() => this.flushThrottledEvents(), this.THROTTLE_MS);
+    }
+
+    private stopThrottling() {
+        this.throttleRef = Math.max(0, this.throttleRef - 1);
+        if (this.throttleRef === 0 && this.throttleTimer) {
+            clearInterval(this.throttleTimer);
+            this.throttleTimer = null;
+        }
+        // Final flush to ensure no data is left in buffers
+        this.flushThrottledEvents();
+    }
+
+    private flushThrottledEvents() {
+        if (!this.activeWebContents || this.activeWebContents.isDestroyed()) return;
+
+        // Flush Stream
+        if (this.streamBuffer) {
+            this.activeWebContents.send(AGENT_EVENTS.STREAM, { content: this.streamBuffer, isReset: false });
+            this.streamBuffer = '';
+        }
+
+        // Flush Steps (Only the latest state matters)
+        if (this.pendingSteps) {
+            this.activeWebContents.send(AGENT_EVENTS.STEP_UPDATE, { steps: this.pendingSteps });
+            this.pendingSteps = null;
+        }
+    }
+
     /**
      * Handle Agent Start Request
      */
@@ -180,18 +219,26 @@ export class AgentController {
             const prepTime = performance.now() - pipelineStartTime;
             console.log(`[AgentPerf] Pipeline Preparation (Session & Config Load): ${prepTime.toFixed(2)}ms`);
 
-            // 5. Run Agent
+            // 5. Run Agent with Throttling
+            this.startThrottling();
             const result = await this.agentRuntime.run(
                 prompt,
                 this.toolRegistry.getTools(),
                 runOptions,
                 (chunk, reset) => {
-                    this.broadcast(AGENT_EVENTS.STREAM, { content: chunk, isReset: reset });
+                    if (reset) {
+                        // Resets (like starting a new thought) should be immediate to avoid UI ghosting
+                        this.flushThrottledEvents();
+                        this.broadcast(AGENT_EVENTS.STREAM, { content: chunk, isReset: true });
+                    } else {
+                        this.streamBuffer += chunk;
+                    }
                 },
                 (steps) => {
-                    this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps });
+                    this.pendingSteps = steps;
                 }
             );
+            this.stopThrottling();
 
             // 6. Cleanup AbortController
             this.abortControllers.delete(sid);
