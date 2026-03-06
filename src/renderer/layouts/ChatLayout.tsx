@@ -13,12 +13,25 @@ import { ArtifactPanel } from '../components/ArtifactPanel'
 
 export function ChatLayout() {
     const { activeTab, sessions, activeSessionId, activeArtifact } = useChatStore()
-    const { sidebarCollapsed, toggleSidebar } = useLayoutStore()
+    const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, sidebarWidth } = useLayoutStore()
     const { t } = useTranslation()
 
     // Artifact 面板宽度与缩放逻辑
     const [panelWidth, setPanelWidth] = React.useState(520)
     const isResizing = React.useRef(false)
+
+    // 智能联动逻辑：当中间区域被挤压过窄时自动折叠侧边栏
+    React.useEffect(() => {
+        if (activeArtifact && !sidebarCollapsed) {
+            // 计算剩余宽度 (窗口总宽 - 面板宽 - 侧边栏宽 - 间距)
+            const remainingChatWidth = window.innerWidth - panelWidth - sidebarWidth - 40;
+            const THRESHOLD = 500; // 中间区域的最小舒适宽度
+
+            if (remainingChatWidth < THRESHOLD) {
+                setSidebarCollapsed(true)
+            }
+        }
+    }, [panelWidth, activeArtifact, sidebarCollapsed, sidebarWidth, setSidebarCollapsed])
 
     const startResizing = React.useCallback((e: React.MouseEvent) => {
         isResizing.current = true
