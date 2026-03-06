@@ -296,11 +296,11 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                         // High Performance Optimization: 
                                         // During streaming, avoid heavy SyntaxHighlighter which can block the main thread.
                                         // Use a simple pre block instead.
-                                        if (isStreaming) {
+                                        if (!inline && isStreaming) {
                                             return (
                                                 <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                        <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match[1]}</span>
+                                                        <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
                                                     </div>
                                                     <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
                                                         <code>{codeString}</code>
@@ -310,17 +310,17 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                             )
                                         }
 
-                                        return !inline && match ? (
+                                        return !inline ? (
                                             <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                 <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match[1]}</span>
+                                                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
                                                     <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
                                                         <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
                                                     </div>
                                                 </div>
                                                 <SyntaxHighlighter
                                                     style={syntaxTheme}
-                                                    language={match[1]}
+                                                    language={match?.[1] || 'text'}
                                                     PreTag="div"
                                                     customStyle={{
                                                         margin: 0,
