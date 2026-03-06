@@ -19,8 +19,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export function MessageList() {
-    const { sessions, activeSessionId } = useChatStore()
-    const messages = sessions[activeSessionId]?.messages || []
+    const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || [])
+    const isSending = useChatStore(s => s.isSending)
     const endRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -98,8 +98,12 @@ export function MessageList() {
 
     return (
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
-            {groupedMessages.map((msg) => (
-                <MessageItem key={msg.id} message={msg} />
+            {groupedMessages.map((msg, idx) => (
+                <MessageItem
+                    key={msg.id}
+                    message={msg}
+                    isStreaming={isSending && idx === groupedMessages.length - 1}
+                />
             ))}
             <div ref={endRef} className="h-4" />
         </div>
@@ -171,7 +175,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
 
 
 
-function MessageItem({ message }: { message: ChatMessage }) {
+const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) => {
     const isUser = message.role === 'user'
     const content = message.content || '';
     const processedContent = !isUser ? preprocessMarkdown(content) : content;
@@ -289,6 +293,23 @@ function MessageItem({ message }: { message: ChatMessage }) {
                                             )
                                         }
 
+                                        // High Performance Optimization: 
+                                        // During streaming, avoid heavy SyntaxHighlighter which can block the main thread.
+                                        // Use a simple pre block instead.
+                                        if (isStreaming && (!isComplete || codeString.length > 5000)) {
+                                            return (
+                                                <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+                                                    <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                                                        <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match[1]}</span>
+                                                    </div>
+                                                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                                                        <code>{codeString}</code>
+                                                        {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />}
+                                                    </pre>
+                                                </div>
+                                            )
+                                        }
+
                                         return !inline && match ? (
                                             <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                 <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
@@ -358,7 +379,7 @@ function MessageItem({ message }: { message: ChatMessage }) {
             )}
         </div>
     )
-}
+});
 
 
 

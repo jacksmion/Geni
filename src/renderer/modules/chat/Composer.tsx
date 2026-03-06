@@ -504,17 +504,14 @@ function WorkspaceSelector() {
 export function Composer() {
     const [input, setInput] = useState('')
     const { settings, updateSettings } = useSettingsStore()
-    const {
-        isSending,
-        sessions,
-        activeSessionId,
-        sendMessage,
-        pendingAttachments,
-        addPendingAttachment,
-        removePendingAttachment,
-        selectedSkillIds,
-        setSelectedSkillIds
-    } = useChatStore()
+    const isSending = useChatStore(s => s.isSending)
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const sendMessage = useChatStore(s => s.sendMessage)
+    const pendingAttachments = useChatStore(s => s.pendingAttachments)
+    const addPendingAttachment = useChatStore(s => s.addPendingAttachment)
+    const removePendingAttachment = useChatStore(s => s.removePendingAttachment)
+    const selectedSkillIds = useChatStore(s => s.selectedSkillIds)
+    const setSelectedSkillIds = useChatStore(s => s.setSelectedSkillIds)
 
     const [skills, setSkills] = useState<Skill[]>([])
 
