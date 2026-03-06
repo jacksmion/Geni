@@ -296,7 +296,7 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                         // High Performance Optimization: 
                                         // During streaming, avoid heavy SyntaxHighlighter which can block the main thread.
                                         // Use a simple pre block instead.
-                                        if (isStreaming && (!isComplete || codeString.length > 5000)) {
+                                        if (isStreaming) {
                                             return (
                                                 <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
