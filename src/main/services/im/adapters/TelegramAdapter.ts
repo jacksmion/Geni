@@ -254,6 +254,16 @@ export class TelegramAdapter implements IIMAdapter {
         });
     }
 
+    async sendChatAction(sessionId: string, action: 'typing' | 'upload_document'): Promise<void> {
+        if (!this.bot) return;
+        const chatId = sessionId.replace('tg_', '');
+        try {
+            await this.bot.api.sendChatAction(chatId, action === 'typing' ? 'typing' : 'upload_document');
+        } catch (e) {
+            console.warn('[TelegramAdapter] Failed to send chat action:', e);
+        }
+    }
+
     public async sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void> {
         if (!this.bot) return;
 

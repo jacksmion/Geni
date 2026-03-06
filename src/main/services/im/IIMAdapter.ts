@@ -26,4 +26,6 @@ export interface IIMAdapter {
     ): Promise<UserApprovalContext>;
 
     sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void>;
+
+    sendChatAction?(sessionId: string, action: 'typing' | 'upload_document'): Promise<void>;
 }

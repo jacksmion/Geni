@@ -117,10 +117,14 @@ export class IMServiceManager {
         const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry);
 
         try {
-            await adapter.sendOrUpdateMessage(msg.sessionId, '[System: Processing request...]', { throttleMs: 0 });
+            // Use native typing status if supported, otherwise fallback to friendly text
+            if (adapter.sendChatAction) {
+                await adapter.sendChatAction(msg.sessionId, 'typing');
+            } else {
+                await adapter.sendOrUpdateMessage(msg.sessionId, '正在处理请求...', { throttleMs: 0 });
+            }
 
             let outputBuffer = '';
-
             const result = await sessionRuntime.run(
                 msg.content,
                 this.toolRegistry.getTools(),
@@ -136,7 +140,10 @@ export class IMServiceManager {
                     }
                 },
                 (steps) => {
-                    // Could format steps to IM if needed, omit to keep simple
+                    // Update typing status periodically for long tasks
+                    if (adapter.sendChatAction) {
+                        adapter.sendChatAction(msg.sessionId, 'typing').catch(() => {});
+                    }
                 }
             );
 
@@ -153,7 +160,7 @@ export class IMServiceManager {
             }
         } catch (error: any) {
             console.error(`[IMServiceManager] Agent execution failed for session ${msg.sessionId}:`, error);
-            await adapter.sendOrUpdateMessage(msg.sessionId, `[System Error]: ${error.message}`, { throttleMs: 0 }).catch(e => console.error(e));
+            await adapter.sendOrUpdateMessage(msg.sessionId, `[系统错误]: ${error.message}`, { throttleMs: 0 }).catch(e => console.error(e));
         } finally {
             this.abortControllers.delete(msg.sessionId);
         }
