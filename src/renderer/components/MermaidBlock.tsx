@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useId } from 'react'
-import { Eye, Code2, ZoomIn, ZoomOut, Copy, Check, Download, AlertTriangle } from 'lucide-react'
+import { Eye, Code2, ZoomIn, ZoomOut, Copy, Check, Download, AlertTriangle, Maximize2, X, RotateCcw } from 'lucide-react'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { createPortal } from 'react-dom'
 
 // ── Mermaid Singleton & Render Queue ──────────────────────────────────
 // Mermaid must be initialized once, and render calls must be serialized
@@ -110,14 +111,14 @@ interface MermaidBlockProps {
 }
 
 const ZOOM_STEP = 0.15
-const ZOOM_MIN = 0.25
-const ZOOM_MAX = 3
+const ZOOM_MIN = 0.1
+const ZOOM_MAX = 5
 const DEBOUNCE_MS = 500
 
 export default function MermaidBlock({ code }: MermaidBlockProps) {
     const uniqueId = useId().replace(/:/g, '_')
-    const containerRef = useRef<HTMLDivElement>(null)
     const svgContainerRef = useRef<HTMLDivElement>(null)
+    const overlaySvgRef = useRef<HTMLDivElement>(null)
 
     const [mode, setMode] = useState<'preview' | 'code'>('preview')
     const [zoom, setZoom] = useState(1)
@@ -125,6 +126,13 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
     const [error, setError] = useState<string>('')
     const [rendering, setRendering] = useState(true)
     const [copied, setCopied] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
+    // Pan state
+    const [offset, setOffset] = useState({ x: 0, y: 0 })
+    const [isDragging, setIsDragging] = useState(false)
+    const dragStartRef = useRef({ x: 0, y: 0 })
 
     const { settings } = useSettingsStore()
     const isDark = settings.theme === 'dark'
@@ -135,12 +143,8 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
     // Render mermaid diagram (debounced + serialized)
     const renderDiagram = useCallback((source: string) => {
-        // Clear pending debounce
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current)
-        }
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
-        // Don't render empty or likely-incomplete code
         const trimmed = source.trim()
         if (!trimmed) {
             setTimeout(() => {
@@ -151,9 +155,6 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
             return
         }
 
-        // setRendering(true) - moved to inside setTimeout to avoid sync update in effect
-
-        // Debounce: wait for code to stabilize (handles streaming)
         debounceTimerRef.current = setTimeout(async () => {
             setRendering(true)
             const version = ++renderVersionRef.current
@@ -161,8 +162,6 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
             try {
                 const svg = await queueMermaidRender(diagramId, trimmed, isDark)
-
-                // Only apply if this is still the latest render
                 if (version === renderVersionRef.current) {
                     setSvgContent(svg)
                     setError('')
@@ -179,196 +178,257 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
         }, DEBOUNCE_MS)
     }, [isDark, uniqueId])
 
-    // Trigger render on code or theme change
     useEffect(() => {
         renderDiagram(code)
         return () => {
-            if (debounceTimerRef.current) {
-                clearTimeout(debounceTimerRef.current)
-            }
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
         }
     }, [code, isDark, renderDiagram])
 
-    // Zoom controls
+    // Interaction handlers for nodes
+    useEffect(() => {
+        const container = isExpanded ? overlaySvgRef.current : svgContainerRef.current
+        if (!container || !svgContent) return
+
+        const handleSvgClick = (e: MouseEvent) => {
+            const target = e.target as SVGElement
+            const node = target.closest('.node, .task, .cluster')
+            if (node) {
+                const id = node.id
+                setSelectedNodeId(id === selectedNodeId ? null : id)
+
+                // Highlight logic via CSS injection
+                const allNodes = container.querySelectorAll('.node, .task, .cluster')
+                allNodes.forEach((n: any) => {
+                    const el = n as HTMLElement
+                    if (n.id === id && id !== selectedNodeId) {
+                        el.style.filter = 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.8))'
+                        el.style.stroke = '#6366f1'
+                        el.style.strokeWidth = '3px'
+                    } else {
+                        el.style.filter = ''
+                        el.style.stroke = ''
+                        el.style.strokeWidth = ''
+                    }
+                })
+                e.stopPropagation()
+            } else {
+                setSelectedNodeId(null)
+                const allNodes = container.querySelectorAll('.node, .task, .cluster')
+                allNodes.forEach((n: any) => {
+                    const el = n as HTMLElement
+                    el.style.filter = ''
+                    el.style.stroke = ''
+                    el.style.strokeWidth = ''
+                })
+            }
+        }
+
+        const svgElement = container.querySelector('svg')
+        if (svgElement) {
+            svgElement.addEventListener('click', handleSvgClick)
+            return () => svgElement.removeEventListener('click', handleSvgClick)
+        }
+    }, [svgContent, isExpanded, selectedNodeId])
+
+    // Zoom & Pan Logic
     const handleZoomIn = () => setZoom(z => Math.min(z + ZOOM_STEP, ZOOM_MAX))
     const handleZoomOut = () => setZoom(z => Math.max(z - ZOOM_STEP, ZOOM_MIN))
-    const handleZoomReset = () => setZoom(1)
+    const handleReset = () => {
+        setZoom(1)
+        setOffset({ x: 0, y: 0 })
+        setSelectedNodeId(null)
+    }
 
-    // Copy mermaid source
+    // Keyboard support
+    useEffect(() => {
+        if (!isExpanded) return
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsExpanded(false)
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isExpanded])
+
+    const handleWheel = (e: React.WheelEvent) => {
+        if (e.ctrlKey || e.metaKey || isExpanded) {
+            e.preventDefault()
+            const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+            setZoom(z => Math.min(Math.max(z + delta, ZOOM_MIN), ZOOM_MAX))
+        }
+    }
+
+    const onMouseDown = (e: React.MouseEvent) => {
+        if (!isExpanded) return
+        setIsDragging(true)
+        dragStartRef.current = { x: e.clientX - offset.x, y: e.clientY - offset.y }
+    }
+
+    const onMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !isExpanded) return
+        setOffset({
+            x: e.clientX - dragStartRef.current.x,
+            y: e.clientY - dragStartRef.current.y
+        })
+    }
+
+    const onMouseUp = () => setIsDragging(false)
+
     const handleCopy = () => {
         navigator.clipboard.writeText(code)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
 
-    // Export SVG
     const handleExportSvg = () => {
         if (!svgContent) return
-
         const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' })
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
-        link.download = `mermaid-diagram-${Date.now()}.svg`
+        link.download = `mermaid-${Date.now()}.svg`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
     }
 
-    // Mouse wheel zoom (Ctrl + Scroll)
-    const handleWheel = useCallback((e: React.WheelEvent) => {
-        if (e.ctrlKey || e.metaKey) {
-            e.preventDefault()
-            e.stopPropagation()
-            const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
-            setZoom(z => Math.min(Math.max(z + delta, ZOOM_MIN), ZOOM_MAX))
-        }
-    }, [])
-
     const zoomPercent = Math.round(zoom * 100)
 
-    return (
-        <div
-            ref={containerRef}
-            className="not-prose group/mermaid rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-[#0c0c0e]"
-        >
-            {/* Toolbar */}
-            <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5">
-                {/* Left: Mode Toggle */}
-                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-white/5 rounded-lg p-0.5">
-                    <button
-                        onClick={() => setMode('preview')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 ${mode === 'preview'
-                            ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
-                            }`}
-                        title="Preview"
-                    >
-                        <Eye size={12} />
-                        <span>Preview</span>
-                    </button>
-                    <button
-                        onClick={() => setMode('code')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 ${mode === 'code'
-                            ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'
-                            }`}
-                        title="Source Code"
-                    >
-                        <Code2 size={12} />
-                        <span>Code</span>
-                    </button>
-                </div>
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-1">
-                    {/* Zoom Controls - only in preview mode */}
-                    {mode === 'preview' && (
-                        <div className="flex items-center gap-0.5 mr-1">
-                            <button
-                                onClick={handleZoomOut}
-                                className="p-1 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-                                title="Zoom Out"
-                            >
-                                <ZoomOut size={13} />
-                            </button>
-                            <button
-                                onClick={handleZoomReset}
-                                className="px-1.5 py-0.5 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/10 text-[10px] font-mono font-medium text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300 transition-colors min-w-[36px] text-center"
-                                title="Reset Zoom"
-                            >
-                                {zoomPercent}%
-                            </button>
-                            <button
-                                onClick={handleZoomIn}
-                                className="p-1 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-                                title="Zoom In"
-                            >
-                                <ZoomIn size={13} />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Divider */}
-                    {mode === 'preview' && (
-                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-0.5" />
-                    )}
-
-                    {/* Copy */}
-                    <button
-                        onClick={handleCopy}
-                        className="p-1.5 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-                        title="Copy Code"
-                    >
-                        {copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-                    </button>
-
-                    {/* Export SVG */}
-                    <button
-                        onClick={handleExportSvg}
-                        disabled={!svgContent}
-                        className="p-1.5 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        title="Export SVG"
-                    >
-                        <Download size={13} />
-                    </button>
-                </div>
+    const Toolbar = () => (
+        <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5">
+            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-white/5 rounded-lg p-0.5">
+                <button
+                    onClick={() => setMode('preview')}
+                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${mode === 'preview' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'}`}
+                >
+                    图表
+                </button>
+                <button
+                    onClick={() => setMode('code')}
+                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${mode === 'code' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'}`}
+                >
+                    代码
+                </button>
             </div>
 
-            {/* Content Area */}
+            <div className="flex items-center gap-1">
+                {mode === 'preview' && (
+                    <div className="flex items-center gap-0.5 mr-1">
+                        <button onClick={handleZoomOut} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="缩小"><ZoomOut size={13} /></button>
+                        <button onClick={handleReset} className="px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-[10px] font-mono text-slate-500 dark:text-zinc-400 min-w-[36px] text-center" title="重置">{zoomPercent}%</button>
+                        <button onClick={handleZoomIn} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="放大"><ZoomIn size={13} /></button>
+                        <div className="w-px h-3 bg-slate-200 dark:bg-white/10 mx-1" />
+                        {!isExpanded && (
+                            <button onClick={() => { setIsExpanded(true); setZoom(1.2); }} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-400" title="扩大显示区域"><Maximize2 size={13} /></button>
+                        )}
+                    </div>
+                )}
+                <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="复制代码">{copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}</button>
+                <button onClick={handleExportSvg} disabled={!svgContent} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 SVG"><Download size={13} /></button>
+            </div>
+        </div>
+    )
+
+    return (
+        <div className="not-prose group/mermaid rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-[#0c0c0e]">
+            <Toolbar />
+
             <div className="relative">
-                {/* Preview Mode */}
                 {mode === 'preview' && (
                     <div
-                        className="overflow-auto"
+                        className="overflow-auto min-h-[80px]"
                         onWheel={handleWheel}
-                        style={{ maxHeight: '600px', minHeight: '80px' }}
+                        style={{ maxHeight: '600px' }}
                     >
                         {rendering && !svgContent && (
-                            <div className="flex items-center justify-center py-12">
-                                <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
-                                    <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-                                    <span>Rendering diagram...</span>
-                                </div>
-                            </div>
+                            <div className="flex items-center justify-center py-12 text-xs text-slate-400"><div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mr-2" />渲染中...</div>
                         )}
-
                         {error && (
-                            <div className="p-4">
-                                <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
-                                    <AlertTriangle size={14} className="text-red-500 shrink-0 mt-0.5" />
-                                    <div className="text-xs text-red-600 dark:text-red-400 font-mono leading-relaxed break-all">
-                                        {error}
-                                    </div>
-                                </div>
-                            </div>
+                            <div className="p-4 flex items-start gap-2 bg-red-50 dark:bg-red-500/5 text-red-600 text-xs font-mono"><AlertTriangle size={14} className="mt-0.5" />{error}</div>
                         )}
-
                         {svgContent && !error && (
                             <div
                                 ref={svgContainerRef}
-                                className="flex items-center justify-center p-6 transition-transform duration-150 ease-out"
-                                style={{
-                                    transform: `scale(${zoom})`,
-                                    transformOrigin: 'center top',
-                                    minHeight: zoom > 1 ? `${80 * zoom}px` : undefined,
-                                }}
+                                className="flex items-center justify-center p-6 transition-transform duration-150"
+                                style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }}
                                 dangerouslySetInnerHTML={{ __html: svgContent }}
                             />
                         )}
                     </div>
                 )}
 
-                {/* Code Mode */}
                 {mode === 'code' && (
-                    <div className="overflow-auto" style={{ maxHeight: '500px' }}>
-                        <pre className="p-5 text-[13px] leading-relaxed font-mono text-slate-800 dark:text-zinc-200 whitespace-pre-wrap break-all">
-                            {code}
-                        </pre>
+                    <div className="overflow-auto max-h-[500px]">
+                        <pre className="p-5 text-[13px] font-mono text-slate-800 dark:text-zinc-200 whitespace-pre-wrap break-all">{code}</pre>
                     </div>
                 )}
             </div>
+
+            {/* Full Window Overlay */}
+            {isExpanded && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] bg-white/95 dark:bg-[#09090b]/98 backdrop-blur-md flex flex-col animate-in fade-in duration-200"
+                    onMouseMove={onMouseMove}
+                    onMouseUp={onMouseUp}
+                    onMouseLeave={onMouseUp}
+                >
+                    <div className="flex items-center justify-between pl-6 pr-[150px] py-3 border-b border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-slate-700 dark:text-zinc-200">图表预览</span>
+                            {selectedNodeId && (
+                                <div className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 text-[10px] font-medium border border-indigo-500/20">
+                                    已选中: {selectedNodeId}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setIsExpanded(false)} className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-white/10 hover:bg-red-500 hover:text-white text-slate-700 dark:text-zinc-200 text-xs font-semibold transition-all outline-none mr-2">
+                                <span className="flex items-center gap-2"><X size={15} />退出预览 (ESC)</span>
+                            </button>
+                            <div className="w-px h-6 bg-black/10 dark:bg-white/10 mx-1" />
+                            <div className="flex items-center border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-white dark:bg-zinc-800">
+                                <button onClick={handleZoomOut} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 dark:text-zinc-400"><ZoomOut size={16} /></button>
+                                <button onClick={handleReset} className="px-3 py-1 font-mono text-xs text-slate-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 border-x border-black/5 dark:border-white/5">{zoomPercent}%</button>
+                                <button onClick={handleZoomIn} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 dark:text-zinc-400"><ZoomIn size={16} /></button>
+                            </div>
+                            <button onClick={handleReset} className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 dark:text-zinc-400" title="复位"><RotateCcw size={16} /></button>
+                        </div>
+                    </div>
+
+                    <div
+                        className={`flex-1 overflow-hidden relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                        onMouseDown={onMouseDown}
+                        onWheel={handleWheel}
+                    >
+                        <div
+                            ref={overlaySvgRef}
+                            className="absolute transition-transform duration-75 select-none"
+                            style={{
+                                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                                transformOrigin: 'center center',
+                                left: '50%',
+                                top: '50%',
+                                marginLeft: '-50%',
+                                marginTop: '-50%',
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            dangerouslySetInnerHTML={{ __html: svgContent }}
+                        />
+
+                        {/* Help Text */}
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-black/60 dark:bg-white/10 text-white/80 text-[11px] font-medium backdrop-blur-md pointer-events-none border border-white/10">
+                            滚轮缩放 · 拖拽平移 · 点击节点选择
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     )
 }
