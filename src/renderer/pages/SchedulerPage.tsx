@@ -64,7 +64,8 @@ interface TaskLogEntry {
 }
 
 const SchedulerPage: React.FC = () => {
-    const { settings, updateSettings } = useSettingsStore();
+    const settings = useSettingsStore(s => s.settings);
+    const updateSettings = useSettingsStore(s => s.updateSettings);
     const tasks = settings.scheduledTasks || [];
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -623,8 +624,8 @@ export default SchedulerPage;
 function MarkdownCode({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '')
     const codeString = String(children).replace(/\n$/, '')
-    const { settings } = useSettingsStore();
-    const syntaxTheme = settings.theme === 'dark' ? vscDarkPlus : oneLight;
+    const theme = useSettingsStore(s => s.settings.theme);
+    const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
 
     return !inline && match ? (
         <div className="not-prose rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">

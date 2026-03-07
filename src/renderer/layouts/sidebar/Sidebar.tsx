@@ -5,7 +5,8 @@ import { clsx } from 'clsx'
 import { GeniLogo } from '../../components/GeniLogo'
 
 export function Sidebar() {
-    const { activeTab, setActiveTab } = useChatStore()
+    const activeTab = useChatStore(s => s.activeTab)
+    const setActiveTab = useChatStore(s => s.setActiveTab)
 
     const navItems = [
         { id: 'chat', icon: MessageSquare, label: 'Chat' },
@@ -42,8 +43,9 @@ export function Sidebar() {
 }
 
 function ThemeToggle() {
-    const { settings, setTheme } = useSettingsStore()
-    const isDark = settings.theme === 'dark'
+    const theme = useSettingsStore(s => s.settings.theme)
+    const setTheme = useSettingsStore(s => s.setTheme)
+    const isDark = theme === 'dark'
 
     return (
         <button

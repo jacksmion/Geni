@@ -12,10 +12,13 @@ import { useLayoutStore } from './store/useLayoutStore'
 import { useBreakpoint } from './hooks/useBreakpoint'
 
 function App() {
-    const { activeTab } = useChatStore()
-    const { loadSettings } = useSettingsStore()
-    const { loadHistory } = useChatStore()
-    const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useLayoutStore()
+    const activeTab = useChatStore(s => s.activeTab)
+    const loadSettings = useSettingsStore(s => s.loadSettings)
+    const loadHistory = useChatStore(s => s.loadHistory)
+
+    const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
+    const setSidebarCollapsed = useLayoutStore(s => s.setSidebarCollapsed)
+
     const { isMobile } = useBreakpoint()
     useEffect(() => {
         loadSettings()

@@ -6,9 +6,9 @@ import { vscDarkPlus, prism } from 'react-syntax-highlighter/dist/esm/styles/pri
 import { useSettingsStore } from '../store/useSettingsStore';
 
 export const ArtifactPanel: React.FC = () => {
-    const { activeArtifact, setActiveArtifact } = useChatStore();
-    const { settings } = useSettingsStore();
-    const isDark = settings.theme === 'dark';
+    const activeArtifact = useChatStore(s => s.activeArtifact);
+    const setActiveArtifact = useChatStore(s => s.setActiveArtifact);
+    const isDark = useSettingsStore(s => s.settings.theme === 'dark');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isCopied, setIsCopied] = useState(false);
 

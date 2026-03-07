@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Bot, User, CheckCircle2, Terminal, Copy, Check, Brain, ChevronDown, ChevronUp } from 'lucide-react'
+import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
@@ -150,22 +150,25 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
     }
 
     return (
-        <div className="my-4 border border-slate-200/80 dark:border-white/10 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-white/[0.02] shadow-sm">
+        <div className="not-prose my-3 border border-slate-200/60 dark:border-white/5 rounded-xl bg-slate-50/40 dark:bg-white/[0.01] overflow-hidden">
             <div
-                className="flex items-center justify-between px-4 py-2.5 bg-transparent cursor-pointer hover:bg-slate-100/80 dark:hover:bg-white/5 transition-colors select-none"
+                className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors select-none"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                <div className="flex items-center gap-2 text-[13px] font-medium text-slate-600 dark:text-zinc-400">
-                    <Brain size={14} className="text-indigo-500/80" />
-                    <span>Thinking Process</span>
-                </div>
-                {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+                {isExpanded ? (
+                    <ChevronDown size={14} className="text-slate-400 shrink-0" />
+                ) : (
+                    <ChevronRight size={14} className="text-slate-400 shrink-0" />
+                )}
+                <span className="text-[13px] text-slate-500 dark:text-zinc-500 font-medium">
+                    思考过程
+                </span>
             </div>
             {isExpanded && (
-                <div className="not-prose select-text p-5 bg-transparent text-[13px] leading-[1.7] text-slate-600 dark:text-zinc-400 border-t border-slate-200/80 dark:border-white/10 font-mono whitespace-pre-wrap">
-                    {content}
+                <div className="px-4 pb-3 pt-0 text-[14px] leading-relaxed text-slate-600 dark:text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
+                    {content.trimStart()}
                     {!isComplete && (
-                        <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />
+                        <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 animate-pulse" />
                     )}
                 </div>
             )}

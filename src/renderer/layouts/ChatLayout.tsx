@@ -12,8 +12,15 @@ import { GeniLogo } from '../components/GeniLogo'
 import { ArtifactPanel } from '../components/ArtifactPanel'
 
 export function ChatLayout() {
-    const { activeTab, sessions, activeSessionId, activeArtifact } = useChatStore()
-    const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, sidebarWidth } = useLayoutStore()
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const activeArtifact = useChatStore(s => s.activeArtifact)
+    const currentSession = useChatStore(s => s.sessions[activeSessionId])
+
+    const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
+    const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
+    const setSidebarCollapsed = useLayoutStore(s => s.setSidebarCollapsed)
+    const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
+
     const { t } = useTranslation()
 
     // Artifact 面板宽度与缩放逻辑
@@ -60,7 +67,6 @@ export function ChatLayout() {
         window.addEventListener('mouseup', onMouseUp)
     }, [panelWidth])
 
-    const currentSession = sessions[activeSessionId]
     const hasMessages = currentSession && currentSession.messages && currentSession.messages.length > 0;
 
     return (

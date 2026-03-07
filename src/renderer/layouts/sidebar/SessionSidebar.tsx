@@ -7,8 +7,16 @@ import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 
 export function SessionSidebar() {
-    const { sessions, activeSessionId, switchSession, createSession, deleteSession, renameSession } = useChatStore();
-    const { sidebarCollapsed, toggleSidebar, sidebarWidth } = useLayoutStore();
+    const sessions = useChatStore(s => s.sessions)
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const switchSession = useChatStore(s => s.switchSession)
+    const createSession = useChatStore(s => s.createSession)
+    const deleteSession = useChatStore(s => s.deleteSession)
+    const renameSession = useChatStore(s => s.renameSession)
+
+    const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
+    const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
+    const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
     const { isMobile } = useBreakpoint();
 
     const [searchTerm, setSearchTerm] = useState('');
