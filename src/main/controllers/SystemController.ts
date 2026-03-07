@@ -24,8 +24,32 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, () => this.handleSelectFile());
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LLM, (_, config) => this.handleTestLLM(config));
+        ipcMain.handle(SYSTEM_CHANNELS.FETCH_PROVIDER_MODELS, (_, payload) => this.handleFetchProviderModels(payload));
         ipcMain.handle(SYSTEM_CHANNELS.GET_PATH_INFO, () => this.handleGetPathInfo());
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_USER_SKILLS, () => this.handleOpenUserSkills());
+    }
+
+    private async handleFetchProviderModels(payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) {
+        const { providerId, config } = payload;
+        try {
+            console.log(`[SystemController] Fetching models for ${providerId}...`);
+            // Dynamic import to avoid circular dependency or early loading issues if factory is complex
+            const { createChatModel } = await import('../services/llm');
+            
+            const model = createChatModel(providerId, {
+                apiKey: config.apiKey,
+                baseUrl: config.baseUrl,
+                model: 'detect' // Special flag or just dummy since we only call fetchModels
+            });
+
+            if (model.fetchModels) {
+                return await model.fetchModels();
+            }
+            return [];
+        } catch (error: any) {
+            console.error(`[SystemController] Failed to fetch models:`, error);
+            throw error;
+        }
     }
 
     private async handleSaveSettings(settings: AppSettings) {
@@ -110,7 +134,7 @@ export class SystemController {
 
             try {
                 await client.models.list();
-                return { success: true, message: 'Connection successful! (Model list accessible)' };
+                return { success: true, message: 'modelSettings.testSuccessList' };
             } catch (e: any) {
                 console.warn('[SystemController] Model list failed, trying completion:', e.message);
 
@@ -119,12 +143,12 @@ export class SystemController {
                     messages: [{ role: 'user', content: 'Hi' }],
                     max_tokens: 1
                 });
-                return { success: true, message: 'Connection successful! (Chat completion works)' };
+                return { success: true, message: 'modelSettings.testSuccessChat' };
             }
 
         } catch (error: any) {
             console.error('[SystemController] LLM Test Failed:', error);
-            return { success: false, message: error.message || 'Connection failed' };
+            return { success: false, message: error.message || 'modelSettings.testFailed' };
         }
     }
 

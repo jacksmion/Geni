@@ -48,7 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         selectFile: () => ipcRenderer.invoke('system:select-file'),
         selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
         openExplorer: (path: string) => ipcRenderer.invoke('system:open-explorer', path),
-        testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config)
+        testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
+        fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload)
     },
     tools: {
         getSkills: () => ipcRenderer.invoke('tool:get-skills'),

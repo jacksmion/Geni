@@ -44,6 +44,33 @@ export class OpenAIAdapter implements IChatModel {
     }
 
     /**
+     * 获取提供商支持的模型列表
+     */
+    async fetchModels(): Promise<string[]> {
+        try {
+            const response = await this.client.models.list();
+            // 过滤掉一些明显不是聊天模型的（如 whisper, dall-e, embedding 等）
+            // 不同的 Provider 返回格式略有不同，这里做一个启发式过滤
+            return response.data
+                .map(m => m.id)
+                .filter(id => {
+                    const lowerId = id.toLowerCase();
+                    return !lowerId.includes('whisper') && 
+                           !lowerId.includes('dall-e') && 
+                           !lowerId.includes('tts') && 
+                           !lowerId.includes('embedding') &&
+                           !lowerId.includes('moderation') &&
+                           !lowerId.includes('edit') &&
+                           !lowerId.includes('image');
+                })
+                .sort();
+        } catch (error: any) {
+            console.error(`[OpenAIAdapter] Failed to fetch models:`, error.message);
+            throw error;
+        }
+    }
+
+    /**
      * 流式调用 OpenAI API
      */
     async *stream(

@@ -218,12 +218,29 @@ export class AgentRuntime implements IAgentService {
         const providers = this.settings.llm.providers || {};
         const config = providers[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider] || DEFAULT_PROVIDER_CONFIGS['OpenAI'];
 
+        // 首先尝试从新的多模型结构中获取当前选中的模型
+        let modelId = options?.model;
+        let temperature = options?.temperature;
+
+        if (!modelId) {
+            // 如果存在 activeModelId 且在 models 列表中找到了它
+            const activeInstance = config.models?.find(m => m.id === config.activeModelId);
+            if (activeInstance) {
+                modelId = activeInstance.model;
+                temperature = temperature ?? activeInstance.temperature;
+            } else {
+                // 回退逻辑：使用旧的 model 字段（如果存在）或默认配置
+                modelId = config.model || DEFAULT_PROVIDER_CONFIGS[activeProvider]?.activeModelId || 'gpt-3.5-turbo';
+                temperature = temperature ?? config.temperature ?? 0.7;
+            }
+        }
+
         // Always create a new model instance for each request to avoid cache poisoning/safety issues during concurrent runs
         return createChatModel(activeProvider, {
             apiKey: config.apiKey || '',
             baseUrl: config.baseUrl,
-            model: options?.model || config.model,
-            temperature: config.temperature,
+            model: modelId!,
+            temperature: temperature ?? 0.7,
         });
     }
 

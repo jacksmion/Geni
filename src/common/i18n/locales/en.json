@@ -85,7 +85,23 @@
         "modelDesc": "Manually enter the model ID to use, e.g.: gpt-4o",
         "testConnection": "Test Connection",
         "testing": "Testing...",
-        "connected": "Connected"
+        "connected": "Connected",
+        "apiConfig": "API Configuration",
+        "confirmDeleteProvider": "Are you sure you want to delete \"{{key}}\" provider?",
+        "models": "Model Management",
+        "autoDiscover": "Discover",
+        "addModel": "Manual Add",
+        "editModel": "Edit Model",
+        "addNewModel": "Add New Model",
+        "modelLabel": "Model Name",
+        "modelID": "Model ID",
+        "visionSupport": "Image Support",
+        "temperature": "Temperature",
+        "connectivity": "Connectivity Status",
+        "connectivityDesc": "Verify your API keys and endpoint settings.",
+        "testSuccessList": "Connection successful! (Model list accessible)",
+        "testSuccessChat": "Connection successful! (Chat completion works)",
+        "testFailed": "Connection failed"
     },
     "personaSettings": {
         "title": "Persona Settings",
@@ -173,5 +189,8 @@
         "proxyDesc": "Use a proxy if your network cannot connect to Telegram directly.",
         "saving": "Save Config",
         "saved": "Saved"
-    }
+    },
+    "save": "Save",
+    "on": "ON",
+    "off": "OFF"
 }

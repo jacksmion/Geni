@@ -85,7 +85,23 @@
         "modelDesc": "手动输入要使用的模型 ID，例如: gpt-4o",
         "testConnection": "测试连接",
         "testing": "连接中...",
-        "connected": "已连接"
+        "connected": "已连接",
+        "apiConfig": "API 配置",
+        "confirmDeleteProvider": "确认删除 \"{{key}}\" 提供商吗？",
+        "models": "模型管理",
+        "autoDiscover": "自动发现",
+        "addModel": "手动添加",
+        "editModel": "修改模型",
+        "addNewModel": "添加新模型",
+        "modelLabel": "模型名称",
+        "modelID": "模型 ID",
+        "visionSupport": "支持图像输入",
+        "temperature": "温度",
+        "connectivity": "连接状态",
+        "connectivityDesc": "验证您的 API 密钥和地址设置。",
+        "testSuccessList": "连接成功！(可以获取模型列表)",
+        "testSuccessChat": "连接成功！(对话接口正常)",
+        "testFailed": "连接失败"
     },
     "personaSettings": {
         "title": "个性化提示词 (Persona)",
@@ -173,5 +189,8 @@
         "proxyDesc": "国内网络连接 Telegram 可能会超时，可在此填写本地科学上网代理。",
         "saving": "保存配置",
         "saved": "已保存"
-    }
+    },
+    "save": "保存",
+    "on": "开启",
+    "off": "关闭"
 }

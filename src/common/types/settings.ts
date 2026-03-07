@@ -1,10 +1,28 @@
+// 单个模型实例的配置
+export interface ModelInstance {
+    id: string;          // 唯一标识 (uuid/random)
+    label: string;       // 别名 (如 "GPT-4o 顶配")
+    model: string;       // 实际模型 ID (如 "gpt-4o")
+    temperature: number; // 独立温度参数
+    enabled: boolean;    // 是否开启
+    supportVision?: boolean; // 是否支持图像输入
+    contextWindow?: number; // 预留：上下文窗口大小
+    maxOutput?: number;     // 预留：最大输出 token
+}
+
 // 单个提供商的配置
 export interface ProviderConfig {
     baseUrl: string;
     apiKey: string;
-    model: string;
-    temperature: number;
-    enabled?: boolean; // 是否在模型选择器中可用
+    enabled?: boolean;   // 是否在提供商列表中启用
+    
+    // 多模型支持
+    models: ModelInstance[]; 
+    activeModelId?: string;
+
+    // 旧字段兼容 (Migration 之后可清理)
+    model?: string;
+    temperature?: number;
 }
 
 // LLM 配置：当前激活的提供商 + 每个提供商的独立配置
@@ -84,30 +102,96 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     'OpenAI': {
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
-        model: 'gpt-3.5-turbo',
-        temperature: 0.7,
         enabled: false,
+        activeModelId: 'gpt-5.2',
+        models: [
+            { id: 'gpt-5.2', label: 'GPT-5.2', model: 'gpt-5.2', temperature: 0.7, enabled: true },
+            { id: 'gpt-4o', label: 'GPT-4o', model: 'gpt-4o', temperature: 0.7, enabled: true },
+        ]
     },
     'Anthropic': {
         baseUrl: 'https://api.anthropic.com/v1',
         apiKey: '',
-        model: 'claude-3-5-sonnet-latest',
-        temperature: 0.7,
         enabled: false,
+        activeModelId: 'claude-4-6-sonnet',
+        models: [
+            { id: 'claude-4-6-sonnet', label: 'Claude 4.6 Sonnet', model: 'claude-4-6-sonnet', temperature: 0.7, enabled: true },
+            { id: 'claude-4-6-opus', label: 'Claude 4.6 Opus', model: 'claude-4-6-opus', temperature: 0.7, enabled: true },
+        ]
     },
     'DeepSeek': {
         baseUrl: 'https://api.deepseek.com',
         apiKey: '',
-        model: 'deepseek-chat',
-        temperature: 0.7,
         enabled: false,
+        activeModelId: 'deepseek-v3.2',
+        models: [
+            { id: 'deepseek-v3.2', label: 'DeepSeek V3.2', model: 'deepseek-v3.2', temperature: 0.7, enabled: true },
+            { id: 'deepseek-chat', label: 'DeepSeek Chat', model: 'deepseek-chat', temperature: 0.7, enabled: true },
+        ]
+    },
+    'ZhipuAI': {
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'glm-4',
+        models: [
+            { id: 'glm-4', label: 'GLM-4', model: 'glm-4', temperature: 0.7, enabled: true },
+        ]
+    },
+    'Volcengine': {
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'doubao-pro-4k',
+        models: [
+            { id: 'doubao-pro-4k', label: 'Doubao Pro 4K', model: 'doubao-pro-4k', temperature: 0.7, enabled: true },
+        ]
+    },
+    'Qwen': {
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'qwen-3.5',
+        models: [
+            { id: 'qwen-3.5', label: 'Qwen 3.5', model: 'qwen-3.5', temperature: 0.7, enabled: true },
+            { id: 'qwen-3', label: 'Qwen 3', model: 'qwen-3', temperature: 0.7, enabled: true },
+        ]
+    },
+    'MiniMax': {
+        baseUrl: 'https://api.minimax.chat/v1',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'minimax-m2.5',
+        models: [
+            { id: 'minimax-m2.5', label: 'MiniMax M2.5', model: 'minimax-m2.5', temperature: 1.0, enabled: true },
+        ]
+    },
+    'Ollama': {
+        baseUrl: 'http://localhost:11434/v1',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'llama3',
+        models: [
+            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true },
+        ]
+    },
+    'LM Studio': {
+        baseUrl: 'http://localhost:1234/v1',
+        apiKey: '',
+        enabled: false,
+        activeModelId: 'local-model',
+        models: [
+            { id: 'local-model', label: 'Local Model', model: 'local-model', temperature: 0.7, enabled: true },
+        ]
     },
     'Local': {
         baseUrl: 'http://localhost:11434/v1',
         apiKey: '',
-        model: 'llama3:latest',
-        temperature: 0.7,
         enabled: false,
+        activeModelId: 'llama3',
+        models: [
+            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true },
+        ]
     },
 };
 

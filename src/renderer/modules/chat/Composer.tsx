@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink } from 'lucide-react'
+import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Brain, Cloud, MessageSquare, Orbit, Terminal, Globe, Zap } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
@@ -12,11 +12,16 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 // Provider display metadata
-const PROVIDER_DISPLAY: Record<string, { icon: any, color: string }> = {
-    'OpenAI': { icon: Bot, color: 'text-emerald-500' },
-    'Anthropic': { icon: Bot, color: 'text-orange-500' },
-    'DeepSeek': { icon: Bot, color: 'text-blue-500' },
-    'Local': { icon: Cpu, color: 'text-purple-500' },
+const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string }> = {
+    'OpenAI': { icon: Bot, color: '#10a37f', label: 'OpenAI' },
+    'Anthropic': { icon: Zap, color: '#d97757', label: 'Anthropic' },
+    'DeepSeek': { icon: Brain, color: '#4d6df1', label: 'DeepSeek' },
+    'ZhipuAI': { icon: Globe, color: '#343b4d', label: '智谱 AI' },
+    'Volcengine': { icon: Cloud, color: '#ff4d4f', label: '火山引擎' },
+    'Qwen': { icon: MessageSquare, label: '通义千问', color: '#6340ff' },
+    'MiniMax': { icon: Orbit, label: 'MiniMax', color: '#ff7a00' },
+    'Ollama': { icon: Cpu, color: '#444', label: 'Ollama' },
+    'Local': { icon: Terminal, color: '#64748b', label: 'Local' },
 }
 
 function ModelSelector() {
@@ -52,17 +57,25 @@ function ModelSelector() {
 
     const activeProvider = settings.llm.activeProvider || 'OpenAI'
     const activeConfig = settings.llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
-    const activeModelName = activeConfig?.model || 'unknown'
     const activeMeta = PROVIDER_DISPLAY[activeProvider] || { icon: Bot, color: 'text-indigo-500' }
-    const ActiveIcon = activeMeta.icon
+    
+    // Get active model display name
+    const activeInstance = activeConfig?.models?.find(m => m.id === activeConfig.activeModelId)
+    const activeDisplayName = activeInstance?.label || activeConfig?.model || 'Select Model'
 
-    const handleSelectProvider = async (providerKey: string) => {
+    const handleSelectModel = async (providerKey: string, modelId: string) => {
         setIsOpen(false)
-        if (providerKey === activeProvider) return
         await updateSettings({
             llm: {
                 ...settings.llm,
-                activeProvider: providerKey
+                activeProvider: providerKey,
+                providers: {
+                    ...settings.llm.providers,
+                    [providerKey]: {
+                        ...(settings.llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]),
+                        activeModelId: modelId
+                    }
+                }
             }
         })
     }
@@ -73,12 +86,13 @@ function ModelSelector() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all",
-                    "hover:bg-slate-100 dark:hover:bg-white/5",
-                    "text-slate-500 dark:text-zinc-400"
+                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all shadow-sm border border-slate-200/50 dark:border-white/5",
+                    "bg-slate-50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10",
+                    "text-indigo-600 dark:text-indigo-400"
                 )}
             >
-                <span className="max-w-[120px] truncate">{activeProvider}</span>
+                <Bot size={12} className="shrink-0" />
+                <span className="max-w-[150px] truncate">{activeDisplayName}</span>
                 <ChevronDown size={11} className={cn(
                     "text-slate-400 dark:text-zinc-500 transition-transform",
                     isOpen && "rotate-180"
@@ -87,64 +101,77 @@ function ModelSelector() {
 
             {/* Dropdown */}
             {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
                     {/* Header */}
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5">
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">选择模型</p>
+                    <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5">
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">选择模型实例</p>
                     </div>
 
                     {/* Model List */}
-                    <div className="py-1 max-h-64 overflow-y-auto">
+                    <div className="py-1 max-h-80 overflow-y-auto custom-scrollbar">
                         {availableProviders.length === 0 ? (
-                            <div className="px-3 py-4 text-center">
+                            <div className="px-4 py-6 text-center">
                                 <p className="text-xs text-slate-400 dark:text-zinc-500">暂无可用模型</p>
                                 <p className="text-[10px] text-slate-300 dark:text-zinc-600 mt-1">请在设置中配置 API Key</p>
                             </div>
                         ) : (
-                            availableProviders.map(key => {
-                                const config = settings.llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
-                                const meta = PROVIDER_DISPLAY[key] || { icon: Bot, color: 'text-indigo-500' }
-                                const Icon = meta.icon
-                                const isActive = key === activeProvider
+                            (() => {
+                                // Flatten models with their provider info for a more modern list
+                                const allModels = availableProviders.flatMap(providerKey => {
+                                    const config = settings.llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+                                    return (config?.models || []).filter(m => m.enabled).map(model => ({
+                                        providerKey,
+                                        model,
+                                        isActive: providerKey === activeProvider && model.id === config?.activeModelId
+                                    }))
+                                })
 
-                                return (
-                                    <button
-                                        key={key}
-                                        onClick={() => handleSelectProvider(key)}
-                                        className={cn(
-                                            "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
-                                            isActive
-                                                ? "bg-indigo-50 dark:bg-indigo-500/10"
-                                                : "hover:bg-slate-50 dark:hover:bg-white/5"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-                                            isActive
-                                                ? "bg-indigo-100 dark:bg-indigo-500/20"
-                                                : "bg-slate-100 dark:bg-white/5"
-                                        )}>
-                                            <Icon size={14} className={meta.color} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className={cn(
-                                                    "text-xs font-medium truncate",
-                                                    isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-zinc-300"
-                                                )}>
-                                                    {key}
-                                                </span>
+                                return allModels.map(({ providerKey, model, isActive }) => {
+                                    const meta = PROVIDER_DISPLAY[providerKey] || { icon: Bot, color: '#6366f1', label: providerKey }
+                                    const Icon = meta.icon
+                                    
+                                    return (
+                                        <button
+                                            key={`${providerKey}-${model.id}`}
+                                            onClick={() => handleSelectModel(providerKey, model.id)}
+                                            className={cn(
+                                                "w-full flex items-center gap-3 px-4 py-2 text-left transition-all border-l-2",
+                                                isActive
+                                                    ? "bg-indigo-50/50 dark:bg-indigo-500/5 border-indigo-500"
+                                                    : "hover:bg-slate-50 dark:hover:bg-white/5 border-transparent"
+                                            )}
+                                        >
+                                            <div 
+                                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                                style={{ backgroundColor: `${meta.color}15`, color: meta.color }}
+                                            >
+                                                <Icon size={14} />
                                             </div>
-                                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 truncate mt-0.5">
-                                                {config?.model || 'No model configured'}
-                                            </p>
-                                        </div>
-                                        {isActive && (
-                                            <Check size={14} className="text-indigo-500 shrink-0" />
-                                        )}
-                                    </button>
-                                )
-                            })
+                                            
+                                            <div className="flex-1 min-w-0 flex flex-col">
+                                                <span className={cn(
+                                                    "text-sm font-semibold truncate",
+                                                    isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-200"
+                                                )}>
+                                                    {model.label}
+                                                </span>
+                                                <div className="flex items-center gap-1.5 opacity-60">
+                                                    <span className="text-[10px] uppercase font-bold tracking-tight text-slate-400">
+                                                        {meta.label}
+                                                    </span>
+                                                    {model.label !== model.model && (
+                                                        <span className="text-[10px] text-slate-300 dark:text-zinc-600 font-mono">
+                                                            · {model.model}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            {isActive && <Check size={14} className="text-indigo-500 shrink-0" />}
+                                        </button>
+                                    )
+                                })
+                            })()
                         )}
                     </div>
 

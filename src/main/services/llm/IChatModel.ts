@@ -190,6 +190,13 @@ export interface IChatModel {
     ): AsyncGenerator<ChatStreamEvent>;
 
     /**
+     * 获取提供商支持的模型列表 (可选)
+     * 
+     * @returns 模型名称列表
+     */
+    fetchModels?(): Promise<string[]>;
+
+    /**
      * 非流式调用 LLM (可选实现)
      * 
      * 默认实现可以通过收集 stream() 的所有事件来完成。

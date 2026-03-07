@@ -22,11 +22,25 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         try {
             const data = await window.electronAPI.system.getSettings();
             if (data) {
-                set({ settings: data, isLoading: false });
+                // Merge new default providers that might not exist in the user's saved settings
+                const mergedProviders = { 
+                    ...DEFAULT_SETTINGS.llm.providers, 
+                    ...data.llm.providers 
+                };
+                
+                const finalSettings = {
+                    ...data,
+                    llm: {
+                        ...data.llm,
+                        providers: mergedProviders
+                    }
+                };
+                
+                set({ settings: finalSettings, isLoading: false });
 
                 // Apply visual effects
-                applyTheme(data.accentColor);
-                if (data.theme === 'dark') {
+                applyTheme(finalSettings.accentColor);
+                if (finalSettings.theme === 'dark') {
                     document.documentElement.classList.add('dark');
                     document.documentElement.setAttribute('data-theme', 'dark');
                 } else {
@@ -34,8 +48,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                     document.documentElement.setAttribute('data-theme', 'light');
                 }
 
-                if (data.language) {
-                    i18n.changeLanguage(data.language);
+                if (finalSettings.language) {
+                    i18n.changeLanguage(finalSettings.language);
                 }
             }
         } catch (error) {
