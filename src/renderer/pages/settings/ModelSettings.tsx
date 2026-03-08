@@ -373,9 +373,6 @@ export function ModelSettings() {
                                                 <span className={clsx("text-sm font-semibold truncate", isSelected ? "text-slate-900 dark:text-white" : "text-slate-500")}>
                                                     {meta.label}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400 truncate leading-tight">
-                                                    {meta.desc}
-                                                </span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
