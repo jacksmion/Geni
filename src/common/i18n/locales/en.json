@@ -8,11 +8,24 @@
             "mcp": "MCP Servers",
             "tools": "Built-in Tools",
             "im": "IM Integration",
+            "shortcuts": "Shortcuts",
             "about": "About"
         },
         "about": {
             "slogan": "Your personal spark for creativity & code"
         }
+    },
+    "shortcuts": {
+        "title": "Shortcuts Configuration",
+        "desc": "Set keyboard shortcuts for common functions to improve operation efficiency.",
+        "new_task": "New Task",
+        "search_task": "Search Task",
+        "open_settings": "Open Settings",
+        "toggle_sidebar": "Toggle Sidebar",
+        "record": "Recording...",
+        "pressKey": "Click to config",
+        "clear": "Clear",
+        "success": "Shortcuts updated"
     },
     "sessionSidebar": {
         "title": "Task List",

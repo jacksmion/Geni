@@ -10,6 +10,7 @@ import { useSettingsStore } from './store/useSettingsStore'
 import { useLayoutStore } from './store/useLayoutStore'
 
 import { useBreakpoint } from './hooks/useBreakpoint'
+import { useShortcuts } from './hooks/useShortcuts'
 
 function App() {
     const activeTab = useChatStore(s => s.activeTab)
@@ -20,12 +21,14 @@ function App() {
     const setSidebarCollapsed = useLayoutStore(s => s.setSidebarCollapsed)
 
     const { isMobile } = useBreakpoint()
+
+    // Register global shortcuts
+    useShortcuts()
+
     useEffect(() => {
         loadSettings()
         loadHistory()
     }, [loadSettings, loadHistory])
-
-
 
     // Auto collapse on mobile
     useEffect(() => {
@@ -33,18 +36,6 @@ function App() {
             setSidebarCollapsed(true)
         }
     }, [isMobile, setSidebarCollapsed])
-
-    // Hotkey for sidebar
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-                e.preventDefault()
-                toggleSidebar()
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [toggleSidebar])
 
     // Check for Electron Env
     if (!window.electronAPI) {

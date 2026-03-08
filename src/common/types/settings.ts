@@ -95,9 +95,11 @@ export interface AppSettings {
     telegram?: TelegramConfig; // Telegram Bot 配置
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
     recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
+    shortcuts?: Record<string, string>; // 快捷键配置 ID -> Key Combination
 }
 
 // 默认的提供商配置
+// ... (lines 101-196 remain same)
 export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     'OpenAI': {
         baseUrl: 'https://api.openai.com/v1',
@@ -215,4 +217,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     },
     scheduledTasks: [],
     recentWorkspaces: [],
+    shortcuts: {
+        'new_task': 'Ctrl+N',
+        'search_task': 'Ctrl+F',
+        'open_settings': 'Ctrl+,',
+        'toggle_sidebar': 'Ctrl+B'
+    }
 };

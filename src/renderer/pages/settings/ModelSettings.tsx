@@ -37,10 +37,11 @@ const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, co
 };
 
 export function ModelSettings() {
-    const { settings, updateSettings } = useSettingsStore();
+    const llm = useSettingsStore(s => s.settings.llm);
+    const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
     
-    const [selectedProvider, setSelectedProvider] = useState<string>(settings.llm.activeProvider || 'OpenAI');
+    const [selectedProvider, setSelectedProvider] = useState<string>(llm.activeProvider || 'OpenAI');
     const [searchTerm, setSearchTerm] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean, message: string } | null>(null);
@@ -55,7 +56,7 @@ export function ModelSettings() {
     const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null);
     const [modelForm, setModelForm] = useState({ label: '', model: '', supportVision: false, temperature: 0.7 });
 
-    const currentProviderConfig = settings.llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider] || { apiKey: '', baseUrl: '', enabled: false, models: [] };
+    const currentProviderConfig = llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider] || { apiKey: '', baseUrl: '', enabled: false, models: [] };
     
     // API Config Local State
     const [apiKeyInput, setApiKeyInput] = useState(currentProviderConfig.apiKey || '');
@@ -134,9 +135,9 @@ export function ModelSettings() {
         const preset = {
             version: '1.0',
             llm: {
-                ...settings.llm,
+                ...llm,
                 providers: Object.fromEntries(
-                    Object.entries(settings.llm.providers).map(([id, config]) => [
+                    Object.entries(llm.providers).map(([id, config]) => [
                         id,
                         withKey ? config : { ...config, apiKey: '' }
                     ])
@@ -164,8 +165,8 @@ export function ModelSettings() {
                 if (imported.llm) {
                     updateSettings({
                         llm: {
-                            ...settings.llm,
-                            providers: { ...settings.llm.providers, ...imported.llm.providers }
+                            ...llm,
+                            providers: { ...llm.providers, ...imported.llm.providers }
                         }
                     });
                     alert(t('modelSettings.importSuccess', 'Preset imported successfully!'));
@@ -180,35 +181,35 @@ export function ModelSettings() {
     // --- 提供商管理 ---
 
     const handleToggleProvider = (providerKey: string) => {
-        const config = settings.llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
+        const config = llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
         const newEnabled = !config.enabled;
 
         const updatedProviders = {
-            ...settings.llm.providers,
+            ...llm.providers,
             [providerKey]: { ...config, enabled: newEnabled }
         };
 
-        let newActiveProvider = settings.llm.activeProvider;
-        if (!newEnabled && providerKey === settings.llm.activeProvider) {
-            const firstEnabled = Object.entries(updatedProviders).find(([_, cfg]) => cfg.enabled);
+        let newActiveProvider = llm.activeProvider;
+        if (!newEnabled && providerKey === llm.activeProvider) {
+            const firstEnabled = Object.entries(updatedProviders).find(([_, cfg]) => (cfg as any).enabled);
             newActiveProvider = firstEnabled ? (firstEnabled[0] as string) : providerKey;
         }
 
         updateSettings({
-            llm: { ...settings.llm, activeProvider: newActiveProvider, providers: updatedProviders }
+            llm: { ...llm, activeProvider: newActiveProvider, providers: updatedProviders }
         });
     };
 
     const handleAddProvider = () => {
         if (!newProviderName.trim()) return;
         const key = newProviderName.trim();
-        if (settings.llm.providers[key]) return;
+        if (llm.providers[key]) return;
 
         updateSettings({
             llm: {
-                ...settings.llm,
+                ...llm,
                 providers: {
-                    ...settings.llm.providers,
+                    ...llm.providers,
                     [key]: { apiKey: '', baseUrl: '', enabled: true, models: [], activeModelId: '' }
                 }
             }
@@ -221,18 +222,18 @@ export function ModelSettings() {
     const handleDeleteProvider = (providerKey: string) => {
         if (!window.confirm(t('modelSettings.confirmDeleteProvider', `Are you sure you want to delete ${providerKey}?`))) return;
         
-        const updatedProviders = { ...settings.llm.providers };
+        const updatedProviders = { ...llm.providers };
         delete updatedProviders[providerKey];
 
-        let newActiveProvider = settings.llm.activeProvider;
-        if (providerKey === settings.llm.activeProvider) {
+        let newActiveProvider = llm.activeProvider;
+        if (providerKey === llm.activeProvider) {
             const firstAvailable = Object.keys(updatedProviders)[0] || 'OpenAI';
             newActiveProvider = firstAvailable;
             setSelectedProvider(firstAvailable);
         }
 
         updateSettings({
-            llm: { ...settings.llm, activeProvider: newActiveProvider, providers: updatedProviders }
+            llm: { ...llm, activeProvider: newActiveProvider, providers: updatedProviders }
         });
     };
 
@@ -291,9 +292,9 @@ export function ModelSettings() {
     const updateProviderConfig = (updates: Partial<ProviderConfig>) => {
         updateSettings({
             llm: {
-                ...settings.llm,
+                ...llm,
                 providers: {
-                    ...settings.llm.providers,
+                    ...llm.providers,
                     [selectedProvider]: { ...currentProviderConfig, ...updates }
                 }
             }
@@ -304,7 +305,7 @@ export function ModelSettings() {
 
     const filteredProviders = Array.from(new Set([
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
-        ...Object.keys(settings.llm.providers)
+        ...Object.keys(llm.providers)
     ])).filter(key => key.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
@@ -349,7 +350,7 @@ export function ModelSettings() {
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: t('modelSettings.custom') };
                         const isSelected = selectedProvider === key;
-                        const config = settings.llm.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
+                        const config = llm.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
                         const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
                         
                         return (

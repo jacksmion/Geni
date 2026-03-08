@@ -8,8 +8,10 @@ import { McpSettings } from './settings/McpSettings';
 import { CoreToolSettings } from './settings/CoreToolSettings';
 import { PersonaSettings } from './settings/PersonaSettings';
 import { ImSettings } from './settings/ImSettings';
+import { ShortcutSettings } from './settings/ShortcutSettings';
+import { Command } from 'lucide-react';
 
-type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'im' | 'about';
+type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'im' | 'shortcuts' | 'about';
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -22,6 +24,7 @@ export default function Settings() {
         { id: 'mcp', label: t('settings.sections.mcp'), icon: Database },
         { id: 'tools', label: t('settings.sections.tools'), icon: BoxIcon },
         { id: 'im', label: t('settings.sections.im'), icon: MessageSquare },
+        { id: 'shortcuts', label: t('settings.sections.shortcuts'), icon: Command },
         { id: 'about', label: t('settings.sections.about'), icon: Info },
     ] as const;
 
@@ -85,6 +88,8 @@ export default function Settings() {
                     {activeSection === 'tools' && <CoreToolSettings />}
 
                     {activeSection === 'im' && <ImSettings />}
+
+                    {activeSection === 'shortcuts' && <ShortcutSettings />}
 
                     {activeSection === 'about' && (
                         <div className="max-w-2xl text-center pt-20 space-y-4">

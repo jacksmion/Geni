@@ -4,9 +4,10 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 
 export function ImSettings() {
-    const { settings, updateSettings } = useSettingsStore();
+    const telegramConfig = useSettingsStore(s => s.settings.telegram);
+    const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
-    const telegram = settings.telegram || { enabled: false, token: '', proxyUrl: '' };
+    const telegram = telegramConfig || { enabled: false, token: '', proxyUrl: '' };
 
     const [token, setToken] = useState(telegram.token);
     const [proxyUrl, setProxyUrl] = useState(telegram.proxyUrl || '');

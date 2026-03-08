@@ -8,11 +8,24 @@
             "mcp": "MCP 服务器",
             "tools": "内置工具",
             "im": "IM 集成",
+            "shortcuts": "快捷键",
             "about": "关于我们"
         },
         "about": {
             "slogan": "Your personal spark for creativity & code"
         }
+    },
+    "shortcuts": {
+        "title": "快捷键配置",
+        "desc": "设置常用功能的组合快捷键，提升操作效率。",
+        "new_task": "新建任务",
+        "search_task": "搜索任务",
+        "open_settings": "打开设置",
+        "toggle_sidebar": "侧边栏切换",
+        "record": "正在录制...",
+        "pressKey": "点击配置",
+        "clear": "清除",
+        "success": "快捷键已更新"
     },
     "sessionSidebar": {
         "title": "任务列表",

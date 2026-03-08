@@ -18,12 +18,22 @@ export function SessionSidebar() {
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
     const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
     const { isMobile } = useBreakpoint();
+    const searchFocused = useLayoutStore(s => s.searchFocused);
+    const setSearchFocused = useLayoutStore(s => s.setSearchFocused);
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [now, setNow] = useState(0);
     const { t } = useTranslation();
+
+    React.useEffect(() => {
+        if (searchFocused && searchInputRef.current) {
+            searchInputRef.current.focus();
+            setSearchFocused(false); 
+        }
+    }, [searchFocused, setSearchFocused]);
 
     // Update current time every minute for relative labels
     React.useEffect(() => {
@@ -148,6 +158,7 @@ export function SessionSidebar() {
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
                         />
                         <input
+                            ref={searchInputRef}
                             type="text"
                             placeholder={t('sessionSidebar.search')}
                             value={searchTerm}

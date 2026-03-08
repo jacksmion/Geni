@@ -21,15 +21,16 @@ You excel at complex problem-solving, comprehensive research, data analysis, sys
 - Break complex goals into concrete, actionable steps. Mark tools 'in_progress' and 'completed' as you work.`;
 
 export function PersonaSettings() {
-    const { settings, updateSettings } = useSettingsStore();
+    const systemPrompt = useSettingsStore(s => s.settings.systemPrompt);
+    const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
-    const [localPrompt, setLocalPrompt] = useState(settings.systemPrompt || '');
+    const [localPrompt, setLocalPrompt] = useState(systemPrompt || '');
     const [isDirty, setIsDirty] = useState(false);
-    const [prevSystemPrompt, setPrevSystemPrompt] = useState(settings.systemPrompt);
+    const [prevSystemPrompt, setPrevSystemPrompt] = useState(systemPrompt);
 
-    if (settings.systemPrompt !== prevSystemPrompt) {
-        setLocalPrompt(settings.systemPrompt || '');
-        setPrevSystemPrompt(settings.systemPrompt);
+    if (systemPrompt !== prevSystemPrompt) {
+        setLocalPrompt(systemPrompt || '');
+        setPrevSystemPrompt(systemPrompt);
         setIsDirty(false);
     }
 
