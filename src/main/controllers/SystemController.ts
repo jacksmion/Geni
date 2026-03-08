@@ -6,11 +6,16 @@ import { AppSettings } from '../../common/types/settings';
 import { OpenAI } from 'openai';
 
 export class SystemController {
-    private onSettingsChanged?: (settings: AppSettings) => void;
     private pathManager: PathManager;
+    private imServiceManager?: any; // To avoid circular/early load issues in some environments
+    private onSettingsChanged?: (settings: AppSettings) => void;
 
     constructor(private configManager: ConfigManager, pathManager: PathManager) {
         this.pathManager = pathManager;
+    }
+
+    public setIMServiceManager(mgr: any) {
+        this.imServiceManager = mgr;
     }
 
     public setSettingsChangeCallback(callback: (settings: AppSettings) => void) {
@@ -27,6 +32,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.FETCH_PROVIDER_MODELS, (_, payload) => this.handleFetchProviderModels(payload));
         ipcMain.handle(SYSTEM_CHANNELS.GET_PATH_INFO, () => this.handleGetPathInfo());
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_USER_SKILLS, () => this.handleOpenUserSkills());
+        ipcMain.handle(SYSTEM_CHANNELS.TEST_TELEGRAM, (_, config) => this.handleTestTelegram(config));
     }
 
     private async handleFetchProviderModels(payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) {
@@ -165,5 +171,12 @@ export class SystemController {
     private async handleOpenUserSkills() {
         const globalSkillsDir = this.pathManager.getGlobalSkillsDir();
         await shell.openPath(globalSkillsDir);
+    }
+
+    private async handleTestTelegram(config: any) {
+        if (!this.imServiceManager) {
+            return { success: false, message: 'IM Service not initialized' };
+        }
+        return await this.imServiceManager.testConnection('telegram', config);
     }
 }

@@ -194,12 +194,21 @@
         "noServerDesc": "Select a server from the left list to configure"
     },
     "imSettings": {
-        "title": "Telegram Bot",
-        "desc": "Setup a Telegram Bot to summon your Geni agent on your mobile device.",
+        "providers": "IM Providers",
+        "comingSoon": "Coming Soon",
+        "providerTgDesc": "Official Bot API",
+        "providerDiscordDesc": "Webhooks & Bots",
+        "providerSlackDesc": "Enterprise IM",
+        "tgBotTitle": "Telegram Bot",
+        "tgBotDesc": "Connect Geni to your Telegram world via BotFather.",
         "tokenLabel": "Bot Token",
         "tokenDesc": "Search @BotFather in Telegram to create a new Bot and get its Token.",
         "proxyLabel": "HTTP Proxy URL (Optional)",
         "proxyDesc": "Use a proxy if your network cannot connect to Telegram directly.",
+        "connectivityCheck": "Connection Check",
+        "connectivityCheckDesc": "Verify your token and proxy settings before applying.",
+        "testConnection": "Test Connection",
+        "comingSoonDesc": "Integration for {{name}} is currently under development.",
         "saving": "Save Config",
         "saved": "Saved"
     },

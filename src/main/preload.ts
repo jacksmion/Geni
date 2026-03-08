@@ -49,7 +49,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
         openExplorer: (path: string) => ipcRenderer.invoke('system:open-explorer', path),
         testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
-        fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload)
+        fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload),
+        testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config)
     },
     tools: {
         getSkills: () => ipcRenderer.invoke('tool:get-skills'),

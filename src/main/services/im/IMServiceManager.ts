@@ -73,6 +73,14 @@ export class IMServiceManager {
         }
     }
 
+    public async testConnection(providerId: string, config: any): Promise<{ success: boolean; message: string }> {
+        const adapter = this.adapters.get(providerId);
+        if (!adapter || !adapter.testConnection) {
+            return { success: false, message: `Adapter ${providerId} not found or doesn't support testing` };
+        }
+        return await adapter.testConnection(config);
+    }
+
     private async handleIncomingMessage(msg: IMMessage) {
         const adapter = this.adapters.get(msg.providerId);
         if (!adapter) return;

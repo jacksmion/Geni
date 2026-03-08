@@ -65,6 +65,7 @@ export class AppRouter {
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
         this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController);
+        this.systemController.setIMServiceManager(this.imServiceManager);
 
         this.agentController = new AgentController(
             settings,

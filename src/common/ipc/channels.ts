@@ -41,6 +41,7 @@ export const SYSTEM_CHANNELS = {
     FETCH_PROVIDER_MODELS: 'system:fetch-provider-models',
     GET_PATH_INFO: 'system:get-path-info',
     OPEN_USER_SKILLS: 'system:open-user-skills',
+    TEST_TELEGRAM: 'system:test-telegram',
 } as const;
 
 export const TOOL_CHANNELS = {

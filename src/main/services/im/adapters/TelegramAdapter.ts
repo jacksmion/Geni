@@ -207,6 +207,48 @@ export class TelegramAdapter implements IIMAdapter {
         }
     }
 
+    public async testConnection(config: TelegramConfig): Promise<{ success: boolean; message: string }> {
+        if (!config.token) return { success: false, message: 'Token is required' };
+        
+        const actualProxyUrl = config.proxyUrl || process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
+        
+        try {
+            let tempBot: Bot;
+            if (actualProxyUrl) {
+                const { createRequire } = await import('module');
+                const localRequire = createRequire((import.meta as any).url);
+                const agent = new HttpsProxyAgent(actualProxyUrl);
+
+                tempBot = new Bot(config.token, {
+                    client: {
+                        // @ts-ignore
+                        fetch: async (url: any, options: any = {}) => {
+                            const nodeFetch = localRequire('node-fetch');
+                            const { signal, ...restOptions } = options;
+                            return await nodeFetch(url, { ...restOptions, agent: agent });
+                        },
+                    }
+                });
+            } else {
+                tempBot = new Bot(config.token);
+            }
+
+            const me = await tempBot.api.getMe();
+            return { 
+                success: true, 
+                message: `Successfully connected as @${me.username}` 
+            };
+        } catch (e: any) {
+            let errorMsg = e.message || 'Unknown error';
+            if (e instanceof GrammyError) {
+                errorMsg = `Telegram API Error: ${e.description} (${e.error_code})`;
+            } else if (e instanceof HttpError) {
+                errorMsg = `Network Error: ${e.message}`;
+            }
+            return { success: false, message: errorMsg };
+        }
+    }
+
     public onMessage(handler: (message: IMMessage) => Promise<void>): void {
         this.messageHandler = handler;
     }

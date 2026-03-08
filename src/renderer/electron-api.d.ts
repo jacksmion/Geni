@@ -35,6 +35,7 @@ export interface IElectronAPI {
         openExplorer: (path: string) => Promise<void>;
         testLLM: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
         fetchProviderModels: (payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) => Promise<string[]>;
+        testTelegram: (config: any) => Promise<{ success: boolean, message: string }>;
     };
 
     // Tool Namespace
