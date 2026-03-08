@@ -621,13 +621,14 @@ const SchedulerPage: React.FC = () => {
 export default SchedulerPage;
 
 // ============ Helper Components ============
-function MarkdownCode({ node, inline, className, children, ...props }: any) {
+function MarkdownCode({ node, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '')
     const codeString = String(children).replace(/\n$/, '')
     const theme = useSettingsStore(s => s.settings.theme);
     const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
+    const isBlock = !!className || codeString.includes('\n');
 
-    return !inline && match ? (
+    return isBlock && match ? (
         <div className="not-prose rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
             <div className="px-3 py-1 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                 <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase">{match[1]}</span>

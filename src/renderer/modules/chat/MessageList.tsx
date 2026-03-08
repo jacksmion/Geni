@@ -271,17 +271,20 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                     li: ({ className, ...props }) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
                                     hr: ({ ...props }) => <hr className="my-10" {...props} />,
                                     pre: ({ children }) => <>{children}</>,
-                                    code({ node, inline, className, children, ...props }: any) {
+                                    code({ node, className, children, ...props }: any) {
                                         const match = /language-(\w+)/.exec(className || '')
                                         const codeString = String(children).replace(/\n$/, '')
+                                        // react-markdown v9+ no longer passes 'inline' prop. 
+                                        // Detect block based on presence of language class or newlines.
+                                        const isBlock = !!className || codeString.includes('\n');
 
-                                        if (!inline && match && match[1] === 'thinking') {
+                                        if (isBlock && match && match[1] === 'thinking') {
                                             const isThinkingComplete = /```thinking[\s\S]*?```/.test(message.content || '');
                                             return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
                                         }
 
                                         // Mermaid diagram rendering
-                                        if (!inline && match && match[1] === 'mermaid') {
+                                        if (isBlock && match && match[1] === 'mermaid') {
                                             return (
                                                 <Suspense fallback={
                                                     <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
@@ -299,7 +302,7 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                         // High Performance Optimization: 
                                         // During streaming, avoid heavy SyntaxHighlighter which can block the main thread.
                                         // Use a simple pre block instead.
-                                        if (!inline && isStreaming) {
+                                        if (isBlock && isStreaming) {
                                             return (
                                                 <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
@@ -313,7 +316,7 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                                             )
                                         }
 
-                                        return !inline ? (
+                                        return isBlock ? (
                                             <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
                                                 <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                                                     <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
