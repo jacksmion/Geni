@@ -8,9 +8,9 @@ import {
     Brain, Cloud, MessageSquare, Orbit, Monitor, Terminal
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SaveStatusBar } from '../../components/SaveStatusBar';
 
 // 定义支持的提供商元数据
-// SVG 路径定义，用于替换官方图标
 const PROVIDER_ICONS: Record<string, (props: any) => React.ReactNode> = {
     'OpenAI': (props) => (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
@@ -41,7 +41,17 @@ export function ModelSettings() {
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
     
-    const [selectedProvider, setSelectedProvider] = useState<string>(llm.activeProvider || 'OpenAI');
+    // --- Local Draft & Dirty Logic ---
+    const [llmDraft, setLlmDraft] = useState({...llm});
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        setLlmDraft({...llm});
+    }, [llm]);
+
+    const isDirty = JSON.stringify(llmDraft) !== JSON.stringify(llm);
+
+    const [selectedProvider, setSelectedProvider] = useState<string>(llmDraft.activeProvider || 'OpenAI');
     const [searchTerm, setSearchTerm] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean, message: string } | null>(null);
@@ -56,35 +66,51 @@ export function ModelSettings() {
     const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null);
     const [modelForm, setModelForm] = useState({ label: '', model: '', supportVision: false, temperature: 0.7 });
 
-    const currentProviderConfig = llm.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider] || { apiKey: '', baseUrl: '', enabled: false, models: [] };
+    const currentProviderConfig = llmDraft.providers[selectedProvider] || DEFAULT_PROVIDER_CONFIGS[selectedProvider] || { apiKey: '', baseUrl: '', enabled: false, models: [] };
     
-    // API Config Local State
+    // API Config Local State (Internal to UI)
     const [apiKeyInput, setApiKeyInput] = useState(currentProviderConfig.apiKey || '');
     const [baseUrlInput, setBaseUrlInput] = useState(currentProviderConfig.baseUrl || '');
-    const [hasConfigChanges, setHasConfigChanges] = useState(false);
 
     useEffect(() => {
         setApiKeyInput(currentProviderConfig.apiKey || '');
         setBaseUrlInput(currentProviderConfig.baseUrl || '');
-        setHasConfigChanges(false);
     }, [selectedProvider, currentProviderConfig.apiKey, currentProviderConfig.baseUrl]);
 
     const handleConfigChange = (type: 'apiKey' | 'baseUrl', value: string) => {
         if (type === 'apiKey') setApiKeyInput(value);
         if (type === 'baseUrl') setBaseUrlInput(value);
-        setHasConfigChanges(true);
+        
+        // Update draft immediately
+        updateProviderDraft({ [type]: value });
     };
 
-    const handleSaveProviderConfig = async () => {
-        await updateProviderConfig({
-            apiKey: apiKeyInput,
-            baseUrl: baseUrlInput
+    const handleReset = () => {
+        setLlmDraft({...llm});
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateSettings({ llm: llmDraft });
+        } catch (e) {
+            console.error("Failed to save Model settings", e);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const updateProviderDraft = (updates: Partial<ProviderConfig>) => {
+        setLlmDraft({
+            ...llmDraft,
+            providers: {
+                ...llmDraft.providers,
+                [selectedProvider]: { ...currentProviderConfig, ...updates }
+            }
         });
-        setHasConfigChanges(false);
     };
 
     // --- IPC 交互 ---
-
     const handleTestConnection = async () => {
         setIsTesting(true);
         setTestResult(null);
@@ -94,7 +120,6 @@ export function ModelSettings() {
                 baseUrl: currentProviderConfig.baseUrl,
                 model: currentProviderConfig.models?.[0]?.model || 'test'
             });
-            // Try to translate message if it's a key
             const translatedMessage = result.message.startsWith('modelSettings.') 
                 ? t(result.message) 
                 : result.message;
@@ -135,9 +160,9 @@ export function ModelSettings() {
         const preset = {
             version: '1.0',
             llm: {
-                ...llm,
+                ...llmDraft,
                 providers: Object.fromEntries(
-                    Object.entries(llm.providers).map(([id, config]) => [
+                    Object.entries(llmDraft.providers).map(([id, config]) => [
                         id,
                         withKey ? config : { ...config, apiKey: '' }
                     ])
@@ -163,11 +188,9 @@ export function ModelSettings() {
             try {
                 const imported = JSON.parse(text);
                 if (imported.llm) {
-                    updateSettings({
-                        llm: {
-                            ...llm,
-                            providers: { ...llm.providers, ...imported.llm.providers }
-                        }
+                    setLlmDraft({
+                        ...llmDraft,
+                        providers: { ...llmDraft.providers, ...imported.llm.providers }
                     });
                     alert(t('modelSettings.importSuccess', 'Preset imported successfully!'));
                 }
@@ -179,39 +202,34 @@ export function ModelSettings() {
     };
 
     // --- 提供商管理 ---
-
     const handleToggleProvider = (providerKey: string) => {
-        const config = llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
+        const config = llmDraft.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
         const newEnabled = !config.enabled;
 
         const updatedProviders = {
-            ...llm.providers,
+            ...llmDraft.providers,
             [providerKey]: { ...config, enabled: newEnabled }
         };
 
-        let newActiveProvider = llm.activeProvider;
-        if (!newEnabled && providerKey === llm.activeProvider) {
+        let newActiveProvider = llmDraft.activeProvider;
+        if (!newEnabled && providerKey === llmDraft.activeProvider) {
             const firstEnabled = Object.entries(updatedProviders).find(([_, cfg]) => (cfg as any).enabled);
             newActiveProvider = firstEnabled ? (firstEnabled[0] as string) : providerKey;
         }
 
-        updateSettings({
-            llm: { ...llm, activeProvider: newActiveProvider, providers: updatedProviders }
-        });
+        setLlmDraft({ ...llmDraft, activeProvider: newActiveProvider, providers: updatedProviders });
     };
 
     const handleAddProvider = () => {
         if (!newProviderName.trim()) return;
         const key = newProviderName.trim();
-        if (llm.providers[key]) return;
+        if (llmDraft.providers[key]) return;
 
-        updateSettings({
-            llm: {
-                ...llm,
-                providers: {
-                    ...llm.providers,
-                    [key]: { apiKey: '', baseUrl: '', enabled: true, models: [], activeModelId: '' }
-                }
+        setLlmDraft({
+            ...llmDraft,
+            providers: {
+                ...llmDraft.providers,
+                [key]: { apiKey: '', baseUrl: '', enabled: true, models: [], activeModelId: '' }
             }
         });
         setSelectedProvider(key);
@@ -222,23 +240,20 @@ export function ModelSettings() {
     const handleDeleteProvider = (providerKey: string) => {
         if (!window.confirm(t('modelSettings.confirmDeleteProvider', `Are you sure you want to delete ${providerKey}?`))) return;
         
-        const updatedProviders = { ...llm.providers };
+        const updatedProviders = { ...llmDraft.providers };
         delete updatedProviders[providerKey];
 
-        let newActiveProvider = llm.activeProvider;
-        if (providerKey === llm.activeProvider) {
+        let newActiveProvider = llmDraft.activeProvider;
+        if (providerKey === llmDraft.activeProvider) {
             const firstAvailable = Object.keys(updatedProviders)[0] || 'OpenAI';
             newActiveProvider = firstAvailable;
             setSelectedProvider(firstAvailable);
         }
 
-        updateSettings({
-            llm: { ...llm, activeProvider: newActiveProvider, providers: updatedProviders }
-        });
+        setLlmDraft({ ...llmDraft, activeProvider: newActiveProvider, providers: updatedProviders });
     };
 
     // --- 模型管理 ---
-
     const openModelEditor = (index: number | null = null, initialModelId?: string) => {
         if (index !== null) {
             const model = currentProviderConfig.models[index];
@@ -279,33 +294,20 @@ export function ModelSettings() {
             updatedModels.push(newInstance);
         }
 
-        updateProviderConfig({ models: updatedModels });
+        updateProviderDraft({ models: updatedModels });
         setShowModelEditor(false);
     };
 
     const removeModelInstance = (index: number) => {
         const updatedModels = [...(currentProviderConfig.models || [])];
         updatedModels.splice(index, 1);
-        updateProviderConfig({ models: updatedModels });
-    };
-
-    const updateProviderConfig = (updates: Partial<ProviderConfig>) => {
-        updateSettings({
-            llm: {
-                ...llm,
-                providers: {
-                    ...llm.providers,
-                    [selectedProvider]: { ...currentProviderConfig, ...updates }
-                }
-            }
-        });
+        updateProviderDraft({ models: updatedModels });
     };
 
     // --- 渲染逻辑 ---
-
     const filteredProviders = Array.from(new Set([
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
-        ...Object.keys(llm.providers)
+        ...Object.keys(llmDraft.providers)
     ])).filter(key => key.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
@@ -350,7 +352,7 @@ export function ModelSettings() {
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: t('modelSettings.custom') };
                         const isSelected = selectedProvider === key;
-                        const config = llm.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
+                        const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
                         const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
                         
                         return (
@@ -418,15 +420,6 @@ export function ModelSettings() {
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     < Globe size={12} /> {t('modelSettings.apiConfig', 'API Configuration')}
                                 </label>
-                                {hasConfigChanges && (
-                                    <button 
-                                        onClick={handleSaveProviderConfig}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20 animate-in fade-in zoom-in-95"
-                                    >
-                                        <Check size={12} />
-                                        {t('save')}
-                                    </button>
-                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-2">
@@ -458,7 +451,7 @@ export function ModelSettings() {
                                 </div>
                             </div>
 
-                            {/* Model Pick List (Auto Search Result) */}
+                            {/* Model Pick List */}
                             {showModelPicker && (
                                 <div className="p-4 bg-slate-50 dark:bg-black/20 border border-dashed border-slate-300 dark:border-white/10 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center justify-between mb-1">
@@ -618,7 +611,13 @@ export function ModelSettings() {
                     </div>
                 </div>
             )}
+
+            <SaveStatusBar 
+                isDirty={isDirty} 
+                isSaving={isSaving} 
+                onSave={handleSave} 
+                onReset={handleReset} 
+            />
         </div>
     );
 }
-
