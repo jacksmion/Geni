@@ -10,11 +10,14 @@ import { ToolRegistry } from './services/tools/ToolRegistry.js'
 import { SkillRegistry } from './services/skills/core/SkillRegistry.js'
 import { McpManager } from './services/tools/mcp/McpManager.js'
 import { AppRouter } from './router.js'
+import { SystemTrayManager } from './services/SystemTrayManager.js'
 
 // Tools
 import { CoreToolManager } from './services/tools/core/CoreToolManager.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+let isQuitting = false;
 
 function createWindow(isDark: boolean) {
     const preloadPath = path.join(__dirname, 'preload.js')
@@ -43,6 +46,16 @@ function createWindow(isDark: boolean) {
     } else {
         win.loadFile(path.join(__dirname, '../dist/index.html'))
     }
+
+    win.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            win.hide();
+        }
+        return false;
+    });
+
+    return win;
 }
 
 app.whenReady().then(async () => {
@@ -148,8 +161,19 @@ app.whenReady().then(async () => {
     const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager);
     appRouter.initialize();
 
-    createWindow(isDark);
+    const win = createWindow(isDark);
+
+    // 7. Initialize Tray
+    const trayManager = new SystemTrayManager(win, appSettings.language || 'zh');
+    trayManager.initialize();
+
+    // Link tray to router for dynamic updates (like language change)
+    appRouter.setTrayManager(trayManager);
 })
+
+app.on('before-quit', () => {
+    isQuitting = true;
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()

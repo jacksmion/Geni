@@ -61,6 +61,12 @@ export interface IElectronAPI {
         getLogs: (taskId: string, limit?: number) => Promise<Array<{ id: string; taskId: string; taskName: string; startedAt: number; finishedAt: number; durationMs: number; status: 'success' | 'error'; output?: string; error?: string; stepCount?: number }>>;
         validateCron: (expression: string) => Promise<{ valid: boolean; error?: string; nextRuns?: string[] }>;
     };
+
+    // Tray Namespace
+    tray: {
+        onNavigateToSettings: (callback: () => void) => () => void;
+        onNewTask: (callback: () => void) => () => void;
+    };
 }
 
 declare global {

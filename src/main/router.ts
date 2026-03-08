@@ -15,6 +15,7 @@ import { IMServiceManager } from './services/im/IMServiceManager';
 import { SchedulerService } from './services/scheduler/SchedulerService';
 import { SchedulerStorage } from './services/scheduler/SchedulerStorage';
 import { SchedulerController } from './controllers/SchedulerController';
+import { SystemTrayManager } from './services/SystemTrayManager';
 
 /**
  * App Router
@@ -39,6 +40,7 @@ export class AppRouter {
     private coreToolManager: CoreToolManager;
     private pathManager: PathManager;
     private currentWorkspacePath: string;
+    private trayManager: SystemTrayManager | null = null;
 
     constructor(
         configManager: ConfigManager,
@@ -129,7 +131,19 @@ export class AppRouter {
 
             // 6. Sync Scheduled Tasks
             this.schedulerService.syncWithSettings(newSettings);
+
+            // 7. Update Tray Language
+            if (this.trayManager && newSettings.language) {
+                this.trayManager.setLanguage(newSettings.language);
+            }
         });
+    }
+
+    /**
+     * Link Tray Manager
+     */
+    public setTrayManager(trayManager: SystemTrayManager): void {
+        this.trayManager = trayManager;
     }
 
     /**

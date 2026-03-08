@@ -30,6 +30,25 @@ function App() {
         loadHistory()
     }, [loadSettings, loadHistory])
 
+    useEffect(() => {
+        if (!window.electronAPI?.tray) return;
+
+        const cleanupSettings = window.electronAPI.tray.onNavigateToSettings(() => {
+            useChatStore.getState().setActiveTab('settings')
+        });
+
+        const cleanupNewTask = window.electronAPI.tray.onNewTask(() => {
+            // Force chat tab and start a new session
+            useChatStore.getState().setActiveTab('chat')
+            useChatStore.getState().createSession()
+        });
+
+        return () => {
+            cleanupSettings();
+            cleanupNewTask();
+        };
+    }, []);
+
     // Auto collapse on mobile
     useEffect(() => {
         if (isMobile) {

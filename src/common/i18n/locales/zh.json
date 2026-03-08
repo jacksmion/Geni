@@ -214,5 +214,11 @@
     },
     "save": "保存",
     "on": "开启",
-    "off": "关闭"
+    "off": "关闭",
+    "tray": {
+        "open": "打开 Geni",
+        "newTask": "新建任务",
+        "settings": "设置",
+        "quit": "退出"
+    }
 }

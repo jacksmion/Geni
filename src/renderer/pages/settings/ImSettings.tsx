@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
+import { Switch } from '../../components/Switch';
 import { TelegramConfig } from '../../../common/types/settings';
 
 export function ImSettings() {
@@ -149,12 +150,10 @@ export function ImSettings() {
                                     <span className={clsx("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full", tgDraft.enabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10" : "bg-slate-100 text-slate-500 dark:bg-white/10")}>
                                         {tgDraft.enabled ? t('on') : t('off')}
                                     </span>
-                                    <button 
-                                        onClick={() => setTgDraft({...tgDraft, enabled: !tgDraft.enabled})}
-                                        className={clsx("w-10 h-5 rounded-full relative transition-colors", tgDraft.enabled ? "bg-emerald-500" : "bg-slate-200 dark:bg-white/10")}
-                                    >
-                                        <div className={clsx("absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform", tgDraft.enabled ? "translate-x-5" : "translate-x-0")} />
-                                    </button>
+                                    <Switch 
+                                        checked={tgDraft.enabled}
+                                        onChange={(checked) => setTgDraft({...tgDraft, enabled: checked})}
+                                    />
                                 </div>
                             </div>
 

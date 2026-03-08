@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { Switch } from '../../components/Switch';
 
 // 统一的低饱和固态颜色
 const NEUTRAL_PALETTES = [
@@ -98,22 +99,11 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
             </div>
 
             {/* Toggle Switch */}
-            <button
-                onClick={(e) => { e.stopPropagation(); onToggle(skill.id); }}
-                className={clsx(
-                    "w-9 h-[20px] rounded-full relative transition-all duration-300 outline-none shrink-0",
-                    "focus:ring-2 focus:ring-indigo-500/30",
-                    skill.enabled
-                        ? "bg-emerald-500 shadow-sm shadow-emerald-500/30"
-                        : "bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/15"
-                )}
-                title={skill.enabled ? t('skillSettings.actions.disable') : t('skillSettings.actions.enable')}
-            >
-                <div className={clsx(
-                    "absolute top-[2px] w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300",
-                    skill.enabled ? "left-[18px]" : "left-[2px]"
-                )} />
-            </button>
+            <Switch
+                checked={!!skill.enabled}
+                onChange={() => onToggle(skill.id)}
+                size="sm"
+            />
         </div>
     );
 };

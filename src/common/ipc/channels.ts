@@ -66,3 +66,9 @@ export const SCHEDULER_CHANNELS = {
     GET_LOGS: 'scheduler:get-logs',
     VALIDATE_CRON: 'scheduler:validate-cron',
 } as const;
+
+// Tray Events (Server -> Client)
+export const TRAY_EVENTS = {
+    NAVIGATE_TO_SETTINGS: 'tray:navigate-to-settings',
+    NEW_TASK: 'tray:new-task',
+} as const;

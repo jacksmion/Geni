@@ -214,5 +214,11 @@
     },
     "save": "Save",
     "on": "ON",
-    "off": "OFF"
+    "off": "OFF",
+    "tray": {
+        "open": "Open Geni",
+        "newTask": "New Task",
+        "settings": "Settings",
+        "quit": "Quit"
+    }
 }

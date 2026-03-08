@@ -71,5 +71,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getStatuses: () => ipcRenderer.invoke('scheduler:get-statuses'),
         getLogs: (taskId: string, limit?: number) => ipcRenderer.invoke('scheduler:get-logs', taskId, limit),
         validateCron: (expression: string) => ipcRenderer.invoke('scheduler:validate-cron', expression),
+    },
+    tray: {
+        onNavigateToSettings: (callback: () => void) => {
+            const sub = () => callback()
+            ipcRenderer.on('tray:navigate-to-settings', sub)
+            return () => ipcRenderer.removeListener('tray:navigate-to-settings', sub)
+        },
+        onNewTask: (callback: () => void) => {
+            const sub = () => callback()
+            ipcRenderer.on('tray:new-task', sub)
+            return () => ipcRenderer.removeListener('tray:new-task', sub)
+        }
     }
 })

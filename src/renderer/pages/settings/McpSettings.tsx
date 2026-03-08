@@ -3,6 +3,7 @@ import { Database, Plus, Trash2, CheckCircle2, AlertCircle, TerminalSquare, Serv
 import { clsx } from 'clsx';
 import { IMcpServerConfig } from '../../../common/types/settings';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
+import { Switch } from '../../components/Switch';
 
 // Helper to split args string to array and vice versa
 const argsToString = (args: string[]) => args?.join('\n') || '';
@@ -401,9 +402,10 @@ export function McpSettings() {
                                                     <div className="text-xs text-slate-500 dark:text-gray-400">应用更改后将尝试连接</div>
                                                 </div>
                                             </div>
-                                            <button onClick={() => toggleEnableDraft(selectedIdx!)} className={clsx("w-12 h-6 rounded-full transition-colors relative", selectedServer.enabled ? "bg-emerald-500" : "bg-slate-200 dark:bg-white/10")}>
-                                                <div className={clsx("absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform", selectedServer.enabled ? "translate-x-6" : "translate-x-0")} />
-                                            </button>
+                                            <Switch 
+                                                checked={selectedServer.enabled}
+                                                onChange={() => toggleEnableDraft(selectedIdx!)}
+                                            />
                                         </div>
 
                                         {/* Server ID */}
@@ -487,9 +489,11 @@ export function McpSettings() {
                                                                 <tr key={tIdx} className={clsx("hover:bg-slate-50 dark:hover:bg-white/5", !tSetting.enabled && "opacity-60")}>
                                                                     <td className="px-4 py-3 font-mono text-indigo-500">{originalName}</td>
                                                                     <td className="px-4 py-3">
-                                                                        <button onClick={() => handleToggleToolDraft(selectedServer.id, originalName)} className={clsx("w-8 h-4 rounded-full relative transition-colors", tSetting.enabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-white/10")}>
-                                                                            <div className={clsx("absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform", tSetting.enabled ? "translate-x-4" : "")} />
-                                                                        </button>
+                                                                        <Switch 
+                                                                            checked={!!tSetting.enabled}
+                                                                            onChange={() => handleToggleToolDraft(selectedServer.id, originalName)}
+                                                                            size="sm"
+                                                                        />
                                                                     </td>
                                                                     <td className="px-4 py-3">
                                                                         <select value={tSetting.trustLevel} onChange={(e) => handleSetToolTrustLevelDraft(selectedServer.id, originalName, e.target.value as any)} className="bg-transparent border-none outline-none font-bold text-emerald-500">

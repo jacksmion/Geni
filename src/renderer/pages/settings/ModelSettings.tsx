@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
+import { Switch } from '../../components/Switch';
 
 // 定义支持的提供商元数据
 const PROVIDER_ICONS: Record<string, (props: any) => React.ReactNode> = {
@@ -405,9 +406,10 @@ export function ModelSettings() {
                                 {currentProviderConfig.enabled ? t('on') : t('off')}
                             </div>
                         </div>
-                        <button onClick={() => handleToggleProvider(selectedProvider)} className={clsx("w-10 h-5 rounded-full relative transition-colors", currentProviderConfig.enabled ? "bg-emerald-500" : "bg-slate-200 dark:bg-white/10")}>
-                            <div className={clsx("absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform", currentProviderConfig.enabled ? "translate-x-5" : "translate-x-0")} />
-                        </button>
+                        <Switch 
+                            checked={!!currentProviderConfig.enabled}
+                            onChange={() => handleToggleProvider(selectedProvider)}
+                        />
                     </div>
 
                     <div className="p-6 space-y-8 overflow-y-auto custom-scrollbar">
