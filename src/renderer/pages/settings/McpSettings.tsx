@@ -5,8 +5,8 @@ import { IMcpServerConfig } from '../../../common/types/settings';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 
 // Helper to split args string to array and vice versa
-const argsToString = (args: string[]) => args?.join(' ') || '';
-const stringToArgs = (str: string) => str.split(' ').filter(s => s.trim().length > 0);
+const argsToString = (args: string[]) => args?.join('\n') || '';
+const stringToArgs = (str: string) => str.split(/\s+/).filter(s => s.trim().length > 0);
 
 interface ToolDefinition {
     name: string;
@@ -31,6 +31,24 @@ export function McpSettings() {
 
     // Tools list
     const [tools, setTools] = useState<ToolDefinition[]>([]);
+
+    // Raw text for arguments to preserve formatting (newlines) while typing
+    const [rawArgsText, setRawArgsText] = useState<string>('');
+
+    // Sync rawArgsText when selected server or its content changes significantly
+    useEffect(() => {
+        if (selectedIdx !== null && serversDraft[selectedIdx]) {
+            const currentArgs = serversDraft[selectedIdx].args || [];
+            const canonicalFromRaw = stringToArgs(rawArgsText);
+            
+            // Only sync if the canonical content differs, to preserve trailing whitespace/newlines during typing
+            if (JSON.stringify(currentArgs) !== JSON.stringify(canonicalFromRaw)) {
+                setRawArgsText(argsToString(currentArgs));
+            }
+        } else {
+            setRawArgsText('');
+        }
+    }, [selectedIdx, serversDraft]);
 
     const isDirty = JSON.stringify(serversDraft) !== JSON.stringify(servers);
 
@@ -422,13 +440,28 @@ export function McpSettings() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Command size={14} /> 执行参数</label>
-                                                    <input type="text" value={argsToString(selectedServer.args || [])} onChange={(e) => updateServerDraftRow(selectedIdx!, 'args', e.target.value)} placeholder="--option arg..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
+                                                    <textarea 
+                                                        value={rawArgsText} 
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setRawArgsText(val);
+                                                            updateServerDraftRow(selectedIdx!, 'args', val);
+                                                        }} 
+                                                        placeholder="--option&#10;arg..." 
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200 min-h-[100px] resize-y focus:outline-none focus:border-indigo-500/50 transition-all" 
+                                                    />
                                                 </div>
                                             </>
                                         )}
 
-                                        <div className="pt-4 border-t border-slate-100 dark:border-white/5">
-                                            <button onClick={() => handleConnectTest(selectedServer)} className="w-full py-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-sm font-bold transition-all flex items-center justify-center gap-2">测试连接 (当前草稿)</button>
+                                        <div className="pt-2">
+                                            <button 
+                                                onClick={() => handleConnectTest(selectedServer)} 
+                                                className="w-full py-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 border border-indigo-100 dark:border-indigo-500/20 group"
+                                            >
+                                                <TerminalSquare size={16} className="group-hover:scale-110 transition-transform" />
+                                                测试连接
+                                            </button>
                                         </div>
                                     </div>
                                 ) : (
