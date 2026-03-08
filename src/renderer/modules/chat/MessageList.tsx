@@ -182,8 +182,8 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
     const isUser = message.role === 'user'
     const content = message.content || '';
     const processedContent = !isUser ? preprocessMarkdown(content) : content;
-    const { settings } = useSettingsStore();
-    const isDark = settings.theme === 'dark';
+    const theme = useSettingsStore(s => s.settings.theme);
+    const isDark = theme === 'dark';
     const syntaxTheme = isDark ? vscDarkPlus : oneLight;
 
     // Deduplicate content: if the message starts with the same text as the first step's thought,

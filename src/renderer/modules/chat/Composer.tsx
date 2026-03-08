@@ -25,7 +25,7 @@ const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string
 }
 
 function ModelSelector() {
-    const settings = useSettingsStore(s => s.settings)
+    const llm = useSettingsStore(s => s.settings.llm)
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const setActiveTab = useChatStore(s => s.setActiveTab)
     const [isOpen, setIsOpen] = useState(false)
@@ -48,42 +48,42 @@ function ModelSelector() {
     // Build the list of available models from configured providers
     const allProviderKeys = Array.from(new Set([
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
-        ...Object.keys(settings.llm.providers || {})
+        ...Object.keys(llm.providers || {})
     ]))
-
+    
     // Filter to only show providers that are enabled
     const availableProviders = allProviderKeys.filter(key => {
-        const config = settings.llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
+        const config = llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
         if (!config) return false
         return config.enabled === true
     })
-
-    const activeProvider = settings.llm.activeProvider || 'OpenAI'
-    const activeConfig = settings.llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
-
+    
+    const activeProvider = llm.activeProvider || 'OpenAI'
+    const activeConfig = llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
+    
     // Get active model display name
     const activeInstance = activeConfig?.models?.find(m => m.id === activeConfig.activeModelId)
     const activeDisplayName = activeInstance?.label || activeConfig?.model || 'Select Model'
-
+    
     const handleSelectModel = async (providerKey: string, modelId: string) => {
         setIsOpen(false)
         await updateSettings({
             llm: {
-                ...settings.llm,
+                ...llm,
                 activeProvider: providerKey,
                 providers: {
-                    ...settings.llm.providers,
+                    ...llm.providers,
                     [providerKey]: {
-                        ...(settings.llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]),
+                        ...(llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]),
                         activeModelId: modelId
                     }
                 }
             }
         })
     }
-
+    
     const allModels = availableProviders.flatMap(providerKey => {
-        const config = settings.llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+        const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
         return (config?.models || []).filter(m => m.enabled).map(model => ({
             providerKey,
             model,
@@ -194,19 +194,18 @@ function ModelSelector() {
 }
 
 function AccessIndicator() {
-    const settings = useSettingsStore(s => s.settings)
+    const coreToolSettings = useSettingsStore(s => s.settings.coreToolSettings)
     const updateSettings = useSettingsStore(s => s.updateSettings)
 
     // Determine current access mode from core tool settings
-    const coreToolSettings = settings.coreToolSettings || {}
-    const toolEntries = Object.values(coreToolSettings)
-    const autoCount = toolEntries.filter(t => t.trustLevel === 'Auto').length
+    const toolEntries = Object.values(coreToolSettings || {})
+    const autoCount = toolEntries.filter((t: any) => t.trustLevel === 'Auto').length
     const isFullAccess = toolEntries.length > 0 && autoCount >= toolEntries.length / 2
 
     const handleToggle = async () => {
         const newLevel = isFullAccess ? 'Ask' : 'Auto'
         const updated: Record<string, any> = {}
-        for (const [name, tool] of Object.entries(coreToolSettings)) {
+        for (const [name, tool] of Object.entries(coreToolSettings || {})) {
             updated[name] = { ...tool, trustLevel: newLevel }
         }
         await updateSettings({ coreToolSettings: updated })
@@ -406,13 +405,11 @@ function SkillSelector() {
 }
 
 function WorkspaceSelector() {
-    const settings = useSettingsStore(s => s.settings)
+    const workspacePath = useSettingsStore(s => s.settings.workspacePath)
+    const recentWorkspaces = useSettingsStore(s => s.settings.recentWorkspaces)
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
-
-    const workspacePath = settings.workspacePath || ''
-    const recentWorkspaces = settings.recentWorkspaces || []
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -426,7 +423,7 @@ function WorkspaceSelector() {
 
     const updateWorkspace = async (path: string) => {
         // filter out the path from recents if it exists, prepend it, and limit to 5
-        const newRecents = [path, ...recentWorkspaces.filter(p => p !== path)].slice(0, 5)
+        const newRecents = [path, ...(recentWorkspaces || []).filter(p => p !== path)].slice(0, 5)
         await updateSettings({
             workspacePath: path,
             recentWorkspaces: newRecents
@@ -491,7 +488,7 @@ function WorkspaceSelector() {
                         </button>
                     </div>
 
-                    {recentWorkspaces.length > 0 && (
+                    {recentWorkspaces && recentWorkspaces.length > 0 && (
                         <>
                             <div className="px-3 py-1.5 border-y border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
                                 <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">最近使用</span>
@@ -541,7 +538,6 @@ function WorkspaceSelector() {
 
 export function Composer() {
     const [input, setInput] = useState('')
-    const settings = useSettingsStore(s => s.settings)
     const isSending = useChatStore(s => s.isSending)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sendMessage = useChatStore(s => s.sendMessage)
