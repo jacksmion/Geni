@@ -211,6 +211,7 @@ const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200/80 dark:border-white/10 shadow-sm mt-1">
                     <Bot size={16} className="text-slate-700 dark:text-indigo-300" />
                 </div>
+
             )}
 
             {/* Content Container */}

@@ -80,6 +80,8 @@
     },
     "modelSettings": {
         "search": "Search...",
+        "import": "Import",
+        "export": "Export",
         "addProvider": "Add Custom Provider",
         "namePlaceholder": "Provider Name (e.g. My-LLM)",
         "add": "Add",
@@ -114,7 +116,14 @@
         "connectivityDesc": "Verify your API keys and endpoint settings.",
         "testSuccessList": "Connection successful! (Model list accessible)",
         "testSuccessChat": "Connection successful! (Chat completion works)",
-        "testFailed": "Connection failed"
+        "testFailed": "Connection failed",
+        "importSuccess": "Preset imported successfully!",
+        "importError": "Invalid preset file.",
+        "exportWithKey": "Do you want to include API Keys in the export?",
+        "fetchFailed": "Failed to fetch models: ",
+        "noModels": "No models configured yet.",
+        "startDiscover": "Start Discovering",
+        "custom": "Custom Provider"
     },
     "personaSettings": {
         "title": "Persona Settings",
@@ -215,6 +224,8 @@
     "save": "Save",
     "on": "ON",
     "off": "OFF",
+    "loading": "Loading...",
+    "availableModels": "Available Models",
     "tray": {
         "open": "Open Geni",
         "newTask": "New Task",

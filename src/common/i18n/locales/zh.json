@@ -80,6 +80,8 @@
     },
     "modelSettings": {
         "search": "搜索...",
+        "import": "导入",
+        "export": "导出",
         "addProvider": "添加自定义提供商",
         "namePlaceholder": "提供商名称 (如 My-LLM)",
         "add": "添加",
@@ -114,7 +116,14 @@
         "connectivityDesc": "验证您的 API 密钥和地址设置。",
         "testSuccessList": "连接成功！(可以获取模型列表)",
         "testSuccessChat": "连接成功！(对话接口正常)",
-        "testFailed": "连接失败"
+        "testFailed": "连接失败",
+        "importSuccess": "预设导入成功！",
+        "importError": "无效的预设文件。",
+        "exportWithKey": "导出时是否包含 API 密钥？",
+        "fetchFailed": "获取模型失败: ",
+        "noModels": "暂无已配置的模型。",
+        "startDiscover": "开始自动发现",
+        "custom": "自定义提供商"
     },
     "personaSettings": {
         "title": "个性化提示词 (Persona)",
@@ -215,6 +224,8 @@
     "save": "保存",
     "on": "开启",
     "off": "关闭",
+    "loading": "正在加载...",
+    "availableModels": "可用模型",
     "tray": {
         "open": "打开 Geni",
         "newTask": "新建任务",

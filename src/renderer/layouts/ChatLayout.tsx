@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Bot } from 'lucide-react'
+import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Cpu } from 'lucide-react'
 import { useChatStore } from '../store/useChatStore'
 import { useLayoutStore } from '../store/useLayoutStore'
 import { MessageList } from '../modules/chat/MessageList'
@@ -128,8 +128,9 @@ export function ChatLayout() {
                         <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto w-full h-full pb-[10vh] animate-in fade-in zoom-in-95 duration-500">
                             {/* Logo */}
                             <div className="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-[#ff512f] to-[#dd2476] flex items-center justify-center text-white mb-6 shadow-lg shadow-red-500/20">
-                                <Bot size={32} strokeWidth={2.2} className="text-white" />
+                                <Cpu size={32} strokeWidth={2.2} className="text-white" />
                             </div>
+
 
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-zinc-100 mb-3 tracking-tight">
                                 {t('chatLayout.startCollaborating')}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Bot, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Brain, Cloud, MessageSquare, Orbit, Terminal, Globe, Zap } from 'lucide-react'
+import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Globe, Zap } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
@@ -13,16 +13,17 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 // Provider display metadata
 const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string }> = {
-    'OpenAI': { icon: Bot, color: '#10a37f', label: 'OpenAI' },
-    'Anthropic': { icon: Zap, color: '#d97757', label: 'Anthropic' },
-    'DeepSeek': { icon: Brain, color: '#4d6df1', label: 'DeepSeek' },
-    'ZhipuAI': { icon: Globe, color: '#343b4d', label: '智谱 AI' },
-    'Volcengine': { icon: Cloud, color: '#ff4d4f', label: '火山引擎' },
-    'Qwen': { icon: MessageSquare, label: '通义千问', color: '#6340ff' },
-    'MiniMax': { icon: Orbit, label: 'MiniMax', color: '#ff7a00' },
+    'OpenAI': { icon: Cpu, color: '#10a37f', label: 'OpenAI' },
+    'Anthropic': { icon: Cpu, color: '#d97757', label: 'Anthropic' },
+    'DeepSeek': { icon: Cpu, color: '#4d6df1', label: 'DeepSeek' },
+    'ZhipuAI': { icon: Cpu, color: '#343b4d', label: '智谱 AI' },
+    'Volcengine': { icon: Cpu, color: '#ff4d4f', label: '火山引擎' },
+    'Qwen': { icon: Cpu, label: '通义千问', color: '#6340ff' },
+    'MiniMax': { icon: Cpu, label: 'MiniMax', color: '#ff7a00' },
     'Ollama': { icon: Cpu, color: '#444', label: 'Ollama' },
-    'Local': { icon: Terminal, color: '#64748b', label: 'Local' },
+    'Local': { icon: Cpu, color: '#64748b', label: 'Local' },
 }
+
 
 function ModelSelector() {
     const llm = useSettingsStore(s => s.settings.llm)

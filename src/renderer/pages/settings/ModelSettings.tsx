@@ -3,39 +3,27 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } 
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import { 
-    Bot, Check, Globe, Key, Cpu, Zap, Search, Loader2, Plus, X, 
-    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown,
-    Brain, Cloud, MessageSquare, Orbit, Monitor, Terminal
+    Check, Key, Cpu, Zap, Search, Loader2, Plus, X, Globe,
+    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
 
-// 定义支持的提供商元数据
-const PROVIDER_ICONS: Record<string, (props: any) => React.ReactNode> = {
-    'OpenAI': (props) => (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
-    ),
-    'Anthropic': (props) => (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M5 22h14M12 2v20M5 12h14" /></svg>
-    ),
-    'DeepSeek': (props) => (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><circle cx="12" cy="11" r="3" /></svg>
-    )
-};
 
 const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, color?: string }> = {
-    'OpenAI': { icon: PROVIDER_ICONS['OpenAI'], label: 'OpenAI', desc: 'GPT-5.2, GPT-4o', color: '#10a37f' },
-    'Anthropic': { icon: PROVIDER_ICONS['Anthropic'], label: 'Anthropic', desc: 'Claude 4.6 Opus/Sonnet', color: '#d97757' },
-    'DeepSeek': { icon: PROVIDER_ICONS['DeepSeek'], label: 'DeepSeek', desc: 'DeepSeek-V3.2', color: '#4d6df1' },
-    'ZhipuAI': { icon: Globe, label: '智谱 AI', desc: 'GLM-4, GLM-3', color: '#343b4d' },
-    'Volcengine': { icon: Cloud, label: '火山引擎', desc: 'Doubao 豆包模型', color: '#ff4d4f' },
-    'Qwen': { icon: MessageSquare, label: '通义千问', desc: 'Qwen 3.5, Qwen 3', color: '#6340ff' },
-    'MiniMax': { icon: Orbit, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
+    'OpenAI': { icon: Cpu, label: 'OpenAI', desc: 'GPT-5.2, GPT-4o', color: '#10a37f' },
+    'Anthropic': { icon: Cpu, label: 'Anthropic', desc: 'Claude 4.6 Opus/Sonnet', color: '#d97757' },
+    'DeepSeek': { icon: Cpu, label: 'DeepSeek', desc: 'DeepSeek-V3.2', color: '#4d6df1' },
+    'ZhipuAI': { icon: Cpu, label: '智谱 AI', desc: 'GLM-4, GLM-3', color: '#343b4d' },
+    'Volcengine': { icon: Cpu, label: '火山引擎', desc: 'Doubao 豆包模型', color: '#ff4d4f' },
+    'Qwen': { icon: Cpu, label: '通义千问', desc: 'Qwen 3.5, Qwen 3', color: '#6340ff' },
+    'MiniMax': { icon: Cpu, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
     'Ollama': { icon: Cpu, label: 'Ollama', desc: 'Llama 3, Mistral (Local)', color: '#444' },
-    'LM Studio': { icon: Monitor, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
-    'Local': { icon: Terminal, label: 'Local (Custom)', desc: 'Custom OpenAI-compatible', color: '#64748b' },
+    'LM Studio': { icon: Cpu, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
+    'Local': { icon: Cpu, label: 'Local (Custom)', desc: 'Custom OpenAI-compatible', color: '#64748b' },
 };
+
 
 export function ModelSettings() {
     const llm = useSettingsStore(s => s.settings.llm);
@@ -326,17 +314,21 @@ export function ModelSettings() {
                             className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100"
                         />
                     </div>
-                    <div className="flex items-center bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden">
-                        <button onClick={handleImportPreset} className="p-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.import')}>
+                    <div className="flex items-center bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shrink-0">
+                        <button onClick={handleImportPreset} className="flex items-center gap-1 px-2 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.import')}>
                             <Upload size={14} />
+                            <span className="text-[11px] font-medium">{t('modelSettings.import')}</span>
                         </button>
-                        <button onClick={handleExportPreset} className="p-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.export')}>
+                        <button onClick={handleExportPreset} className="flex items-center gap-1 px-2 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.export')}>
                             <Download size={14} />
+                            <span className="text-[11px] font-medium">{t('modelSettings.export')}</span>
                         </button>
                         <button onClick={() => setIsAdding(!isAdding)} className="p-2 hover:bg-slate-50 dark:hover:bg-white/5 text-indigo-500 transition-colors" title={t('modelSettings.addProvider')}>
                             <Plus size={14} />
                         </button>
                     </div>
+
+
                 </div>
 
                 {isAdding && (
@@ -351,7 +343,7 @@ export function ModelSettings() {
 
                 <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
                     {filteredProviders.map(key => {
-                        const meta = PROVIDER_META[key] || { icon: Bot, label: key, desc: t('modelSettings.custom') };
+                        const meta = PROVIDER_META[key] || { icon: Cpu, label: key, desc: t('modelSettings.custom') };
                         const isSelected = selectedProvider === key;
                         const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
                         const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
@@ -504,7 +496,7 @@ export function ModelSettings() {
 
                             {(!currentProviderConfig.models || currentProviderConfig.models.length === 0) && (
                                 <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 dark:border-white/5 rounded-3xl text-slate-400">
-                                    <Bot size={48} className="mb-3 opacity-20" />
+                                    <Cpu size={48} className="mb-3 opacity-20" />
                                     <p className="text-xs">{t('modelSettings.noModels', 'No models configured yet.')}</p>
                                     <button onClick={handleFetchModels} className="mt-4 text-indigo-500 text-xs font-bold hover:underline">{t('modelSettings.startDiscover', 'Start Discovering')}</button>
                                 </div>
