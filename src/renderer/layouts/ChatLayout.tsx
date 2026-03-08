@@ -24,7 +24,7 @@ export function ChatLayout() {
     const { t } = useTranslation()
 
     // Artifact 面板宽度与缩放逻辑
-    const [panelWidth, setPanelWidth] = React.useState(520)
+    const [panelWidth, setPanelWidth] = React.useState(360)
     const isResizing = React.useRef(false)
 
     // 智能联动逻辑：当中间区域被挤压过窄时自动折叠侧边栏
@@ -51,7 +51,7 @@ export function ChatLayout() {
         const onMouseMove = (moveEvent: MouseEvent) => {
             if (!isResizing.current) return
             const deltaX = moveEvent.clientX - initialX
-            const newWidth = Math.max(380, Math.min(initialWidth - deltaX, window.innerWidth - 400))
+            const newWidth = Math.max(360, Math.min(initialWidth - deltaX, window.innerWidth - 400))
             setPanelWidth(newWidth)
         }
 

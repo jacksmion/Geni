@@ -26,6 +26,8 @@ function createWindow(isDark: boolean) {
     const win = new BrowserWindow({
         width: 950,
         height: 640,
+        minWidth: 860,
+        minHeight: 600,
         webPreferences: {
             preload: preloadPath,
             nodeIntegration: false,

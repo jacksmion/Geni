@@ -231,5 +231,13 @@
         "newTask": "New Task",
         "settings": "Settings",
         "quit": "Quit"
+    },
+    "sidebar": {
+        "chat": "Tasks",
+        "skills": "Skills",
+        "scheduler": "Automation",
+        "settings": "Settings",
+        "lightMode": "Switch to Light Mode",
+        "darkMode": "Switch to Dark Mode"
     }
 }

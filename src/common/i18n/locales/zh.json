@@ -231,5 +231,13 @@
         "newTask": "新建任务",
         "settings": "设置",
         "quit": "退出"
+    },
+    "sidebar": {
+        "chat": "任务",
+        "skills": "技能",
+        "scheduler": "自动化",
+        "settings": "设置",
+        "lightMode": "切换到浅色模式",
+        "darkMode": "切换到深色模式"
     }
 }
