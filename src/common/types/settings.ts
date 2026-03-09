@@ -15,9 +15,9 @@ export interface ProviderConfig {
     baseUrl: string;
     apiKey: string;
     enabled?: boolean;   // 是否在提供商列表中启用
-    
+
     // 多模型支持
-    models: ModelInstance[]; 
+    models: ModelInstance[];
     activeModelId?: string;
 
     // 旧字段兼容 (Migration 之后可清理)
@@ -96,6 +96,7 @@ export interface AppSettings {
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
     recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
     shortcuts?: Record<string, string>; // 快捷键配置 ID -> Key Combination
+    autoOpenArtifact: boolean; // 是否自动打开 Artifact 面板
 }
 
 // 默认的提供商配置
@@ -222,5 +223,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
         'search_task': 'Ctrl+F',
         'open_settings': 'Ctrl+,',
         'toggle_sidebar': 'Ctrl+B'
-    }
+    },
+    autoOpenArtifact: true
 };

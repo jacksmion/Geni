@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ChatMessage, ChatSession } from '../../common/types/chat'
 import { extractPathAndContent } from '../utils/artifact'
+import { useSettingsStore } from './useSettingsStore'
 
 interface ActiveArtifact {
     toolName: string;
@@ -414,10 +415,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
             }
 
-            if (latestArtifact &&
-                (latestArtifact.path !== get().activeArtifact?.path ||
-                    latestArtifact.content !== get().activeArtifact?.content)) {
-                get().setActiveArtifact(latestArtifact);
+            if (latestArtifact) {
+                const { autoOpenArtifact } = useSettingsStore.getState().settings;
+                const currentArtifact = get().activeArtifact;
+                const isDifferent = latestArtifact.path !== currentArtifact?.path || latestArtifact.content !== currentArtifact?.content;
+
+                if (isDifferent) {
+                    // Only auto-open if setting is enabled OR if the panel is already open (to keep it updated)
+                    if (autoOpenArtifact || currentArtifact !== null) {
+                        get().setActiveArtifact(latestArtifact);
+                    }
+                }
             }
 
             // Limit step UI updates more heavily since they're large objects

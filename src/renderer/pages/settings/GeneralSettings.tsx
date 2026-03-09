@@ -6,6 +6,7 @@ import { Switch } from '../../components/Switch';
 export function GeneralSettings() {
     const language = useSettingsStore(s => s.settings.language);
     const autoStart = useSettingsStore(s => s.settings.autoStart);
+    const autoOpenArtifact = useSettingsStore(s => s.settings.autoOpenArtifact);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
 
@@ -38,6 +39,18 @@ export function GeneralSettings() {
                         <Switch
                             checked={autoStart || false}
                             onChange={(checked) => updateSettings({ autoStart: checked })}
+                        />
+                    </div>
+                </div>
+
+                {/* Auto-open Artifact */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">自动打开 Artifact 面板</h3>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600 dark:text-gray-400">调用工具产生输出时，是否自动弹窗显示详情</span>
+                        <Switch
+                            checked={autoOpenArtifact ?? true}
+                            onChange={(checked) => updateSettings({ autoOpenArtifact: checked })}
                         />
                     </div>
                 </div>
