@@ -9,6 +9,7 @@ import { ToolRegistry } from '../services/tools/ToolRegistry';
 import { AppSettings } from '../../common/types/settings';
 import { ToolController } from './ToolController';
 import { Skill } from '../../common/types/skill';
+import { MemoryStore } from '../services/memory/MemoryStore';
 
 /**
  * Agent Controller
@@ -36,12 +37,13 @@ export class AgentController {
         settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
-        toolController: ToolController
+        toolController: ToolController,
+        memoryStore: MemoryStore
     ) {
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
-        this.agentRuntime = new AgentRuntime(settings, toolRegistry);
+        this.agentRuntime = new AgentRuntime(settings, toolRegistry, memoryStore);
 
         this.setupResultListeners();
     }

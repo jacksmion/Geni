@@ -13,6 +13,8 @@ import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
 import { PathManager } from '../../PathManager';
 import { WebFetchTool } from './WebFetchTool';
+import { MemorizeTool } from './MemorizeTool';
+import { MemoryStore } from '../../memory/MemoryStore';
 
 export class CoreToolManager {
     private registry: ToolRegistry;
@@ -20,13 +22,15 @@ export class CoreToolManager {
     private skillRegistry: SkillRegistry;
     private workspacePath: string;
     private pathManager: PathManager;
+    private memoryStore: MemoryStore;
 
-    constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string, pathManager: PathManager) {
+    constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string, pathManager: PathManager, memoryStore: MemoryStore) {
         this.registry = registry;
         this.configManager = configManager;
         this.skillRegistry = skillRegistry;
         this.workspacePath = workspacePath;
         this.pathManager = pathManager;
+        this.memoryStore = memoryStore;
     }
 
     /**
@@ -51,7 +55,8 @@ export class CoreToolManager {
             'todowrite': () => new TodoWriteTool(),
             'todoread': () => new TodoReadTool(),
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager),
-            'web_fetch': () => new WebFetchTool()
+            'web_fetch': () => new WebFetchTool(),
+            'memorize': () => new MemorizeTool(this.memoryStore)
         };
 
         // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
@@ -63,7 +68,8 @@ export class CoreToolManager {
             'todowrite',
             'todoread',
             'load_skill',
-            'web_fetch'
+            'web_fetch',
+            'memorize'
         ];
 
         // Register each tool if not explicitly disabled
@@ -107,7 +113,7 @@ export class CoreToolManager {
             'load_skill',
             'web_fetch'
         ];
-        const hiddenTools = ['todowrite', 'todoread', 'load_skill'];
+        const hiddenTools = ['todowrite', 'todoread', 'load_skill', 'memorize'];
 
         // This is a static list of all core tools we support, with their descriptions
         const allCoreTools = [
@@ -121,7 +127,8 @@ export class CoreToolManager {
             { name: 'todowrite', description: 'Create or update the todo list' },
             { name: 'todoread', description: 'Read the current todo list' },
             { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' },
-            { name: 'web_fetch', description: 'Fetch and parse web page content into Markdown' }
+            { name: 'web_fetch', description: 'Fetch and parse web page content into Markdown' },
+            { name: 'memorize', description: 'Save or delete long-term memories' }
         ];
 
         return allCoreTools
@@ -145,7 +152,7 @@ export class CoreToolManager {
         const allCoreTools = [
             'list', 'read', 'write', 'bash', 'edit',
             'glob', 'grep', 'todowrite', 'todoread',
-            'load_skill', 'web_fetch'
+            'load_skill', 'web_fetch', 'memorize'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));
 

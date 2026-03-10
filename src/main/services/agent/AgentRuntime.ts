@@ -31,6 +31,7 @@ import { TokenCounter } from './TokenCounter';
 import { Summarizer } from './Summarizer';
 import { withRetry, DEFAULT_LLM_RETRY, DEFAULT_TOOL_RETRY } from './RetryPolicy';
 import { classifyError, ErrorCategory } from './ErrorClassifier';
+import { MemoryStore } from '../memory/MemoryStore';
 
 // Phase 2: 认知层抽象
 import {
@@ -77,11 +78,13 @@ export class AgentRuntime implements IAgentService {
     private toolGuard: ToolGuard;
     private contextManager: ContextManager;
     private summarizer: Summarizer;
+    private memoryStore: MemoryStore;
     private stateChangeCallback?: (event: AgentStateEvent) => void;
 
-    constructor(settings: AppSettings, toolRegistry: ToolRegistry) {
+    constructor(settings: AppSettings, toolRegistry: ToolRegistry, memoryStore: MemoryStore) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
+        this.memoryStore = memoryStore;
         this.promptBuilder = new PromptBuilder({
             defaultBasePrompt: settings.systemPrompt
         });
@@ -263,7 +266,8 @@ export class AgentRuntime implements IAgentService {
             basePrompt: options?.systemPrompt,
             workspacePath: this.settings.workspacePath,
             skills: options?.skills,
-            language: this.settings.language
+            language: this.settings.language,
+            memory: this.memoryStore.read()
         };
         const systemPrompt = this.promptBuilder.buildSystemPrompt(context);
 

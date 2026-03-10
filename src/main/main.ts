@@ -14,6 +14,7 @@ import { SystemTrayManager } from './services/SystemTrayManager.js'
 
 // Tools
 import { CoreToolManager } from './services/tools/core/CoreToolManager.js'
+import { MemoryStore } from './services/memory/MemoryStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -142,7 +143,8 @@ app.whenReady().then(async () => {
     });
 
     // 4. Register Built-in Tools
-    const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath, pathManager);
+    const memoryStore = new MemoryStore(pathManager.getMemoryFile());
+    const coreToolManager = new CoreToolManager(toolRegistry, configManager, skillRegistry, workspacePath, pathManager, memoryStore);
     coreToolManager.initialize();
 
     // 5. Initialize Services
@@ -160,7 +162,7 @@ app.whenReady().then(async () => {
     }
 
     // 6. Initialize AppRouter (DI Container & IPC, with PathManager)
-    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager);
+    const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager, memoryStore);
     appRouter.initialize();
 
     const win = createWindow(isDark);

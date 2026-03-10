@@ -16,6 +16,7 @@ import { SchedulerService } from './services/scheduler/SchedulerService';
 import { SchedulerStorage } from './services/scheduler/SchedulerStorage';
 import { SchedulerController } from './controllers/SchedulerController';
 import { SystemTrayManager } from './services/SystemTrayManager';
+import { MemoryStore } from './services/memory/MemoryStore';
 
 /**
  * App Router
@@ -48,7 +49,8 @@ export class AppRouter {
         skillRegistry: SkillRegistry,
         mcpManager: McpManager,
         coreToolManager: CoreToolManager,
-        pathManager: PathManager
+        pathManager: PathManager,
+        memoryStore: MemoryStore
     ) {
         // Services
         this.configManager = configManager;
@@ -66,14 +68,15 @@ export class AppRouter {
         this.systemController = new SystemController(this.configManager, pathManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
-        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController);
+        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, memoryStore);
         this.systemController.setIMServiceManager(this.imServiceManager);
 
         this.agentController = new AgentController(
             settings,
             this.toolRegistry,
             this.sessionManager,
-            this.toolController
+            this.toolController,
+            memoryStore
         );
         this.sessionController = new SessionController(this.sessionManager);
 
@@ -84,7 +87,8 @@ export class AppRouter {
             this.toolRegistry,
             this.sessionManager,
             this.toolController,
-            schedulerStorage
+            schedulerStorage,
+            memoryStore
         );
         this.schedulerController = new SchedulerController(this.schedulerService);
 

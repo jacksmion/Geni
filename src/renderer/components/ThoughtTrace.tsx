@@ -667,18 +667,21 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     );
 };
 
+const HIDDEN_TOOLS = new Set(['memorize']);
+
 const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) => {
-    if (steps.length === 0) return null;
+    const visibleSteps = steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool));
+    if (visibleSteps.length === 0) return null;
 
     return (
         <div className="flex flex-col mb-2">
-            {steps.map((step, idx) => (
+            {visibleSteps.map((step, idx) => (
                 <div key={idx} className="flex flex-col w-full">
                     {/* Always show thought if exists to maintain Intent -> Action flow */}
                     {step.thought && <ThoughtText thought={step.thought} />}
 
                     {/* Show tool call card if exists */}
-                    {step.tool && <ToolCallCard step={step} isLast={idx === steps.length - 1} />}
+                    {step.tool && <ToolCallCard step={step} isLast={idx === visibleSteps.length - 1} />}
                 </div>
             ))}
         </div>

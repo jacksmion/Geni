@@ -6,6 +6,7 @@ import { ToolController } from '../../controllers/ToolController';
 import { AgentRuntime, AgentRuntimeOptions } from '../agent';
 import { Skill } from '../../../common/types/skill';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
+import { MemoryStore } from '../memory/MemoryStore';
 
 export class IMServiceManager {
     private adapters: Map<string, IIMAdapter> = new Map();
@@ -14,17 +15,20 @@ export class IMServiceManager {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private abortControllers = new Map<string, AbortController>();
+    private memoryStore: MemoryStore;
 
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
-        toolController: ToolController
+        toolController: ToolController,
+        memoryStore: MemoryStore
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
+        this.memoryStore = memoryStore;
 
         // Register default adapters
         this.registerAdapter(new TelegramAdapter());
@@ -122,7 +126,7 @@ export class IMServiceManager {
         };
 
         // 4. Create stateless AgentRuntime for this execution
-        const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry);
+        const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry, this.memoryStore);
 
         try {
             // Use native typing status if supported, otherwise fallback to friendly text

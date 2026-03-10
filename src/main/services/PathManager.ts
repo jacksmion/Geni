@@ -77,6 +77,14 @@ export class PathManager {
     }
 
     /**
+     * Get memory file path
+     * @returns ~/.geni/memory.md
+     */
+    public getMemoryFile(): string {
+        return path.join(this.rootDir, 'memory.md');
+    }
+
+    /**
      * Get sessions directory
      * @returns ~/.geni/sessions/
      */

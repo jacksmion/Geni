@@ -16,6 +16,7 @@ import { ToolController } from '../../controllers/ToolController';
 import { AgentRuntime, AgentRuntimeOptions } from '../agent';
 import { Skill } from '../../../common/types/skill';
 import { SchedulerStorage, TaskExecutionLog } from './SchedulerStorage';
+import { MemoryStore } from '../memory/MemoryStore';
 
 /** 单个任务的运行时状态 */
 export interface TaskStatus {
@@ -51,6 +52,7 @@ export class SchedulerService {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private storage: SchedulerStorage;
+    private memoryStore: MemoryStore;
 
     /** 最大并发任务数 */
     private static readonly MAX_CONCURRENT = 3;
@@ -60,13 +62,15 @@ export class SchedulerService {
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        storage: SchedulerStorage
+        storage: SchedulerStorage,
+        memoryStore: MemoryStore
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
         this.storage = storage;
+        this.memoryStore = memoryStore;
 
         // 从磁盘恢复上次的运行状态
         this.restoreStatuses();
@@ -278,7 +282,7 @@ export class SchedulerService {
             };
 
             // 4. 创建独立的 AgentRuntime 实例
-            const runtime = new AgentRuntime(effectiveSettings, this.toolRegistry);
+            const runtime = new AgentRuntime(effectiveSettings, this.toolRegistry, this.memoryStore);
 
             // 5. 执行
             const tools = task.enableTools !== false ? this.toolRegistry.getTools() : [];

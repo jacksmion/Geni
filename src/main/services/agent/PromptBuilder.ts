@@ -25,6 +25,8 @@ export interface AgentContext {
     skills?: Skill[];
     /** 工作语言 */
     language?: 'zh' | 'en';
+    /** 长期记忆内容（由上层传入） */
+    memory?: string;
 }
 
 /**
@@ -96,7 +98,13 @@ export class PromptBuilder {
             parts.push(envInfo);
         }
 
-        // 3. 技能摘要 (Skill Summary)
+        // 3. 长期记忆 (Memory)
+        const memory = this.buildMemory(context);
+        if (memory) {
+            parts.push(memory);
+        }
+
+        // 4. 技能摘要 (Skill Summary)
         const skillSummary = this.buildSkillSummary(context);
         if (skillSummary) {
             parts.push(skillSummary);
@@ -168,6 +176,47 @@ ${skillList}
 
 **Important**: When you need to apply a skill's methodology, use the \`load_skill\` tool to load its full instructions and discover its associated resources first.
 </skills>`;
+    }
+
+    /**
+     * 构建长期记忆部分
+     * 
+     * 始终注入使用指引，确保 Agent 知道 memorize 工具的存在。
+     * 有已存在记忆时追加内容，包含 token 预算保护。
+     */
+    private buildMemory(context: AgentContext): string {
+        const instructions = `When a user asks you to remember something, you MUST call the \`memorize\` tool to persist it. Never just verbally acknowledge — only the tool call actually saves memory across sessions. Use it for user preferences, project rules, and important lessons. Do NOT memorize trivial or transient information.`;
+
+        if (!context.memory) {
+            return `<memory>\n${instructions}\n</memory>`;
+        }
+
+        const MAX_MEMORY_CHARS = 8000; // ≈ 2000 tokens
+        let content = context.memory;
+        if (content.length > MAX_MEMORY_CHARS) {
+            content = this.truncateMemory(content, MAX_MEMORY_CHARS);
+        }
+
+        return `<memory>\n${instructions}\n\n${content}\n</memory>`;
+    }
+
+    /**
+     * 截断记忆内容，保留最后（最新）的条目
+     */
+    private truncateMemory(content: string, maxChars: number): string {
+        // 按条目分割，保留最新的（靠后的）
+        const entries = content.split(/(?=<!-- memory:)/).filter(Boolean);
+        const result: string[] = [];
+        let totalLen = 0;
+
+        // 从后往前遍历，优先保留最新条目
+        for (let i = entries.length - 1; i >= 0; i--) {
+            if (totalLen + entries[i].length > maxChars) break;
+            result.unshift(entries[i]);
+            totalLen += entries[i].length;
+        }
+
+        return result.join('').trim();
     }
 
     /**
