@@ -296,7 +296,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
     const zoomPercent = Math.round(zoom * 100)
 
-    const Toolbar = () => (
+    const toolbar = (
         <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5">
             <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-white/5 rounded-lg p-0.5">
                 <button
@@ -333,7 +333,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
     return (
         <div className="not-prose group/mermaid rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-[#0c0c0e]">
-            <Toolbar />
+            {toolbar}
 
             <div className="relative">
                 {mode === 'preview' && (

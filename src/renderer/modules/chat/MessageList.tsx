@@ -178,7 +178,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
 
 
 
-const MessageItem = React.memo(({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) => {
+const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) {
     const isUser = message.role === 'user'
     const content = message.content || '';
     const processedContent = !isUser ? preprocessMarkdown(content) : content;

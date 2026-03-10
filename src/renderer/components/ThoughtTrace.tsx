@@ -356,8 +356,8 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
         e.stopPropagation();
         if (!step.toolInput && !step.observation) return;
 
-        let path = '';
-        let content = '';
+        let path: string;
+        let content: string;
 
         if (step.tool === 'bash') {
             let cmd = '> bash';

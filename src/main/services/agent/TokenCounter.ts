@@ -22,6 +22,7 @@ export class TokenCounter {
         const len = text.length;
         // Optimization: Use regex to count non-ASCII characters instead of per-character loop.
         // This is significantly faster for large strings.
+        // eslint-disable-next-line no-control-regex
         const nonAsciiCount = (text.match(/[^\x00-\x7F]/g) || []).length;
         const asciiCount = len - nonAsciiCount;
         return Math.ceil(asciiCount / 4 + nonAsciiCount / 1.5);

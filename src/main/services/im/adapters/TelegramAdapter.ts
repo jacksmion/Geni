@@ -48,7 +48,7 @@ export class TelegramAdapter implements IIMAdapter {
 
                 this.bot = new Bot(config.token, {
                     client: {
-                        // @ts-ignore
+                        // @ts-expect-error: grammy fetch parameters differ slightly from node-fetch
                         fetch: async (url: any, options: any = {}) => {
                             try {
                                 // Dynamically require node-fetch at runtime
@@ -221,7 +221,7 @@ export class TelegramAdapter implements IIMAdapter {
 
                 tempBot = new Bot(config.token, {
                     client: {
-                        // @ts-ignore
+                        // @ts-expect-error: grammy fetch parameters differ slightly from node-fetch
                         fetch: async (url: any, options: any = {}) => {
                             const nodeFetch = localRequire('node-fetch');
                             const { signal, ...restOptions } = options;
@@ -364,7 +364,9 @@ export class TelegramAdapter implements IIMAdapter {
                     if (ctx.messageId) {
                         await this.bot.api.editMessageText(chatId, ctx.messageId, rawContent);
                     }
-                } catch (innerE) {}
+                } catch (innerE) {
+                    console.warn('[TelegramAdapter] Fallback edit failed:', innerE);
+                }
             } else if (!e.message?.includes('message is not modified')) {
                 console.error(`[TelegramAdapter] Failed to edit/send message to ${chatId}:`, e.message);
             }
