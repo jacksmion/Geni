@@ -176,15 +176,97 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
     )
 }
 
+const MessageItemContext = React.createContext<{ isStreaming: boolean, messageContent: string }>({ isStreaming: false, messageContent: '' });
 
+const MarkdownComponents: any = {
+    p: ({ children }: any) => <p>{children}</p>,
+    ul: ({ className, ...props }: any) => <ul className={cn("list-disc pl-6 my-3 space-y-1", className)} {...props} />,
+    ol: ({ className, ...props }: any) => <ol className={cn("list-decimal pl-6 my-3 space-y-1", className)} {...props} />,
+    li: ({ className, ...props }: any) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
+    hr: (props: any) => <hr className="my-10" {...props} />,
+    pre: ({ children }: any) => <>{children}</>,
+    code: MarkdownCodeBlock
+};
+
+function MarkdownCodeBlock({ node, className, children, ...props }: any) {
+    const { isStreaming, messageContent } = React.useContext(MessageItemContext);
+    const theme = useSettingsStore(s => s.settings.theme);
+    const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
+
+    const match = /language-(\w+)/.exec(className || '');
+    const codeString = String(children).replace(/\n$/, '');
+    const isBlock = !!className || codeString.includes('\n');
+
+    if (isBlock && match && match[1] === 'thinking') {
+        const isThinkingComplete = /```thinking[\s\S]*?```/.test(messageContent || '');
+        return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
+    }
+
+    if (isBlock && match && match[1] === 'mermaid') {
+        return (
+            <Suspense fallback={
+                <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
+                        <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                        <span>Loading Mermaid...</span>
+                    </div>
+                </div>
+            }>
+                <MermaidBlock code={codeString} />
+            </Suspense>
+        )
+    }
+
+    if (isBlock && isStreaming) {
+        return (
+            <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+                <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
+                </div>
+                <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                    <code>{codeString}</code>
+                    {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />}
+                </pre>
+            </div>
+        )
+    }
+
+    return isBlock ? (
+        <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+            <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
+                <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
+                    <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
+                </div>
+            </div>
+            <SyntaxHighlighter
+                style={syntaxTheme}
+                language={match?.[1] || 'text'}
+                PreTag="div"
+                customStyle={{
+                    margin: 0,
+                    padding: '1.25rem',
+                    background: 'transparent',
+                    fontSize: '13px',
+                    lineHeight: '1.65',
+                    letterSpacing: '-0.01em'
+                }}
+                {...props}
+            >
+                {codeString}
+            </SyntaxHighlighter>
+        </div>
+    ) : (
+        <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[0.85em] font-medium", className)} {...props}>
+            {children}
+        </code>
+    )
+}
 
 const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) {
     const isUser = message.role === 'user'
     const content = message.content || '';
     const processedContent = !isUser ? preprocessMarkdown(content) : content;
-    const theme = useSettingsStore(s => s.settings.theme);
-    const isDark = theme === 'dark';
-    const syntaxTheme = isDark ? vscDarkPlus : oneLight;
 
     // Deduplicate content: if the message starts with the same text as the first step's thought,
     // we hide it from the prose body to avoid double-rendering, since ThoughtTrace now always shows it.
@@ -263,95 +345,14 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                             
                             prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
                             prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    p: ({ children }) => <p>{children}</p>,
-                                    ul: ({ className, ...props }) => <ul className={cn("list-disc pl-6 my-3 space-y-1", className)} {...props} />,
-                                    ol: ({ className, ...props }) => <ol className={cn("list-decimal pl-6 my-3 space-y-1", className)} {...props} />,
-                                    li: ({ className, ...props }) => <li className={cn("pl-1 marker:text-indigo-500 dark:marker:text-indigo-400", className)} {...props} />,
-                                    hr: ({ ...props }) => <hr className="my-10" {...props} />,
-                                    pre: ({ children }) => <>{children}</>,
-                                    code({ node, className, children, ...props }: any) {
-                                        const match = /language-(\w+)/.exec(className || '')
-                                        const codeString = String(children).replace(/\n$/, '')
-                                        // react-markdown v9+ no longer passes 'inline' prop. 
-                                        // Detect block based on presence of language class or newlines.
-                                        const isBlock = !!className || codeString.includes('\n');
-
-                                        if (isBlock && match && match[1] === 'thinking') {
-                                            const isThinkingComplete = /```thinking[\s\S]*?```/.test(message.content || '');
-                                            return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
-                                        }
-
-                                        // Mermaid diagram rendering
-                                        if (isBlock && match && match[1] === 'mermaid') {
-                                            return (
-                                                <Suspense fallback={
-                                                    <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
-                                                        <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
-                                                            <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
-                                                            <span>Loading Mermaid...</span>
-                                                        </div>
-                                                    </div>
-                                                }>
-                                                    <MermaidBlock code={codeString} />
-                                                </Suspense>
-                                            )
-                                        }
-
-                                        // High Performance Optimization: 
-                                        // During streaming, avoid heavy SyntaxHighlighter which can block the main thread.
-                                        // Use a simple pre block instead.
-                                        if (isBlock && isStreaming) {
-                                            return (
-                                                <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-                                                    <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                        <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
-                                                    </div>
-                                                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
-                                                        <code>{codeString}</code>
-                                                        {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />}
-                                                    </pre>
-                                                </div>
-                                            )
-                                        }
-
-                                        return isBlock ? (
-                                            <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-                                                <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                                                    <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
-                                                    <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
-                                                        <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
-                                                    </div>
-                                                </div>
-                                                <SyntaxHighlighter
-                                                    style={syntaxTheme}
-                                                    language={match?.[1] || 'text'}
-                                                    PreTag="div"
-                                                    customStyle={{
-                                                        margin: 0,
-                                                        padding: '1.25rem',
-                                                        background: 'transparent',
-                                                        fontSize: '13px',
-                                                        lineHeight: '1.65',
-                                                        letterSpacing: '-0.01em'
-                                                    }}
-                                                    {...props}
-                                                >
-                                                    {codeString}
-                                                </SyntaxHighlighter>
-                                            </div>
-                                        ) : (
-                                            <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[0.85em] font-medium", className)} {...props}>
-                                                {children}
-                                            </code>
-                                        )
-                                    }
-                                }}
-                            >
-                                {displayContent}
-                            </ReactMarkdown>
+                            <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: message.content || '' }}>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={MarkdownComponents}
+                                >
+                                    {displayContent}
+                                </ReactMarkdown>
+                            </MessageItemContext.Provider>
                         </div>
 
 
