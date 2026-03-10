@@ -88,7 +88,9 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "package.json"
+      "build/icon.png",
+      "package.json",
+      "node_modules/**/*"
     ],
     "extraResources": [
       {
@@ -99,13 +101,24 @@
         ]
       }
     ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Geni",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis",
         "portable"
       ]
     },
     "mac": {
+      "icon": "build/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -113,6 +126,7 @@
       "category": "public.app-category.productivity"
     },
     "linux": {
+      "icon": "build/icon.png",
       "target": [
         "AppImage",
         "deb"

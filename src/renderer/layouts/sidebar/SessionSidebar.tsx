@@ -7,17 +7,14 @@ import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 
 export function SessionSidebar() {
-    const sessionsMetaStr = useChatStore(s => JSON.stringify(
-        Object.values(s.sessions).map(({ id, title, updatedAt }) => ({ id, title, updatedAt }))
-    ));
+    const sessionMetas = useChatStore(s => s.sessionMetas);
     const sessions = useMemo(() => {
-        const parsed = JSON.parse(sessionsMetaStr) as { id: string, title?: string, updatedAt: number }[];
         // Reconstruct a Record-like object for groupedSessions
-        return parsed.reduce((acc, current) => {
+        return sessionMetas.reduce((acc, current) => {
             acc[current.id] = current as any;
             return acc;
         }, {} as Record<string, any>);
-    }, [sessionsMetaStr]);
+    }, [sessionMetas]);
 
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const switchSession = useChatStore(s => s.switchSession)

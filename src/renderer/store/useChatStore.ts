@@ -11,6 +11,7 @@ interface ActiveArtifact {
 
 interface ChatState {
     sessions: Record<string, ChatSession>
+    sessionMetas: { id: string, title?: string, updatedAt: number }[]
     activeSessionId: string
     isSending: boolean
     activeTab: 'chat' | 'skills' | 'scheduler' | 'settings'
@@ -53,6 +54,7 @@ const createDefaultSession = (): ChatSession => {
 
 export const useChatStore = create<ChatState>((set, get) => ({
     sessions: {},
+    sessionMetas: [],
     activeSessionId: '',
     isSending: false,
     activeTab: 'chat',
@@ -68,9 +70,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             // Convert to Record
             const sessions: Record<string, ChatSession> = {};
+            const sessionMetas: { id: string, title?: string, updatedAt: number }[] = [];
             list.forEach((meta: any) => {
                 // Ensure messages is initialized (even if empty) to satisfy type
                 sessions[meta.id] = { ...meta, messages: [] };
+                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt });
             });
 
             if (list.length > 0) {
@@ -80,7 +84,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const messages = await window.electronAPI.session.getHistory(activeId);
                 sessions[activeId].messages = messages;
 
-                set({ sessions, activeSessionId: activeId });
+                set({ sessions, sessionMetas, activeSessionId: activeId });
             } else {
                 // Init default if empty
                 // Create via backend
@@ -99,6 +103,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
                 set({
                     sessions: { [defaultSes.id]: defaultSes },
+                    sessionMetas: [{ id: defaultSes.id, title: defaultSes.title, updatedAt: defaultSes.updatedAt }],
                     activeSessionId: defaultSes.id
                 });
             }
@@ -125,6 +130,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             set(state => ({
                 sessions: { ...state.sessions, [newSession.id]: newSession },
+                sessionMetas: [{ id: newSession.id, title: newSession.title, updatedAt: newSession.updatedAt }, ...state.sessionMetas],
                 activeSessionId: newSession.id,
                 activeTab: 'chat'
             }));
@@ -184,7 +190,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
                         nextActiveId = '';
                     }
                 }
-                return { sessions: rest, activeSessionId: nextActiveId };
+                return { 
+                    sessions: rest, 
+                    sessionMetas: state.sessionMetas.filter(m => m.id !== id),
+                    activeSessionId: nextActiveId 
+                };
             });
         } catch (error) {
             console.error('Failed to delete session', id, ':', error);
@@ -197,9 +207,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (!session) return state;
 
             const updated = { ...session, title: newTitle };
+            
+            const newMetas = state.sessionMetas.map(m => 
+                m.id === id ? { ...m, title: newTitle } : m
+            );
 
             return {
-                sessions: { ...state.sessions, [id]: updated }
+                sessions: { ...state.sessions, [id]: updated },
+                sessionMetas: newMetas
             };
         });
 
@@ -227,18 +242,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
             updatedAt: Date.now()
         };
 
+        let updatedMetas = state.sessionMetas;
         // Auto-title logic for first user message
         if (session.messages.length <= 1 && msg.role === 'user' && msg.content) {
             const potentialTitle = msg.content.trim().slice(0, 20);
             if (potentialTitle) {
                 updatedSession.title = potentialTitle;
                 window.electronAPI.session.save({ id: session.id, title: potentialTitle });
+                
+                updatedMetas = state.sessionMetas.map(m => 
+                    m.id === session.id ? { ...m, title: potentialTitle, updatedAt: updatedSession.updatedAt } : m
+                );
             }
+        } else {
+            // Update the timestamp for the active session in metas
+            updatedMetas = state.sessionMetas.map(m => 
+                m.id === session.id ? { ...m, updatedAt: updatedSession.updatedAt } : m
+            );
         }
 
         // 立即更新本地状态
         set({
-            sessions: { ...state.sessions, [state.activeSessionId]: updatedSession }
+            sessions: { ...state.sessions, [state.activeSessionId]: updatedSession },
+            sessionMetas: updatedMetas
         });
 
         // 用户消息立即保存到后端持久化（不等待 Agent 执行）

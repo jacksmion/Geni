@@ -1,6 +1,7 @@
 import React from 'react'
 import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Cpu } from 'lucide-react'
 import { useChatStore } from '../store/useChatStore'
+import { useShallow } from 'zustand/react/shallow'
 import { useLayoutStore } from '../store/useLayoutStore'
 import { MessageList } from '../modules/chat/MessageList'
 import { Composer } from '../modules/chat/Composer'
@@ -14,21 +15,15 @@ import { ArtifactPanel } from '../components/ArtifactPanel'
 export function ChatLayout() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const hasActiveArtifact = useChatStore(s => !!s.activeArtifact)
-    const currentSessionMetaStr = useChatStore(s => {
+    const currentSessionMeta = useChatStore(useShallow(s => {
         const session = s.sessions[activeSessionId];
         if (!session) return null;
-        return JSON.stringify({
+        return {
             title: session.title,
             updatedAt: session.updatedAt,
             hasMessages: session.messages && session.messages.length > 0
-        });
-    });
-
-    // Parse it back to avoid selecting the entire session which updates on every token
-    const currentSessionMeta = React.useMemo(() => {
-        if (!currentSessionMetaStr) return null;
-        return JSON.parse(currentSessionMetaStr) as { title?: string, updatedAt: number, hasMessages: boolean };
-    }, [currentSessionMetaStr]);
+        };
+    }));
 
     const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
