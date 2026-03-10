@@ -256,7 +256,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const lastIdx = msgs.length - 1;
             msgs[lastIdx] = updater(msgs[lastIdx]);
 
-            const updatedSession = { ...session, messages: msgs, updatedAt: Date.now() };
+            // Do not update `updatedAt` here to avoid massive UI re-renders 
+            // of the sidebar and layout during high-frequency streaming updates.
+            const updatedSession = { ...session, messages: msgs };
 
             // No save needed to backend for streaming updates
 

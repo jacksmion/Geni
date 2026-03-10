@@ -13,8 +13,22 @@ import { ArtifactPanel } from '../components/ArtifactPanel'
 
 export function ChatLayout() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
-    const activeArtifact = useChatStore(s => s.activeArtifact)
-    const currentSession = useChatStore(s => s.sessions[activeSessionId])
+    const hasActiveArtifact = useChatStore(s => !!s.activeArtifact)
+    const currentSessionMetaStr = useChatStore(s => {
+        const session = s.sessions[activeSessionId];
+        if (!session) return null;
+        return JSON.stringify({
+            title: session.title,
+            updatedAt: session.updatedAt,
+            hasMessages: session.messages && session.messages.length > 0
+        });
+    });
+
+    // Parse it back to avoid selecting the entire session which updates on every token
+    const currentSessionMeta = React.useMemo(() => {
+        if (!currentSessionMetaStr) return null;
+        return JSON.parse(currentSessionMetaStr) as { title?: string, updatedAt: number, hasMessages: boolean };
+    }, [currentSessionMetaStr]);
 
     const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
@@ -29,7 +43,7 @@ export function ChatLayout() {
 
     // 智能联动逻辑：当中间区域被挤压过窄时自动折叠侧边栏
     React.useEffect(() => {
-        if (activeArtifact && !sidebarCollapsed) {
+        if (hasActiveArtifact && !sidebarCollapsed) {
             // 计算剩余宽度 (窗口总宽 - 面板宽 - 侧边栏宽 - 间距)
             const remainingChatWidth = window.innerWidth - panelWidth - sidebarWidth - 40;
             const THRESHOLD = 500; // 中间区域的最小舒适宽度
@@ -38,7 +52,7 @@ export function ChatLayout() {
                 setSidebarCollapsed(true)
             }
         }
-    }, [panelWidth, activeArtifact, sidebarCollapsed, sidebarWidth, setSidebarCollapsed])
+    }, [panelWidth, hasActiveArtifact, sidebarCollapsed, sidebarWidth, setSidebarCollapsed])
 
     const startResizing = React.useCallback((e: React.MouseEvent) => {
         isResizing.current = true
@@ -67,7 +81,7 @@ export function ChatLayout() {
         window.addEventListener('mouseup', onMouseUp)
     }, [panelWidth])
 
-    const hasMessages = currentSession && currentSession.messages && currentSession.messages.length > 0;
+    const hasMessages = currentSessionMeta?.hasMessages || false;
 
     return (
         <div className="flex h-full w-full overflow-hidden">
@@ -77,7 +91,7 @@ export function ChatLayout() {
                 <main
                     className="flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#0a0a0c] transition-all duration-300 ease-in-out"
                     style={{
-                        marginRight: activeArtifact ? `${panelWidth + 12}px` : '0px',
+                        marginRight: hasActiveArtifact ? `${panelWidth + 12}px` : '0px',
                         width: 'auto',
                         flex: '1 1 0%'
                     }}
@@ -94,13 +108,13 @@ export function ChatLayout() {
                                 {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
                             </button>
 
-                            {currentSession ? (
+                            {currentSessionMeta ? (
                                 <div className="flex items-center gap-2 min-w-0">
                                     <h1 className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
-                                        {currentSession.title || '新任务'}
+                                        {currentSessionMeta.title || '新任务'}
                                     </h1>
                                     <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0 tabular-nums hidden md:inline">
-                                        {new Date(currentSession.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                        {new Date(currentSessionMeta.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
                             ) : (
@@ -148,7 +162,7 @@ export function ChatLayout() {
                 </main>
 
                 {/* Floating Right Panel: Artifact/Code Preview */}
-                {activeArtifact && (
+                {hasActiveArtifact && (
                     <aside
                         style={{ width: `${panelWidth}px` }}
                         className="absolute top-30 right-2 h-[calc(100vh-180px)] flex flex-col overflow-hidden animate-in slide-in-from-right-8 fade-in-0 duration-500 ease-out z-50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] border border-slate-200/10 dark:border-white/10 bg-white/80 dark:bg-[#0d1117]/85 backdrop-blur-2xl ring-1 ring-black/5"
