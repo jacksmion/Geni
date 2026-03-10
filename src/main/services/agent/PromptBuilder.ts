@@ -185,7 +185,13 @@ ${skillList}
      * 有已存在记忆时追加内容，包含 token 预算保护。
      */
     private buildMemory(context: AgentContext): string {
-        const instructions = `When a user asks you to remember something, you MUST call the \`memorize\` tool to persist it. Never just verbally acknowledge — only the tool call actually saves memory across sessions. Use it for user preferences, project rules, and important lessons. Do NOT memorize trivial or transient information.`;
+        const instructions = `You have a \`memorize\` tool for persisting long-term memories across sessions.
+**Proactive**: Automatically detect and save these WITHOUT being asked:
+- Personal facts: name, age, occupation, work history, life events
+- Preferences: tech choices, communication style, tool/format preferences
+- Important decisions: key judgments or choices the user has made
+**Reactive**: When a user explicitly asks you to remember something, ALWAYS call the tool. Never just verbally acknowledge.
+**Rules**: Do NOT memorize trivial info (one-off questions, temp paths). Check existing memories to avoid duplicates — update existing entries instead of creating new ones.`;
 
         if (!context.memory) {
             return `<memory>\n${instructions}\n</memory>`;
