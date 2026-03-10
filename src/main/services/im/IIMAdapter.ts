@@ -9,6 +9,7 @@ export interface IMMessage {
 
 export interface SendOptions {
     throttleMs?: number;
+    isComplete?: boolean;
 }
 
 export interface IIMAdapter {

@@ -10,6 +10,8 @@ import throttle from 'lodash/throttle';
 interface ThrottleContext {
     buffer: string;
     messageId?: number;
+    draftId?: number;
+    isComplete?: boolean;
     lastSentBuffer: string;
 }
 
@@ -311,15 +313,21 @@ export class TelegramAdapter implements IIMAdapter {
 
         let ctx = this.sessionMap.get(sessionId);
         if (!ctx) {
-            ctx = { buffer: '', lastSentBuffer: '' };
+            // Generate a random draftId (must be non-zero, within safe integer limits)
+            const draftId = Math.floor(Math.random() * 100000000) + 1;
+            ctx = { buffer: '', lastSentBuffer: '', draftId };
             this.sessionMap.set(sessionId, ctx);
         }
 
         ctx.buffer = content;
+        if (options?.isComplete !== undefined) {
+            ctx.isComplete = options.isComplete;
+        }
 
-        const throttleMs = options?.throttleMs !== undefined ? options.throttleMs : 1500;
+        // We can use a lower throttle or dynamic throttle since draft is cheap
+        const throttleMs = options?.throttleMs !== undefined ? options.throttleMs : 100;
 
-        if (throttleMs === 0) {
+        if (throttleMs === 0 || ctx.isComplete) {
             await this.flushMessage(sessionId);
         } else {
             let throttledFlush = this.throttleFns.get(sessionId);
@@ -335,9 +343,16 @@ export class TelegramAdapter implements IIMAdapter {
         if (!this.bot) return;
 
         const ctx = this.sessionMap.get(sessionId);
-        if (!ctx || ctx.buffer === ctx.lastSentBuffer) return; // No change
+        if (!ctx || (!ctx.isComplete && ctx.buffer === ctx.lastSentBuffer && ctx.buffer !== '')) return; // No change
 
-        const chatId = sessionId.replace('tg_', '');
+        const chatIdStr = sessionId.replace('tg_', '');
+        const chatId = parseInt(chatIdStr, 10);
+        
+        if (isNaN(chatId)) {
+            console.warn(`[TelegramAdapter] Invalid chat ID for draft/message: ${chatIdStr}`);
+            return;
+        }
+
         // Limit total length to 4000
         const rawContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
         
@@ -349,11 +364,29 @@ export class TelegramAdapter implements IIMAdapter {
                 parse_mode: 'HTML',
             };
 
-            if (!ctx.messageId) {
-                const msg = await this.bot.api.sendMessage(chatId, safeHtml, sendOptions);
-                ctx.messageId = msg.message_id;
+            if (ctx.isComplete) {
+                // If it's final, we solidify the message
+                if (ctx.messageId) {
+                    await this.bot.api.editMessageText(chatId, ctx.messageId, safeHtml, sendOptions);
+                } else {
+                    const msg = await this.bot.api.sendMessage(chatId, safeHtml, sendOptions);
+                    ctx.messageId = msg.message_id;
+                }
             } else {
-                await this.bot.api.editMessageText(chatId, ctx.messageId, safeHtml, sendOptions);
+                // Not final, send draft state instead of creating messages
+                if (ctx.draftId) {
+                    await this.bot.api.sendMessageDraft(
+                        chatId,
+                        ctx.draftId,
+                        safeHtml,
+                        { parse_mode: 'HTML' }
+                    );
+                } else if (!ctx.messageId) {
+                    const msg = await this.bot.api.sendMessage(chatId, safeHtml, sendOptions);
+                    ctx.messageId = msg.message_id;
+                } else {
+                    await this.bot.api.editMessageText(chatId, ctx.messageId, safeHtml, sendOptions);
+                }
             }
             ctx.lastSentBuffer = ctx.buffer;
         } catch (e: any) {
@@ -361,11 +394,21 @@ export class TelegramAdapter implements IIMAdapter {
             if (e.message?.includes('can\'t parse entities')) {
                 console.warn('[TelegramAdapter] HTML Parse failed, falling back to plain text.');
                 try {
-                    if (ctx.messageId) {
-                        await this.bot.api.editMessageText(chatId, ctx.messageId, rawContent);
+                    if (ctx.isComplete) {
+                        if (ctx.messageId) {
+                            await this.bot.api.editMessageText(chatId, ctx.messageId, rawContent);
+                        } else {
+                            await this.bot.api.sendMessage(chatId, rawContent);
+                        }
+                    } else if (ctx.draftId) {
+                        await this.bot.api.sendMessageDraft(
+                            chatId,
+                            ctx.draftId,
+                            rawContent
+                        );
                     }
                 } catch (innerE) {
-                    console.warn('[TelegramAdapter] Fallback edit failed:', innerE);
+                    console.warn('[TelegramAdapter] Fallback edit/draft failed:', innerE);
                 }
             } else if (!e.message?.includes('message is not modified')) {
                 console.error(`[TelegramAdapter] Failed to edit/send message to ${chatId}:`, e.message);

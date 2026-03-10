@@ -133,7 +133,7 @@ export class IMServiceManager {
             if (adapter.sendChatAction) {
                 await adapter.sendChatAction(msg.sessionId, 'typing');
             } else {
-                await adapter.sendOrUpdateMessage(msg.sessionId, '正在处理请求...', { throttleMs: 0 });
+                await adapter.sendOrUpdateMessage(msg.sessionId, '正在处理请求...', { throttleMs: 0, isComplete: false });
             }
 
             let outputBuffer = '';
@@ -148,7 +148,7 @@ export class IMServiceManager {
                         outputBuffer += chunk;
                     }
                     if (outputBuffer.trim().length > 0) {
-                        adapter.sendOrUpdateMessage(msg.sessionId, outputBuffer, { throttleMs: 1500 }).catch(e => console.error(e));
+                        adapter.sendOrUpdateMessage(msg.sessionId, outputBuffer, { throttleMs: 100, isComplete: false }).catch(e => console.error(e));
                     }
                 },
                 (steps) => {
@@ -161,7 +161,7 @@ export class IMServiceManager {
 
             // Ensure final output is sent immediately without throttle
             if (result.finalAnswer) {
-                await adapter.sendOrUpdateMessage(msg.sessionId, result.finalAnswer, { throttleMs: 0 });
+                await adapter.sendOrUpdateMessage(msg.sessionId, result.finalAnswer, { throttleMs: 0, isComplete: true });
             }
 
             // 5. Update Session History
@@ -172,7 +172,7 @@ export class IMServiceManager {
             }
         } catch (error: any) {
             console.error(`[IMServiceManager] Agent execution failed for session ${msg.sessionId}:`, error);
-            await adapter.sendOrUpdateMessage(msg.sessionId, `[系统错误]: ${error.message}`, { throttleMs: 0 }).catch(e => console.error(e));
+            await adapter.sendOrUpdateMessage(msg.sessionId, `[系统错误]: ${error.message}`, { throttleMs: 0, isComplete: true }).catch(e => console.error(e));
         } finally {
             this.abortControllers.delete(msg.sessionId);
         }
