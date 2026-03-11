@@ -18,8 +18,10 @@ function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
 }
 
+const EMPTY_ARRAY: ChatMessage[] = []
+
 export function MessageList() {
-    const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || [])
+    const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
     const isSending = useChatStore(s => s.isSending)
     const endRef = useRef<HTMLDivElement>(null)
 
@@ -387,7 +389,27 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
             )}
         </div>
     )
+}, (prevProps, nextProps) => {
+    // 阻止由于 groupedMessages 生成新对象引起的大量无效重渲染
+    if (prevProps.isStreaming !== nextProps.isStreaming) return false;
+    if (prevProps.message.id !== nextProps.message.id) return false;
+    if (prevProps.message.content !== nextProps.message.content) return false;
+    if (prevProps.message.role !== nextProps.message.role) return false;
+    
+    const prevStepsLen = prevProps.message.steps?.length || 0;
+    const nextStepsLen = nextProps.message.steps?.length || 0;
+    if (prevStepsLen !== nextStepsLen) return false;
+    
+    if (prevStepsLen > 0) {
+        // 在流式输出工具调用和思考过程中，我们主要关心步骤数量和最后一个步骤的变化
+        const prevLastStep = prevProps.message.steps![prevStepsLen - 1];
+        const nextLastStep = nextProps.message.steps![nextStepsLen - 1];
+        if (prevLastStep.id !== nextLastStep.id) return false;
+        if (prevLastStep.thought !== nextLastStep.thought) return false;
+        if (prevLastStep.content !== nextLastStep.content) return false;
+    }
+    
+    return true;
 });
-
 
 
