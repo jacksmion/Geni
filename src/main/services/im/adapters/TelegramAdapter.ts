@@ -13,6 +13,8 @@ interface ThrottleContext {
     draftId?: number;
     isComplete?: boolean;
     lastSentBuffer: string;
+    flushPromise?: Promise<void>;
+    nextFlushRequested?: boolean;
 }
 
 export class TelegramAdapter implements IIMAdapter {
@@ -55,7 +57,7 @@ export class TelegramAdapter implements IIMAdapter {
                             try {
                                 // Dynamically require node-fetch at runtime
                                 const nodeFetch = localRequire('node-fetch');
-                                
+
                                 // node-fetch@2 might fail with native AbortSignal (instanceof check)
                                 // We remove the signal to ensure compatibility with modern grammY options
                                 const { signal, ...restOptions } = options;
@@ -194,7 +196,7 @@ export class TelegramAdapter implements IIMAdapter {
             this.runner = null;
             wasRunning = true;
         }
-        
+
         if (this.bot) {
             this.bot = null;
             wasRunning = true;
@@ -211,9 +213,9 @@ export class TelegramAdapter implements IIMAdapter {
 
     public async testConnection(config: TelegramConfig): Promise<{ success: boolean; message: string }> {
         if (!config.token) return { success: false, message: 'Token is required' };
-        
+
         const actualProxyUrl = config.proxyUrl || process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-        
+
         try {
             let tempBot: Bot;
             if (actualProxyUrl) {
@@ -236,9 +238,9 @@ export class TelegramAdapter implements IIMAdapter {
             }
 
             const me = await tempBot.api.getMe();
-            return { 
-                success: true, 
-                message: `Successfully connected as @${me.username}` 
+            return {
+                success: true,
+                message: `Successfully connected as @${me.username}`
             };
         } catch (e: any) {
             let errorMsg = e.message || 'Unknown error';
@@ -325,18 +327,55 @@ export class TelegramAdapter implements IIMAdapter {
         }
 
         // We can use a lower throttle or dynamic throttle since draft is cheap
-        const throttleMs = options?.throttleMs !== undefined ? options.throttleMs : 100;
+        const throttleMs = options?.throttleMs !== undefined ? options.throttleMs : 500;
 
         if (throttleMs === 0 || ctx.isComplete) {
-            await this.flushMessage(sessionId);
+            const throttledFlush = this.throttleFns.get(sessionId);
+            if (throttledFlush && typeof throttledFlush.cancel === 'function') {
+                throttledFlush.cancel();
+            }
+            await this.safeFlushMessage(sessionId);
         } else {
             let throttledFlush = this.throttleFns.get(sessionId);
             if (!throttledFlush) {
-                throttledFlush = throttle(() => this.flushMessage(sessionId), throttleMs, { leading: true, trailing: true });
+                throttledFlush = throttle(() => this.safeFlushMessage(sessionId), throttleMs, { leading: true, trailing: true });
                 this.throttleFns.set(sessionId, throttledFlush);
             }
             throttledFlush();
         }
+    }
+
+    private safeFlushMessage(sessionId: string): Promise<void> {
+        const ctx = this.sessionMap.get(sessionId);
+        if (!ctx) return Promise.resolve();
+
+        if (ctx.flushPromise) {
+            ctx.nextFlushRequested = true;
+            return ctx.flushPromise;
+        }
+
+        const doFlush = async () => {
+            while (true) {
+                try {
+                    await this.flushMessage(sessionId);
+                } catch (e) {
+                    console.error('[TelegramAdapter] Error in flushMessage queue:', e);
+                }
+                
+                if (ctx.nextFlushRequested) {
+                    ctx.nextFlushRequested = false;
+                    continue;
+                }
+                break;
+            }
+        };
+
+        ctx.flushPromise = doFlush().finally(() => {
+            const currentCtx = this.sessionMap.get(sessionId);
+            if (currentCtx) currentCtx.flushPromise = undefined;
+        });
+
+        return ctx.flushPromise;
     }
 
     private async flushMessage(sessionId: string) {
@@ -347,7 +386,7 @@ export class TelegramAdapter implements IIMAdapter {
 
         const chatIdStr = sessionId.replace('tg_', '');
         const chatId = parseInt(chatIdStr, 10);
-        
+
         if (isNaN(chatId)) {
             console.warn(`[TelegramAdapter] Invalid chat ID for draft/message: ${chatIdStr}`);
             return;
@@ -355,7 +394,7 @@ export class TelegramAdapter implements IIMAdapter {
 
         // Limit total length to 4000
         const rawContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
-        
+
         // Convert Markdown to safe HTML for Telegram
         const safeHtml = this.formatToTelegramHtml(rawContent);
 
@@ -398,7 +437,8 @@ export class TelegramAdapter implements IIMAdapter {
                         if (ctx.messageId) {
                             await this.bot.api.editMessageText(chatId, ctx.messageId, rawContent);
                         } else {
-                            await this.bot.api.sendMessage(chatId, rawContent);
+                            const fallbackMsg = await this.bot.api.sendMessage(chatId, rawContent);
+                            ctx.messageId = fallbackMsg.message_id;
                         }
                     } else if (ctx.draftId) {
                         await this.bot.api.sendMessageDraft(
@@ -443,11 +483,11 @@ export class TelegramAdapter implements IIMAdapter {
 
         // --- STREAMING SAFETY: Auto-close tags ---
         const openTags: string[] = [];
-        
+
         // Match <b> and <pre> and <code>
         const tagRegex = /<(b|pre|code|a|i)>/g;
         const closeRegex = /<\/(b|pre|code|a|i)>/g;
-        
+
         let match;
         const openMatches = Array.from(html.matchAll(tagRegex));
         const closeMatches = Array.from(html.matchAll(closeRegex)).map(m => m[1]);
