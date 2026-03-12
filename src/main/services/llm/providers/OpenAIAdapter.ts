@@ -101,6 +101,7 @@ export class OpenAIAdapter implements IChatModel {
                 tools: openaiTools,
                 tool_choice: this.convertToolChoice(options?.tool_choice),
             }),
+            stream_options: { include_usage: true }
         };
 
         try {

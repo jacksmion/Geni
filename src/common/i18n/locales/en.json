@@ -9,6 +9,7 @@
             "tools": "Built-in Tools",
             "im": "IM Integration",
             "shortcuts": "Shortcuts",
+            "usage": "Usage Stats",
             "about": "About"
         },
         "about": {
@@ -230,6 +231,26 @@
         "comingSoonDesc": "Integration for {{name}} is currently under development.",
         "saving": "Save Config",
         "saved": "Saved"
+    },
+    "usageSettings": {
+        "title": "Token Usage Statistics",
+        "todayTotal": "Today's Total",
+        "promptTokens": "Prompt Tokens",
+        "completionTokens": "Completion Tokens",
+        "today": "Today",
+        "tokens": "Tokens",
+        "byModel": "Usage by Model",
+        "dailyHistory": "Daily Usage History",
+        "noData": "No usage data recorded yet.",
+        "loading": "Loading usage statistics...",
+        "total": "Total"
+    },
+    "modelNames": {
+        "gpt-4o": "GPT-4o",
+        "gpt-4o-mini": "GPT-4o Mini",
+        "claude-3-5-sonnet-20240620": "Claude 3.5 Sonnet",
+        "deepseek-chat": "DeepSeek V3",
+        "deepseek-reasoner": "DeepSeek R1 (Reasoner)"
     },
     "save": "Save",
     "on": "ON",

@@ -17,6 +17,7 @@ import { SchedulerStorage } from './services/scheduler/SchedulerStorage';
 import { SchedulerController } from './controllers/SchedulerController';
 import { SystemTrayManager } from './services/SystemTrayManager';
 import { MemoryStore } from './services/memory/MemoryStore';
+import { UsageManager } from './services/usage/UsageManager';
 
 /**
  * App Router
@@ -41,6 +42,7 @@ export class AppRouter {
     private coreToolManager: CoreToolManager;
     private pathManager: PathManager;
     private currentWorkspacePath: string;
+    private usageManager: UsageManager;
     private trayManager: SystemTrayManager | null = null;
 
     constructor(
@@ -59,16 +61,22 @@ export class AppRouter {
         this.mcpManager = mcpManager;
         this.coreToolManager = coreToolManager;
         this.pathManager = pathManager;
+        this.usageManager = new UsageManager(pathManager);
         this.sessionManager = new SessionManager(pathManager);
 
         const settings = this.configManager.load();
         this.currentWorkspacePath = settings.workspacePath || process.cwd();
 
         // Controllers
-        this.systemController = new SystemController(this.configManager, pathManager);
+        this.systemController = new SystemController(this.configManager, pathManager, this.usageManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
-        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, memoryStore);
+        // Scheduler
+        const schedulerStorage = new SchedulerStorage(pathManager);
+        this.schedulerService = new SchedulerService(settings, this.toolRegistry, this.sessionManager, this.toolController, schedulerStorage, memoryStore, this.usageManager);
+        this.schedulerController = new SchedulerController(this.schedulerService);
+
+        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, memoryStore, this.usageManager);
         this.systemController.setIMServiceManager(this.imServiceManager);
 
         this.agentController = new AgentController(
@@ -76,21 +84,11 @@ export class AppRouter {
             this.toolRegistry,
             this.sessionManager,
             this.toolController,
-            memoryStore
+            memoryStore,
+            this.usageManager
         );
         this.sessionController = new SessionController(this.sessionManager);
 
-        // Scheduler
-        const schedulerStorage = new SchedulerStorage(pathManager);
-        this.schedulerService = new SchedulerService(
-            settings,
-            this.toolRegistry,
-            this.sessionManager,
-            this.toolController,
-            schedulerStorage,
-            memoryStore
-        );
-        this.schedulerController = new SchedulerController(this.schedulerService);
 
         // Wiring
         this.systemController.setSettingsChangeCallback(async (newSettings) => {

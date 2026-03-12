@@ -9,6 +9,7 @@
             "tools": "内置工具",
             "im": "IM 集成",
             "shortcuts": "快捷键",
+            "usage": "Token 用量统计",
             "about": "关于我们"
         },
         "about": {
@@ -230,6 +231,26 @@
         "comingSoonDesc": "{{name}} 的集成目前正在开发中。",
         "saving": "保存配置",
         "saved": "已保存"
+    },
+    "usageSettings": {
+        "title": "Token 用量统计",
+        "todayTotal": "今日总计",
+        "promptTokens": "提示词 Token (Prompt)",
+        "completionTokens": "回复 Token (Completion)",
+        "today": "今日",
+        "tokens": "Tokens",
+        "byModel": "按模型统计",
+        "dailyHistory": "近期每日消耗",
+        "noData": "暂无用量记录",
+        "loading": "正在加载统计数据...",
+        "total": "总计"
+    },
+    "modelNames": {
+        "gpt-4o": "GPT-4o 顶配版",
+        "gpt-4o-mini": "GPT-4o Mini 极速版",
+        "claude-3-5-sonnet-20240620": "Claude 3.5 Sonnet",
+        "deepseek-chat": "DeepSeek V3",
+        "deepseek-reasoner": "DeepSeek R1 (推理)"
     },
     "save": "保存",
     "on": "开启",

@@ -9,9 +9,10 @@ import { CoreToolSettings } from './settings/CoreToolSettings';
 import { PersonaSettings } from './settings/PersonaSettings';
 import { ImSettings } from './settings/ImSettings';
 import { ShortcutSettings } from './settings/ShortcutSettings';
-import { Command } from 'lucide-react';
+import { UsageSettings } from './settings/UsageSettings';
+import { Command, BarChart3 } from 'lucide-react';
 
-type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'im' | 'shortcuts' | 'about';
+type SettingsSection = 'general' | 'models' | 'persona' | 'mcp' | 'tools' | 'im' | 'shortcuts' | 'usage' | 'about';
 
 export default function Settings() {
     const { t } = useTranslation();
@@ -25,6 +26,7 @@ export default function Settings() {
         { id: 'tools', label: t('settings.sections.tools'), icon: BoxIcon },
         { id: 'im', label: t('settings.sections.im'), icon: MessageSquare },
         { id: 'shortcuts', label: t('settings.sections.shortcuts'), icon: Command },
+        { id: 'usage', label: t('settings.sections.usage'), icon: BarChart3 },
         { id: 'about', label: t('settings.sections.about'), icon: Info },
     ] as const;
 
@@ -90,6 +92,8 @@ export default function Settings() {
                     {activeSection === 'im' && <ImSettings />}
 
                     {activeSection === 'shortcuts' && <ShortcutSettings />}
+
+                    {activeSection === 'usage' && <UsageSettings />}
 
                     {activeSection === 'about' && (
                         <div className="max-w-2xl text-center pt-20 space-y-4">

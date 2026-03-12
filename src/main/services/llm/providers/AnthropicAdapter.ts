@@ -80,10 +80,17 @@ export class AnthropicAdapter implements IChatModel {
             // 用于跟踪当前工具调用的状态
             let currentToolCallIndex = -1;
             const toolCallMap = new Map<string, number>(); // tool_use_id -> index
+            let promptTokens = 0;
 
             // 处理流式事件
             for await (const event of stream) {
                 switch (event.type) {
+                    case 'message_start':
+                        if (event.message.usage) {
+                            promptTokens = event.message.usage.input_tokens;
+                        }
+                        break;
+
                     case 'content_block_start':
                         if (event.content_block.type === 'tool_use') {
                             currentToolCallIndex++;
@@ -125,16 +132,11 @@ export class AnthropicAdapter implements IChatModel {
                             type: 'message_end',
                             stop_reason: this.mapStopReason(event.delta.stop_reason),
                             usage: event.usage ? {
-                                prompt_tokens: 0, // Anthropic 在 message_start 中提供
+                                prompt_tokens: promptTokens,
                                 completion_tokens: event.usage.output_tokens,
-                                total_tokens: event.usage.output_tokens,
+                                total_tokens: promptTokens + event.usage.output_tokens,
                             } : undefined,
                         };
-                        break;
-
-                    case 'message_start':
-                        // 可以从这里获取 usage.input_tokens
-                        // 但为了简化，我们在 message_end 中处理
                         break;
                 }
             }

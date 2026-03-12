@@ -85,6 +85,14 @@ export class PathManager {
     }
 
     /**
+     * Get usage statistics file path
+     * @returns ~/.geni/usage.json
+     */
+    public getUsageFile(): string {
+        return path.join(this.rootDir, 'usage.json');
+    }
+
+    /**
      * Get sessions directory
      * @returns ~/.geni/sessions/
      */

@@ -32,6 +32,7 @@ import { Summarizer } from './Summarizer';
 import { withRetry, DEFAULT_LLM_RETRY, DEFAULT_TOOL_RETRY } from './RetryPolicy';
 import { classifyError, ErrorCategory } from './ErrorClassifier';
 import { MemoryStore } from '../memory/MemoryStore';
+import { UsageManager } from '../usage/UsageManager';
 
 // Phase 2: 认知层抽象
 import {
@@ -68,6 +69,8 @@ export interface AgentRuntimeOptions extends AgentRunOptions {
     ) => Promise<UserApprovalContext>;
     /** Max tokens for context (Phase 4) */
     maxContextTokens?: number;
+    /** Session identifier for tracking */
+    sessionId?: string;
 }
 
 export class AgentRuntime implements IAgentService {
@@ -79,12 +82,14 @@ export class AgentRuntime implements IAgentService {
     private contextManager: ContextManager;
     private summarizer: Summarizer;
     private memoryStore: MemoryStore;
+    private usageManager: UsageManager;
     private stateChangeCallback?: (event: AgentStateEvent) => void;
 
-    constructor(settings: AppSettings, toolRegistry: ToolRegistry, memoryStore: MemoryStore) {
+    constructor(settings: AppSettings, toolRegistry: ToolRegistry, memoryStore: MemoryStore, usageManager: UsageManager) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
         this.memoryStore = memoryStore;
+        this.usageManager = usageManager;
         this.promptBuilder = new PromptBuilder({
             defaultBasePrompt: settings.systemPrompt
         });
@@ -169,8 +174,8 @@ export class AgentRuntime implements IAgentService {
 
                 // 2. LLM 轮次执行
                 sessionStateManager.transition(AgentState.Thinking, `Thinking...`);
-                const { currentContent, currentReasoning, toolCalls } = await this.executeLlmTurn(
-                    messages, chatModel, chatModelTools, sessionStateManager, options, onStream,
+                const { currentContent, currentReasoning, toolCalls, usage } = await this.executeLlmTurn(
+                    messages, chatModel, chatModelTools, sessionStateManager, { ...options, sessionId: options?.sessionId || 'unknown' }, onStream,
                     (activeToolCalls, content, reasoning) => {
                         if (onStepUpdate) {
                             const tempSteps = [...steps];
@@ -193,9 +198,20 @@ export class AgentRuntime implements IAgentService {
                     role: 'assistant',
                     content: currentContent || null,
                     tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+                    usage: usage
                 };
                 messages.push(assistantMsg);
                 newMessages.push(assistantMsg);
+
+                // 记录 Token 消耗
+                if (usage) {
+                    this.recordUsageAtEnd(
+                        options?.sessionId || 'unknown',
+                        chatModel.modelName,
+                        chatModel.providerId,
+                        usage
+                    );
+                }
 
                 // 3. 工具处理
                 if (toolCalls.length > 0) {
@@ -329,6 +345,7 @@ export class AgentRuntime implements IAgentService {
                 let currentContent = '';
                 let currentReasoning = '';
                 let isReasoning = false;
+                let usage: any = undefined;
                 const accumulators = new Map<number, ToolCallAccumulator>();
 
                 // Optimized Payload Logging: Don't use JSON.stringify for large objects in the main thread log
@@ -352,6 +369,9 @@ export class AgentRuntime implements IAgentService {
                         firstTokenReceived = true;
                     }
                     switch (event.type) {
+                        case 'message_end':
+                            usage = event.usage;
+                            break;
                         case 'content_delta':
                             if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
                             currentContent += event.delta;
@@ -387,7 +407,8 @@ export class AgentRuntime implements IAgentService {
                         id: acc.id,
                         type: acc.type as 'function',
                         function: { name: acc.name, arguments: acc.arguments }
-                    }))
+                    })),
+                    usage: usage || this.estimateUsage(messages, currentContent, Array.from(accumulators.values()))
                 };
             },
             DEFAULT_LLM_RETRY,
@@ -562,5 +583,27 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
         }
         sessionStateManager.transition(state, finalMessage);
         return { finalAnswer: finalMessage, steps, newMessages };
+    }
+
+    private estimateUsage(messages: ChatMessage[], completion: string, toolCalls: any[]): any {
+        const promptTokens = TokenCounter.countMessages(messages);
+        const completionTokens = TokenCounter.count(completion) + toolCalls.reduce((acc, tc) => acc + TokenCounter.count(tc.name) + TokenCounter.count(tc.arguments) + 10, 0);
+
+        return {
+            prompt_tokens: promptTokens,
+            completion_tokens: completionTokens,
+            total_tokens: promptTokens + completionTokens,
+            isEstimated: true
+        };
+    }
+
+    private async recordUsageAtEnd(sessionId: string, modelId: string, providerId: string, usage: any) {
+        if (!usage) return;
+        this.usageManager.recordUsage({
+            sessionId,
+            modelId,
+            providerId,
+            ...usage
+        });
     }
 }

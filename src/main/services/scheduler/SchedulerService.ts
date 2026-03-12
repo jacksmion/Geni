@@ -17,6 +17,7 @@ import { AgentRuntime, AgentRuntimeOptions } from '../agent';
 import { Skill } from '../../../common/types/skill';
 import { SchedulerStorage, TaskExecutionLog } from './SchedulerStorage';
 import { MemoryStore } from '../memory/MemoryStore';
+import { UsageManager } from '../usage/UsageManager';
 
 /** 单个任务的运行时状态 */
 export interface TaskStatus {
@@ -63,7 +64,8 @@ export class SchedulerService {
         sessionManager: SessionManager,
         toolController: ToolController,
         storage: SchedulerStorage,
-        memoryStore: MemoryStore
+        memoryStore: MemoryStore,
+        private usageManager: UsageManager
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
@@ -282,7 +284,7 @@ export class SchedulerService {
             };
 
             // 4. 创建独立的 AgentRuntime 实例
-            const runtime = new AgentRuntime(effectiveSettings, this.toolRegistry, this.memoryStore);
+            const runtime = new AgentRuntime(effectiveSettings, this.toolRegistry, this.memoryStore, this.usageManager);
 
             // 5. 执行
             const tools = task.enableTools !== false ? this.toolRegistry.getTools() : [];

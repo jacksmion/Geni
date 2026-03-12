@@ -9,6 +9,7 @@ import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
 import { LarkAdapter } from './adapters/LarkAdapter';
 import { MemoryStore } from '../memory/MemoryStore';
+import { UsageManager } from '../usage/UsageManager';
 
 export class IMServiceManager {
     private adapters: Map<string, IIMAdapter> = new Map();
@@ -24,7 +25,8 @@ export class IMServiceManager {
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        memoryStore: MemoryStore
+        memoryStore: MemoryStore,
+        private usageManager: UsageManager
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
@@ -158,7 +160,7 @@ export class IMServiceManager {
         };
 
         // 4. Create stateless AgentRuntime for this execution
-        const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry, this.memoryStore);
+        const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry, this.memoryStore, this.usageManager);
 
         try {
             // Use native typing status if supported, otherwise fallback to friendly text

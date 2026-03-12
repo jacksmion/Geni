@@ -2,6 +2,7 @@ import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow } from 'electro
 import { SYSTEM_CHANNELS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
+import { UsageManager } from '../services/usage/UsageManager';
 import { AppSettings } from '../../common/types/settings';
 import { OpenAI } from 'openai';
 
@@ -10,7 +11,11 @@ export class SystemController {
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
     private onSettingsChanged?: (settings: AppSettings) => void;
 
-    constructor(private configManager: ConfigManager, pathManager: PathManager) {
+    constructor(
+        private configManager: ConfigManager,
+        pathManager: PathManager,
+        private usageManager: UsageManager
+    ) {
         this.pathManager = pathManager;
     }
 
@@ -35,6 +40,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_TELEGRAM, (_, config) => this.handleTestTelegram(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
+        ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
     }
 
     private async handleFetchProviderModels(payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) {

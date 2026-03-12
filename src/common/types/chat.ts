@@ -50,6 +50,7 @@ export interface ChatMessage {
     // Agent / UI Specific
     steps?: AgentStep[];
     isError?: boolean;
+    usage?: import('./usage').TokenUsage;
 }
 
 export interface ChatSession {

@@ -10,6 +10,7 @@ import { AppSettings } from '../../common/types/settings';
 import { ToolController } from './ToolController';
 import { Skill } from '../../common/types/skill';
 import { MemoryStore } from '../services/memory/MemoryStore';
+import { UsageManager } from '../services/usage/UsageManager';
 
 /**
  * Agent Controller
@@ -38,12 +39,13 @@ export class AgentController {
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        memoryStore: MemoryStore
+        memoryStore: MemoryStore,
+        usageManager: UsageManager
     ) {
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
-        this.agentRuntime = new AgentRuntime(settings, toolRegistry, memoryStore);
+        this.agentRuntime = new AgentRuntime(settings, toolRegistry, memoryStore, usageManager);
 
         this.setupResultListeners();
     }
@@ -215,7 +217,8 @@ export class AgentController {
                 signal: controller.signal,
                 history: history,
                 model: options?.model,
-                skills: skillList
+                skills: skillList,
+                sessionId: sid
             };
 
             const prepTime = performance.now() - pipelineStartTime;
