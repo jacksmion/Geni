@@ -72,14 +72,17 @@ export class SchedulerStorage {
         const map = new Map<string, PersistedTaskStatus>();
         try {
             if (fs.existsSync(this.statusesFile)) {
-                const data = fs.readFileSync(this.statusesFile, 'utf8');
-                const arr = JSON.parse(data) as PersistedTaskStatus[];
-                for (const s of arr) {
-                    map.set(s.taskId, s);
+                const data = fs.readFileSync(this.statusesFile, 'utf8').trim();
+                if (data) {
+                    const arr = JSON.parse(data) as PersistedTaskStatus[];
+                    for (const s of arr) {
+                        map.set(s.taskId, s);
+                    }
                 }
             }
         } catch (error) {
-            console.error('[SchedulerStorage] Failed to load statuses:', error);
+            console.error('[SchedulerStorage] Failed to load statuses or file corrupted:', error);
+            // If corrupted, we might want to backup and start fresh, but for now just return empty map
         }
         return map;
     }
@@ -88,8 +91,15 @@ export class SchedulerStorage {
      * 保存所有任务的状态到磁盘（异步）
      */
     public saveStatuses(statuses: PersistedTaskStatus[]): void {
-        fs.promises.writeFile(this.statusesFile, JSON.stringify(statuses, null, 2), 'utf8')
-            .catch(err => console.error('[SchedulerStorage] Failed to save statuses:', err));
+        const tempFile = this.statusesFile + '.tmp';
+        try {
+            const content = JSON.stringify(statuses, null, 2);
+            fs.writeFileSync(tempFile, content, 'utf8');
+            fs.renameSync(tempFile, this.statusesFile);
+        } catch (err) {
+            console.error('[SchedulerStorage] Failed to save statuses (atomic):', err);
+            if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+        }
     }
 
     // ==================== 执行日志 ====================
@@ -110,8 +120,15 @@ export class SchedulerStorage {
 
             // 读取已有日志
             if (fs.existsSync(logFile)) {
-                const data = await fs.promises.readFile(logFile, 'utf8');
-                logs = JSON.parse(data) as TaskExecutionLog[];
+                const data = (await fs.promises.readFile(logFile, 'utf8')).trim();
+                if (data) {
+                    try {
+                        logs = JSON.parse(data) as TaskExecutionLog[];
+                    } catch (e) {
+                        console.warn(`[SchedulerStorage] Log file ${log.taskId}.json corrupted, resetting.`, e);
+                        logs = [];
+                    }
+                }
             }
 
             // 追加新日志
@@ -122,8 +139,10 @@ export class SchedulerStorage {
                 logs = logs.slice(-SchedulerStorage.MAX_LOGS_PER_TASK);
             }
 
-            // 异步写入
-            await fs.promises.writeFile(logFile, JSON.stringify(logs, null, 2), 'utf8');
+            // 异步写入 (使用临时文件保证原子性，防止 JSON 写入不完整)
+            const tempFile = logFile + '.tmp';
+            await fs.promises.writeFile(tempFile, JSON.stringify(logs, null, 2), 'utf8');
+            await fs.promises.rename(tempFile, logFile);
         } catch (error) {
             console.error(`[SchedulerStorage] Failed to add log for task ${log.taskId}:`, error);
         }
@@ -139,10 +158,17 @@ export class SchedulerStorage {
 
         try {
             if (fs.existsSync(logFile)) {
-                const data = await fs.promises.readFile(logFile, 'utf8');
-                const logs = JSON.parse(data) as TaskExecutionLog[];
-                // 返回最近 N 条，倒序（最新的在前）
-                return logs.slice(-limit).reverse();
+                const data = (await fs.promises.readFile(logFile, 'utf8')).trim();
+                if (!data) return [];
+                
+                try {
+                    const logs = JSON.parse(data) as TaskExecutionLog[];
+                    // 返回最近 N 条，倒序（最新的在前）
+                    return logs.slice(-limit).reverse();
+                } catch (e) {
+                    console.error(`[SchedulerStorage] Parse error for log file ${taskId}.json:`, e);
+                    return [];
+                }
             }
         } catch (error) {
             console.error(`[SchedulerStorage] Failed to load logs for task ${taskId}:`, error);

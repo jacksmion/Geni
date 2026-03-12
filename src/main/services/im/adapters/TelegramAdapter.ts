@@ -385,10 +385,10 @@ export class TelegramAdapter implements IIMAdapter {
         if (!ctx || (!ctx.isComplete && ctx.buffer === ctx.lastSentBuffer && ctx.buffer !== '')) return; // No change
 
         const chatIdStr = sessionId.replace('tg_', '');
-        const chatId = parseInt(chatIdStr, 10);
+        const chatId = Number(chatIdStr);
 
-        if (isNaN(chatId)) {
-            console.warn(`[TelegramAdapter] Invalid chat ID for draft/message: ${chatIdStr}`);
+        if (!chatIdStr || isNaN(chatId)) {
+            console.warn(`[TelegramAdapter] Invalid chat ID for draft/message: ${sessionId}`);
             return;
         }
 

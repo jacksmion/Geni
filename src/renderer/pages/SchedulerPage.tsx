@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X } from 'lucide-react';
+import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X, Bell, MessageSquare } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { Switch } from '../components/Switch';
 import { ScheduledTaskConfig } from '../../common/types/settings';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
@@ -24,6 +25,10 @@ function createEmptyTask(): ScheduledTaskConfig {
         enableTools: true,
         keepHistory: false,
         maxHistoryTurns: 10,
+        notification: {
+            enabled: false,
+            imSessionId: '',
+        }
     };
 }
 
@@ -470,12 +475,59 @@ const SchedulerPage: React.FC = () => {
                                                 validation={cronValidation}
                                             />
                                         </div>
+                                        
+                                        {/* 卡片三：通知配置 */}
+                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
+                                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
+                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">结果通知 (IM)</h3>
+                                                </div>
+                                                <Switch 
+                                                    size="sm"
+                                                    checked={editingTask.notification?.enabled || false}
+                                                    onChange={val => setEditingTask({
+                                                        ...editingTask,
+                                                        notification: {
+                                                            ...(editingTask.notification || { imSessionId: '' }),
+                                                            enabled: val
+                                                        }
+                                                    })}
+                                                />
+                                            </div>
 
-                                        {/* 卡片三：高级配置 */}
+                                            {editingTask.notification?.enabled && (
+                                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                                            <MessageSquare size={14} className="text-rose-500/70" /> 推送目标 (Session ID)
+                                                        </label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={editingTask.notification.imSessionId}
+                                                            onChange={e => setEditingTask({
+                                                                ...editingTask,
+                                                                notification: {
+                                                                    ...editingTask.notification!,
+                                                                    imSessionId: e.target.value
+                                                                }
+                                                            })}
+                                                            placeholder="例如: tg_12345678, wecom_userid, lark_chatid"
+                                                            className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rose-500/20 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                                        />
+                                                        <p className="text-[10px] text-slate-500 px-1 leading-relaxed">
+                                                            请填写在 IM 频道中获取到的 Session ID。任务执行完毕后，Geni 会将结果推送到该地址。
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 卡片四：高级配置 */}
                                         <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
                                             <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
                                                 <div className="w-1.5 h-4 bg-slate-400 rounded-full"></div>
-                                                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">高级配置</h3>
+                                                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">历史与上下文</h3>
                                             </div>
 
                                             <div className="space-y-4">

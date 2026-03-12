@@ -18,6 +18,7 @@ import { Skill } from '../../../common/types/skill';
 import { SchedulerStorage, TaskExecutionLog } from './SchedulerStorage';
 import { MemoryStore } from '../memory/MemoryStore';
 import { UsageManager } from '../usage/UsageManager';
+import { IMServiceManager } from '../im/IMServiceManager';
 
 /** 单个任务的运行时状态 */
 export interface TaskStatus {
@@ -65,7 +66,8 @@ export class SchedulerService {
         toolController: ToolController,
         storage: SchedulerStorage,
         memoryStore: MemoryStore,
-        private usageManager: UsageManager
+        private usageManager: UsageManager,
+        private imServiceManager: IMServiceManager
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
@@ -323,13 +325,16 @@ export class SchedulerService {
                 stepCount: result.steps?.length,
             }).catch(err => console.error('[Scheduler] Failed to save log:', err));
 
-            console.log(`[Scheduler] Task "${task.name}" completed in ${durationMs}ms`);
-
-            return {
+            const execResult: TaskExecutionResult = {
                 success: true,
                 finalAnswer: result.finalAnswer,
                 durationMs,
             };
+
+            // 9. Send Notification (Async)
+            this.sendNotification(task, execResult).catch(err => console.error('[Scheduler] Notification failed:', err));
+
+            return execResult;
         } catch (error: any) {
             const durationMs = Date.now() - startTime;
             console.error(`[Scheduler] Task "${task.name}" failed:`, error);
@@ -352,14 +357,40 @@ export class SchedulerService {
                 error: error.message,
             }).catch(err => console.error('[Scheduler] Failed to save error log:', err));
 
-            return {
+            const execResult: TaskExecutionResult = {
                 success: false,
                 error: error.message,
                 durationMs,
             };
+
+            // Send Notification (Async)
+            this.sendNotification(task, execResult).catch(err => console.error('[Scheduler] Notification failed:', err));
+
+            return execResult;
         } finally {
             this.runningTasks.delete(task.id);
         }
+    }
+
+    /**
+     * 发送任务结果通知到 IM
+     */
+    private async sendNotification(task: ScheduledTaskConfig, result: TaskExecutionResult): Promise<void> {
+        if (!task.notification?.enabled || !task.notification?.imSessionId) {
+            return;
+        }
+
+        const durationStr = (result.durationMs / 1000).toFixed(1);
+        const report = [
+            `🔔 **Scheduled Task Report**: ${task.name}`,
+            `**Status**: ${result.success ? '✅ Success' : '❌ Failed'} | **Duration**: ${durationStr}s`,
+            `---`,
+            result.success ? (result.finalAnswer || '_No output_') : `❌ **Error**: ${result.error}`,
+            `---`,
+            `_Sent via Geni AI Assistant_`
+        ].join('\n\n');
+
+        await this.imServiceManager.pushMessage(task.notification.imSessionId, report);
     }
 
     /**

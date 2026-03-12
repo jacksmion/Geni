@@ -110,7 +110,31 @@ export class IMServiceManager {
             console.warn(`[IMServiceManager] Lark adapter not found in registered adapters!`);
         }
     }
+    
+    /**
+     * Proactively push a message to a specific IM session
+     * @param sessionId The targeted IM session ID (e.g. "tg_123456")
+     * @param content Message content in Markdown
+     */
+    public async pushMessage(sessionId: string, content: string): Promise<void> {
+        let providerId = sessionId.split('_')[0];
+        
+        // Simple mapping to handle shorthand prefixes
+        if (providerId === 'tg') providerId = 'telegram';
 
+        const adapter = this.adapters.get(providerId);
+        if (!adapter) {
+            console.warn(`[IMServiceManager] No adapter found for provider: ${providerId}`);
+            return;
+        }
+
+        try {
+            await adapter.sendOrUpdateMessage(sessionId, content, { isComplete: true, throttleMs: 0 });
+        } catch (error) {
+            console.error(`[IMServiceManager] Failed to push message to ${sessionId}:`, error);
+        }
+    }
+    
     public async testConnection(providerId: string, config: any): Promise<{ success: boolean; message: string }> {
         const adapter = this.adapters.get(providerId);
         if (!adapter || !adapter.testConnection) {

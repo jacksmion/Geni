@@ -97,6 +97,12 @@ export interface ScheduledTaskConfig {
     // 上下文管理
     keepHistory?: boolean;         // 是否保留历史对话（默认 false）
     maxHistoryTurns?: number;      // 最大保留轮数（默认 10）
+
+    // 通知配置
+    notification?: {
+        enabled: boolean;
+        imSessionId: string;       // 格式如 "tg_123456", "wecom_chatid", "lark_chatid"
+    };
 }
 
 export interface AppSettings {

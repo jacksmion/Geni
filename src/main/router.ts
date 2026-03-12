@@ -71,13 +71,22 @@ export class AppRouter {
         this.systemController = new SystemController(this.configManager, pathManager, this.usageManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
-        // Scheduler
-        const schedulerStorage = new SchedulerStorage(pathManager);
-        this.schedulerService = new SchedulerService(settings, this.toolRegistry, this.sessionManager, this.toolController, schedulerStorage, memoryStore, this.usageManager);
-        this.schedulerController = new SchedulerController(this.schedulerService);
-
         this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, memoryStore, this.usageManager);
         this.systemController.setIMServiceManager(this.imServiceManager);
+
+        // Scheduler
+        const schedulerStorage = new SchedulerStorage(pathManager);
+        this.schedulerService = new SchedulerService(
+            settings,
+            this.toolRegistry,
+            this.sessionManager,
+            this.toolController,
+            schedulerStorage,
+            memoryStore,
+            this.usageManager,
+            this.imServiceManager
+        );
+        this.schedulerController = new SchedulerController(this.schedulerService);
 
         this.agentController = new AgentController(
             settings,
