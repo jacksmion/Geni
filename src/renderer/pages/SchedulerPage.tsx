@@ -344,7 +344,7 @@ const SchedulerPage: React.FC = () => {
             <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#09090b]">
                 {(editingTask) ? (
                     <>
-                        <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 draggable shrink-0 bg-white dark:bg-[#09090b]">
+                        <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 pr-36 draggable shrink-0 bg-white dark:bg-[#09090b]">
                             <div className="flex items-center gap-6 nodrag flex-1 border-r border-slate-200 dark:border-white/10 mr-4 pr-4">
                                 <input
                                     type="text"
@@ -355,7 +355,7 @@ const SchedulerPage: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center gap-3 nodrag shrink-0">
+                            <div className="flex items-center gap-3 nodrag shrink-0 mr-2">
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setActiveTab('config')}
@@ -384,7 +384,7 @@ const SchedulerPage: React.FC = () => {
                         <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
                             <div className="max-w-2xl mx-auto">
                                 {activeTab === 'config' ? (
-                                    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
+                                    <div className="space-y-6 animate-in fade-in duration-300 pt-6 pb-12">
 
                                         {/* 卡片一：基本信息与指令 */}
                                         <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
@@ -586,45 +586,50 @@ const SchedulerPage: React.FC = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 animate-in fade-in duration-300">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
-                                            <button
-                                                onClick={() => loadTaskLogs(editingTask.id)}
-                                                className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
-                                            >
-                                                <History size={12} /> 刷新
-                                            </button>
-                                        </div>
-
-                                        {triggerResult && triggerResult.taskId === editingTask.id && (
-                                            <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
-                                                ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
-                                                : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
-                                                }`}>
-                                                {triggerResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                                                {triggerResult.message}
+                                    <div className="space-y-4 animate-in fade-in duration-300 pt-6">
+                                        {/* 执行历史卡片 */}
+                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
+                                                <button
+                                                    onClick={() => loadTaskLogs(editingTask.id)}
+                                                    className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
+                                                >
+                                                    <History size={12} /> 刷新
+                                                </button>
                                             </div>
-                                        )}
 
-                                        {loadingLogs === editingTask.id ? (
-                                            <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
-                                        ) : (() => {
-                                            const logs = taskLogs.get(editingTask.id);
-                                            if (!logs || logs.length === 0) {
-                                                return (
-                                                    <div className="text-center py-16 text-slate-400">
-                                                        <History size={24} className="mx-auto opacity-30 mb-3" />
-                                                        <p className="text-sm">暂无记录</p>
+                                            <div className="space-y-4">
+                                                {triggerResult && triggerResult.taskId === editingTask.id && (
+                                                    <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
+                                                        ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
+                                                        : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
+                                                        }`}>
+                                                        {triggerResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                                        {triggerResult.message}
                                                     </div>
-                                                );
-                                            }
-                                            return (
-                                                <div className="space-y-3">
-                                                    {logs.map(log => <LogEntry key={log.id} log={log} />)}
-                                                </div>
-                                            );
-                                        })()}
+                                                )}
+
+                                                {loadingLogs === editingTask.id ? (
+                                                    <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
+                                                ) : (() => {
+                                                    const logs = taskLogs.get(editingTask.id);
+                                                    if (!logs || logs.length === 0) {
+                                                        return (
+                                                            <div className="text-center py-16 text-slate-400">
+                                                                <History size={24} className="mx-auto opacity-30 mb-3" />
+                                                                <p className="text-sm">暂无记录</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div className="space-y-3">
+                                                            {logs.map(log => <LogEntry key={log.id} log={log} />)}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
