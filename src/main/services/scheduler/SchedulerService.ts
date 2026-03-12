@@ -380,15 +380,12 @@ export class SchedulerService {
             return;
         }
 
-        const durationStr = (result.durationMs / 1000).toFixed(1);
-        const report = [
-            `🔔 **Scheduled Task Report**: ${task.name}`,
-            `**Status**: ${result.success ? '✅ Success' : '❌ Failed'} | **Duration**: ${durationStr}s`,
-            `---`,
-            result.success ? (result.finalAnswer || '_No output_') : `❌ **Error**: ${result.error}`,
-            `---`,
-            `_Sent via Geni AI Assistant_`
-        ].join('\n\n');
+        const statusIcon = result.success ? '✅' : '❌';
+        const content = result.success
+            ? (result.finalAnswer || '_无输出_')
+            : result.error || '_未知错误_';
+
+        const report = `📋 ${task.name} ${statusIcon}\n\n${content}`;
 
         await this.imServiceManager.pushMessage(task.notification.imSessionId, report);
     }
