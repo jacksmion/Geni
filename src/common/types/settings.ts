@@ -63,6 +63,13 @@ export interface TelegramConfig {
     proxyUrl?: string;
 }
 
+// 企业微信 (WeCom) 企业机器人配置
+export interface WeComConfig {
+    enabled: boolean;
+    botId: string;
+    secret: string;
+}
+
 // 定时任务配置
 export interface ScheduledTaskConfig {
     id: string;                    // 唯一标识
@@ -93,6 +100,7 @@ export interface AppSettings {
     autoStart: boolean; // 开机自启动
     systemPrompt?: string; // 全局系统提示词
     telegram?: TelegramConfig; // Telegram Bot 配置
+    wecom?: WeComConfig; // 企业微信配置
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
     recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
     shortcuts?: Record<string, string>; // 快捷键配置 ID -> Key Combination
@@ -215,6 +223,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
         enabled: false,
         token: '',
         proxyUrl: '',
+    },
+    wecom: {
+        enabled: false,
+        botId: '',
+        secret: '',
     },
     scheduledTasks: [],
     recentWorkspaces: [],

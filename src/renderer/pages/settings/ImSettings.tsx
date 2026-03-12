@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Save, CheckCircle2, Send, ShieldCheck, Globe, Key, Search, Zap, Loader2, MessageSquare, Plus, Bell, X } from 'lucide-react';
+import { Bot, Save, CheckCircle2, Send, ShieldCheck, Globe, Key, Search, Zap, Loader2, MessageSquare, Plus, Bell, X, Building2 } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
-import { TelegramConfig } from '../../../common/types/settings';
+import { TelegramConfig, WeComConfig } from '../../../common/types/settings';
 
 export function ImSettings() {
     const telegramConfig = useSettingsStore(s => s.settings.telegram);
+    const wecomConfig = useSettingsStore(s => s.settings.wecom);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
 
-    // 定义支持的 IM 提供商元数据 (Move inside component to use 't')
+    // 定义支持的 IM 提供商元数据
     const IM_PROVIDERS = [
         { id: 'telegram', label: 'Telegram', icon: Bot, desc: t('imSettings.providerTgDesc'), color: '#0088cc' },
+        { id: 'wecom', label: t('imSettings.wecomBotTitle'), icon: Building2, desc: t('imSettings.providerWeComDesc'), color: '#1877f2' },
         { id: 'discord', label: 'Discord', icon: MessageSquare, desc: t('imSettings.providerDiscordDesc'), color: '#5865F2', comingSoon: true },
         { id: 'slack', label: 'Slack', icon: Zap, desc: t('imSettings.providerSlackDesc'), color: '#4A154B', comingSoon: true },
     ];
@@ -23,8 +25,9 @@ export function ImSettings() {
     const [selectedIM, setSelectedIM] = useState('telegram');
     const [isSaving, setIsSaving] = useState(false);
     
-    // Telegram Draft State
+    // Draft States
     const [tgDraft, setTgDraft] = useState<TelegramConfig>(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
+    const [wecomDraft, setWecomDraft] = useState<WeComConfig>(wecomConfig || { enabled: false, botId: '', secret: '' });
     
     // Test Status
     const [isTesting, setIsTesting] = useState(false);
@@ -32,18 +35,19 @@ export function ImSettings() {
 
     // Sync from store when changed externally
     useEffect(() => {
-        if (telegramConfig) {
-            setTgDraft(telegramConfig);
-        }
-    }, [telegramConfig]);
+        if (telegramConfig) setTgDraft(telegramConfig);
+        if (wecomConfig) setWecomDraft(wecomConfig);
+    }, [telegramConfig, wecomConfig]);
 
-    const isDirty = JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig);
+    const isDirty = (selectedIM === 'telegram' && JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig)) ||
+                    (selectedIM === 'wecom' && JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig));
 
     const handleSave = async () => {
         setIsSaving(true);
         try {
             await updateSettings({
-                telegram: tgDraft
+                telegram: tgDraft,
+                wecom: wecomDraft
             });
         } catch (e) {
             console.error("Failed to save IM settings", e);
@@ -53,15 +57,21 @@ export function ImSettings() {
     };
 
     const handleReset = () => {
-        setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
+        if (selectedIM === 'telegram') setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
+        if (selectedIM === 'wecom') setWecomDraft(wecomConfig || { enabled: false, botId: '', secret: '' });
     };
 
     const handleTestConnection = async () => {
         setIsTesting(true);
         setTestResult(null);
         try {
-            const result = await window.electronAPI.system.testTelegram(tgDraft);
-            setTestResult(result);
+            let result: { success: boolean; message: string } | null = null;
+            if (selectedIM === 'telegram') {
+                result = await window.electronAPI.system.testTelegram(tgDraft);
+            } else if (selectedIM === 'wecom') {
+                result = await window.electronAPI.system.testWeCom(wecomDraft);
+            }
+            if (result) setTestResult(result);
         } catch (e: any) {
             setTestResult({ success: false, message: e.message || 'Connection failed' });
         } finally {
@@ -88,7 +98,10 @@ export function ImSettings() {
                             <button
                                 key={provider.id}
                                 disabled={isComingSoon}
-                                onClick={() => setSelectedIM(provider.id)}
+                                onClick={() => {
+                                    setSelectedIM(provider.id);
+                                    setTestResult(null); // Clear test result on switch
+                                }}
                                 className={clsx(
                                     "w-full text-left p-3 rounded-xl border transition-all relative group",
                                     isSelected 
@@ -135,7 +148,7 @@ export function ImSettings() {
                 <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl flex-1 flex flex-col shadow-sm overflow-hidden">
                     {selectedIM === 'telegram' ? (
                         <>
-                            {/* Header */}
+                            {/* Telegram Panel */}
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl bg-[#0088cc]/10 text-[#0088cc]">
@@ -157,9 +170,7 @@ export function ImSettings() {
                                 </div>
                             </div>
 
-                            {/* Scrollable Content */}
                             <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
-                                {/* Token Section */}
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                         <Key size={14} /> {t('imSettings.tokenLabel')}
@@ -181,7 +192,6 @@ export function ImSettings() {
                                     </p>
                                 </div>
 
-                                {/* Proxy Section */}
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                         <Globe size={14} /> {t('imSettings.proxyLabel')}
@@ -198,36 +208,82 @@ export function ImSettings() {
                                     </p>
                                 </div>
 
-                                {/* Testing Section */}
-                                <div className="pt-6 border-t border-slate-100 dark:border-white/5">
-                                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl p-6 flex items-center justify-between">
-                                        <div className="space-y-1">
-                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('imSettings.connectivityCheck')}</h4>
-                                            <p className="text-xs text-slate-500">{t('imSettings.connectivityCheckDesc')}</p>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {testResult && (
-                                                <div className={clsx(
-                                                    "text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2",
-                                                    testResult.success 
-                                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" 
-                                                        : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-                                                )}>
-                                                    {testResult.success ? <CheckCircle2 size={14} /> : <X size={14} />}
-                                                    {testResult.message}
-                                                </div>
-                                            )}
-                                            <button 
-                                                onClick={handleTestConnection}
-                                                disabled={isTesting || !tgDraft.token}
-                                                className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
-                                            >
-                                                {isTesting ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
-                                                {t('imSettings.testConnection')}
-                                            </button>
-                                        </div>
+                                <ConnectivitySection 
+                                    isTesting={isTesting}
+                                    testResult={testResult}
+                                    onTest={handleTestConnection}
+                                    disabled={!tgDraft.token}
+                                />
+                            </div>
+                        </>
+                    ) : selectedIM === 'wecom' ? (
+                        <>
+                            {/* WeCom Panel */}
+                            <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-2xl bg-[#1877f2]/10 text-[#1877f2]">
+                                        <Building2 size={24} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-800 dark:text-white">{t('imSettings.wecomBotTitle')}</h2>
+                                        <p className="text-xs text-slate-500 dark:text-gray-400">{t('imSettings.wecomBotDesc')}</p>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={clsx("text-[10px] uppercase font-bold px-2 py-0.5 rounded-full", wecomDraft.enabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10" : "bg-slate-100 text-slate-500 dark:bg-white/10")}>
+                                        {wecomDraft.enabled ? t('on') : t('off')}
+                                    </span>
+                                    <Switch 
+                                        checked={wecomDraft.enabled}
+                                        onChange={(checked) => setWecomDraft({...wecomDraft, enabled: checked})}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
+                                <div className="space-y-4">
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Zap size={14} /> {t('imSettings.wecomBotIdLabel')}
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={wecomDraft.botId}
+                                        onChange={(e) => setWecomDraft({...wecomDraft, botId: e.target.value})}
+                                        placeholder="Enter Bot ID"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200"
+                                    />
+                                    <p className="text-xs text-slate-500 dark:text-gray-500 pl-1 leading-relaxed">
+                                        {t('imSettings.wecomBotIdDesc')}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Key size={14} /> {t('imSettings.wecomSecretLabel')}
+                                    </label>
+                                    <div className="relative">
+                                        <input 
+                                            type="password" 
+                                            value={wecomDraft.secret}
+                                            onChange={(e) => setWecomDraft({...wecomDraft, secret: e.target.value})}
+                                            placeholder="Enter Bot Secret"
+                                            className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200"
+                                        />
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
+                                            <ShieldCheck size={20} />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-gray-500 pl-1">
+                                        {t('imSettings.wecomSecretDesc')}
+                                    </p>
+                                </div>
+
+                                <ConnectivitySection 
+                                    isTesting={isTesting}
+                                    testResult={testResult}
+                                    onTest={handleTestConnection}
+                                    disabled={!wecomDraft.botId || !wecomDraft.secret}
+                                />
                             </div>
                         </>
                     ) : (
@@ -246,6 +302,41 @@ export function ImSettings() {
                 onSave={handleSave} 
                 onReset={handleReset} 
             />
+        </div>
+    );
+}
+
+function ConnectivitySection({ isTesting, testResult, onTest, disabled }: any) {
+    const { t } = useTranslation();
+    return (
+        <div className="pt-6 border-t border-slate-100 dark:border-white/5">
+            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl p-6 flex items-center justify-between">
+                <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('imSettings.connectivityCheck')}</h4>
+                    <p className="text-xs text-slate-500">{t('imSettings.connectivityCheckDesc')}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    {testResult && (
+                        <div className={clsx(
+                            "text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-2",
+                            testResult.success 
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                                : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                        )}>
+                            {testResult.success ? <CheckCircle2 size={14} /> : <X size={14} />}
+                            {testResult.message}
+                        </div>
+                    )}
+                    <button 
+                        onClick={onTest}
+                        disabled={isTesting || disabled}
+                        className="px-6 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
+                    >
+                        {isTesting ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                        {t('imSettings.testConnection')}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

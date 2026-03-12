@@ -42,6 +42,7 @@ export const SYSTEM_CHANNELS = {
     GET_PATH_INFO: 'system:get-path-info',
     OPEN_USER_SKILLS: 'system:open-user-skills',
     TEST_TELEGRAM: 'system:test-telegram',
+    TEST_WECOM: 'system:test-wecom',
 } as const;
 
 export const TOOL_CHANNELS = {

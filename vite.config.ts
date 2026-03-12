@@ -10,6 +10,13 @@ export default defineConfig({
     electron([
       {
         entry: 'src/main/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              external: ['@wecom/aibot-node-sdk', 'ws', 'bufferutil', 'utf-8-validate'],
+            },
+          },
+        },
       },
       {
         entry: 'src/main/preload.ts',

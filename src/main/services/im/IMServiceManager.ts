@@ -6,6 +6,7 @@ import { ToolController } from '../../controllers/ToolController';
 import { AgentRuntime, AgentRuntimeOptions } from '../agent';
 import { Skill } from '../../../common/types/skill';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
+import { WeComAdapter } from './adapters/WeComAdapter';
 import { MemoryStore } from '../memory/MemoryStore';
 
 export class IMServiceManager {
@@ -32,6 +33,7 @@ export class IMServiceManager {
 
         // Register default adapters
         this.registerAdapter(new TelegramAdapter());
+        this.registerAdapter(new WeComAdapter());
     }
 
     private registerAdapter(adapter: IIMAdapter) {
@@ -74,6 +76,20 @@ export class IMServiceManager {
             }
         } else {
             console.warn(`[IMServiceManager] Telegram adapter not found in registered adapters!`);
+        }
+
+        // WeCom
+        const wecomAdapter = this.adapters.get('wecom');
+        if (wecomAdapter) {
+            const config = this.settings.wecom;
+            if (config?.enabled && config?.botId && config?.secret) {
+                console.log(`[IMServiceManager] Syncing WeCom adapter...`);
+                await wecomAdapter.start(config).catch(e => console.error(`[IMServiceManager] Failed to start wecom adapter:`, e));
+            } else {
+                await wecomAdapter.stop().catch(e => console.error(`[IMServiceManager] Failed to stop wecom adapter:`, e));
+            }
+        } else {
+            console.warn(`[IMServiceManager] WeCom adapter not found in registered adapters!`);
         }
     }
 
