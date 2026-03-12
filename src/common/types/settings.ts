@@ -12,6 +12,7 @@ export interface ModelInstance {
 
 // 单个提供商的配置
 export interface ProviderConfig {
+    label?: string;      // 显示名称
     baseUrl: string;
     apiKey: string;
     enabled?: boolean;   // 是否在提供商列表中启用

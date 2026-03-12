@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import { 
     Check, Key, Cpu, Zap, Search, Loader2, Plus, X, Globe,
-    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown
+    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown, ShieldCheck
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
@@ -48,8 +48,6 @@ export function ModelSettings() {
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const [showModelPicker, setShowModelPicker] = useState(false);
 
-    const [isAdding, setIsAdding] = useState(false);
-    const [newProviderName, setNewProviderName] = useState('');
 
     const [showModelEditor, setShowModelEditor] = useState(false);
     const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null);
@@ -210,20 +208,15 @@ export function ModelSettings() {
     };
 
     const handleAddProvider = () => {
-        if (!newProviderName.trim()) return;
-        const key = newProviderName.trim();
-        if (llmDraft.providers[key]) return;
-
+        const key = `custom-${Date.now().toString(36)}`;
         setLlmDraft({
             ...llmDraft,
             providers: {
                 ...llmDraft.providers,
-                [key]: { apiKey: '', baseUrl: '', enabled: true, models: [], activeModelId: '' }
+                [key]: { label: 'New Provider', apiKey: '', baseUrl: '', enabled: true, models: [], activeModelId: '' }
             }
         });
         setSelectedProvider(key);
-        setIsAdding(false);
-        setNewProviderName('');
     };
 
     const handleDeleteProvider = (providerKey: string) => {
@@ -315,31 +308,17 @@ export function ModelSettings() {
                         />
                     </div>
                     <div className="flex items-center bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shrink-0">
-                        <button onClick={handleImportPreset} className="flex items-center gap-1 px-2 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.import')}>
-                            <Upload size={14} />
-                            <span className="text-[11px] font-medium">{t('modelSettings.import')}</span>
+                        <button onClick={handleImportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.import')}>
+                            <Upload size={15} />
                         </button>
-                        <button onClick={handleExportPreset} className="flex items-center gap-1 px-2 py-2 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.export')}>
-                            <Download size={14} />
-                            <span className="text-[11px] font-medium">{t('modelSettings.export')}</span>
+                        <button onClick={handleExportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.export')}>
+                            <Download size={15} />
                         </button>
-                        <button onClick={() => setIsAdding(!isAdding)} className="p-2 hover:bg-slate-50 dark:hover:bg-white/5 text-indigo-500 transition-colors" title={t('modelSettings.addProvider')}>
-                            <Plus size={14} />
+                        <button onClick={handleAddProvider} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-indigo-500 transition-colors" title={t('modelSettings.addProvider')}>
+                            <Plus size={15} />
                         </button>
                     </div>
-
-
                 </div>
-
-                {isAdding && (
-                    <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl space-y-2">
-                        <input type="text" autoFocus placeholder={t('modelSettings.namePlaceholder')} value={newProviderName} onChange={(e) => setNewProviderName(e.target.value)} className="w-full bg-white dark:bg-black/20 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-2 py-1.5 text-xs text-slate-900 dark:text-slate-100" onKeyDown={(e) => e.key === 'Enter' && handleAddProvider()} />
-                        <div className="flex gap-2">
-                            <button onClick={handleAddProvider} className="flex-1 bg-indigo-500 text-white text-xs py-1.5 rounded-lg">{t('modelSettings.add')}</button>
-                            <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-200 dark:bg-white/10 text-xs py-1.5 rounded-lg">{t('modelSettings.cancel')}</button>
-                        </div>
-                    </div>
-                )}
 
                 <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
                     {filteredProviders.map(key => {
@@ -350,37 +329,31 @@ export function ModelSettings() {
                         
                         return (
                             <div key={key} className="relative group/item">
-                                <button onClick={() => setSelectedProvider(key)} className={clsx("w-full text-left p-2.5 rounded-xl border transition-all relative", isSelected ? "bg-white dark:bg-[#18181b] border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5")}>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <div 
-                                                className={clsx("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors", isSelected ? "shadow-inner" : "")}
-                                                style={{ 
-                                                    backgroundColor: isSelected ? `${meta.color}20` : 'rgba(100, 116, 139, 0.05)',
-                                                    color: isSelected ? meta.color : '#94a3b8'
-                                                }}
-                                            >
-                                                <meta.icon size={16} color={isSelected ? meta.color : 'currentColor'} />
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className={clsx("text-sm font-semibold truncate", isSelected ? "text-slate-900 dark:text-white" : "text-slate-500")}>
-                                                    {meta.label}
-                                                </span>
-                                            </div>
+                                <div className={clsx(
+                                    "w-full text-left p-3 rounded-xl border transition-all relative flex items-center justify-between group",
+                                    isSelected ? "bg-white dark:bg-[#18181b] border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
+                                )} onClick={() => setSelectedProvider(key)}>
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div 
+                                            className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all", isSelected ? "bg-indigo-500 text-white shadow-sm" : "bg-slate-100 dark:bg-white/5 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10")}
+                                            style={!isSelected ? { backgroundColor: `${meta.color}15`, color: meta.color } : {}}
+                                        >
+                                            <meta.icon size={18} />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {config?.enabled && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                                            {isCustom && (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteProvider(key); }}
-                                                    className="opacity-0 group-hover/item:opacity-100 p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            )}
+                                        <div className="flex flex-col min-w-0">
+                                            <span className={clsx("text-sm font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                                {config.label || meta.label}
+                                            </span>
                                         </div>
                                     </div>
-                                </button>
+                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                        <Switch 
+                                            size="sm"
+                                            checked={!!config?.enabled}
+                                            onChange={() => handleToggleProvider(key)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         );
                     })}
@@ -391,20 +364,55 @@ export function ModelSettings() {
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl flex-1 flex flex-col shadow-sm overflow-hidden">
                     {/* Detail Header */}
-                    <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">{PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
-                            <div className={clsx("px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-tight", currentProviderConfig.enabled ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10" : "bg-slate-100 text-slate-500 dark:bg-white/5")}>
-                                {currentProviderConfig.enabled ? t('on') : t('off')}
+                    <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
+                                 style={{ backgroundColor: `${PROVIDER_META[selectedProvider]?.color || '#6366f1'}15`, color: PROVIDER_META[selectedProvider]?.color || '#6366f1' }}>
+                                <Cpu size={24} />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2.5">
+                                    <h2 className="text-xl font-bold text-slate-800 dark:text-white leading-none">{currentProviderConfig.label || PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
+                                    {currentProviderConfig.enabled && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] animate-pulse" />
+                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">已启用</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 font-medium uppercase tracking-widest">{selectedProvider.startsWith('custom-') ? 'Custom Provider' : 'Standard Provider'}</p>
                             </div>
                         </div>
-                        <Switch 
-                            checked={!!currentProviderConfig.enabled}
-                            onChange={() => handleToggleProvider(selectedProvider)}
-                        />
+                        <div className="flex items-center gap-4">
+                            {!DEFAULT_PROVIDER_CONFIGS[selectedProvider] && (
+                                <button 
+                                    onClick={() => handleDeleteProvider(selectedProvider)} 
+                                    className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
+                                    title={t('modelSettings.deleteProvider')}
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="p-6 space-y-8 overflow-y-auto custom-scrollbar">
+                        {/* Provider Info (For Custom) */}
+                        {selectedProvider.startsWith('custom-') && (
+                            <div className="space-y-4">
+                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Edit2 size={12} /> {t('modelSettings.providerName', 'Provider Name')}
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={currentProviderConfig.label || ''} 
+                                    onChange={(e) => updateProviderDraft({ label: e.target.value })} 
+                                    placeholder="e.g. My Private GPT..." 
+                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" 
+                                />
+                            </div>
+                        )}
+
                         {/* API Config Section */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
@@ -467,17 +475,20 @@ export function ModelSettings() {
                                             <div className="flex-1 min-w-0 space-y-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-bold text-slate-800 dark:text-white">{model.label}</span>
-                                                    {model.supportVision && (
-                                                        <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-bold">VISION</span>
-                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 truncate max-w-[140px] border border-slate-200/50 dark:border-white/5">
                                                         {model.model}
                                                     </span>
-                                                    <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-white/10" />
-                                                    <div className="text-[10px] text-slate-400">
-                                                        Temp: <span className="font-bold text-indigo-500">{model.temperature}</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="px-2 py-0.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/5 text-indigo-500 text-[10px] font-bold border border-indigo-100 dark:border-indigo-500/10">
+                                                            TEMP: {model.temperature}
+                                                        </div>
+                                                        {model.supportVision && (
+                                                            <div className="px-2 py-0.5 rounded-lg bg-amber-50/50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-100 dark:border-amber-500/10">
+                                                                VISION
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -504,21 +515,36 @@ export function ModelSettings() {
                         </div>
 
                         {/* Connection Test Footer */}
-                        <div className="pt-8 border-t border-slate-100 dark:border-white/5">
-                            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/[0.02] rounded-2xl">
-                                <div className="space-y-1">
-                                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200">{t('modelSettings.connectivity', 'Connectivity Status')}</h4>
-                                    <p className="text-[10px] text-slate-400">{t('modelSettings.connectivityDesc', 'Verify your API keys and endpoint settings.')}</p>
+                        <div className="pt-8 mt-4 border-t border-slate-100 dark:border-white/5">
+                            <div className="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 text-indigo-500">
+                                        <ShieldCheck size={20} />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('modelSettings.connectivity', 'Connectivity Status')}</h4>
+                                        <p className="text-xs text-slate-400 dark:text-gray-500">{t('modelSettings.connectivityDesc', 'Verify your API keys and endpoint settings.')}</p>
+                                    </div>
                                 </div>
+                                
                                 <div className="flex items-center gap-4">
                                     {testResult && (
-                                        <div className={clsx("text-xs font-medium px-3 py-1.5 rounded-lg", testResult.success ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400")}>
+                                        <div className={clsx(
+                                            "text-xs font-bold px-4 py-2 rounded-xl animate-in fade-in slide-in-from-right-2 duration-300",
+                                            testResult.success 
+                                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20" 
+                                                : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20"
+                                        )}>
                                             {testResult.message}
                                         </div>
                                     )}
-                                    <button onClick={handleTestConnection} disabled={isTesting} className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2">
-                                        {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} fill="currentColor" />}
-                                        {t('modelSettings.testConnection')}
+                                    <button 
+                                        onClick={handleTestConnection} 
+                                        disabled={isTesting} 
+                                        className="px-6 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2.5 whitespace-nowrap"
+                                    >
+                                        {isTesting ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                                        <span>{t('imSettings.testConnection')}</span>
                                     </button>
                                 </div>
                             </div>
