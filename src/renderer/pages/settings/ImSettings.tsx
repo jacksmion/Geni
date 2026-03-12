@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, CheckCircle2, ShieldCheck, Globe, Key, Zap, Loader2, X, Building2 } from 'lucide-react';
+import { Bot, CheckCircle2, ShieldCheck, Globe, Key, Zap, Loader2, X, Building2, MessageSquare } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
-import { TelegramConfig, WeComConfig } from '../../../common/types/settings';
+import { TelegramConfig, WeComConfig, LarkConfig } from '../../../common/types/settings';
 
 export function ImSettings() {
     const telegramConfig = useSettingsStore(s => s.settings.telegram);
     const wecomConfig = useSettingsStore(s => s.settings.wecom);
+    const larkConfig = useSettingsStore(s => s.settings.lark);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
 
@@ -20,6 +21,7 @@ export function ImSettings() {
     // Draft States
     const [tgDraft, setTgDraft] = useState<TelegramConfig>(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
     const [wecomDraft, setWecomDraft] = useState<WeComConfig>(wecomConfig || { enabled: false, botId: '', secret: '' });
+    const [larkDraft, setLarkDraft] = useState<LarkConfig>(larkConfig || { enabled: false, appId: '', appSecret: '' });
     
     // Test Status
     const [isTesting, setIsTesting] = useState(false);
@@ -29,17 +31,20 @@ export function ImSettings() {
     useEffect(() => {
         if (telegramConfig) setTgDraft(telegramConfig);
         if (wecomConfig) setWecomDraft(wecomConfig);
-    }, [telegramConfig, wecomConfig]);
+        if (larkConfig) setLarkDraft(larkConfig);
+    }, [telegramConfig, wecomConfig, larkConfig]);
 
     const isDirty = (selectedIM === 'telegram' && JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig)) ||
-                    (selectedIM === 'wecom' && JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig));
+                    (selectedIM === 'wecom' && JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig)) ||
+                    (selectedIM === 'lark' && JSON.stringify(larkDraft) !== JSON.stringify(larkConfig));
 
     const handleSave = async () => {
         setIsSaving(true);
         try {
             await updateSettings({
                 telegram: tgDraft,
-                wecom: wecomDraft
+                wecom: wecomDraft,
+                lark: larkDraft
             });
         } catch (e) {
             console.error("Failed to save IM settings", e);
@@ -51,6 +56,7 @@ export function ImSettings() {
     const handleReset = () => {
         if (selectedIM === 'telegram') setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
         if (selectedIM === 'wecom') setWecomDraft(wecomConfig || { enabled: false, botId: '', secret: '' });
+        if (selectedIM === 'lark') setLarkDraft(larkConfig || { enabled: false, appId: '', appSecret: '' });
     };
 
     const handleTestConnection = async () => {
@@ -62,6 +68,8 @@ export function ImSettings() {
                 result = await window.electronAPI.system.testTelegram(tgDraft);
             } else if (selectedIM === 'wecom') {
                 result = await window.electronAPI.system.testWeCom(wecomDraft);
+            } else if (selectedIM === 'lark') {
+                result = await window.electronAPI.system.testLark(larkDraft);
             }
             if (result) setTestResult(result);
         } catch (e: any) {
@@ -90,7 +98,21 @@ export function ImSettings() {
             enabled: wecomDraft.enabled,
             onToggle: (val) => setWecomDraft({ ...wecomDraft, enabled: val })
         },
+        { 
+            id: 'lark', 
+            label: t('imSettings.larkBotTitle'), 
+            icon: MessageSquare, 
+            desc: t('imSettings.providerLarkDesc'), 
+            color: '#3370ff',
+            enabled: larkDraft.enabled,
+            onToggle: (val) => setLarkDraft({ ...larkDraft, enabled: val })
+        },
     ];
+
+    const getSelectedColor = () => {
+        const p = IM_PROVIDERS.find(p => p.id === selectedIM);
+        return p?.color || '#6366f1';
+    };
 
     return (
         <div className="flex h-full gap-6 animate-in fade-in duration-500 relative">
@@ -133,14 +155,15 @@ export function ImSettings() {
                                     </span>
                                 </div>
                                 
-                                <Switch 
-                                    size="sm"
-                                    checked={provider.enabled}
-                                    onChange={(val) => {
-                                        provider.onToggle(val);
-                                    }}
-                                    className="ml-2 scale-90"
-                                />
+                                <div onClick={(e) => e.stopPropagation()} className="ml-2 scale-90">
+                                    <Switch 
+                                        size="sm"
+                                        checked={provider.enabled}
+                                        onChange={(val) => {
+                                            provider.onToggle(val);
+                                        }}
+                                    />
+                                </div>
                             </div>
                         );
                     })}
@@ -151,37 +174,41 @@ export function ImSettings() {
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-3xl flex-1 flex flex-col shadow-sm overflow-hidden">
                     <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className={clsx(
-                                "p-3 rounded-2xl shadow-sm transition-colors",
-                                selectedIM === 'telegram' ? "bg-[#0088cc]/10 text-[#0088cc]" : "bg-[#1877f2]/10 text-[#1877f2]"
-                            )}>
-                                {selectedIM === 'telegram' ? <Bot size={24} /> : <Building2 size={24} />}
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
-                                        {selectedIM === 'telegram' ? t('imSettings.tgBotTitle') : t('imSettings.wecomBotTitle')}
-                                    </h2>
-                                    <div className={clsx(
-                                        "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                        testResult?.success 
-                                            ? "bg-emerald-500/10 text-emerald-500" 
-                                            : "bg-slate-100 text-slate-400 dark:bg-white/5"
-                                    )}>
-                                        <div className={clsx("w-1.5 h-1.5 rounded-full", testResult?.success ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
-                                        {testResult?.success ? t('modelSettings.connected') : t('mcpSettings.notConnected')}
+                        {(() => {
+                            const current = IM_PROVIDERS.find(p => p.id === selectedIM);
+                            const Icon = current?.icon;
+                            return (
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 rounded-2xl shadow-sm transition-colors"
+                                         style={{ backgroundColor: `${current?.color || '#6366f1'}1a`, color: current?.color || '#6366f1' }}>
+                                        {Icon && <Icon size={24} />}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
+                                                {current?.label}
+                                            </h2>
+                                            <div className={clsx(
+                                                "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                                testResult?.success 
+                                                    ? "bg-emerald-500/10 text-emerald-500" 
+                                                    : "bg-slate-100 text-slate-400 dark:bg-white/5"
+                                            )}>
+                                                <div className={clsx("w-1.5 h-1.5 rounded-full", testResult?.success ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
+                                                {testResult?.success ? t('modelSettings.connected') : t('mcpSettings.notConnected')}
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            {current?.desc}
+                                        </p>
                                     </div>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {selectedIM === 'telegram' ? t('imSettings.tgBotDesc') : t('imSettings.wecomBotDesc')}
-                                </p>
-                            </div>
-                        </div>
+                            );
+                        })()}
                     </div>
 
                     <div className="p-10 space-y-10 overflow-y-auto custom-scrollbar flex-1">
-                        {selectedIM === 'telegram' ? (
+                        {selectedIM === 'telegram' && (
                             <>
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
@@ -209,7 +236,9 @@ export function ImSettings() {
                                     />
                                 </div>
                             </>
-                        ) : (
+                        )}
+                        
+                        {selectedIM === 'wecom' && (
                             <>
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
@@ -238,11 +267,41 @@ export function ImSettings() {
                                 </div>
                             </>
                         )}
+
+                        {selectedIM === 'lark' && (
+                            <>
+                                <div className="space-y-4">
+                                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                        <Zap size={14} className="text-indigo-500/70" /> {t('imSettings.larkAppIdLabel')}
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={larkDraft.appId}
+                                        onChange={(e) => setLarkDraft({...larkDraft, appId: e.target.value})}
+                                        placeholder="cli_a1b2c3d4e5f6g7h8"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
+                                        <Key size={14} className="text-indigo-500/70" /> {t('imSettings.larkAppSecretLabel')}
+                                    </label>
+                                    <input 
+                                        type="password" 
+                                        value={larkDraft.appSecret}
+                                        onChange={(e) => setLarkDraft({...larkDraft, appSecret: e.target.value})}
+                                        placeholder="Enter App Secret"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                    />
+                                </div>
+                            </>
+                        )}
                         
                         <div className="pt-6">
                             <button 
                                 onClick={handleTestConnection}
-                                disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (!wecomDraft.botId || !wecomDraft.secret))}
+                                disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
                                 className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
                             >
                                 {isTesting ? (

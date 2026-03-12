@@ -51,7 +51,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
         fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload),
         testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config),
-        testWeCom: (config: any) => ipcRenderer.invoke('system:test-wecom', config)
+        testWeCom: (config: any) => ipcRenderer.invoke('system:test-wecom', config),
+        testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config)
     },
     tools: {
         getSkills: () => ipcRenderer.invoke('tool:get-skills'),

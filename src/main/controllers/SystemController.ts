@@ -34,6 +34,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_USER_SKILLS, () => this.handleOpenUserSkills());
         ipcMain.handle(SYSTEM_CHANNELS.TEST_TELEGRAM, (_, config) => this.handleTestTelegram(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
+        ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
     }
 
     private async handleFetchProviderModels(payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) {
@@ -186,5 +187,12 @@ export class SystemController {
             return { success: false, message: 'IM Service not initialized' };
         }
         return await this.imServiceManager.testConnection('wecom', config);
+    }
+
+    private async handleTestLark(config: any) {
+        if (!this.imServiceManager) {
+            return { success: false, message: 'IM Service not initialized' };
+        }
+        return await this.imServiceManager.testConnection('lark', config);
     }
 }

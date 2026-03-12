@@ -24,6 +24,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
     "@grammyjs/runner": "^2.0.3",
+    "@larksuiteoapi/node-sdk": "^1.59.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.19",

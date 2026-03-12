@@ -7,6 +7,7 @@ import { AgentRuntime, AgentRuntimeOptions } from '../agent';
 import { Skill } from '../../../common/types/skill';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
+import { LarkAdapter } from './adapters/LarkAdapter';
 import { MemoryStore } from '../memory/MemoryStore';
 
 export class IMServiceManager {
@@ -34,6 +35,7 @@ export class IMServiceManager {
         // Register default adapters
         this.registerAdapter(new TelegramAdapter());
         this.registerAdapter(new WeComAdapter());
+        this.registerAdapter(new LarkAdapter());
     }
 
     private registerAdapter(adapter: IIMAdapter) {
@@ -90,6 +92,20 @@ export class IMServiceManager {
             }
         } else {
             console.warn(`[IMServiceManager] WeCom adapter not found in registered adapters!`);
+        }
+
+        // Lark
+        const larkAdapter = this.adapters.get('lark');
+        if (larkAdapter) {
+            const config = this.settings.lark;
+            if (config?.enabled && config?.appId && config?.appSecret) {
+                console.log(`[IMServiceManager] Syncing Lark adapter...`);
+                await larkAdapter.start(config).catch(e => console.error(`[IMServiceManager] Failed to start lark adapter:`, e));
+            } else {
+                await larkAdapter.stop().catch(e => console.error(`[IMServiceManager] Failed to stop lark adapter:`, e));
+            }
+        } else {
+            console.warn(`[IMServiceManager] Lark adapter not found in registered adapters!`);
         }
     }
 

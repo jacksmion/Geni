@@ -43,6 +43,7 @@ export const SYSTEM_CHANNELS = {
     OPEN_USER_SKILLS: 'system:open-user-skills',
     TEST_TELEGRAM: 'system:test-telegram',
     TEST_WECOM: 'system:test-wecom',
+    TEST_LARK: 'system:test-lark',
 } as const;
 
 export const TOOL_CHANNELS = {
