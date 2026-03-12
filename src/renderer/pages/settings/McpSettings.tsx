@@ -23,8 +23,6 @@ export function McpSettings() {
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'general' | 'tools'>('general');
     const [searchTerm, setSearchTerm] = useState('');
-    const [isAdding, setIsAdding] = useState(false);
-    const [newServerId, setNewServerId] = useState('');
 
     // Status tracking for manual connection attempts
     const [status, setStatus] = useState<Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'>>({});
@@ -97,7 +95,10 @@ export function McpSettings() {
         try {
             const settings = await window.electronAPI.system.getSettings();
             if (settings.mcpServers) {
-                const srvs = settings.mcpServers;
+                const srvs = settings.mcpServers.map((s: any) => ({
+                    ...s,
+                    name: s.name || s.id // Ensure name exists, fallback to id
+                }));
                 setServers(srvs);
                 setServersDraft(JSON.parse(JSON.stringify(srvs)));
                 
@@ -181,16 +182,11 @@ export function McpSettings() {
     };
 
     const handleAddServer = () => {
-        if (!newServerId.trim()) return;
-        const id = newServerId.trim();
-
-        if (serversDraft.find(s => s.id === id)) {
-            alert('服务器名称已存在！');
-            return;
-        }
-
+        const id = `mcp-${Date.now().toString(36)}`;
+        
         const newServer: IMcpServerConfig = {
             id: id,
+            name: '未命名服务器',
             type: 'stdio',
             command: '',
             args: [],
@@ -199,8 +195,7 @@ export function McpSettings() {
         const newDraft = [...serversDraft, newServer];
         setServersDraft(newDraft);
         setSelectedIdx(newDraft.length - 1);
-        setIsAdding(false);
-        setNewServerId('');
+        setActiveTab('general');
     };
 
     const removeServerDraft = (index: number) => {
@@ -261,7 +256,7 @@ export function McpSettings() {
 
     // Filter servers based on search term
     const filteredServers = serversDraft.filter(server =>
-        server.id.toLowerCase().includes(searchTerm.toLowerCase())
+        (server.name || server.id).toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Filter tools for the selected server
@@ -283,31 +278,13 @@ export function McpSettings() {
                         />
                     </div>
                     <button
-                        onClick={() => setIsAdding(!isAdding)}
+                        onClick={handleAddServer}
                         className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors"
                         title="添加服务器"
                     >
                         <Plus size={16} />
                     </button>
                 </div>
-
-                {isAdding && (
-                    <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl space-y-2 animate-in slide-in-from-top-2">
-                        <input
-                            type="text"
-                            autoFocus
-                            placeholder="服务器名称 (ID)"
-                            value={newServerId}
-                            onChange={(e) => setNewServerId(e.target.value)}
-                            className="w-full bg-white dark:bg-black/20 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-2 py-1.5 text-xs focus:outline-none text-slate-900 dark:text-slate-100"
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
-                        />
-                        <div className="flex gap-2">
-                            <button onClick={handleAddServer} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1.5 rounded-lg transition-colors">添加</button>
-                            <button onClick={() => setIsAdding(false)} className="flex-1 bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-gray-400 text-xs py-1.5 rounded-lg hover:bg-slate-300 transition-colors">取消</button>
-                        </div>
-                    </div>
-                )}
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                     {filteredServers.map((server) => {
@@ -326,30 +303,38 @@ export function McpSettings() {
                                         : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
                                 )}
                             >
-                                <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5 min-w-0">
                                         <div className={clsx(
-                                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                                            isSelected ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" : "bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-gray-400"
+                                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                                            isSelected ? "bg-indigo-500 text-white shadow-sm" : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-gray-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10"
                                         )}>
                                             <Server size={18} />
                                         </div>
-                                        <span className={clsx("font-medium text-sm", isSelected ? "text-slate-800 dark:text-white" : "text-slate-600 dark:text-gray-400")}>{server.id || 'Unnamed'}</span>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className={clsx("font-bold text-sm truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                                {server.name || server.id || 'Unnamed'}
+                                            </span>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <div className={clsx(
+                                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                                    status[server.id] === 'connected' ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" :
+                                                        status[server.id] === 'connecting' ? "bg-indigo-500 animate-pulse" :
+                                                            status[server.id] === 'error' ? "bg-red-500" : "bg-slate-300 dark:bg-slate-600"
+                                                )} />
+                                                <p className="text-[10px] text-slate-400 dark:text-gray-500 truncate capitalize font-medium">
+                                                    {status[server.id] || 'Disconnected'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    {server.enabled && (
-                                        <div className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">ON</div>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2 pl-[42px]">
-                                    <div className={clsx(
-                                        "w-1.5 h-1.5 rounded-full shrink-0",
-                                        status[server.id] === 'connected' ? "bg-emerald-500" :
-                                            status[server.id] === 'connecting' ? "bg-indigo-500 animate-pulse" :
-                                                status[server.id] === 'error' ? "bg-red-500" : "bg-slate-300 dark:bg-slate-600"
-                                    )} />
-                                    <p className="text-xs text-slate-400 dark:text-gray-500 truncate capitalize">
-                                        {status[server.id] || 'Disconnected'}
-                                    </p>
+                                    <div onClick={(e) => e.stopPropagation()} className="ml-2 shrink-0 scale-90">
+                                        <Switch 
+                                            size="sm"
+                                            checked={server.enabled}
+                                            onChange={() => toggleEnableDraft(actualIdx)}
+                                        />
+                                    </div>
                                 </div>
                             </button>
                         );
@@ -363,18 +348,58 @@ export function McpSettings() {
                     {selectedServer ? (
                         <>
                             <div className="border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] z-10 shrink-0">
-                                <div className="px-6 py-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-lg font-semibold text-slate-800 dark:text-white">{selectedServer.id}</h2>
-                                    </div>
+                                <div className="px-6 py-5 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 p-1 rounded-lg">
-                                            <button onClick={() => setActiveTab('general')} className={clsx("px-3 py-1.5 rounded-md text-xs font-medium transition-all", activeTab === 'general' ? "bg-white dark:bg-[#18181b] text-slate-800 dark:text-white shadow-sm" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200")}>通用设置</button>
-                                            <button onClick={() => setActiveTab('tools')} className={clsx("px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-2", activeTab === 'tools' ? "bg-white dark:bg-[#18181b] text-slate-800 dark:text-white shadow-sm" : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200")}>可用工具 {serverTools.length > 0 && <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-white/10">{serverTools.length}</span>}</button>
+                                        <div className={clsx(
+                                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
+                                            status[selectedServer.id] === 'connected' ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 dark:bg-white/5 text-slate-400"
+                                        )}>
+                                            <Server size={24} />
                                         </div>
-                                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
-                                        <button onClick={() => removeServerDraft(selectedIdx!)} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                        <div>
+                                            <div className="flex items-center gap-2.5">
+                                                <h2 className="text-xl font-bold text-slate-800 dark:text-white leading-none">{selectedServer.name || selectedServer.id}</h2>
+                                                <div className={clsx(
+                                                    "w-2.5 h-2.5 rounded-full",
+                                                    status[selectedServer.id] === 'connected' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : 
+                                                    status[selectedServer.id] === 'connecting' ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"
+                                                )} />
+                                            </div>
+                                        </div>
                                     </div>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={() => removeServerDraft(selectedIdx!)} 
+                                            className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
+                                            title="删除服务器"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="px-6 flex gap-8">
+                                    <button 
+                                        onClick={() => setActiveTab('general')} 
+                                        className={clsx(
+                                            "pb-3 text-sm font-bold transition-all relative",
+                                            activeTab === 'general' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        )}
+                                    >
+                                        通用设置
+                                        {activeTab === 'general' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />}
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('tools')} 
+                                        className={clsx(
+                                            "pb-3 text-sm font-bold transition-all relative flex items-center gap-2",
+                                            activeTab === 'tools' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                        )}
+                                    >
+                                        可用工具
+                                        {serverTools.length > 0 && <span className={clsx("px-1.5 py-0.5 rounded-md text-[10px] font-bold", activeTab === 'tools' ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" : "bg-slate-100 dark:bg-white/10 text-slate-500")}>{serverTools.length}</span>}
+                                        {activeTab === 'tools' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />}
+                                    </button>
                                 </div>
                             </div>
 
@@ -391,27 +416,10 @@ export function McpSettings() {
                                             </div>
                                         )}
 
-                                        {/* Enable Toggle */}
-                                        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
-                                            <div className="flex items-center gap-3">
-                                                <div className={clsx("p-2 rounded-lg", selectedServer.enabled ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-slate-200 dark:bg-white/10 text-slate-500")}>
-                                                    <Server size={18} />
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-medium text-slate-800 dark:text-white">启用此服务器</div>
-                                                    <div className="text-xs text-slate-500 dark:text-gray-400">应用更改后将尝试连接</div>
-                                                </div>
-                                            </div>
-                                            <Switch 
-                                                checked={selectedServer.enabled}
-                                                onChange={() => toggleEnableDraft(selectedIdx!)}
-                                            />
-                                        </div>
-
-                                        {/* Server ID */}
+                                        {/* Server Name */}
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={14} /> 服务器 ID</label>
-                                            <input type="text" value={selectedServer.id} onChange={(e) => updateServerDraftRow(selectedIdx!, 'id', e.target.value)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={14} /> 服务器名称</label>
+                                            <input type="text" value={selectedServer.name || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'name', e.target.value)} placeholder="例如: SQLite 浏览器..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                         </div>
 
                                         {/* Transport Type */}

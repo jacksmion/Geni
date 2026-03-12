@@ -46,6 +46,7 @@ export interface McpToolSetting {
 // MCP Server Configuration
 export interface IMcpServerConfig {
     id: string;
+    name: string;
     type: 'stdio' | 'sse'; // Transport type
     command?: string; // For stdio
     args?: string[];  // For stdio

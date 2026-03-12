@@ -19,6 +19,7 @@ export interface McpToolSetting {
  */
 export interface McpServerConfig {
     id: string;
+    name?: string;
     type?: 'stdio' | 'sse';
     command?: string;
     args?: string[];
