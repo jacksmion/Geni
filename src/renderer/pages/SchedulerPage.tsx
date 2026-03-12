@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X, Bell, MessageSquare } from 'lucide-react';
+import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X, Bell, MessageSquare, CheckSquare, Square } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { Switch } from '../components/Switch';
 import { ScheduledTaskConfig } from '../../common/types/settings';
@@ -86,6 +86,7 @@ const SchedulerPage: React.FC = () => {
     const [taskLogs, setTaskLogs] = useState<Map<string, TaskLogEntry[]>>(new Map());
     const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'config' | 'logs'>('config');
+    const [selectedLogIds, setSelectedLogIds] = useState<Set<string>>(new Set());
 
     const filteredTasks = tasks.filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -159,7 +160,16 @@ const SchedulerPage: React.FC = () => {
             const interval = setInterval(() => loadTaskLogs(selectedTask.id), 10000);
             return () => clearInterval(interval);
         }
+        // 切换tab时清空选中状态
+        if (activeTab === 'config') {
+            setSelectedLogIds(new Set());
+        }
     }, [activeTab, selectedTask?.id]);
+
+    // 切换任务时清空选中状态
+    useEffect(() => {
+        setSelectedLogIds(new Set());
+    }, [selectedTask?.id]);
 
     const saveTasks = async (updatedTasks: ScheduledTaskConfig[]) => {
         await updateSettings({ scheduledTasks: updatedTasks });
@@ -216,6 +226,64 @@ const SchedulerPage: React.FC = () => {
         if (selectedTask?.id === taskId) {
             setSelectedIdx(null);
             setEditingTask(null);
+        }
+    };
+
+    const handleDeleteLog = async (logId: string) => {
+        if (!editingTask) return;
+        try {
+            await window.electronAPI.scheduler.deleteLogs(editingTask.id, [logId]);
+            await loadTaskLogs(editingTask.id);
+            setSelectedLogIds(prev => {
+                const next = new Set(prev);
+                next.delete(logId);
+                return next;
+            });
+        } catch (e) {
+            console.error('Failed to delete log:', e);
+        }
+    };
+
+    const handleDeleteSelectedLogs = async () => {
+        if (!editingTask || selectedLogIds.size === 0) return;
+        try {
+            await window.electronAPI.scheduler.deleteLogs(editingTask.id, Array.from(selectedLogIds));
+            await loadTaskLogs(editingTask.id);
+            setSelectedLogIds(new Set());
+        } catch (e) {
+            console.error('Failed to delete logs:', e);
+        }
+    };
+
+    const handleDeleteAllLogs = async () => {
+        if (!editingTask) return;
+        try {
+            await window.electronAPI.scheduler.deleteAllLogs(editingTask.id);
+            await loadTaskLogs(editingTask.id);
+            setSelectedLogIds(new Set());
+        } catch (e) {
+            console.error('Failed to delete all logs:', e);
+        }
+    };
+
+    const toggleLogSelection = (logId: string) => {
+        setSelectedLogIds(prev => {
+            const next = new Set(prev);
+            if (next.has(logId)) {
+                next.delete(logId);
+            } else {
+                next.add(logId);
+            }
+            return next;
+        });
+    };
+
+    const toggleAllLogs = () => {
+        const logs = taskLogs.get(editingTask?.id || '') || [];
+        if (selectedLogIds.size === logs.length) {
+            setSelectedLogIds(new Set());
+        } else {
+            setSelectedLogIds(new Set(logs.map(log => log.id)));
         }
     };
 
@@ -344,40 +412,35 @@ const SchedulerPage: React.FC = () => {
             <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#09090b]">
                 {(editingTask) ? (
                     <>
-                        <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-6 pr-36 draggable shrink-0 bg-white dark:bg-[#09090b]">
-                            <div className="flex items-center gap-6 nodrag flex-1 border-r border-slate-200 dark:border-white/10 mr-4 pr-4">
-                                <input
-                                    type="text"
-                                    value={editingTask.name}
-                                    onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
-                                    placeholder="任务名称..."
-                                    className="w-full bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors"
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-3 nodrag shrink-0 mr-2">
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setActiveTab('config')}
-                                        className={clsx(
-                                            "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                                            activeTab === 'config' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
-                                        )}
-                                    >
-                                        配置
-                                    </button>
-                                    <button
-                                        onClick={() => !isCreating && setActiveTab('logs')}
-                                        disabled={isCreating}
-                                        className={clsx(
-                                            "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                                            activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5",
-                                            isCreating && "opacity-40 cursor-not-allowed"
-                                        )}
-                                    >
-                                        历史
-                                    </button>
-                                </div>
+                        <header className="border-b border-slate-200 dark:border-white/5 px-6 py-4 draggable shrink-0 bg-white dark:bg-[#09090b]">
+                            <input
+                                type="text"
+                                value={editingTask.name}
+                                onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
+                                placeholder="任务名称..."
+                                className="w-full bg-transparent border-none text-lg font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors nodrag"
+                            />
+                            <div className="flex items-center gap-2 mt-3 nodrag">
+                                <button
+                                    onClick={() => setActiveTab('config')}
+                                    className={clsx(
+                                        "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                                        activeTab === 'config' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
+                                    )}
+                                >
+                                    配置
+                                </button>
+                                <button
+                                    onClick={() => !isCreating && setActiveTab('logs')}
+                                    disabled={isCreating}
+                                    className={clsx(
+                                        "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                                        activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5",
+                                        isCreating && "opacity-40 cursor-not-allowed"
+                                    )}
+                                >
+                                    历史
+                                </button>
                             </div>
                         </header>
 
@@ -590,13 +653,36 @@ const SchedulerPage: React.FC = () => {
                                         {/* 执行历史卡片 */}
                                         <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
-                                                <button
-                                                    onClick={() => loadTaskLogs(editingTask.id)}
-                                                    className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
-                                                >
-                                                    <History size={12} /> 刷新
-                                                </button>
+                                                <div className="flex items-center gap-4">
+                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
+                                                    {selectedLogIds.size > 0 && (
+                                                        <span className="text-xs text-slate-500 dark:text-gray-400">
+                                                            已选 {selectedLogIds.size} 条
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {selectedLogIds.size > 0 && (
+                                                        <button
+                                                            onClick={handleDeleteSelectedLogs}
+                                                            className="px-3 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-red-600 dark:text-red-400 flex items-center gap-1.5"
+                                                        >
+                                                            <Trash2 size={12} /> 删除选中
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => loadTaskLogs(editingTask.id)}
+                                                        className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
+                                                    >
+                                                        <History size={12} /> 刷新
+                                                    </button>
+                                                    <button
+                                                        onClick={handleDeleteAllLogs}
+                                                        className="px-3 py-1 bg-slate-50 hover:bg-red-100 dark:bg-white/5 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-slate-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 flex items-center gap-1.5"
+                                                    >
+                                                        <Trash2 size={12} /> 清空
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div className="space-y-4">
@@ -622,9 +708,30 @@ const SchedulerPage: React.FC = () => {
                                                             </div>
                                                         );
                                                     }
+                                                    const allSelected = selectedLogIds.size === logs.length && logs.length > 0;
                                                     return (
                                                         <div className="space-y-3">
-                                                            {logs.map(log => <LogEntry key={log.id} log={log} />)}
+                                                            <div className="flex items-center gap-2 px-1">
+                                                                <button
+                                                                    onClick={toggleAllLogs}
+                                                                    className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+                                                                    title={allSelected ? "取消全选" : "全选"}
+                                                                >
+                                                                    {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                                                                </button>
+                                                                <span className="text-xs text-slate-400 dark:text-gray-500">
+                                                                    {allSelected ? "取消全选" : "全选"}
+                                                                </span>
+                                                            </div>
+                                                            {logs.map(log => (
+                                                                <LogEntry
+                                                                    key={log.id}
+                                                                    log={log}
+                                                                    selected={selectedLogIds.has(log.id)}
+                                                                    onToggleSelect={() => toggleLogSelection(log.id)}
+                                                                    onDelete={() => handleDeleteLog(log.id)}
+                                                                />
+                                                            ))}
                                                         </div>
                                                     );
                                                 })()}
@@ -714,16 +821,35 @@ function MarkdownCode({ node, className, children, ...props }: any) {
 }
 
 // ============ LogEntry 子组件 ============
-function LogEntry({ log }: { log: TaskLogEntry }) {
+interface LogEntryProps {
+    log: TaskLogEntry;
+    selected: boolean;
+    onToggleSelect: () => void;
+    onDelete: () => void;
+}
+
+function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
     const [expanded, setExpanded] = useState(false);
     const isSuccess = log.status === 'success';
 
     return (
-        <div className="border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden transition-all bg-white dark:bg-white/[0.02]">
+        <div className={clsx(
+            "border rounded-lg overflow-hidden transition-all bg-white dark:bg-white/[0.02]",
+            selected ? "border-indigo-300 dark:border-indigo-500/50" : "border-slate-200 dark:border-white/10"
+        )}>
             <div
-                className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5"
+                className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 group"
                 onClick={() => setExpanded(!expanded)}
             >
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelect();
+                    }}
+                    className="shrink-0 p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+                >
+                    {selected ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
                 <div className={`shrink-0 ${isSuccess ? 'text-green-500' : 'text-red-500'}`}>
                     {isSuccess ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                 </div>
@@ -737,6 +863,16 @@ function LogEntry({ log }: { log: TaskLogEntry }) {
                         </span>
                     </div>
                 </div>
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete();
+                    }}
+                    className="shrink-0 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors text-slate-400 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100"
+                    title="删除"
+                >
+                    <Trash2 size={14} />
+                </button>
                 <div className={clsx("text-slate-400 transition-transform duration-200", expanded ? "rotate-180" : "")}>
                     <ChevronDownIcon size={16} />
                 </div>

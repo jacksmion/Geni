@@ -190,4 +190,43 @@ export class SchedulerStorage {
             console.error(`[SchedulerStorage] Failed to delete logs for task ${taskId}:`, error);
         }
     }
+
+    /**
+     * 删除指定的一条或多条日志
+     * @param taskId 任务 ID
+     * @param logIds 要删除的日志 ID 数组
+     */
+    public async deleteLogsByIds(taskId: string, logIds: string[]): Promise<void> {
+        if (logIds.length === 0) return;
+
+        const logFile = path.join(this.logsDir, `${taskId}.json`);
+
+        try {
+            if (!fs.existsSync(logFile)) {
+                return;
+            }
+
+            const data = (await fs.promises.readFile(logFile, 'utf8')).trim();
+            if (!data) return;
+
+            const logs = JSON.parse(data) as TaskExecutionLog[];
+            const idsToDelete = new Set(logIds);
+
+            // 过滤掉要删除的日志
+            const filteredLogs = logs.filter(log => !idsToDelete.has(log.id));
+
+            // 如果全部删除了，删除文件
+            if (filteredLogs.length === 0) {
+                await fs.promises.unlink(logFile);
+                return;
+            }
+
+            // 否则写入过滤后的日志
+            const tempFile = logFile + '.tmp';
+            await fs.promises.writeFile(tempFile, JSON.stringify(filteredLogs, null, 2), 'utf8');
+            await fs.promises.rename(tempFile, logFile);
+        } catch (error) {
+            console.error(`[SchedulerStorage] Failed to delete logs for task ${taskId}:`, error);
+        }
+    }
 }

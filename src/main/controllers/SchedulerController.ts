@@ -38,6 +38,16 @@ export class SchedulerController {
             return this.schedulerService.validateCron(expression);
         });
 
+        // 删除指定的一条或多条执行日志
+        ipcMain.handle(SCHEDULER_CHANNELS.DELETE_LOGS, async (_, taskId: string, logIds: string[]) => {
+            return await this.schedulerService.deleteLogs(taskId, logIds);
+        });
+
+        // 删除某个任务的全部执行日志
+        ipcMain.handle(SCHEDULER_CHANNELS.DELETE_ALL_LOGS, async (_, taskId: string) => {
+            return await this.schedulerService.deleteAllLogs(taskId);
+        });
+
         console.log('[SchedulerController] IPC handlers registered.');
     }
 }

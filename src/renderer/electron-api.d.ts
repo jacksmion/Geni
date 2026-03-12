@@ -62,6 +62,8 @@ export interface IElectronAPI {
         getStatuses: () => Promise<Array<{ taskId: string; taskName: string; enabled: boolean; isRunning: boolean; lastRunAt?: number; lastRunStatus?: string; lastRunError?: string; lastRunDurationMs?: number; nextRunAt?: number }>>;
         getLogs: (taskId: string, limit?: number) => Promise<Array<{ id: string; taskId: string; taskName: string; startedAt: number; finishedAt: number; durationMs: number; status: 'success' | 'error'; output?: string; error?: string; stepCount?: number }>>;
         validateCron: (expression: string) => Promise<{ valid: boolean; error?: string; nextRuns?: string[] }>;
+        deleteLogs: (taskId: string, logIds: string[]) => Promise<void>;
+        deleteAllLogs: (taskId: string) => Promise<void>;
     };
 
     // Tray Namespace

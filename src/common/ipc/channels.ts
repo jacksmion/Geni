@@ -68,6 +68,8 @@ export const SCHEDULER_CHANNELS = {
     GET_STATUSES: 'scheduler:get-statuses',
     GET_LOGS: 'scheduler:get-logs',
     VALIDATE_CRON: 'scheduler:validate-cron',
+    DELETE_LOGS: 'scheduler:delete-logs',
+    DELETE_ALL_LOGS: 'scheduler:delete-all-logs',
 } as const;
 
 // Tray Events (Server -> Client)

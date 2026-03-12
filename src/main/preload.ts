@@ -74,6 +74,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getStatuses: () => ipcRenderer.invoke('scheduler:get-statuses'),
         getLogs: (taskId: string, limit?: number) => ipcRenderer.invoke('scheduler:get-logs', taskId, limit),
         validateCron: (expression: string) => ipcRenderer.invoke('scheduler:validate-cron', expression),
+        deleteLogs: (taskId: string, logIds: string[]) => ipcRenderer.invoke('scheduler:delete-logs', taskId, logIds),
+        deleteAllLogs: (taskId: string) => ipcRenderer.invoke('scheduler:delete-all-logs', taskId),
     },
     tray: {
         onNavigateToSettings: (callback: () => void) => {

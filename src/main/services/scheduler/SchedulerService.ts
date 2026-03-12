@@ -416,6 +416,23 @@ export class SchedulerService {
     }
 
     /**
+     * 删除指定的一条或多条执行日志
+     * @param taskId 任务 ID
+     * @param logIds 要删除的日志 ID 数组
+     */
+    public async deleteLogs(taskId: string, logIds: string[]): Promise<void> {
+        await this.storage.deleteLogsByIds(taskId, logIds);
+    }
+
+    /**
+     * 删除某个任务的全部执行日志
+     * @param taskId 任务 ID
+     */
+    public async deleteAllLogs(taskId: string): Promise<void> {
+        await this.storage.deleteTaskLogs(taskId);
+    }
+
+    /**
      * 验证 cron 表达式是否有效
      */
     public validateCron(expression: string): { valid: boolean; error?: string; nextRuns?: string[] } {
