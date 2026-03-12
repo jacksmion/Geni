@@ -14,7 +14,10 @@
         },
         "about": {
             "slogan": "Your personal spark for creativity & code"
-        }
+        },
+        "unsavedChanges": "未保存的更改",
+        "reset": "放弃",
+        "save": "保存"
     },
     "shortcuts": {
         "title": "快捷键配置",

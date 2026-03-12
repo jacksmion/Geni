@@ -14,7 +14,10 @@
         },
         "about": {
             "slogan": "Your personal spark for creativity & code"
-        }
+        },
+        "unsavedChanges": "Unsaved changes",
+        "reset": "Discard",
+        "save": "Save"
     },
     "shortcuts": {
         "title": "Shortcuts Configuration",

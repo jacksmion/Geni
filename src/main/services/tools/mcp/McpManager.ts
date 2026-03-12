@@ -43,6 +43,7 @@ interface McpServerConnection {
     state: McpConnectionState;
     lastError?: string;
     toolNames: string[]; // Track registered tool names for cleanup
+    discoveredTools: { name: string; description: string }[]; // Track ALL found tools, even if not registered
 }
 
 // ===== McpManager =====
@@ -81,7 +82,8 @@ export class McpManager {
             config,
             client: null!,
             state: 'connecting',
-            toolNames: []
+            toolNames: [],
+            discoveredTools: []
         });
 
         console.log(`[McpManager] Connecting to ${config.id} via ${config.type || 'stdio'}...`);
@@ -194,42 +196,63 @@ export class McpManager {
 
         const result = await connection.client.listTools();
         const registeredToolNames: string[] = [];
+        const discoveredTools: { name: string; description: string }[] = [];
         const toolSettings = connection.config.toolSettings || {};
+        const isServerEnabled = connection.config.enabled === true;
+
+        const safePrefix = serverId.replace(/[^a-zA-Z0-9_]/g, '_');
 
         for (const tool of result.tools) {
             const settings = toolSettings[tool.name];
+            const fullName = `mcp__${safePrefix}__${tool.name}`;
+            
+            discoveredTools.push({
+                name: fullName,
+                description: tool.description || ''
+            });
 
-            // If tool explicitly disabled, skip it
-            if (settings && settings.enabled === false) {
-                console.log(`[McpManager] Tool ${tool.name} (from ${serverId}) is disabled by user settings`);
-                continue;
+            // Only register to AI Agent if server is enabled AND this specific tool is not disabled
+            if (isServerEnabled && (!settings || settings.enabled !== false)) {
+                const schema = tool.inputSchema;
+                const adapter = new McpToolAdapter(
+                    serverId,
+                    connection.client,
+                    tool.name,
+                    schema,
+                    tool.description || '',
+                    settings ? settings.trustLevel : 'Auto'
+                );
+
+                this.registry.register(adapter);
+
+                // Sync with ToolGuard mapping
+                const trustLevel = settings ? settings.trustLevel : 'Auto';
+                defaultToolGuard.registerToolTrustLevel(
+                    adapter.getDefinition().name,
+                    trustLevel === 'Auto' ? ToolTrustLevel.Low : ToolTrustLevel.High
+                );
+
+                registeredToolNames.push(adapter.getDefinition().name);
+                console.log(`[McpManager] Registered tool: ${fullName} (enabled & available)`);
+            } else {
+                console.log(`[McpManager] Tool ${fullName} is discovered but NOT registered to AI (Server enabled: ${isServerEnabled})`);
             }
-
-            const schema = tool.inputSchema;
-            const adapter = new McpToolAdapter(
-                serverId,
-                connection.client,
-                tool.name,
-                schema,
-                tool.description || '',
-                settings ? settings.trustLevel : 'Auto'
-            );
-
-            this.registry.register(adapter);
-
-            // Sync with ToolGuard mapping
-            const trustLevel = settings ? settings.trustLevel : 'Auto';
-            defaultToolGuard.registerToolTrustLevel(
-                adapter.getDefinition().name,
-                trustLevel === 'Auto' ? ToolTrustLevel.Low : ToolTrustLevel.High
-            );
-
-            registeredToolNames.push(adapter.getDefinition().name);
-            console.log(`[McpManager] Registered tool: ${tool.name} (from ${serverId})`);
         }
 
-        // Track registered tools for cleanup
+        // Track state
         connection.toolNames = registeredToolNames;
+        connection.discoveredTools = discoveredTools;
+    }
+
+    /**
+     * Get all discovered tools across all servers (including unenabled ones)
+     */
+    getAllDiscoveredTools(): { name: string; description: string }[] {
+        const allTools: { name: string; description: string }[] = [];
+        for (const connection of this.connections.values()) {
+            allTools.push(...connection.discoveredTools);
+        }
+        return allTools;
     }
 
     /**

@@ -230,9 +230,6 @@ export class ToolController {
     }
 
     private handleListMcpTools() {
-        return this.toolRegistry.getToolDefinitions().map(def => ({
-            name: def.name,
-            description: def.description
-        }));
+        return this.mcpManager.getAllDiscoveredTools();
     }
 }
