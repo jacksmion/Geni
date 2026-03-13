@@ -469,13 +469,42 @@ const SchedulerPage: React.FC = () => {
                             />
                         </header>
 
-                        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
                             <div className="max-w-2xl mx-auto">
+                                {!isCreating && (
+                                    <div className="flex p-1 bg-slate-100 dark:bg-white/5 rounded-xl w-fit mb-3">
+                                        <button
+                                            onClick={() => setActiveTab('config')}
+                                            className={clsx(
+                                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                                activeTab === 'config'
+                                                    ? "bg-white dark:bg-[#18181b] text-slate-900 dark:text-white shadow-sm"
+                                                    : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
+                                            )}
+                                        >
+                                            配置
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveTab('logs');
+                                                if (editingTask) loadTaskLogs(editingTask.id);
+                                            }}
+                                            className={clsx(
+                                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                                activeTab === 'logs'
+                                                    ? "bg-white dark:bg-[#18181b] text-slate-900 dark:text-white shadow-sm"
+                                                    : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
+                                            )}
+                                        >
+                                            历史
+                                        </button>
+                                    </div>
+                                )}
                                 {activeTab === 'config' ? (
                                     <div className="animate-in fade-in duration-300 pt-1 pb-16">
                                         <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
                                             {/* 区域一：基本信息与指令 */}
-                                            <div className="p-5 space-y-5">
+                                            <div className="p-4 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2.5">
                                                         <FileText size={18} className="text-indigo-500" />
@@ -557,7 +586,7 @@ const SchedulerPage: React.FC = () => {
                                             </div>
 
                                             {/* 区域二：调度规则 */}
-                                            <div className="p-5 border-t border-slate-100 dark:border-white/5 space-y-5">
+                                            <div className="p-4 border-t border-slate-100 dark:border-white/5 space-y-4">
                                                 <div className="flex items-center gap-2.5">
                                                     <Clock size={18} className="text-indigo-500" />
                                                     <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">调度规则</h3>
@@ -573,7 +602,7 @@ const SchedulerPage: React.FC = () => {
                                             </div>
                                             
                                             {/* 区域三：通知配置 */}
-                                            <div className="p-5 border-t border-slate-100 dark:border-white/5 space-y-5">
+                                            <div className="p-4 border-t border-slate-100 dark:border-white/5 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2.5">
                                                         <Bell size={18} className="text-indigo-500" />
@@ -629,9 +658,9 @@ const SchedulerPage: React.FC = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 animate-in fade-in duration-300 pt-6">
+                                    <div className="space-y-4 animate-in fade-in duration-300 pt-1">
                                         {/* 执行历史卡片 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
+                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
                                                     <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
@@ -690,7 +719,7 @@ const SchedulerPage: React.FC = () => {
                                                     }
                                                     const allSelected = selectedLogIds.size === logs.length && logs.length > 0;
                                                     return (
-                                                        <div className="space-y-3">
+                                                        <div className="space-y-2">
                                                             <div className="flex items-center gap-2 px-1">
                                                                 <button
                                                                     onClick={toggleAllLogs}
