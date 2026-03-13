@@ -341,7 +341,7 @@ const SchedulerPage: React.FC = () => {
         <div className="flex h-full w-full bg-slate-50 dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500">
             {/* Left Sidebar */}
             <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#09090b] flex flex-col">
-                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0">
+                <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0">
                     <div className="flex items-center gap-2">
                         <Clock size={16} className="text-slate-800 dark:text-gray-100" />
                         <h1 className="text-sm font-bold text-slate-800 dark:text-gray-100 tracking-tight">
@@ -459,240 +459,173 @@ const SchedulerPage: React.FC = () => {
             <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#09090b]">
                 {(editingTask) ? (
                     <>
-                        <header className="border-b border-slate-200 dark:border-white/5 px-6 py-4 draggable shrink-0 bg-white dark:bg-[#09090b]">
+                        <header className="border-b border-slate-200 dark:border-white/5 px-6 h-12 flex items-center justify-between draggable shrink-0 bg-white dark:bg-[#09090b]">
                             <input
                                 type="text"
                                 value={editingTask.name}
                                 onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
                                 placeholder="任务名称..."
-                                className="w-full bg-transparent border-none text-lg font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors nodrag"
+                                className="flex-1 bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors nodrag"
                             />
-                            <div className="flex items-center gap-2 mt-3 nodrag">
-                                <button
-                                    onClick={() => setActiveTab('config')}
-                                    className={clsx(
-                                        "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                                        activeTab === 'config' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"
-                                    )}
-                                >
-                                    配置
-                                </button>
-                                <button
-                                    onClick={() => !isCreating && setActiveTab('logs')}
-                                    disabled={isCreating}
-                                    className={clsx(
-                                        "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                                        activeTab === 'logs' ? "bg-slate-800 text-white dark:bg-white dark:text-black" : "text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5",
-                                        isCreating && "opacity-40 cursor-not-allowed"
-                                    )}
-                                >
-                                    历史
-                                </button>
-                            </div>
                         </header>
 
                         <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
                             <div className="max-w-2xl mx-auto">
                                 {activeTab === 'config' ? (
-                                    <div className="space-y-6 animate-in fade-in duration-300 pt-6 pb-12">
-
-                                        {/* 卡片一：基本信息与指令 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
-                                            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
-                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">基本信息与指令</h3>
-                                                </div>
-                                                {!isCreating && (
-                                                    <div className="flex items-center gap-4">
-                                                        <label className="flex items-center gap-2 cursor-pointer group">
-                                                            <span className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase transition-colors group-hover:text-slate-700 dark:group-hover:text-gray-200">
-                                                                {editingTask.enabled ? '已启用' : '已停用'}
-                                                            </span>
-                                                            <div
-                                                                className={clsx(
-                                                                    "w-9 h-5 rounded-full transition-colors relative",
-                                                                    editingTask.enabled ? "bg-indigo-600 dark:bg-indigo-500" : "bg-slate-200 dark:bg-white/10"
-                                                                )}
-                                                            >
-                                                                <div className={clsx(
-                                                                    "absolute top-1 left-1 w-3 h-3 rounded-full transition-transform duration-300 shadow-sm",
-                                                                    editingTask.enabled ? "translate-x-4 bg-white" : "translate-x-0 bg-white dark:bg-gray-400"
-                                                                )} />
-                                                            </div>
-                                                            <input
-                                                                type="checkbox"
-                                                                className="hidden"
-                                                                checked={editingTask.enabled}
-                                                                onChange={e => setEditingTask({ ...editingTask, enabled: e.target.checked })}
-                                                            />
-                                                        </label>
-                                                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
-                                                        <button
-                                                            onClick={() => handleTriggerTask(editingTask.id)}
-                                                            className="px-3 py-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors text-xs font-bold flex items-center gap-1.5 border border-transparent hover:border-indigo-200 dark:hover:border-indigo-500/30"
-                                                        >
-                                                            <Play size={14} className="fill-current" /> 立即运行
-                                                        </button>
+                                    <div className="animate-in fade-in duration-300 pt-1 pb-16">
+                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
+                                            {/* 区域一：基本信息与指令 */}
+                                            <div className="p-5 space-y-5">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <FileText size={18} className="text-indigo-500" />
+                                                        <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">基本信息与指令</h3>
                                                     </div>
-                                                )}
-                                            </div>
+                                                    {!isCreating && (
+                                                        <div className="flex items-center gap-4">
+                                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                                <span className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                                                                    {editingTask.enabled ? 'ACTIVE' : 'DISABLED'}
+                                                                </span>
+                                                                <Switch 
+                                                                    size="sm"
+                                                                    checked={editingTask.enabled}
+                                                                    onChange={val => setEditingTask({ ...editingTask, enabled: val })}
+                                                                />
+                                                            </label>
+                                                            <div className="w-px h-3 bg-slate-200 dark:bg-white/10" />
+                                                            <button
+                                                                onClick={() => handleTriggerTask(editingTask.id)}
+                                                                className="px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors text-[11px] font-bold flex items-center gap-1.5"
+                                                            >
+                                                                <Play size={14} className="fill-current" /> 立即运行
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
 
-                                            <div className="space-y-3">
-                                                <label className="text-sm font-medium text-slate-700 dark:text-gray-300 flex items-center gap-2">
-                                                    Prompt 指令
-                                                </label>
-                                                <textarea
-                                                    value={editingTask.prompt}
-                                                    onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
-                                                    placeholder="明确告诉 AI 需要完成什么任务，需要使用哪些工具，输出格式要求等... 支持 {变量} 插入（如适用）"
-                                                    rows={5}
-                                                    className="w-full p-4 bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 focus:border-indigo-400 dark:focus:border-indigo-500/50 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-500/10 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all resize-y"
-                                                />
-                                            </div>
+                                                <div className="space-y-4">
+                                                    <textarea
+                                                        value={editingTask.prompt}
+                                                        onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
+                                                        placeholder="明确告诉 AI 需要完成什么任务..."
+                                                        rows={4}
+                                                        className="w-full p-4 bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 focus:border-indigo-400 dark:focus:border-indigo-500/50 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-500/10 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all resize-none"
+                                                    />
 
-                                            <div className="space-y-3 pt-2">
-                                                <label className="text-sm font-medium text-slate-700 dark:text-gray-300 flex items-center gap-2">
-                                                    工具权限
-                                                </label>
-                                                <div className="flex items-center gap-6 p-3 bg-slate-50/80 dark:bg-white/[0.02] rounded-xl border border-slate-100 dark:border-white/5">
-                                                    <label className="flex items-center gap-3 cursor-pointer group">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={editingTask.enableTools !== false}
-                                                            onChange={e => setEditingTask({ ...editingTask, enableTools: e.target.checked })}
-                                                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent dark:checked:bg-indigo-500"
-                                                        />
-                                                        <span className="text-sm font-medium text-slate-700 dark:text-gray-200">允许调用所有工具 (包含联网等)</span>
-                                                    </label>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className="p-3 bg-slate-50/80 dark:bg-white/[0.02] rounded-xl border border-slate-100 dark:border-white/5">
+                                                            <label className="flex items-center gap-3 cursor-pointer group">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={editingTask.enableTools !== false}
+                                                                    onChange={e => setEditingTask({ ...editingTask, enableTools: e.target.checked })}
+                                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent"
+                                                                />
+                                                                <span className="text-xs font-medium text-slate-700 dark:text-gray-200">允许调用所有工具</span>
+                                                            </label>
+                                                        </div>
+
+                                                        <div className="p-3 bg-slate-50/80 dark:bg-white/[0.02] rounded-xl border border-slate-100 dark:border-white/5">
+                                                            <div className="flex flex-col gap-3">
+                                                                <label className="flex items-center gap-3 cursor-pointer group">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={editingTask.keepHistory || false}
+                                                                        onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
+                                                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent"
+                                                                    />
+                                                                    <span className="text-xs font-medium text-slate-700 dark:text-gray-200">保留任务对话历史</span>
+                                                                </label>
+                                                                {editingTask.keepHistory && (
+                                                                    <div className="pl-7 flex items-center gap-2">
+                                                                        <span className="text-[10px] text-slate-500">轮次上限:</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            max={100}
+                                                                            value={editingTask.maxHistoryTurns || 10}
+                                                                            onChange={e => setEditingTask({ ...editingTask, maxHistoryTurns: parseInt(e.target.value) || 10 })}
+                                                                            className="w-12 px-1.5 py-0.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded text-[10px] focus:outline-none"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* 卡片二：调度规则配置 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
-                                            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
-                                                <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                                                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">调度规则</h3>
-                                            </div>
-
-                                            <CronGenerator
-                                                value={editingTask.cronExpression}
-                                                onChange={(val) => {
-                                                    setEditingTask({ ...editingTask, cronExpression: val });
-                                                    validateCron(val);
-                                                }}
-                                                validation={cronValidation}
-                                            />
-                                        </div>
-                                        
-                                        {/* 卡片三：通知配置 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
-                                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
-                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">结果通知 (IM)</h3>
+                                            {/* 区域二：调度规则 */}
+                                            <div className="p-5 border-t border-slate-100 dark:border-white/5 space-y-5">
+                                                <div className="flex items-center gap-2.5">
+                                                    <Clock size={18} className="text-indigo-500" />
+                                                    <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">调度规则</h3>
                                                 </div>
-                                                <Switch 
-                                                    size="sm"
-                                                    checked={editingTask.notification?.enabled || false}
-                                                    onChange={val => setEditingTask({
-                                                        ...editingTask,
-                                                        notification: {
-                                                            ...(editingTask.notification || { imSessionId: '' }),
-                                                            enabled: val
-                                                        }
-                                                    })}
+                                                <CronGenerator
+                                                    value={editingTask.cronExpression}
+                                                    onChange={(val) => {
+                                                        setEditingTask({ ...editingTask, cronExpression: val });
+                                                        validateCron(val);
+                                                    }}
+                                                    validation={cronValidation}
                                                 />
                                             </div>
+                                            
+                                            {/* 区域三：通知配置 */}
+                                            <div className="p-5 border-t border-slate-100 dark:border-white/5 space-y-5">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <Bell size={18} className="text-indigo-500" />
+                                                        <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">结果通知 (IM)</h3>
+                                                    </div>
+                                                    <Switch 
+                                                        size="sm"
+                                                        checked={editingTask.notification?.enabled || false}
+                                                        onChange={val => setEditingTask({
+                                                            ...editingTask,
+                                                            notification: {
+                                                                ...(editingTask.notification || { imSessionId: '' }),
+                                                                enabled: val
+                                                            }
+                                                        })}
+                                                    />
+                                                </div>
 
-                                            {editingTask.notification?.enabled && (
-                                                <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                                            <MessageSquare size={14} className="text-rose-500/70" /> 推送目标 (Session ID)
-                                                        </label>
+                                                {editingTask.notification?.enabled && (
+                                                    <div className="animate-in slide-in-from-top-1 duration-200">
                                                         <input 
                                                             type="text" 
                                                             value={editingTask.notification.imSessionId}
                                                             onChange={e => setEditingTask({
                                                                 ...editingTask,
-                                                                notification: {
-                                                                    ...editingTask.notification!,
-                                                                    imSessionId: e.target.value
-                                                                }
+                                                                notification: { ...editingTask.notification!, imSessionId: e.target.value }
                                                             })}
-                                                            placeholder="例如: tg_12345678, wecom_userid, lark_chatid"
-                                                            className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rose-500/20 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                                                        />
-                                                        <p className="text-[10px] text-slate-500 px-1 leading-relaxed">
-                                                            请填写在 IM 频道中获取到的 Session ID。任务执行完毕后，Geni 会将结果推送到该地址。
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 卡片四：高级配置 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm space-y-5">
-                                            <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5">
-                                                <div className="w-1.5 h-4 bg-slate-400 rounded-full"></div>
-                                                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">历史与上下文</h3>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={editingTask.keepHistory || false}
-                                                        onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
-                                                        className="w-4 h-4 rounded border-slate-300 text-slate-800 focus:ring-slate-800 dark:text-white dark:focus:ring-white"
-                                                    />
-                                                    <span className="text-sm font-medium text-slate-700 dark:text-gray-200">保留任务对话历史</span>
-                                                </label>
-
-                                                {editingTask.keepHistory && (
-                                                    <div className="pl-7 flex items-center gap-2">
-                                                        <span className="text-xs text-slate-500">最大循环保留轮次:</span>
-                                                        <input
-                                                            type="number"
-                                                            min={1}
-                                                            max={100}
-                                                            value={editingTask.maxHistoryTurns || 10}
-                                                            onChange={e => setEditingTask({ ...editingTask, maxHistoryTurns: parseInt(e.target.value) || 10 })}
-                                                            className="w-16 px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-sm focus:outline-none focus:border-slate-400 dark:focus:border-white/20"
+                                                            placeholder="Session ID (例如: tg_12345678)..."
+                                                            className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all text-slate-700 dark:text-gray-200"
                                                         />
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div className="pt-2 flex items-center justify-between">
-                                            <div>
-                                                {saved && (
-                                                    <span className="flex items-center gap-1.5 text-xs text-green-500 font-medium">
-                                                        <CheckCircle2 size={14} /> 已保存
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-3">
-                                                {isCreating && (
-                                                    <button
-                                                        onClick={handleCancelCreating}
-                                                        className="px-5 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
-                                                    >
-                                                        取消
-                                                    </button>
-                                                )}
+                                        <div className="pt-6 flex justify-end gap-3">
+                                            {isCreating && (
                                                 <button
-                                                    onClick={handleSaveTask}
-                                                    disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
-                                                    className="px-6 py-2.5 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 disabled:bg-slate-200 dark:disabled:bg-white/10 text-white dark:text-black rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shadow-sm disabled:shadow-none"
+                                                    onClick={handleCancelCreating}
+                                                    className="px-5 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
                                                 >
-                                                    <Save size={16} />
-                                                    {isCreating ? '创建任务' : '保存修改'}
+                                                    取消
                                                 </button>
-                                            </div>
+                                            )}
+                                            <button
+                                                onClick={handleSaveTask}
+                                                disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
+                                                className="px-6 py-2 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 disabled:bg-slate-200 dark:disabled:bg-white/10 text-white dark:text-black rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm"
+                                            >
+                                                <Save size={16} />
+                                                {isCreating ? '创建任务' : '保存修改'}
+                                            </button>
                                         </div>
                                     </div>
                                 ) : (
@@ -1140,26 +1073,12 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                 )}
 
                 {/* Validation and Preview Area */}
-                {validation && (
+                {validation && !validation.valid && (
                     <div className="pt-4 mt-2 border-t border-slate-200/60 dark:border-white/5">
-                        <div className={clsx("text-xs flex flex-col gap-2", validation.valid ? 'text-slate-600 dark:text-gray-300' : 'text-red-500')}>
-                            {validation.valid ? (
-                                <>
-                                    <span className="font-semibold flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
-                                        <CheckCircle2 size={14} /> 表达式合法，预估近期执行时间：
-                                    </span>
-                                    <div className="pl-5 space-y-1 mt-0.5">
-                                        {validation.nextRuns?.slice(0, 3).map((run, i) => (
-                                            <div key={i} className="font-mono text-[11px] font-medium opacity-80 flex items-center gap-2">
-                                                <span className="w-4 h-4 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[10px]">{i + 1}</span>
-                                                {run}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <span className="flex items-center gap-1.5 font-medium"><AlertCircle size={14} /> 无效表达式: {validation.error}</span>
-                            )}
+                        <div className="text-xs text-red-500">
+                            <span className="flex items-center gap-1.5 font-medium">
+                                <AlertCircle size={14} /> 无效表达式: {validation.error}
+                            </span>
                         </div>
                     </div>
                 )}
