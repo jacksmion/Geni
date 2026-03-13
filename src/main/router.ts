@@ -100,7 +100,7 @@ export class AppRouter {
 
 
         // Wiring
-        this.systemController.setSettingsChangeCallback(async (newSettings) => {
+        const settingsChangeHandler = async (newSettings: AppSettings) => {
             // 1. Update Agent Engine settings
             this.agentController.updateSettings(newSettings);
 
@@ -147,7 +147,16 @@ export class AppRouter {
             }
             // 7. Update IM Services
             await this.imServiceManager.updateSettings(newSettings);
-        });
+
+            // 8. Broadcast to UI
+            this.systemController.broadcastSettingsChanged(newSettings);
+        };
+
+        this.systemController.setSettingsChangeCallback(settingsChangeHandler);
+        this.coreToolManager.setSettingsChangeCallback(settingsChangeHandler);
+        
+        // 由于 CoreToolManager 在 AppRouter 之前已 initialize，此处需要 refresh 一次以注入回调
+        this.coreToolManager.refresh();
     }
 
     /**

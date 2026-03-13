@@ -14,7 +14,9 @@ import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
 import { PathManager } from '../../PathManager';
 import { WebFetchTool } from './WebFetchTool';
 import { MemorizeTool } from './MemorizeTool';
+import { CronTool } from './CronTool';
 import { MemoryStore } from '../../memory/MemoryStore';
+import { AppSettings } from '../../../../common/types/settings';
 
 export class CoreToolManager {
     private registry: ToolRegistry;
@@ -23,6 +25,7 @@ export class CoreToolManager {
     private workspacePath: string;
     private pathManager: PathManager;
     private memoryStore: MemoryStore;
+    private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
 
     constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string, pathManager: PathManager, memoryStore: MemoryStore) {
         this.registry = registry;
@@ -31,6 +34,13 @@ export class CoreToolManager {
         this.workspacePath = workspacePath;
         this.pathManager = pathManager;
         this.memoryStore = memoryStore;
+    }
+
+    /**
+     * 设置配置变更回调
+     */
+    public setSettingsChangeCallback(callback: (settings: AppSettings) => Promise<void> | void) {
+        this.onSettingsChanged = callback;
     }
 
     /**
@@ -56,7 +66,8 @@ export class CoreToolManager {
             'todoread': () => new TodoReadTool(),
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager),
             'web_fetch': () => new WebFetchTool(),
-            'memorize': () => new MemorizeTool(this.memoryStore)
+            'memorize': () => new MemorizeTool(this.memoryStore),
+            'create_scheduled_task': () => new CronTool(this.configManager, this.onSettingsChanged)
         };
 
         // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
@@ -69,7 +80,8 @@ export class CoreToolManager {
             'todoread',
             'load_skill',
             'web_fetch',
-            'memorize'
+            'memorize',
+            'create_scheduled_task'
         ];
 
         // Register each tool if not explicitly disabled
@@ -128,7 +140,8 @@ export class CoreToolManager {
             { name: 'todoread', description: 'Read the current todo list' },
             { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' },
             { name: 'web_fetch', description: 'Fetch and parse web page content into Markdown' },
-            { name: 'memorize', description: 'Save or delete long-term memories' }
+            { name: 'memorize', description: 'Save or delete long-term memories' },
+            { name: 'create_scheduled_task', description: 'Create a new scheduled task (cron job)' }
         ];
 
         return allCoreTools
@@ -152,7 +165,7 @@ export class CoreToolManager {
         const allCoreTools = [
             'list', 'read', 'write', 'bash', 'edit',
             'glob', 'grep', 'todowrite', 'todoread',
-            'load_skill', 'web_fetch', 'memorize'
+            'load_skill', 'web_fetch', 'memorize', 'create_scheduled_task'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));
 

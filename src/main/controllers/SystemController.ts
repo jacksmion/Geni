@@ -1,5 +1,5 @@
-import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow } from 'electron';
-import { SYSTEM_CHANNELS } from '../../common/ipc/channels';
+import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow, WebContents, IpcMainInvokeEvent } from 'electron';
+import { SYSTEM_CHANNELS, SYSTEM_EVENTS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
 import { UsageManager } from '../services/usage/UsageManager';
@@ -10,6 +10,7 @@ export class SystemController {
     private pathManager: PathManager;
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
     private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
+    private activeWebContents: WebContents | null = null;
 
     constructor(
         private configManager: ConfigManager,
@@ -28,8 +29,14 @@ export class SystemController {
     }
 
     public registerHandlers() {
-        ipcMain.handle(SYSTEM_CHANNELS.GET_SETTINGS, () => this.configManager.load());
-        ipcMain.handle(SYSTEM_CHANNELS.SAVE_SETTINGS, (_, settings) => this.handleSaveSettings(settings));
+        ipcMain.handle(SYSTEM_CHANNELS.GET_SETTINGS, (event) => {
+            this.activeWebContents = event.sender;
+            return this.configManager.load();
+        });
+        ipcMain.handle(SYSTEM_CHANNELS.SAVE_SETTINGS, (event, settings) => {
+            this.activeWebContents = event.sender;
+            return this.handleSaveSettings(settings);
+        });
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_DIRECTORY, () => this.handleSelectDirectory());
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, () => this.handleSelectFile());
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
@@ -41,6 +48,19 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
         ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
+    }
+
+    public broadcastSettingsChanged(settings: AppSettings) {
+        if (this.activeWebContents && !this.activeWebContents.isDestroyed()) {
+            this.activeWebContents.send(SYSTEM_EVENTS.SETTINGS_CHANGED, settings);
+        } else {
+            // Fallback: broadcast to all windows if no active one recorded
+            BrowserWindow.getAllWindows().forEach(win => {
+                if (!win.isDestroyed()) {
+                    win.webContents.send(SYSTEM_EVENTS.SETTINGS_CHANGED, settings);
+                }
+            });
+        }
     }
 
     private async handleFetchProviderModels(payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) {

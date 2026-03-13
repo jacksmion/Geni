@@ -53,7 +53,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config),
         testWeCom: (config: any) => ipcRenderer.invoke('system:test-wecom', config),
         testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config),
-        getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats')
+        getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
+        onSettingsChanged: (callback: (settings: any) => void) => {
+            const sub = (_: any, settings: any) => callback(settings)
+            ipcRenderer.on('system:settings-changed', sub)
+            return () => ipcRenderer.removeListener('system:settings-changed', sub)
+        }
     },
     tools: {
         getSkills: () => ipcRenderer.invoke('tool:get-skills'),

@@ -47,6 +47,10 @@ export const SYSTEM_CHANNELS = {
     GET_USAGE_STATS: 'system:get-usage-stats',
 } as const;
 
+export const SYSTEM_EVENTS = {
+    SETTINGS_CHANGED: 'system:settings-changed',
+} as const;
+
 export const TOOL_CHANNELS = {
     GET_SKILLS: 'tool:get-skills',
     TOGGLE_SKILL: 'tool:toggle-skill',

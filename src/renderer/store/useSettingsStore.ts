@@ -101,3 +101,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         await window.electronAPI.system.saveSettings(newSettings);
     }
 }));
+
+// 监听来自后台的设置变更推送 (例如 CronTool 创建了任务)
+if (typeof window !== 'undefined' && window.electronAPI?.system?.onSettingsChanged) {
+    window.electronAPI.system.onSettingsChanged((newSettings: AppSettings) => {
+        console.log('[SettingsStore] Received background settings update');
+        useSettingsStore.setState({ settings: newSettings });
+
+        // 同步应用视觉效果和语言
+        if (newSettings.language) {
+            i18n.changeLanguage(newSettings.language);
+        }
+        if (newSettings.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    });
+}
