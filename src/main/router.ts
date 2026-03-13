@@ -132,23 +132,22 @@ export class AppRouter {
                 this.currentWorkspacePath = newWorkspacePath;
             }
 
-            // 6. Sync MCP Server states (connect new ones, disconnect disabled ones)
-            if (newSettings.mcpServers) {
-                for (const server of newSettings.mcpServers) {
-                    const isConnected = this.mcpManager.isConnected(server.id);
-                    if (server.enabled && !isConnected) {
-                        console.log(`[AppRouter] Auto-connecting MCP server ${server.id} after settings change`);
-                        this.mcpManager.connectToServer(server).catch(e => {
-                            console.error(`[AppRouter] Failed to connect MCP server ${server.id}:`, e);
-                        });
-                    } else if (!server.enabled && isConnected) {
-                        console.log(`[AppRouter] Disconnecting MCP server ${server.id} after settings change`);
-                        await this.mcpManager.disconnectServer(server.id).catch(console.error);
+            // 7. Update IM Services & MCP (Heavy tasks - run asynchronously)
+            (async () => {
+                // Sync MCP Server states
+                if (newSettings.mcpServers) {
+                    for (const server of newSettings.mcpServers) {
+                        const isConnected = this.mcpManager.isConnected(server.id);
+                        if (server.enabled && !isConnected) {
+                            console.log(`[AppRouter] Auto-connecting MCP server ${server.id}`);
+                            this.mcpManager.connectToServer(server).catch(console.error);
+                        } else if (!server.enabled && isConnected) {
+                            await this.mcpManager.disconnectServer(server.id).catch(console.error);
+                        }
                     }
                 }
-            }
-            // 7. Update IM Services
-            await this.imServiceManager.updateSettings(newSettings);
+                await this.imServiceManager.updateSettings(newSettings).catch((e: any) => console.error('[AppRouter] IM update error:', e));
+            })();
 
             // 8. Broadcast to UI
             this.systemController.broadcastSettingsChanged(newSettings);

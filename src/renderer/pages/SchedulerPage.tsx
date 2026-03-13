@@ -93,6 +93,7 @@ const SchedulerPage: React.FC = () => {
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [editingTask, setEditingTask] = useState<ScheduledTaskConfig | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -188,9 +189,14 @@ const SchedulerPage: React.FC = () => {
     }, [selectedTask?.id]);
 
     const saveTasks = async (updatedTasks: ScheduledTaskConfig[]) => {
-        await updateSettings({ scheduledTasks: updatedTasks });
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setIsSaving(true);
+        try {
+            await updateSettings({ scheduledTasks: updatedTasks });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleAddTask = () => {
@@ -649,11 +655,23 @@ const SchedulerPage: React.FC = () => {
                                             )}
                                             <button
                                                 onClick={handleSaveTask}
-                                                disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
-                                                className="px-6 py-2 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 disabled:bg-slate-200 dark:disabled:bg-white/10 text-white dark:text-black rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm"
+                                                disabled={isSaving || !editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
+                                                className={clsx(
+                                                    "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm min-w-[120px] justify-center",
+                                                    saved 
+                                                        ? "bg-green-500 text-white" 
+                                                        : "bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black",
+                                                    "disabled:bg-slate-200 dark:disabled:bg-white/10"
+                                                )}
                                             >
-                                                <Save size={16} />
-                                                {isCreating ? '创建任务' : '保存修改'}
+                                                {isSaving ? (
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : saved ? (
+                                                    <CheckCircle2 size={16} />
+                                                ) : (
+                                                    <Save size={16} />
+                                                )}
+                                                {isSaving ? '保存中...' : saved ? '已保存' : (isCreating ? '创建任务' : '保存修改')}
                                             </button>
                                         </div>
                                     </div>
