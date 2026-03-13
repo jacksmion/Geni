@@ -218,17 +218,21 @@ const SchedulerPage: React.FC = () => {
 
         let updatedTasks: ScheduledTaskConfig[];
         if (isCreating) {
-            updatedTasks = [...tasks, editingTask];
-            await saveTasks(updatedTasks);
+            const updatedTasks = [...tasks, editingTask];
+            
+            // 计算新任务在全量列表中的索引（由于清空了搜索，新任务必在末尾）
+            const newIndex = updatedTasks.length - 1;
+            
+            // 同步切换 UI 状态，确保选中逻辑的一致性
             setIsCreating(false);
             setSearchTerm('');
-            const newFiltered = updatedTasks.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
-            const idx = newFiltered.findIndex(t => t.id === editingTask.id);
-            if (idx >= 0) setSelectedIdx(idx);
+            if (newIndex >= 0) setSelectedIdx(newIndex);
+            
+            await saveTasks(updatedTasks);
         } else {
             const existingIndex = tasks.findIndex(t => t.id === editingTask.id);
             if (existingIndex >= 0) {
-                updatedTasks = [...tasks];
+                const updatedTasks = [...tasks];
                 updatedTasks[existingIndex] = editingTask;
                 await saveTasks(updatedTasks);
             }
