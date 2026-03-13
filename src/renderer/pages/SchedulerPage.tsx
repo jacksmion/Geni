@@ -68,6 +68,22 @@ interface TaskLogEntry {
     stepCount?: number;
 }
 
+/** 极简 Cron 人类可读转换 (针对预设和常用模式优化) */
+function getCronHumanSummary(cron: string): string {
+    const preset = CRON_PRESETS.find(p => p.value === cron);
+    if (preset) return preset.label;
+
+    // 处理常用模式的正则匹配
+    const everyNMinutes = cron.match(/^\*\/(\d+) \* \* \* \*$/);
+    if (everyNMinutes) return `每 ${everyNMinutes[1]} 分钟`;
+
+    const everyNHours = cron.match(/^0 \*\/(\d+) \* \* \*$/);
+    if (everyNHours) return `每 ${everyNHours[1]} 小时`;
+
+    // 如果匹配不到，返回原始 cron (或简单的占位)
+    return cron;
+}
+
 const SchedulerPage: React.FC = () => {
     const settings = useSettingsStore(s => s.settings);
     const updateSettings = useSettingsStore(s => s.updateSettings);
@@ -220,12 +236,17 @@ const SchedulerPage: React.FC = () => {
     };
 
     const confirmDeleteTask = async (taskId: string) => {
-        const updatedTasks = tasks.filter(t => t.id !== taskId);
-        await saveTasks(updatedTasks);
         setDeleteConfirmId(null);
-        if (selectedTask?.id === taskId) {
-            setSelectedIdx(null);
-            setEditingTask(null);
+        try {
+            const updatedTasks = tasks.filter(t => t.id !== taskId);
+            await saveTasks(updatedTasks);
+            
+            if (selectedTask?.id === taskId) {
+                setSelectedIdx(null);
+                setEditingTask(null);
+            }
+        } catch (e) {
+            console.error('Failed to delete task:', e);
         }
     };
 
@@ -288,6 +309,11 @@ const SchedulerPage: React.FC = () => {
     };
 
     const handleTriggerTask = async (taskId: string) => {
+        // 如果正在编辑当前任务，先自动保存以确保执行的是最新配置
+        if (editingTask && editingTask.id === taskId) {
+            await handleSaveTask();
+        }
+
         setTriggerResult({ taskId, message: '正在执行...', success: true });
         setActiveTab('logs');
         try {
@@ -376,25 +402,42 @@ const SchedulerPage: React.FC = () => {
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2 pl-3.5">
-                                            <span className="text-[11px] text-slate-400 dark:text-gray-500 font-mono truncate">
-                                                {task.cronExpression}
+                                            <span className="text-[11px] text-slate-400 dark:text-gray-500 font-medium truncate">
+                                                {getCronHumanSummary(task.cronExpression)}
                                             </span>
-                                            {status?.isRunning && <span className="text-[10px] text-amber-500 animate-pulse">●</span>}
+                                            {status?.isRunning && (
+                                                <div className="flex items-center gap-1 overflow-hidden shrink-0">
+                                                    <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
+                                                    <span className="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">Running</span>
+                                                </div>
+                                            )}
                                             {!status?.isRunning && status?.lastRunStatus === 'error' && <span className="text-[10px] text-red-500">✕</span>}
                                         </div>
                                     </div>
 
-                                    {/* Inline Delete Button on Hover */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDeleteConfirmId(task.id);
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all shrink-0 ml-2"
-                                        title="删除任务"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all ml-2 shrink-0">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleTriggerTask(task.id);
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
+                                            title="立即运行"
+                                        >
+                                            <Play size={14} className="fill-current" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeleteConfirmId(task.id);
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
+                                            title="删除任务"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}

@@ -9,7 +9,7 @@ import { OpenAI } from 'openai';
 export class SystemController {
     private pathManager: PathManager;
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
-    private onSettingsChanged?: (settings: AppSettings) => void;
+    private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
 
     constructor(
         private configManager: ConfigManager,
@@ -104,7 +104,7 @@ export class SystemController {
 
         // Notify listeners (e.g. AgentController to update runtime options, ToolController to reconnect MCP)
         if (this.onSettingsChanged) {
-            this.onSettingsChanged(newSettings);
+            await this.onSettingsChanged(newSettings);
         }
 
         return true;

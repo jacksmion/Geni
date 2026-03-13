@@ -104,12 +104,20 @@ export class AppRouter {
             // 1. Update Agent Engine settings
             this.agentController.updateSettings(newSettings);
 
-            // 2. Update Tool settings & Workspace
+            // 2. Sync Scheduled Tasks (Priority)
+            this.schedulerService.syncWithSettings(newSettings);
+
+            // 3. Update Tray Language
+            if (this.trayManager && newSettings.language) {
+                this.trayManager.setLanguage(newSettings.language);
+            }
+
+            // 4. Update Tool settings & Workspace
             this.toolRegistry.updateWorkspacePath(newSettings.workspacePath);
             this.coreToolManager.updateWorkspacePath(newSettings.workspacePath);
             this.coreToolManager.refresh();
 
-            // 3. Reload project skills if workspace changed
+            // 5. Reload project skills if workspace changed
             const newWorkspacePath = newSettings.workspacePath || process.cwd();
             if (newWorkspacePath !== this.currentWorkspacePath) {
                 console.log(`[AppRouter] Workspace changed from ${this.currentWorkspacePath} to ${newWorkspacePath}`);
@@ -122,7 +130,7 @@ export class AppRouter {
                 this.currentWorkspacePath = newWorkspacePath;
             }
 
-            // 4. Sync MCP Server states (connect new ones, disconnect disabled ones)
+            // 6. Sync MCP Server states (connect new ones, disconnect disabled ones)
             if (newSettings.mcpServers) {
                 for (const server of newSettings.mcpServers) {
                     const isConnected = this.mcpManager.isConnected(server.id);
@@ -137,16 +145,8 @@ export class AppRouter {
                     }
                 }
             }
-            // 5. Update IM Services
+            // 7. Update IM Services
             await this.imServiceManager.updateSettings(newSettings);
-
-            // 6. Sync Scheduled Tasks
-            this.schedulerService.syncWithSettings(newSettings);
-
-            // 7. Update Tray Language
-            if (this.trayManager && newSettings.language) {
-                this.trayManager.setLanguage(newSettings.language);
-            }
         });
     }
 
