@@ -1,101 +1,152 @@
-import { randomUUID } from 'node:crypto';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
-import { ConfigManager } from '../../ConfigManager';
-import { AppSettings, ScheduledTaskConfig } from '../../../../common/types/settings';
+import { SchedulerService } from '../../scheduler/SchedulerService';
+import { ScheduledTaskConfig } from '../../../../common/types/settings';
 
 /**
  * CronTool - 定时任务管理工具
- * 允许 Agent 通过指令在系统中创建持久化的定时任务
+ * 允许 Agent 通过指令在系统中进行任务的增删改查及手动触发
  */
 export class CronTool implements ITool {
-    // 默认不需要用户手动确认
     requireConfirmation = false;
 
     constructor(
-        private configManager: ConfigManager,
-        private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void
+        private schedulerService: SchedulerService
     ) { }
 
     getDefinition(): ToolDefinition {
         return {
-            name: 'create_scheduled_task',
-            description: 'Create a new scheduled task (cron job) to execute a prompt periodically.',
+            name: 'scheduled_task_manager',
+            description: 'Manage scheduled tasks (cron jobs). Supports add, update, delete, list, and trigger operations.',
             input_schema: {
                 type: 'object',
                 properties: {
+                    action: {
+                        type: 'string',
+                        enum: ['add', 'update', 'delete', 'list', 'trigger'],
+                        description: 'The operation to perform.'
+                    },
+                    id: {
+                        type: 'string',
+                        description: 'The unique ID of the task. Required for update, delete, and trigger.'
+                    },
                     name: {
                         type: 'string',
-                        description: 'A descriptive name for the task (e.g., "Daily Code Summary")'
+                        description: 'Name for the task. Required for add.'
                     },
                     cronExpression: {
                         type: 'string',
-                        description: 'A standard cron expression. Example: "0 9 * * *" for daily at 9 AM, "0 * * * *" for every hour.'
+                        description: 'Cron expression (e.g. "0 9 * * *"). Required for add.'
                     },
                     prompt: {
                         type: 'string',
-                        description: 'The instruction/prompt that the Agent will execute when the timer triggers.'
+                        description: 'The instruction to execute. Required for add.'
+                    },
+                    enabled: {
+                        type: 'boolean',
+                        description: 'Whether the task is active.'
                     },
                     keepHistory: {
-                        type: 'boolean',
-                        description: 'Whether to maintain conversation history for this task. Default is false.'
+                        type: 'boolean'
                     },
                     notificationEnabled: {
-                        type: 'boolean',
-                        description: 'Whether to enable IM notification for this task result.'
+                        type: 'boolean'
                     },
                     notificationImSessionId: {
-                        type: 'string',
-                        description: 'The IM session ID to send notifications to (e.g., "tg_12345"). Only used if notificationEnabled is true.'
+                        type: 'string'
                     }
                 },
-                required: ['name', 'cronExpression', 'prompt']
+                required: ['action']
             }
         };
     }
 
     async execute(args: any): Promise<ToolExecutionResult> {
+        const { action, id, ...params } = args;
         try {
-            const settings = this.configManager.load();
-            
-            // 构造任务配置
-            const newTask: ScheduledTaskConfig = {
-                id: randomUUID(),
-                name: args.name,
-                enabled: true,
-                prompt: args.prompt,
-                cronExpression: args.cronExpression,
-                keepHistory: args.keepHistory ?? false,
-                notification: args.notificationEnabled ? {
-                    enabled: true,
-                    imSessionId: args.notificationImSessionId || ''
-                } : undefined
-            };
+            switch (action) {
+                case 'add': {
+                    if (!params.name || !params.cronExpression || !params.prompt) {
+                        throw new Error('Missing required fields for "add": name, cronExpression, prompt');
+                    }
+                    const task = await this.schedulerService.addTask({
+                        name: params.name,
+                        cronExpression: params.cronExpression,
+                        prompt: params.prompt,
+                        enabled: params.enabled ?? true,
+                        keepHistory: params.keepHistory ?? false,
+                        enableTools: true,
+                        notification: params.notificationEnabled ? {
+                            enabled: true,
+                            imSessionId: params.notificationImSessionId || ''
+                        } : undefined
+                    });
+                    return this.success(`Successfully added task "${task.name}" with ID: ${task.id}`);
+                }
 
-            // 更新配置并保存
-            const updatedTasks = [...(settings.scheduledTasks || []), newTask];
-            const newSettings: AppSettings = {
-                ...settings,
-                scheduledTasks: updatedTasks
-            };
+                case 'update': {
+                    if (!id) throw new Error('Task ID is required for "update"');
+                    const updates: Partial<ScheduledTaskConfig> = {};
+                    if (params.name !== undefined) updates.name = params.name;
+                    if (params.cronExpression !== undefined) updates.cronExpression = params.cronExpression;
+                    if (params.prompt !== undefined) updates.prompt = params.prompt;
+                    if (params.enabled !== undefined) updates.enabled = params.enabled;
+                    if (params.keepHistory !== undefined) updates.keepHistory = params.keepHistory;
+                    if (params.notificationEnabled !== undefined) {
+                        updates.notification = {
+                            enabled: params.notificationEnabled,
+                            imSessionId: params.notificationImSessionId || ''
+                        };
+                    }
 
-            this.configManager.save(newSettings);
+                    const task = await this.schedulerService.updateTask(id, updates);
+                    return this.success(`Successfully updated task "${task.name}" (${id})`);
+                }
 
-            // 触发系统同步回调，使任务立即生效
-            if (this.onSettingsChanged) {
-                await this.onSettingsChanged(newSettings);
+                case 'delete': {
+                    if (!id) throw new Error('Task ID is required for "delete"');
+                    await this.schedulerService.deleteTask(id);
+                    return this.success(`Successfully deleted task with ID: ${id}`);
+                }
+
+                case 'list': {
+                    const tasks = this.schedulerService.getTasks();
+                    const statuses = this.schedulerService.getTaskStatuses();
+                    const result = tasks.map(t => {
+                        const s = statuses.find(st => st.taskId === t.id);
+                        return {
+                            ...t,
+                            lastRunAt: s?.lastRunAt ? new Date(s.lastRunAt).toLocaleString() : 'Never',
+                            lastRunStatus: s?.lastRunStatus,
+                            nextRunAt: s?.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : 'N/A',
+                            isRunning: s?.isRunning
+                        };
+                    });
+                    return this.success(JSON.stringify(result, null, 2));
+                }
+
+                case 'trigger': {
+                    if (!id) throw new Error('Task ID is required for "trigger"');
+                    const res = await this.schedulerService.triggerTask(id);
+                    return this.success(`Manual trigger ${res.success ? 'succeeded' : 'failed'}. Duration: ${res.durationMs}ms. Output: ${res.finalAnswer || res.error || 'No output'}`);
+                }
+
+                default:
+                    throw new Error(`Unsupported action: ${action}`);
             }
-
-            return {
-                toolName: 'create_scheduled_task',
-                isError: false,
-                result: `Successfully created scheduled task "${args.name}" with ID ${newTask.id}. Next run is scheduled via: ${args.cronExpression}`
-            };
         } catch (error: any) {
             return {
-                toolName: 'create_scheduled_task',
+                toolName: 'scheduled_task_manager',
                 isError: true,
-                result: `Failed to create scheduled task: ${error.message}`
+                result: error.message
             };
         }
+    }
+
+    private success(message: string): ToolExecutionResult {
+        return {
+            toolName: 'scheduled_task_manager',
+            isError: false,
+            result: message
+        };
     }
 }

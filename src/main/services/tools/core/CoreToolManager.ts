@@ -16,6 +16,7 @@ import { WebFetchTool } from './WebFetchTool';
 import { MemorizeTool } from './MemorizeTool';
 import { CronTool } from './CronTool';
 import { MemoryStore } from '../../memory/MemoryStore';
+import { SchedulerService } from '../../scheduler/SchedulerService';
 import { AppSettings } from '../../../../common/types/settings';
 
 export class CoreToolManager {
@@ -25,6 +26,7 @@ export class CoreToolManager {
     private workspacePath: string;
     private pathManager: PathManager;
     private memoryStore: MemoryStore;
+    private schedulerService?: SchedulerService;
     private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
 
     constructor(registry: ToolRegistry, configManager: ConfigManager, skillRegistry: SkillRegistry, workspacePath: string, pathManager: PathManager, memoryStore: MemoryStore) {
@@ -41,6 +43,13 @@ export class CoreToolManager {
      */
     public setSettingsChangeCallback(callback: (settings: AppSettings) => Promise<void> | void) {
         this.onSettingsChanged = callback;
+    }
+
+    /**
+     * 设置调度服务
+     */
+    public setSchedulerService(service: SchedulerService) {
+        this.schedulerService = service;
     }
 
     /**
@@ -67,7 +76,7 @@ export class CoreToolManager {
             'load_skill': () => new SkillLoaderTool(this.skillRegistry, this.configManager),
             'web_fetch': () => new WebFetchTool(),
             'memorize': () => new MemorizeTool(this.memoryStore),
-            'create_scheduled_task': () => new CronTool(this.configManager, this.onSettingsChanged)
+            'scheduled_task_manager': () => new CronTool(this.schedulerService!)
         };
 
         // Determine safe tools for default 'Auto' trust (read-only or non-destructive)
@@ -81,7 +90,7 @@ export class CoreToolManager {
             'load_skill',
             'web_fetch',
             'memorize',
-            'create_scheduled_task'
+            'scheduled_task_manager'
         ];
 
         // Register each tool if not explicitly disabled
@@ -141,7 +150,7 @@ export class CoreToolManager {
             { name: 'load_skill', description: 'Load detailed instructions and resources for a skill' },
             { name: 'web_fetch', description: 'Fetch and parse web page content into Markdown' },
             { name: 'memorize', description: 'Save or delete long-term memories' },
-            { name: 'create_scheduled_task', description: 'Create a new scheduled task (cron job)' }
+            { name: 'scheduled_task_manager', description: 'Manage scheduled tasks (add, update, delete, list, trigger)' }
         ];
 
         return allCoreTools
@@ -165,7 +174,7 @@ export class CoreToolManager {
         const allCoreTools = [
             'list', 'read', 'write', 'bash', 'edit',
             'glob', 'grep', 'todowrite', 'todoread',
-            'load_skill', 'web_fetch', 'memorize', 'create_scheduled_task'
+            'load_skill', 'web_fetch', 'memorize', 'scheduled_task_manager'
         ];
         allCoreTools.forEach(name => this.registry.unregister(name));
 

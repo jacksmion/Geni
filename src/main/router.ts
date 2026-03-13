@@ -84,9 +84,11 @@ export class AppRouter {
             schedulerStorage,
             memoryStore,
             this.usageManager,
-            this.imServiceManager
+            this.imServiceManager,
+            this.configManager
         );
         this.schedulerController = new SchedulerController(this.schedulerService);
+        this.coreToolManager.setSchedulerService(this.schedulerService);
 
         this.agentController = new AgentController(
             settings,
@@ -154,6 +156,7 @@ export class AppRouter {
 
         this.systemController.setSettingsChangeCallback(settingsChangeHandler);
         this.coreToolManager.setSettingsChangeCallback(settingsChangeHandler);
+        this.schedulerService.setSettingsChangeCallback(settingsChangeHandler);
         
         // 由于 CoreToolManager 在 AppRouter 之前已 initialize，此处需要 refresh 一次以注入回调
         this.coreToolManager.refresh();

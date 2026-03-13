@@ -9,6 +9,7 @@
  */
 
 import { CronExpressionParser } from 'cron-parser';
+import crypto from 'node:crypto';
 import { AppSettings, ScheduledTaskConfig } from '../../../common/types/settings';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { SessionManager } from '../session';
@@ -19,6 +20,7 @@ import { SchedulerStorage, TaskExecutionLog } from './SchedulerStorage';
 import { MemoryStore } from '../memory/MemoryStore';
 import { UsageManager } from '../usage/UsageManager';
 import { IMServiceManager } from '../im/IMServiceManager';
+import { ConfigManager } from '../ConfigManager';
 
 /** 单个任务的运行时状态 */
 export interface TaskStatus {
@@ -55,6 +57,10 @@ export class SchedulerService {
     private toolController: ToolController;
     private storage: SchedulerStorage;
     private memoryStore: MemoryStore;
+    private configManager: ConfigManager;
+    private usageManager: UsageManager;
+    private imServiceManager: IMServiceManager;
+    private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
 
     /** 最大并发任务数 */
     private static readonly MAX_CONCURRENT = 3;
@@ -66,8 +72,9 @@ export class SchedulerService {
         toolController: ToolController,
         storage: SchedulerStorage,
         memoryStore: MemoryStore,
-        private usageManager: UsageManager,
-        private imServiceManager: IMServiceManager
+        usageManager: UsageManager,
+        imServiceManager: IMServiceManager,
+        configManager: ConfigManager
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
@@ -75,6 +82,9 @@ export class SchedulerService {
         this.toolController = toolController;
         this.storage = storage;
         this.memoryStore = memoryStore;
+        this.usageManager = usageManager;
+        this.imServiceManager = imServiceManager;
+        this.configManager = configManager;
 
         // 从磁盘恢复上次的运行状态
         this.restoreStatuses();
@@ -98,6 +108,13 @@ export class SchedulerService {
             });
         }
         console.log(`[Scheduler] Restored ${persisted.size} task statuses from disk.`);
+    }
+
+    /**
+     * 设置配置变更回调
+     */
+    public setSettingsChangeCallback(callback: (settings: AppSettings) => Promise<void> | void): void {
+        this.onSettingsChanged = callback;
     }
 
     /**
@@ -445,6 +462,72 @@ export class SchedulerService {
             return { valid: true, nextRuns };
         } catch (error: any) {
             return { valid: false, error: error.message };
+        }
+    }
+
+    /**
+     * 获取所有任务配置
+     */
+    public getTasks(): ScheduledTaskConfig[] {
+        return this.settings.scheduledTasks || [];
+    }
+
+    /**
+     * 添加新任务
+     */
+    public async addTask(task: Omit<ScheduledTaskConfig, 'id'>): Promise<ScheduledTaskConfig> {
+        const id = crypto.randomUUID();
+        const newTask: ScheduledTaskConfig = { ...task, id };
+        
+        const settings = this.configManager.load();
+        settings.scheduledTasks = [...(settings.scheduledTasks || []), newTask];
+        
+        await this.configManager.save(settings);
+        if (this.onSettingsChanged) {
+            await this.onSettingsChanged(settings);
+        }
+        return newTask;
+    }
+
+    /**
+     * 更新任务
+     */
+    public async updateTask(id: string, updates: Partial<ScheduledTaskConfig>): Promise<ScheduledTaskConfig> {
+        const settings = this.configManager.load();
+        const tasks = settings.scheduledTasks || [];
+        const index = tasks.findIndex(t => t.id === id);
+        
+        if (index === -1) {
+            throw new Error(`Task with ID ${id} not found`);
+        }
+
+        const updatedTask = { ...tasks[index], ...updates };
+        tasks[index] = updatedTask;
+        settings.scheduledTasks = tasks;
+
+        await this.configManager.save(settings);
+        if (this.onSettingsChanged) {
+            await this.onSettingsChanged(settings);
+        }
+        return updatedTask;
+    }
+
+    /**
+     * 删除任务
+     */
+    public async deleteTask(id: string): Promise<void> {
+        const settings = this.configManager.load();
+        const tasks = settings.scheduledTasks || [];
+        const filtered = tasks.filter(t => t.id !== id);
+        
+        if (filtered.length === tasks.length) {
+            throw new Error(`Task with ID ${id} not found`);
+        }
+
+        settings.scheduledTasks = filtered;
+        await this.configManager.save(settings);
+        if (this.onSettingsChanged) {
+            await this.onSettingsChanged(settings);
         }
     }
 
