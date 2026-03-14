@@ -123,6 +123,7 @@ export interface AppSettings {
     recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
     shortcuts?: Record<string, string>; // 快捷键配置 ID -> Key Combination
     autoOpenArtifact: boolean; // 是否自动打开 Artifact 面板
+    autoUpdate: boolean; // 是否自动检查更新
 }
 
 // 默认的提供商配置
@@ -260,5 +261,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
         'open_settings': 'Ctrl+,',
         'toggle_sidebar': 'Ctrl+B'
     },
-    autoOpenArtifact: true
+    autoOpenArtifact: true,
+    autoUpdate: true
 };

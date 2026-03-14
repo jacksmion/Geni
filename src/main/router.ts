@@ -18,6 +18,9 @@ import { SchedulerController } from './controllers/SchedulerController';
 import { SystemTrayManager } from './services/SystemTrayManager';
 import { MemoryStore } from './services/memory/MemoryStore';
 import { UsageManager } from './services/usage/UsageManager';
+import { UpdateService } from './services/update/UpdateService';
+import { UpdateController } from './controllers/UpdateController';
+import { app } from 'electron';
 
 /**
  * App Router
@@ -33,6 +36,8 @@ export class AppRouter {
     private imServiceManager: IMServiceManager;
     private schedulerService: SchedulerService;
     private schedulerController: SchedulerController;
+    private updateService: UpdateService;
+    private updateController: UpdateController;
 
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
@@ -99,6 +104,9 @@ export class AppRouter {
             this.usageManager
         );
         this.sessionController = new SessionController(this.sessionManager);
+
+        this.updateService = new UpdateService();
+        this.updateController = new UpdateController(this.updateService);
 
 
         // Wiring
@@ -177,12 +185,22 @@ export class AppRouter {
         this.systemController.registerHandlers();
         this.toolController.registerHandlers();
         this.schedulerController.registerHandlers();
+        this.updateController.registerHandlers();
 
         this.imServiceManager.start().catch((err: any) => console.error('[AppRouter] Error starting IM Service Manager:', err));
 
         // Start scheduled tasks from current settings
         const currentSettings = this.configManager.load();
         this.schedulerService.syncWithSettings(currentSettings);
+
+        // Auto check for updates if enabled and packaged
+        if (currentSettings.autoUpdate && app.isPackaged) {
+            setTimeout(() => {
+                this.updateService.checkForUpdates().catch(() => {
+                    // Ignore background check errors
+                });
+            }, 5000); // Wait 5s after startup
+        }
 
         console.log('[AppRouter] IPC handlers registered.');
     }

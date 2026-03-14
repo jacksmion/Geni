@@ -81,3 +81,21 @@ export const TRAY_EVENTS = {
     NAVIGATE_TO_SETTINGS: 'tray:navigate-to-settings',
     NEW_TASK: 'tray:new-task',
 } as const;
+
+// Update Channels
+export const UPDATE_CHANNELS = {
+    CHECK_FOR_UPDATES: 'update:check-for-updates',
+    DOWNLOAD_UPDATE: 'update:download-update',
+    QUIT_AND_INSTALL: 'update:quit-and-install',
+    GET_VERSION: 'update:get-version',
+} as const;
+
+// Update Events (Server -> Client)
+export const UPDATE_EVENTS = {
+    UPDATE_AVAILABLE: 'update:available',
+    UPDATE_NOT_AVAILABLE: 'update:not-available',
+    DOWNLOAD_PROGRESS: 'update:download-progress',
+    UPDATE_DOWNLOADED: 'update:downloaded',
+    ERROR: 'update:error',
+    CHECKING: 'update:checking',
+} as const;

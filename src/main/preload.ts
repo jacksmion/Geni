@@ -93,5 +93,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('tray:new-task', sub)
             return () => ipcRenderer.removeListener('tray:new-task', sub)
         }
+    },
+    update: {
+        checkForUpdates: () => ipcRenderer.invoke('update:check-for-updates'),
+        downloadUpdate: () => ipcRenderer.invoke('update:download-update'),
+        quitAndInstall: () => ipcRenderer.invoke('update:quit-and-install'),
+        getVersion: () => ipcRenderer.invoke('update:get-version'),
+        onChecking: (callback: () => void) => {
+            const sub = () => callback()
+            ipcRenderer.on('update:checking', sub)
+            return () => ipcRenderer.removeListener('update:checking', sub)
+        },
+        onUpdateAvailable: (callback: (info: any) => void) => {
+            const sub = (_: any, info: any) => callback(info)
+            ipcRenderer.on('update:available', sub)
+            return () => ipcRenderer.removeListener('update:available', sub)
+        },
+        onUpdateNotAvailable: (callback: (info: any) => void) => {
+            const sub = (_: any, info: any) => callback(info)
+            ipcRenderer.on('update:not-available', sub)
+            return () => ipcRenderer.removeListener('update:not-available', sub)
+        },
+        onDownloadProgress: (callback: (progress: any) => void) => {
+            const sub = (_: any, progress: any) => callback(progress)
+            ipcRenderer.on('update:download-progress', sub)
+            return () => ipcRenderer.removeListener('update:download-progress', sub)
+        },
+        onUpdateDownloaded: (callback: (info: any) => void) => {
+            const sub = (_: any, info: any) => callback(info)
+            ipcRenderer.on('update:downloaded', sub)
+            return () => ipcRenderer.removeListener('update:downloaded', sub)
+        },
+        onError: (callback: (error: string) => void) => {
+            const sub = (_: any, error: string) => callback(error)
+            ipcRenderer.on('update:error', sub)
+            return () => ipcRenderer.removeListener('update:error', sub)
+        }
     }
 })
