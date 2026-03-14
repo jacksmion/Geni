@@ -404,9 +404,14 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
         // 在流式输出工具调用和思考过程中，我们主要关心步骤数量和最后一个步骤的变化
         const prevLastStep = prevProps.message.steps![prevStepsLen - 1];
         const nextLastStep = nextProps.message.steps![nextStepsLen - 1];
-        if (prevLastStep.id !== nextLastStep.id) return false;
-        if (prevLastStep.thought !== nextLastStep.thought) return false;
-        if (prevLastStep.content !== nextLastStep.content) return false;
+        if (
+            prevLastStep.thought !== nextLastStep.thought ||
+            prevLastStep.observation !== nextLastStep.observation ||
+            prevLastStep.streamingObservation !== nextLastStep.streamingObservation ||
+            prevLastStep.isComplete !== nextLastStep.isComplete ||
+            prevLastStep.isWaitingAuthorization !== nextLastStep.isWaitingAuthorization ||
+            prevLastStep.toolInput !== nextLastStep.toolInput
+        ) return false;
     }
     
     return true;
