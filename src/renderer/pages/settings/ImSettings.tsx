@@ -34,9 +34,9 @@ export function ImSettings() {
         if (larkConfig) setLarkDraft(larkConfig);
     }, [telegramConfig, wecomConfig, larkConfig]);
 
-    const isDirty = (selectedIM === 'telegram' && JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig)) ||
-                    (selectedIM === 'wecom' && JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig)) ||
-                    (selectedIM === 'lark' && JSON.stringify(larkDraft) !== JSON.stringify(larkConfig));
+    const isDirty = JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig) ||
+                    JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig) ||
+                    JSON.stringify(larkDraft) !== JSON.stringify(larkConfig);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -54,9 +54,9 @@ export function ImSettings() {
     };
 
     const handleReset = () => {
-        if (selectedIM === 'telegram') setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
-        if (selectedIM === 'wecom') setWecomDraft(wecomConfig || { enabled: false, botId: '', secret: '' });
-        if (selectedIM === 'lark') setLarkDraft(larkConfig || { enabled: false, appId: '', appSecret: '' });
+        setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
+        setWecomDraft(wecomConfig || { enabled: false, botId: '', secret: '' });
+        setLarkDraft(larkConfig || { enabled: false, appId: '', appSecret: '' });
     };
 
     const handleTestConnection = async () => {
