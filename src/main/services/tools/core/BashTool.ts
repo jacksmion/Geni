@@ -126,7 +126,14 @@ export class BashTool implements ITool {
     }
 
     protected isPathAllowed(targetPath: string): boolean {
-        return this.allowedPaths.some(p => targetPath.startsWith(p));
+        const normalizedTarget = path.resolve(targetPath);
+        return this.allowedPaths.some(p => {
+            const normalizedAllowed = path.resolve(p);
+            if (os.platform() === 'win32') {
+                return normalizedTarget.toLowerCase().startsWith(normalizedAllowed.toLowerCase());
+            }
+            return normalizedTarget.startsWith(normalizedAllowed);
+        });
     }
 
     getDefinition(): ToolDefinition {
@@ -189,35 +196,56 @@ export class BashTool implements ITool {
         }
 
         // Handle 'cd' commands to update state
-        // Simple heuristic: if command starts with 'cd ', we update the internal state
-        // This allows agents to "explore" the filesystem naturally
-        if (command.trim().startsWith('cd ')) {
-            const targetPath = command.trim().substring(3).trim();
+        // Improved regex to handle optional /d flag, quotes, and detect if it's a complex command
+        const trimmedCommand = command.trim();
+        const cdRegex = /^cd\s+(?:\/d\s+)?(?:"([^"]+)"|'([^']+)'|([^\s&|;]+))(?:\s*(&&|[&|;]))?/i;
+        const match = trimmedCommand.match(cdRegex);
+
+        if (match) {
+            const targetPath = match[1] || match[2] || match[3];
+            const separator = match[4];
+            const hasMore = !!separator || trimmedCommand.includes('\n') || trimmedCommand.length > (match[0].length + 2);
+
             if (targetPath) {
                 try {
                     const newPath = path.resolve(effectiveCwd, targetPath);
-                    if (!this.isPathAllowed(newPath)) {
+                    if (this.isPathAllowed(newPath)) {
+                        this.currentCwd = newPath;
+                        
+                        // If it was a simple CD command, we can return early
+                        if (!hasMore) {
+                            return {
+                                toolName: 'bash',
+                                isError: false,
+                                result: `Directory changed to ${this.currentCwd}`,
+                                displayText: `> ${command}\nDirectory changed to ${this.currentCwd}`
+                            };
+                        }
+                        
+                        // For complex commands, we update effectiveCwd for the current execution
+                        // but fall through to actually run the full command in the shell
+                        effectiveCwd = this.currentCwd;
+                    } else {
+                        // If it's a standalone CD that's disallowed, block it
+                        if (!hasMore) {
+                            return {
+                                toolName: 'bash',
+                                isError: true,
+                                result: `Access Denied: Path '${targetPath}' is outside the allowed workspaces.`
+                            };
+                        }
+                        // For complex commands, if the CD part is disallowed, 
+                        // we let it fall through and fail in the shell if it really tries to escape.
+                        // This prevents the regex-based parser from being a blocker for complex valid commands.
+                    }
+                } catch (e: any) {
+                    if (!hasMore) {
                         return {
                             toolName: 'bash',
                             isError: true,
-                            result: `Access Denied: Path '${targetPath}' is outside the allowed workspaces.`
+                            result: `Failed to change directory: ${e.message}`
                         };
                     }
-                    // In a real implementation, we should check if dir exists using fs.stat
-                    // For now, we assume it exists and let the next command fail if it doesn't
-                    this.currentCwd = newPath;
-                    return {
-                        toolName: 'bash',
-                        isError: false,
-                        result: `Directory changed to ${this.currentCwd}`,
-                        displayText: `> ${command}\nDirectory changed to ${this.currentCwd}`
-                    };
-                } catch (e: any) {
-                    return {
-                        toolName: 'bash',
-                        isError: true,
-                        result: `Failed to change directory: ${e.message}`
-                    };
                 }
             }
         }

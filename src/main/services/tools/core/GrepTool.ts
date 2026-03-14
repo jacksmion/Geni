@@ -38,7 +38,13 @@ export class GrepTool implements ITool {
     }
 
     protected isPathAllowed(targetPath: string): boolean {
-        return this.allowedPaths.some(p => targetPath.startsWith(p));
+        const normalizedTarget = path.resolve(targetPath);
+        return this.allowedPaths.some(p => {
+            if (process.platform === 'win32') {
+                return normalizedTarget.toLowerCase().startsWith(p.toLowerCase());
+            }
+            return normalizedTarget.startsWith(p);
+        });
     }
 
     getDefinition(): ToolDefinition {
