@@ -55,10 +55,10 @@ async function loginUser(username, password) {
 }
 
 /**
- * 3. 创建 API 令牌
+ * 3. 创建渠道令牌 (Channel Token)
  */
-async function createToken(cookie, userId, name) {
-  console.log('[Step 3] 端创建 API 访问令牌...');
+async function createChannelToken(cookie, userId, name) {
+  console.log(`[Step 3] 尝试创建新渠道令牌: ${name}...`);
   const res = await fetch(`${BASE_URL}/api/token`, {
     method: 'POST',
     headers: {
@@ -75,59 +75,43 @@ async function createToken(cookie, userId, name) {
   });
   const data = await res.json();
   console.log('DEBUG Create Token Response:', JSON.stringify(data, null, 2));
-  if (!data.success) throw new Error(`创建令牌失败: ${data.message}`);
-  return data.data; // 包含 id 和 key (可能为 null)
+  if (!data.success) throw new Error(`创建渠道令牌失败: ${data.message}`);
+  return data.data; // 返回包含 key 的对象
 }
 
 /**
- * 4. 获取有效的 API Key (仅通过名称查找，可选 ID)
+ * 4. 获取已有的渠道令牌列表
  */
-async function getApiTokenKey(cookie, userId, name, tokenId = null) {
-  let rawKey = null;
-
-  // 如果提供了 ID，优先通过 ID 获取详情
-  if (tokenId) {
-    console.log(`💡 尝试通过 ID (${tokenId}) 获取令牌详情...`);
-    const res = await fetch(`${BASE_URL}/api/token/${tokenId}`, {
-      headers: {
-        'Cookie': cookie,
-        'New-Api-User': userId.toString()
-      }
-    });
-    const data = await res.json();
-    console.log('DEBUG Token Detail Response:', JSON.stringify(data, null, 2));
-    rawKey = data.data?.key;
-  }
-
-  // 如果未提供 ID 或通过 ID 获取失败，尝试通过列表匹配名称
-  if (!rawKey) {
-    console.log(`💡 尝试在令牌列表中查找名为 "${name}" 的令牌...`);
-    const res = await fetch(`${BASE_URL}/api/token`, {
-      headers: {
-        'Cookie': cookie,
-        'New-Api-User': userId.toString()
-      }
-    });
-    const data = await res.json();
-    console.log('DEBUG List Tokens Response:', JSON.stringify(data, null, 2));
-
-    // 兼容分页格式 (data.items) 和直接数组格式
-    const tokens = Array.isArray(data.data?.items) ? data.data.items : (Array.isArray(data.data) ? data.data : []);
-
-    if (tokens.length > 0) {
-      console.log(`📊 当前用户下共有 ${tokens.length} 个令牌。`);
-      // 按照 ID 从大到小排序，确保拿到最新创建的那个
-      const sortedTokens = [...tokens].sort((a, b) => b.id - a.id);
-      const foundToken = sortedTokens.find(t => t.name === name);
-      rawKey = foundToken?.key;
+async function listChannelTokens(cookie, userId) {
+  console.log('[Step 4] 获取现有渠道令牌列表...');
+  const res = await fetch(`${BASE_URL}/api/token`, {
+    headers: {
+      'Cookie': cookie,
+      'New-Api-User': userId.toString()
     }
-  }
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(`获取令牌列表失败: ${data.message}`);
+  return Array.isArray(data.data?.items) ? data.data.items : (Array.isArray(data.data) ? data.data : []);
+}
 
-  if (!rawKey) {
-    throw new Error(`未能在返回结果或令牌列表中找到 API Key (名称: ${name})。`);
-  }
-
-  return `sk-${rawKey}`;
+/**
+ * 4.5 获取单个渠道令牌详情
+ */
+async function getTokenKey(cookie, userId, tokenId) {
+  console.log(`[Step 4.5] 尝试获取令牌明文 Key (ID: ${tokenId})...`);
+  const res = await fetch(`${BASE_URL}/api/token/${tokenId}/key`, {
+    method: 'POST',
+    headers: {
+      'Cookie': cookie,
+      'New-Api-User': userId.toString()
+    }
+  });
+  const data = await res.json();
+  console.log('DEBUG Token Key Response:', JSON.stringify(data, null, 2));
+  if (!data.success) throw new Error(`获取令牌明文失败: ${data.message}`);
+  // 该接口通常直接返回 { success: true, data: "sk-..." }
+  return data.data;
 }
 
 /**
@@ -186,16 +170,41 @@ async function verifyFlow() {
     // await registerUser(TEST_USER, TEST_PASSWORD);
     const { cookie, userId } = await loginUser(TEST_USER, TEST_PASSWORD);
 
-    // 步骤 3: 创建，但不强制依赖它返回的 ID
-    // await createToken(cookie, userId, TOKEN_NAME);
+    // 步骤 3 & 4: 查找或创建以 "geni" 开头的渠道令牌
+    const tokens = await listChannelTokens(cookie, userId);
+    // 寻找名称以 "geni" 开头的令牌 (忽略大小写)
+    let foundToken = tokens.find(t => t.name.toLowerCase().startsWith('geni'));
+    let apiToken;
 
-    // 步骤 4: 独立获取令牌（体现接口的解耦性，仅凭名称和环境即可找回）
-    const apiToken = await getApiTokenKey(cookie, userId, TOKEN_NAME, 10);
-    console.log(`✅ 最终使用的 API Token: ${apiToken}\n`);
+    if (foundToken) {
+      console.log(`✨ 找到现有的 geni 开头令牌: ${foundToken.name} (ID: ${foundToken.id})`);
+      // 核心尝试：通过专用 /key 接口获取明文
+      apiToken = await getTokenKey(cookie, userId, foundToken.id);
+    } else {
+      console.log('🔍 未找到 geni 开头的令牌，准备创建...');
+      const newToken = await createChannelToken(cookie, userId, `geni_token_${Date.now()}`);
+      apiToken = newToken.key;
+    }
+
+    // 确保 apiToken 是字符串
+    if (apiToken && typeof apiToken !== 'string') {
+      apiToken = apiToken.key || apiToken.toString();
+    }
+
+    if (!apiToken || (typeof apiToken === 'string' && apiToken.includes('*'))) {
+      console.warn('⚠️ 获取到的 Key 无效或已脱敏，请检查系统设置。');
+    }
     
+    // 规范化前缀
+    apiToken = String(apiToken);
+    apiToken = apiToken.startsWith('sk-') ? apiToken : `sk-${apiToken}`;
+    console.log(`✅ 最终使用的 API Token: ${apiToken}\n`);
+
+    // 步骤 5: 验证 /v1/models 接口
     const models = await getModels(apiToken);
 
     if (models.length > 0) {
+      // 注意：chatTest 依然需要有效的 sk- 令牌，如果 Token 脱敏了，这里可能依然会失败
       await chatTest(apiToken, models[0].id);
     }
 
