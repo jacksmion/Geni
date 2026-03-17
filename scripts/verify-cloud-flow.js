@@ -55,6 +55,27 @@ async function loginUser(username, password) {
 }
 
 /**
+ * 2.5 获取用户信息 (包含积分/额度)
+ */
+async function getUserInfo(cookie, userId) {
+  console.log('[Step 2.5] 获取当前用户信息与积分...');
+  const res = await fetch(`${BASE_URL}/api/user/self`, {
+    headers: {
+      'Cookie': cookie,
+      'New-Api-User': userId.toString()
+    }
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(`获取用户信息失败: ${data.message}`);
+  
+  const quota = data.data.quota;
+  // 计算美元 (New API 默认 500000 = $1)
+  const usdStatus = (quota / 500000).toFixed(2);
+  console.log(`✅ 获取成功! 剩余积分: ${quota} (约 $${usdStatus})\n`);
+  return data.data;
+}
+
+/**
  * 3. 创建渠道令牌 (Channel Token)
  */
 async function createChannelToken(cookie, userId, name) {
@@ -159,6 +180,41 @@ async function chatTest(apiToken, modelId) {
 }
 
 /**
+ * 7. 获取最后一次消费日志
+ */
+async function getLastConsumeLog(cookie, userId) {
+  console.log('[Step 6] 正在查询消费记录与统计...');
+  await new Promise(r => setTimeout(r, 2000)); // 增加到 2 秒确保写入
+  
+  // 尝试 1: 获取具体的消费流水 (使用 p=1 兼容某些版本)
+  const resLog = await fetch(`${BASE_URL}/api/log/self?p=1&page_size=1&type=2`, {
+    headers: { 'Cookie': cookie, 'New-Api-User': userId.toString() }
+  });
+  const dataLog = await resLog.json();
+  
+  // 尝试 2: 获取日志统计信息 (图片中的接口)
+  const resStat = await fetch(`${BASE_URL}/api/log/self/stat`, {
+    headers: { 'Cookie': cookie, 'New-Api-User': userId.toString() }
+  });
+  const dataStat = await resStat.json();
+  console.log('DEBUG Stat Response:', JSON.stringify(dataStat, null, 2));
+
+  if (dataLog.success && dataLog.data && dataLog.data.length > 0) {
+    const log = dataLog.data[0];
+    console.log(`📊 消费流水明细 (最新):`);
+    console.log(`   - 模型: ${log.model_name}`);
+    console.log(`   - 消耗额度: ${log.quota}`);
+    console.log(`   - 详情: ${log.prompt_tokens} (入) + ${log.completion_tokens} (出) tokens`);
+  } else if (dataStat.success) {
+    console.log('📊 个人日志统计 (汇总):');
+    // 统计接口通常返回数组或对象，视版本而定
+    console.log(`   - 累计消耗: ${dataStat.data?.quota || '未知'}`);
+  } else {
+    console.log('⚠️ 未能查到有效的消费数据。');
+  }
+}
+
+/**
  * 主执行流程
  */
 async function verifyFlow() {
@@ -169,6 +225,9 @@ async function verifyFlow() {
     // 流程编排
     // await registerUser(TEST_USER, TEST_PASSWORD);
     const { cookie, userId } = await loginUser(TEST_USER, TEST_PASSWORD);
+
+    // 步骤 2.5: 获取用户积分
+    await getUserInfo(cookie, userId);
 
     // 步骤 3 & 4: 查找或创建以 "geni" 开头的渠道令牌
     const tokens = await listChannelTokens(cookie, userId);
@@ -206,6 +265,9 @@ async function verifyFlow() {
     if (models.length > 0) {
       // 注意：chatTest 依然需要有效的 sk- 令牌，如果 Token 脱敏了，这里可能依然会失败
       await chatTest(apiToken, models[0].id);
+      
+      // 步骤 6: 验证消费记录
+      await getLastConsumeLog(cookie, userId);
     }
 
   } catch (error) {
