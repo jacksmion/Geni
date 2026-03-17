@@ -41,7 +41,17 @@ Geni is a modern desktop application designed to bridge the gap between AI intel
     cd geni
     ```
 
-2.  Install dependencies:
+2.  (Optional) Set Electron mirror for faster download (Recommended for users in China):
+    - **Windows (PowerShell)**:
+      ```powershell
+      $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+      ```
+    - **macOS/Linux**:
+      ```bash
+      export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+      ```
+
+3.  Install dependencies:
     ```bash
     npm install
     # or
