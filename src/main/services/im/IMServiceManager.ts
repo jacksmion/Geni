@@ -195,13 +195,21 @@ export class IMServiceManager {
             }
 
             let outputBuffer = '';
+            let isNewRound = false; // 新一轮思考标志，避免 trailing throttle 发送空内容
             const result = await sessionRuntime.run(
                 msg.content,
                 this.toolRegistry.getTools(),
                 runOptions,
                 (chunk, reset) => {
                     if (reset) {
+                        // 标记新轮次开始，不清空 buffer（防止 trailing throttle 用空内容覆盖已显示的消息）
+                        isNewRound = true;
+                        return;
+                    }
+                    if (isNewRound) {
+                        // 新轮次第一个 chunk 到来时替换旧内容
                         outputBuffer = chunk;
+                        isNewRound = false;
                     } else {
                         outputBuffer += chunk;
                     }
