@@ -310,6 +310,15 @@ export class TelegramAdapter implements IIMAdapter {
         }
     }
 
+    public clearSession(sessionId: string): void {
+        const throttledFlush = this.throttleFns.get(sessionId);
+        if (throttledFlush && typeof throttledFlush.cancel === 'function') {
+            throttledFlush.cancel();
+        }
+        this.throttleFns.delete(sessionId);
+        this.sessionMap.delete(sessionId);
+    }
+
     public async sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void> {
         if (!this.bot) return;
 
@@ -392,8 +401,39 @@ export class TelegramAdapter implements IIMAdapter {
             return;
         }
 
-        // Limit total length to 4000
-        const rawContent = ctx.buffer.length > 4000 ? ctx.buffer.substring(ctx.buffer.length - 4000) : ctx.buffer;
+        // Streaming: show the latest 4000 chars; Final: split into multiple messages if needed
+        const MAX_LEN = 4000;
+
+        if (ctx.isComplete && ctx.buffer.length > MAX_LEN) {
+            // Split into chunks and send sequentially
+            const chunks: string[] = [];
+            for (let i = 0; i < ctx.buffer.length; i += MAX_LEN) {
+                chunks.push(ctx.buffer.substring(i, i + MAX_LEN));
+            }
+
+            for (let i = 0; i < chunks.length; i++) {
+                const safeHtml = this.formatToTelegramHtml(chunks[i]);
+                const sendOptions: any = { parse_mode: 'HTML' };
+                try {
+                    if (i === 0 && ctx.messageId) {
+                        // Replace the streaming placeholder with the first chunk
+                        await this.bot.api.editMessageText(chatId, ctx.messageId, safeHtml, sendOptions);
+                    } else {
+                        await this.bot.api.sendMessage(chatId, safeHtml, sendOptions);
+                    }
+                } catch (e: any) {
+                    if (!e.message?.includes('message is not modified')) {
+                        console.error(`[TelegramAdapter] Failed to send chunk ${i + 1}/${chunks.length}:`, e.message);
+                    }
+                }
+            }
+            ctx.lastSentBuffer = ctx.buffer;
+            return;
+        }
+
+        const rawContent = ctx.buffer.length > MAX_LEN
+            ? ctx.buffer.substring(ctx.buffer.length - MAX_LEN) // streaming: show latest
+            : ctx.buffer;
 
         // Convert Markdown to safe HTML for Telegram
         const safeHtml = this.formatToTelegramHtml(rawContent);
@@ -469,37 +509,28 @@ export class TelegramAdapter implements IIMAdapter {
         // 1. Headers to Bold (Telegram doesn't support real headers)
         html = html.replace(/^#+ (.*)$/gm, '<b>$1</b>');
 
-        // 2. Bold: **text** -> <b>text</b>
-        html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-
-        // 3. Monospace/Code block: ```language\ncode\n``` -> <pre>code</pre>
+        // 2. Code block: ```language\ncode\n``` -> <pre>code</pre>  (must run before inline code)
         html = html.replace(/```(?:[a-z]*)\n?([\s\S]*?)```/g, '<pre>$1</pre>');
 
-        // 4. Inline code: `code` -> <code>code</code>
-        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+        // 3. Inline code: `code` -> <code>code</code>
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-        // 5. Links: [text](url) -> <a href="url">text</a>
-        html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+        // 4. Bold: **text** -> <b>text</b>  (non-greedy, no newlines)
+        html = html.replace(/\*\*([^*\n]+?)\*\*/g, '<b>$1</b>');
 
-        // --- STREAMING SAFETY: Auto-close tags ---
-        const openTags: string[] = [];
+        // 5. Italic: *text* -> <i>text</i>  (skip if already consumed by bold)
+        html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<i>$1</i>');
 
-        // Match <b> and <pre> and <code>
-        const tagRegex = /<(b|pre|code|a|i)>/g;
-        const closeRegex = /<\/(b|pre|code|a|i)>/g;
+        // 6. Links: [text](url) -> <a href="url">text</a>
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-        let match;
-        const openMatches = Array.from(html.matchAll(tagRegex));
-        const closeMatches = Array.from(html.matchAll(closeRegex)).map(m => m[1]);
+        // 7. Unordered lists: - item -> • item
+        html = html.replace(/^[ \t]*[-*] (.+)$/gm, '• $1');
 
-        // Simple stack-based repair (for bold, code, etc.)
-        // Check for common unclosed tags at the end of partial AI response
-        if (html.includes('**') && !html.match(/\*\*(.*?)\*\*/)) {
-            // Temporary bold if AI is in the middle of writing **something
-            // This is handled by regex above but if it's incomplete it's just raw symbols
-        }
+        // 8. Ordered lists: 1. item -> 1. item (keep as-is, just strip any extra indentation)
+        html = html.replace(/^[ \t]*(\d+)\. (.+)$/gm, '$1. $2');
 
-        // Specifically handle <pre> and <b> which are common in streaming
+        // --- STREAMING SAFETY: Auto-close unclosed tags ---
         const preCount = (html.match(/<pre>/g) || []).length;
         const preCloseCount = (html.match(/<\/pre>/g) || []).length;
         if (preCount > preCloseCount) html += '</pre>';
@@ -507,6 +538,10 @@ export class TelegramAdapter implements IIMAdapter {
         const bCount = (html.match(/<b>/g) || []).length;
         const bCloseCount = (html.match(/<\/b>/g) || []).length;
         if (bCount > bCloseCount) html += '</b>';
+
+        const iCount = (html.match(/<i>/g) || []).length;
+        const iCloseCount = (html.match(/<\/i>/g) || []).length;
+        if (iCount > iCloseCount) html += '</i>';
 
         const codeCount = (html.match(/<code>/g) || []).length;
         const codeCloseCount = (html.match(/<\/code>/g) || []).length;

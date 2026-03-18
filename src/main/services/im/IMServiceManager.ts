@@ -153,6 +153,8 @@ export class IMServiceManager {
         if (this.abortControllers.has(msg.sessionId)) {
             this.abortControllers.get(msg.sessionId)!.abort();
             this.abortControllers.delete(msg.sessionId);
+            // 同步清理 adapter 内部状态，防止 trailing throttle 向 IM 写入旧数据
+            adapter.clearSession?.(msg.sessionId);
         }
 
         const controller = new AbortController();

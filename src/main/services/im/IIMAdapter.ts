@@ -28,6 +28,7 @@ export interface IIMAdapter {
 
     sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void>;
     sendChatAction?(sessionId: string, action: 'typing' | 'upload_document'): Promise<void>;
+    clearSession?(sessionId: string): void;
     
     testConnection?(config: any): Promise<{ success: boolean; message: string }>;
 }

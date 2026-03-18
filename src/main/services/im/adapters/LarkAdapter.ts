@@ -127,7 +127,9 @@ export class LarkAdapter implements IIMAdapter {
             // Lark SDK doesn't have a direct stop() sometimes, but if it does:
             try {
                 this.wsClient.stop?.();
-            } catch (e) {}
+            } catch (e) {
+                console.warn('[LarkAdapter] Error while stopping WebSocket client:', e);
+            }
             this.wsClient = null;
         }
         this.client = null;
@@ -292,6 +294,8 @@ export class LarkAdapter implements IIMAdapter {
 
         const ctx = this.sessionMap.get(sessionId);
         if (!ctx || (ctx.buffer === ctx.lastSentBuffer && !ctx.isComplete && ctx.messageId)) return;
+        // 空 buffer 且非最终消息：无内容可显示，跳过
+        if (!ctx.buffer.trim() && !ctx.isComplete) return;
 
         const chatId = sessionId.replace('lark_', '');
         
@@ -306,7 +310,7 @@ export class LarkAdapter implements IIMAdapter {
                 {
                     tag: 'div',
                     text: {
-                        content: ctx.buffer || '...',
+                        content: ctx.buffer,
                         tag: 'lark_md'
                     }
                 }
@@ -343,5 +347,14 @@ export class LarkAdapter implements IIMAdapter {
     async sendChatAction(sessionId: string, action: 'typing' | 'upload_document'): Promise<void> {
         // Lark doesn't have a direct "typing" indicator via API like Telegram 
         // We handle this via the card header title "⏳ Geni 正在思考..."
+    }
+
+    public clearSession(sessionId: string): void {
+        const throttledFlush = this.throttleFns.get(sessionId);
+        if (throttledFlush && typeof throttledFlush.cancel === 'function') {
+            throttledFlush.cancel();
+        }
+        this.throttleFns.delete(sessionId);
+        this.sessionMap.delete(sessionId);
     }
 }

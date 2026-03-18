@@ -53,7 +53,7 @@ export class WeComAdapter implements IIMAdapter {
                     providerId: this.providerId
                 };
 
-                await this.messageHandler(msg).catch(console.error);
+                this.messageHandler(msg).catch(console.error);
             });
 
             // Set up template card event handler (for authorization)
@@ -117,12 +117,12 @@ export class WeComAdapter implements IIMAdapter {
     }
 
     public async testConnection(config: WeComConfig): Promise<{ success: boolean; message: string }> {
-        // Since it's WS, we can only really test by trying to connect
-        // But for a simple check, we just check fields
         if (!config.botId || !config.secret) {
             return { success: false, message: 'botId and secret are required' };
         }
-        return { success: true, message: 'Configuration provided' };
+        // WeCom uses WebSocket; a real connectivity test requires establishing a WS connection.
+        // Here we only validate the configuration fields are present.
+        return { success: true, message: 'Configuration looks valid. Connection will be verified when the adapter starts.' };
     }
 
     public onMessage(handler: (message: IMMessage) => Promise<void>): void {
@@ -222,5 +222,9 @@ export class WeComAdapter implements IIMAdapter {
 
     async sendChatAction(sessionId: string, action: 'typing' | 'upload_document'): Promise<void> {
         // Not supported in WSClient yet
+    }
+
+    public clearSession(sessionId: string): void {
+        this.streamIds.delete(sessionId);
     }
 }
