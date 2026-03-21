@@ -456,11 +456,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
             }
 
-            // Limit step UI updates more heavily since they're large objects
+            // Limit step UI updates more heavily since they're large objects.
+            // A coarser cadence keeps the renderer responsive while tools stream.
             setTimeout(() => {
                 if (pendingSteps) flushSteps();
                 else isFlushingSteps = false;
-            }, 100);
+            }, 250);
         };
 
         const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {

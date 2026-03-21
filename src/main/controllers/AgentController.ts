@@ -32,7 +32,7 @@ export class AgentController {
     private pendingSteps: any[] | null = null;
     private throttleTimer: NodeJS.Timeout | null = null;
     private throttleRef: number = 0;
-    private readonly THROTTLE_MS = 60; // 60ms ≈ 16fps, balance between smoothness and responsiveness
+    private readonly THROTTLE_MS = 120; // Lower UI pressure during streaming while keeping updates responsive
 
     constructor(
         settings: AppSettings,

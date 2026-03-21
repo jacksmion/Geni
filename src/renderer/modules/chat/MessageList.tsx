@@ -24,11 +24,26 @@ export function MessageList() {
     const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
     const isSending = useChatStore(s => s.isSending)
     const endRef = useRef<HTMLDivElement>(null)
+    const rafScrollRef = useRef<number | null>(null)
 
     useEffect(() => {
-        // 确保新消息或思考过程更新时滚动到底部
-        endRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, messages.length])
+        // Streaming 时禁用 smooth scroll，避免持续动画挤占主线程。
+        if (rafScrollRef.current !== null) {
+            cancelAnimationFrame(rafScrollRef.current)
+        }
+
+        rafScrollRef.current = requestAnimationFrame(() => {
+            endRef.current?.scrollIntoView({ behavior: isSending ? 'auto' : 'smooth' })
+            rafScrollRef.current = null
+        })
+
+        return () => {
+            if (rafScrollRef.current !== null) {
+                cancelAnimationFrame(rafScrollRef.current)
+                rafScrollRef.current = null
+            }
+        }
+    }, [messages, messages.length, isSending])
 
     // Message Grouping Logic
     // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.

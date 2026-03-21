@@ -488,7 +488,7 @@ Guidance: If you are trying to write a very large file, please use \`write\` to 
                             step.streamingObservation += chunk;
 
                             const now = Date.now();
-                            if (now - lastStreamUpdate > 100) {
+                            if (now - lastStreamUpdate > 250) {
                                 onStepUpdate?.([...steps]);
                                 lastStreamUpdate = now;
                             }
