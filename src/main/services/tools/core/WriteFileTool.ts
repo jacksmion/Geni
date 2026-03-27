@@ -29,14 +29,16 @@ export class WriteFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'write',
-            description: 'Write content to a file. Supports append and idempotency.',
+            description: 'Write content to a file. Supports append, idempotency, and chunked writing for large files.',
             input_schema: {
                 type: 'object',
                 properties: {
                     path: { type: 'string', description: 'Relative path to file' },
                     content: { type: 'string', description: 'Content to write' },
                     append: { type: 'boolean', description: 'True to append instead of overwrite' },
-                    ignoreIfExists: { type: 'boolean', description: 'True to skip if file exists' }
+                    ignoreIfExists: { type: 'boolean', description: 'True to skip if file exists' },
+                    chunk_index: { type: 'number', description: 'Zero-based index of the current chunk. When provided, enables chunked writing mode using a temp file.' },
+                    is_last_chunk: { type: 'boolean', description: 'Set to true on the final chunk to commit the temp file to the target path atomically. Required when chunk_index is set.' }
                 },
                 required: ['path', 'content']
             }
@@ -44,7 +46,7 @@ export class WriteFileTool implements ITool {
     }
 
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
-        const { path: relPath, content, append = false, ignoreIfExists = false } = args;
+        const { path: relPath, content, append = false, ignoreIfExists = false, chunk_index, is_last_chunk } = args;
 
         // Defensive Check: Ensure required arguments are present and valid
         if (typeof relPath !== 'string' || relPath.trim() === '') {
@@ -90,17 +92,23 @@ export class WriteFileTool implements ITool {
             const dirPath = path.dirname(fullPath);
             await fs.mkdir(dirPath, { recursive: true });
 
+            // --- Chunked Writing Mode ---
+            if (chunk_index !== undefined) {
+                return await this.executeChunk(fullPath, relPath, content, chunk_index, is_last_chunk === true);
+            }
+
+            // --- Normal Writing Mode ---
+
             // 2. Check file state
             let fileExists = false;
             let existingContent = '';
 
             try {
-                // Try reading to check existence and content
                 existingContent = await fs.readFile(fullPath, 'utf-8');
                 fileExists = true;
             } catch (err: any) {
                 if (err.code !== 'ENOENT') {
-                    throw err; // Re-throw unexpected errors
+                    throw err;
                 }
             }
 
@@ -113,7 +121,7 @@ export class WriteFileTool implements ITool {
                 };
             }
 
-            // 4. Idempotency Check (Only if overwriting, skipping if appending)
+            // 4. Idempotency Check
             if (!append && fileExists && existingContent === content) {
                 return {
                     toolName: 'write',
@@ -144,5 +152,51 @@ export class WriteFileTool implements ITool {
                 result: `Write File Error: ${error.message}`
             };
         }
+    }
+
+    /**
+     * 分块写入：将内容写入临时文件 (.writing)，最后一块时原子 rename 到目标路径。
+     */
+    private async executeChunk(
+        fullPath: string,
+        relPath: string,
+        content: string,
+        chunkIndex: number,
+        isLastChunk: boolean
+    ): Promise<ToolExecutionResult> {
+        const tempPath = `${fullPath}.writing`;
+
+        if (chunkIndex === 0) {
+            // 第一块：创建/覆盖临时文件
+            await fs.writeFile(tempPath, content, 'utf-8');
+        } else {
+            // 后续块：追加到临时文件
+            try {
+                await fs.access(tempPath);
+            } catch {
+                return {
+                    toolName: 'write',
+                    isError: true,
+                    result: `Chunk Error: Temp file '${relPath}.writing' not found. Did you start from chunk_index=0?`
+                };
+            }
+            await fs.appendFile(tempPath, content, 'utf-8');
+        }
+
+        if (!isLastChunk) {
+            return {
+                toolName: 'write',
+                isError: false,
+                result: `Chunk ${chunkIndex} written to temp file. Continue with chunk_index=${chunkIndex + 1}.`
+            };
+        }
+
+        // 最后一块：原子 rename temp -> target
+        await fs.rename(tempPath, fullPath);
+        return {
+            toolName: 'write',
+            isError: false,
+            result: `Success: File '${relPath}' committed from ${chunkIndex + 1} chunk(s).`
+        };
     }
 }

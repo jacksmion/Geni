@@ -337,6 +337,7 @@ export class AgentRuntime implements IAgentService {
                 const chatOptions: ChatModelOptions = {
                     model: options?.model,
                     temperature: options?.temperature,
+                    max_tokens: 16000,
                     tools: chatModelTools.length > 0 ? chatModelTools : undefined,
                     tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
                     signal: options?.signal,
@@ -371,6 +372,14 @@ export class AgentRuntime implements IAgentService {
                     switch (event.type) {
                         case 'message_end':
                             usage = event.usage;
+                            if (event.stop_reason === 'max_tokens') {
+                                throw new Error(
+                                    '[OutputTruncated] Your response exceeded the max output length and was cut off. ' +
+                                    'Break your work into smaller steps: generate less content at once, ' +
+                                    'split large files into chunks (chunk_index=0..N, is_last_chunk=true on final), ' +
+                                    'or use `edit` for targeted modifications instead of rewriting entire files.'
+                                );
+                            }
                             break;
                         case 'content_delta':
                             if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
@@ -445,9 +454,8 @@ export class AgentRuntime implements IAgentService {
             try {
                 args = JSON.parse(tc.function.arguments);
             } catch (e) {
-                const error = `[Error] "${fnName}" arguments invalid JSON: ${tc.function.arguments}. 
-This is likely caused by output truncation due to context length limits. 
-Guidance: If you are trying to write a very large file, please use \`write\` to create the basic structure first, and then use \`edit\` or \`write(append: true)\` to fill in the content step-by-step.`;
+                const error = `[Error] "${fnName}" tool call was truncated (output too long, JSON malformed).
+Break your work into smaller steps: generate less content at once, split large files into chunks (chunk_index=0..N, is_last_chunk=true on final), or use \`edit\` for targeted modifications instead of rewriting entire files.`;
                 this.recordToolResult(tc.id, error, messages, newMessages);
                 steps.push({ thought, tool: fnName, toolInput: tc.function.arguments, observation: error, isComplete: true, isError: true });
                 onStepUpdate?.([...steps]);
