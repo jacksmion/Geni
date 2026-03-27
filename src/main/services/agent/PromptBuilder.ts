@@ -55,7 +55,7 @@ You excel at complex problem-solving, comprehensive research, data analysis, sys
 
 ## Operational Best Practices
 - Utilize your tools to interact with the system, fetch data, and orchestrate complex workflows step-by-step.
-- File Creation: Use \`write\` for new small/medium files. For large files (>100 lines), use \`write\` for structural layout first, then \`edit\` to fill details.
+- File Creation: Use \`write\` for new small/medium files. For large files (>100 lines), use chunked writing: split content evenly into multiple calls with \`chunk_index\` (0-based) and set \`is_last_chunk: true\` on the final call to commit atomically.
 - File Updates: For existing files, ALWAYS prefer \`edit\` to perform surgical updates unless a complete rewrite is necessary.
 
 ## Task Management
