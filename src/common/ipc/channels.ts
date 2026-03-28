@@ -49,6 +49,7 @@ export const SYSTEM_CHANNELS = {
 
 export const SYSTEM_EVENTS = {
     SETTINGS_CHANGED: 'system:settings-changed',
+    WECHAT_QR: 'system:wechat-qr',
 } as const;
 
 export const TOOL_CHANNELS = {

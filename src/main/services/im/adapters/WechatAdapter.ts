@@ -1,6 +1,26 @@
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
 import { ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from '../../agent/ToolGuard';
 import { login, start, type Agent } from 'weixin-agent-sdk';
+import { BrowserWindow } from 'electron';
+import { SYSTEM_EVENTS } from '../../../../common/ipc/channels';
+import { createRequire } from 'node:module';
+
+// 使用 createRequire 避免在构建时被打包器转换，防止 ESM 和 CommonJS 冲突以及严格模式报错
+const customRequire = createRequire(import.meta.url);
+const qrcodeTerminal = customRequire('qrcode-terminal');
+
+// 覆盖 generate 方法，拦截 URL 用于前端展示
+qrcodeTerminal.generate = (url: string, opts: any, cb: any) => {
+    console.log(`\n[WechatAdapter] 截获纯净版二维码链接:\n => ${url}\n`);
+    
+    BrowserWindow.getAllWindows().forEach(win => {
+        if (!win.isDestroyed()) {
+            win.webContents.send(SYSTEM_EVENTS.WECHAT_QR, url);
+        }
+    });
+
+    if (cb) cb(''); // 调用回调，传入空字符串，让控制台不再输出乱码区块
+};
 
 export class WechatAdapter implements IIMAdapter {
     readonly providerId = 'wechat';
@@ -95,6 +115,13 @@ export class WechatAdapter implements IIMAdapter {
                 console.log(`[WechatAdapter] IMPORTANT: Please check the console below for the WeChat login QR Code.`);
                 await login();
                 
+                // Notify UI to display connected status
+                BrowserWindow.getAllWindows().forEach(win => {
+                    if (!win.isDestroyed()) {
+                        win.webContents.send(SYSTEM_EVENTS.WECHAT_QR, 'connected');
+                    }
+                });
+
                 // Start agent message loop
                 start(this.agent).catch(e => {
                     console.error("[WechatAdapter] Agent message loop threw an error:", e);
