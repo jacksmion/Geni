@@ -72,6 +72,11 @@ export interface WeComConfig {
     secret: string;
 }
 
+// 微信个人号 (Wechat) 接入配置
+export interface WechatConfig {
+    enabled: boolean;
+}
+
 // 飞书 (Lark) 自建应用配置
 export interface LarkConfig {
     enabled: boolean;
@@ -118,6 +123,7 @@ export interface AppSettings {
     systemPrompt?: string; // 全局系统提示词
     telegram?: TelegramConfig; // Telegram Bot 配置
     wecom?: WeComConfig; // 企业微信配置
+    wechat?: WechatConfig; // 个人微信配置
     lark?: LarkConfig; // 飞书配置
     scheduledTasks?: ScheduledTaskConfig[]; // 定时任务配置
     recentWorkspaces?: string[]; // 最近打开的工作目录历史记录
@@ -247,6 +253,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
         enabled: false,
         botId: '',
         secret: '',
+    },
+    wechat: {
+        enabled: false,
     },
     lark: {
         enabled: false,
