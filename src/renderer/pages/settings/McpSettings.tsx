@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Plus, Trash2, CheckCircle2, AlertCircle, TerminalSquare, Server, Settings2, Link as LinkIcon, Box, Key, Globe, Command, Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { IMcpServerConfig } from '../../../common/types/settings';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
@@ -15,6 +16,7 @@ interface ToolDefinition {
 }
 
 export function McpSettings() {
+    const { t } = useTranslation();
     const [servers, setServers] = useState<IMcpServerConfig[]>([]);
     const [serversDraft, setServersDraft] = useState<IMcpServerConfig[]>([]);
     
@@ -186,7 +188,7 @@ export function McpSettings() {
         
         const newServer: IMcpServerConfig = {
             id: id,
-            name: '未命名服务器',
+            name: t('mcpSettings.unnamedServer'),
             type: 'stdio',
             command: '',
             args: [],
@@ -250,7 +252,7 @@ export function McpSettings() {
         setServersDraft(newDraft);
     };
 
-    if (loading) return <div className="p-8 text-center text-slate-500">Loading configurations...</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500">{t('loading')}</div>;
 
     const selectedServer = selectedIdx !== null ? serversDraft[selectedIdx] : null;
 
@@ -271,7 +273,7 @@ export function McpSettings() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                         <input
                             type="text"
-                            placeholder="搜索服务器..."
+                            placeholder={t('mcpSettings.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
@@ -280,7 +282,7 @@ export function McpSettings() {
                     <button
                         onClick={handleAddServer}
                         className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors"
-                        title="添加服务器"
+                        title={t('mcpSettings.addServer')}
                     >
                         <Plus size={16} />
                     </button>
@@ -313,7 +315,7 @@ export function McpSettings() {
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <span className={clsx("font-bold text-sm truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
-                                                {server.name || server.id || 'Unnamed'}
+                                                {server.name || server.id || t('mcpSettings.unnamed')}
                                             </span>
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 <div className={clsx(
@@ -323,7 +325,7 @@ export function McpSettings() {
                                                             status[server.id] === 'error' ? "bg-red-500" : "bg-slate-300 dark:bg-slate-600"
                                                 )} />
                                                 <p className="text-[10px] text-slate-400 dark:text-gray-500 truncate capitalize font-medium">
-                                                    {status[server.id] || 'Disconnected'}
+                                                    {t(`mcpSettings.${status[server.id] || 'disconnected'}`)}
                                                 </p>
                                             </div>
                                         </div>
@@ -371,7 +373,7 @@ export function McpSettings() {
                                         <button 
                                             onClick={() => removeServerDraft(selectedIdx!)} 
                                             className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
-                                            title="删除服务器"
+                                            title={t('mcpSettings.deleteServer')}
                                         >
                                             <Trash2 size={20} />
                                         </button>
@@ -386,7 +388,7 @@ export function McpSettings() {
                                             activeTab === 'general' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                                         )}
                                     >
-                                        通用设置
+                                        {t('mcpSettings.generalSettings')}
                                         {activeTab === 'general' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />}
                                     </button>
                                     <button 
@@ -396,7 +398,7 @@ export function McpSettings() {
                                             activeTab === 'tools' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                                         )}
                                     >
-                                        可用工具
+                                        {t('mcpSettings.availableTools')}
                                         {serverTools.length > 0 && <span className={clsx("px-1.5 py-0.5 rounded-md text-[10px] font-bold", activeTab === 'tools' ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" : "bg-slate-100 dark:bg-white/10 text-slate-500")}>{serverTools.length}</span>}
                                         {activeTab === 'tools' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />}
                                     </button>
@@ -410,7 +412,7 @@ export function McpSettings() {
                                             <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3">
                                                 <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />
                                                 <div>
-                                                    <h4 className="text-sm font-bold text-red-700 dark:text-red-400">连接测试失败</h4>
+                                                    <h4 className="text-sm font-bold text-red-700 dark:text-red-400">{t('mcpSettings.connectionFailed')}</h4>
                                                     <p className="text-xs text-red-600 dark:text-red-300 mt- font-mono break-all">{statusMsg[selectedServer.id]}</p>
                                                 </div>
                                             </div>
@@ -418,38 +420,38 @@ export function McpSettings() {
 
                                         {/* Server Name */}
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={14} /> 服务器名称</label>
-                                            <input type="text" value={selectedServer.name || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'name', e.target.value)} placeholder="例如: SQLite 浏览器..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={14} /> {t('mcpSettings.name')}</label>
+                                            <input type="text" value={selectedServer.name || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'name', e.target.value)} placeholder={t('mcpSettings.namePlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                         </div>
 
                                         {/* Transport Type */}
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Settings2 size={14} /> 传输类型</label>
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Settings2 size={14} /> {t('mcpSettings.transport')}</label>
                                             <select value={selectedServer.type || 'stdio'} onChange={(e) => updateServerDraftRow(selectedIdx!, 'type', e.target.value as any)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none">
-                                                <option value="stdio">Stdio (本地执行)</option>
-                                                <option value="sse">SSE (远程 HTTP)</option>
+                                                <option value="stdio">{t('mcpSettings.typeStdio')}</option>
+                                                <option value="sse">{t('mcpSettings.typeSse')}</option>
                                             </select>
                                         </div>
 
                                         {selectedServer.type === 'sse' ? (
                                             <>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Globe size={14} /> URL 地址</label>
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Globe size={14} /> {t('mcpSettings.url')}</label>
                                                     <input type="text" value={selectedServer.url || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'url', e.target.value)} placeholder="http://..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Key size={14} /> API Key (可选)</label>
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Key size={14} /> {t('mcpSettings.apiKey')}</label>
                                                     <input type="password" value={selectedServer.apiKey || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'apiKey', e.target.value)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><TerminalSquare size={14} /> 执行命令</label>
-                                                    <input type="text" value={selectedServer.command || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'command', e.target.value)} placeholder="node, python, uv..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><TerminalSquare size={14} /> {t('mcpSettings.command')}</label>
+                                                    <input type="text" value={selectedServer.command || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'command', e.target.value)} placeholder={t('mcpSettings.commandPlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Command size={14} /> 执行参数</label>
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Command size={14} /> {t('mcpSettings.args')}</label>
                                                     <textarea 
                                                         value={rawArgsText} 
                                                         onChange={(e) => {
@@ -457,7 +459,7 @@ export function McpSettings() {
                                                             setRawArgsText(val);
                                                             updateServerDraftRow(selectedIdx!, 'args', val);
                                                         }} 
-                                                        placeholder="--option&#10;arg..." 
+                                                        placeholder={t('mcpSettings.argsPlaceholder')}
                                                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200 min-h-[100px] resize-y focus:outline-none focus:border-indigo-500/50 transition-all" 
                                                     />
                                                 </div>
@@ -470,21 +472,21 @@ export function McpSettings() {
                                                 className="w-full py-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 border border-indigo-100 dark:border-indigo-500/20 group"
                                             >
                                                 <TerminalSquare size={16} className="group-hover:scale-110 transition-transform" />
-                                                测试连接
+                                                {t('mcpSettings.testConnection')}
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="absolute inset-0 overflow-y-auto p-6">
                                         <div className="space-y-4">
-                                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">工具列表</h3>
+                                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('mcpSettings.toolsList')}</h3>
                                             <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
                                                 <table className="w-full text-left text-xs">
                                                     <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                                                         <tr>
-                                                            <th className="px-4 py-3 font-bold uppercase">工具名称</th>
-                                                            <th className="px-4 py-3 font-bold uppercase">启用</th>
-                                                            <th className="px-4 py-3 font-bold uppercase">信任级别</th>
+                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.tool')}</th>
+                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.enabled')}</th>
+                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.trust')}</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
@@ -523,7 +525,7 @@ export function McpSettings() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
                             <Box size={48} className="opacity-10" />
-                            <p className="text-sm">未选择服务器</p>
+                            <p className="text-sm">{t('mcpSettings.noServerTitle')}</p>
                         </div>
                     )}
                 </div>

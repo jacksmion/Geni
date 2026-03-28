@@ -98,9 +98,9 @@ export function GeneralSettings() {
 
                 {/* Auto-open Artifact */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">自动打开 Artifact 面板</h3>
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.autoOpenArtifact')}</h3>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-gray-400">调用工具产生输出时，是否自动弹窗显示详情</span>
+                        <span className="text-sm text-slate-600 dark:text-gray-400">{t('generalSettings.autoOpenArtifactDesc')}</span>
                         <Switch
                             checked={autoOpenArtifact ?? true}
                             onChange={(checked) => updateSettings({ autoOpenArtifact: checked })}
@@ -112,11 +112,11 @@ export function GeneralSettings() {
                 <div className="pt-6 border-t border-slate-200 dark:border-white/10 space-y-6">
                     <div className="flex items-center justify-between">
                         <div className="space-y-1">
-                            <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">软件更新</h3>
-                            <p className="text-xs text-slate-500 dark:text-gray-500">当前版本: v{currentVersion}</p>
+                            <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.softwareUpdate')}</h3>
+                            <p className="text-xs text-slate-500 dark:text-gray-500">{t('generalSettings.currentVersion', { version: currentVersion })}</p>
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="text-xs text-slate-500 dark:text-gray-500">自动检查更新</span>
+                            <span className="text-xs text-slate-500 dark:text-gray-500">{t('generalSettings.autoCheckUpdate')}</span>
                             <Switch
                                 checked={useSettingsStore.getState().settings.autoUpdate ?? true}
                                 onChange={(checked) => updateSettings({ autoUpdate: checked })}
@@ -128,20 +128,20 @@ export function GeneralSettings() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 {updateStatus === 'idle' && (
-                                    <p className="text-sm text-slate-600 dark:text-gray-400">检查是否有新版本可用</p>
+                                    <p className="text-sm text-slate-600 dark:text-gray-400">{t('generalSettings.checkUpdateDesc')}</p>
                                 )}
                                 {updateStatus === 'checking' && (
-                                    <p className="text-sm text-indigo-500 animate-pulse">正在检查更新...</p>
+                                    <p className="text-sm text-indigo-500 animate-pulse">{t('generalSettings.checkingUpdate')}</p>
                                 )}
                                 {updateStatus === 'available' && (
-                                    <p className="text-sm text-emerald-500 font-medium">发现新版本: v{updateInfo?.version}</p>
+                                    <p className="text-sm text-emerald-500 font-medium">{t('generalSettings.newVersionFound', { version: updateInfo?.version })}</p>
                                 )}
                                 {updateStatus === 'not-available' && (
-                                    <p className="text-sm text-slate-500">当前已是最新版本</p>
+                                    <p className="text-sm text-slate-500">{t('generalSettings.isLatestVersion')}</p>
                                 )}
                                 {updateStatus === 'downloading' && (
                                     <div className="space-y-2 w-full min-w-[200px]">
-                                        <p className="text-sm text-indigo-500">正在下载 ({Math.round(downloadProgress?.percent || 0)}%)</p>
+                                        <p className="text-sm text-indigo-500">{t('generalSettings.downloadingUpdate', { percent: Math.round(downloadProgress?.percent || 0) })}</p>
                                         <div className="h-1.5 w-full bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
                                             <div 
                                                 className="h-full bg-indigo-500 transition-all duration-300" 
@@ -151,10 +151,10 @@ export function GeneralSettings() {
                                     </div>
                                 )}
                                 {updateStatus === 'downloaded' && (
-                                    <p className="text-sm text-emerald-500 font-medium">更新已下载，准备安装</p>
+                                    <p className="text-sm text-emerald-500 font-medium">{t('generalSettings.updateDownloaded')}</p>
                                 )}
                                 {updateStatus === 'error' && (
-                                    <p className="text-sm text-rose-500">更新错误: {updateError}</p>
+                                    <p className="text-sm text-rose-500">{t('generalSettings.updateError', { error: updateError })}</p>
                                 )}
                             </div>
 
@@ -164,14 +164,14 @@ export function GeneralSettings() {
                                         onClick={handleDownload}
                                         className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors"
                                     >
-                                        立即下载
+                                        {t('generalSettings.downloadNow')}
                                     </button>
                                 ) : updateStatus === 'downloaded' ? (
                                     <button
                                         onClick={handleInstall}
                                         className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors"
                                     >
-                                        立即重启安装
+                                        {t('generalSettings.installNow')}
                                     </button>
                                 ) : (
                                     <button
@@ -179,7 +179,7 @@ export function GeneralSettings() {
                                         disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
                                         className="px-4 py-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                                     >
-                                        {updateStatus === 'checking' ? '正在检查...' : '检查更新'}
+                                        {updateStatus === 'checking' ? t('generalSettings.checking') : t('generalSettings.checkNow')}
                                     </button>
                                 )}
                             </div>
