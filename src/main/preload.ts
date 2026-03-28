@@ -58,6 +58,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
             const sub = (_: any, settings: any) => callback(settings)
             ipcRenderer.on('system:settings-changed', sub)
             return () => ipcRenderer.removeListener('system:settings-changed', sub)
+        },
+        onWechatQr: (callback: (qrUrl: string) => void) => {
+            const sub = (_: any, qrUrl: string) => callback(qrUrl)
+            ipcRenderer.on('system:wechat-qr', sub)
+            return () => ipcRenderer.removeListener('system:wechat-qr', sub)
         }
     },
     tools: {
