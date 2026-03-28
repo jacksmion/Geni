@@ -39,8 +39,6 @@ export class SessionStorage {
         this.storageDir = pathManager.getSessionsDir();
         this.indexFile = pathManager.getSessionsIndexFile();
 
-        console.log('[SessionStorage] Storage Dir:', this.storageDir);
-
         if (!fs.existsSync(this.storageDir)) {
             fs.mkdirSync(this.storageDir, { recursive: true });
         }
@@ -126,7 +124,6 @@ export class SessionStorage {
             if (fs.existsSync(filePath)) {
                 const data = await fs.promises.readFile(filePath, 'utf8');
                 const session = JSON.parse(data) as ChatSession;
-                console.log(`[SessionStorage] Loaded ${id} from disk. Messages: ${session.messages?.length || 0}`);
                 return session;
             }
         } catch (error) {
@@ -150,7 +147,6 @@ export class SessionStorage {
             this.enqueueSessionWrite(session.id, async () => {
                 const filePath = path.join(this.storageDir, `${session.id}.json`);
                 await atomicWriteFile(filePath, JSON.stringify(session, null, 2));
-                console.log(`[SessionStorage] Saved ${session.id} to disk. Messages: ${session.messages?.length || 0}`);
             });
 
             return true;

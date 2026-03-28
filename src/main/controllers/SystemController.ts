@@ -87,7 +87,7 @@ export class SystemController {
     }
 
     private async handleSaveSettings(settings: AppSettings) {
-        console.log('[SystemController] Saving settings:', JSON.stringify(settings, null, 2));
+        console.log('[SystemController] Saving settings... (Sensitive fields redacted)');
 
         // 1. Get old settings to compare if needed (e.g. for MCP reconnects, handled by onSettingsChanged listeners ideally)
         // For now, we just save and notify.

@@ -49,7 +49,6 @@ export class SessionManager {
         }
 
         // 2. 尝试从磁盘加载
-        console.log(`[SessionManager] Loading session ${id} from disk...`);
         const session = await this.storage.loadSession(id);
         if (session) {
             this.sessions.set(id, session);
@@ -97,7 +96,6 @@ export class SessionManager {
             session.messages.push(enrichedMessage);
             session.updatedAt = Date.now();
 
-            console.log(`[SessionManager] Message added to ${id}. Total messages: ${session.messages.length}`);
             this.storage.saveSession(session);
         } else {
             console.warn(`[SessionManager] Session NOT FOUND: ${id}. Cannot add message.`);
