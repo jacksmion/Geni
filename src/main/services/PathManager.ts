@@ -12,6 +12,7 @@ import { app } from 'electron';
  */
 export class PathManager {
     private rootDir: string;
+    private logsDir: string;
     private sessionsDir: string;
     private schedulerDir: string;
     private globalSkillsDir: string;
@@ -24,6 +25,7 @@ export class PathManager {
 
         // New unified structure: ~/.geni/
         this.rootDir = path.join(os.homedir(), '.geni');
+        this.logsDir = path.join(this.rootDir, 'logs');
         this.sessionsDir = path.join(this.rootDir, 'sessions');
         this.schedulerDir = path.join(this.rootDir, 'scheduler');
         this.globalSkillsDir = path.join(this.rootDir, 'skills');
@@ -46,6 +48,7 @@ export class PathManager {
     private ensureDirectories(): void {
         const dirs = [
             this.rootDir,
+            this.logsDir,
             this.sessionsDir,
             this.schedulerDir,
             this.globalSkillsDir
@@ -66,6 +69,14 @@ export class PathManager {
      */
     public getRootDir(): string {
         return this.rootDir;
+    }
+
+    /**
+     * Get logs directory
+     * @returns ~/.geni/logs/
+     */
+    public getLogsDir(): string {
+        return this.logsDir;
     }
 
     /**
