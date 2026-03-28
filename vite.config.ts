@@ -13,7 +13,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['@wecom/aibot-node-sdk', 'ws', 'bufferutil', 'utf-8-validate'],
+              external: ['@wecom/aibot-node-sdk', 'ws', 'bufferutil', 'utf-8-validate', 'silk-wasm', 'weixin-agent-sdk'],
             },
           },
         },

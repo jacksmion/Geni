@@ -8,6 +8,7 @@ import { Skill } from '../../../common/types/skill';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
 import { LarkAdapter } from './adapters/LarkAdapter';
+import { WechatAdapter } from './adapters/WechatAdapter';
 import { MemoryStore } from '../memory/MemoryStore';
 import { UsageManager } from '../usage/UsageManager';
 
@@ -38,6 +39,7 @@ export class IMServiceManager {
         this.registerAdapter(new TelegramAdapter());
         this.registerAdapter(new WeComAdapter());
         this.registerAdapter(new LarkAdapter());
+        this.registerAdapter(new WechatAdapter());
     }
 
     private registerAdapter(adapter: IIMAdapter) {
@@ -108,6 +110,20 @@ export class IMServiceManager {
             }
         } else {
             console.warn(`[IMServiceManager] Lark adapter not found in registered adapters!`);
+        }
+
+        // Wechat
+        const wechatAdapter = this.adapters.get('wechat');
+        if (wechatAdapter) {
+            const config = this.settings.wechat;
+            if (config?.enabled) {
+                console.log(`[IMServiceManager] Syncing Wechat adapter...`);
+                await wechatAdapter.start(config).catch(e => console.error(`[IMServiceManager] Failed to start wechat adapter:`, e));
+            } else {
+                await wechatAdapter.stop().catch(e => console.error(`[IMServiceManager] Failed to stop wechat adapter:`, e));
+            }
+        } else {
+            console.warn(`[IMServiceManager] Wechat adapter not found in registered adapters!`);
         }
     }
     

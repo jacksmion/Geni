@@ -1,0 +1,118 @@
+import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
+import { ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from '../../agent/ToolGuard';
+import { login, start, type Agent } from 'weixin-agent-sdk';
+
+export class WechatAdapter implements IIMAdapter {
+    readonly providerId = 'wechat';
+    private isRunning = false;
+    private messageHandler?: (message: IMMessage) => Promise<void>;
+    
+    // Wechat agent instance
+    private agent: Agent;
+
+    private pendingChats = new Map<string, {
+        resolve: (value: any) => void,
+        reject: (reason?: any) => void,
+        buffer: string,
+        lastUpdate: number
+    }>();
+
+    constructor() {
+        this.agent = {
+            chat: (req) => {
+                return new Promise((resolve, reject) => {
+                    const sessionId = `wechat_${req.conversationId}`;
+                    this.pendingChats.set(sessionId, { resolve, reject, buffer: '', lastUpdate: Date.now() });
+                    
+                    if (this.messageHandler) {
+                        this.messageHandler({
+                            sessionId,
+                            userId: req.conversationId,
+                            content: req.text,
+                            providerId: this.providerId
+                        }).catch(e => {
+                            console.error("[WechatAdapter] Error processing message:", e);
+                            reject(e);
+                        });
+                    } else {
+                        resolve({ text: "Geni is not ready." });
+                    }
+                });
+            }
+        };
+    }
+
+    onMessage(handler: (message: IMMessage) => Promise<void>): void {
+        this.messageHandler = handler;
+    }
+
+    async requestAuthorization(
+        sessionId: string,
+        request: ToolExecutionRequest,
+        decision: AuthorizationDecision
+    ): Promise<UserApprovalContext> {
+        return new Promise((resolve) => {
+            // Because WeChat lacks a UI, we send a text message to ask for permission
+            const prompt = `[Tool Execution Request]\nAgent wants to execute: ${request.toolName}\nParams: ${JSON.stringify(request.args)}\n\nPlease reply with 'Y' to allow, or 'N' to deny.`;
+            
+            // This is non-trivial to implement securely via text without breaking the normal flow.
+            // For Phase 1 & 2 MVP, we can just say tool execution is denied by default if UI is required.
+            // In Phase 3 we will build a proper text-based intercept.
+            console.warn(`[WechatAdapter] Tool execution request for ${request.toolName} requires UI approval. Denying by default for MVP.`);
+            resolve({
+                approved: false,
+                message: 'Tool execution requires UI approval. Denied in WeChat headless mode.'
+            });
+        });
+    }
+
+    async sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void> {
+        const pending = this.pendingChats.get(sessionId);
+        if (pending) {
+            pending.buffer = content;
+            pending.lastUpdate = Date.now();
+            
+            // WeChat doesn't support streaming like Telegram edits,
+            // so we only resolve the agent chat promise when the message is complete.
+            if (options?.isComplete) {
+                pending.resolve({ text: pending.buffer });
+                this.pendingChats.delete(sessionId);
+            }
+        }
+    }
+
+    async start(config: any): Promise<void> {
+        if (!config?.enabled || this.isRunning) return;
+        
+        console.log(`[WechatAdapter] Starting Wechat adapter...`);
+        this.isRunning = true;
+        
+        // Start asynchronously so we don't block the rest of the application
+        // if login() waits for QR code scan
+        (async () => {
+            try {
+                // login() will output QR code to console
+                console.log(`[WechatAdapter] IMPORTANT: Please check the console below for the WeChat login QR Code.`);
+                await login();
+                
+                // Start agent message loop
+                start(this.agent).catch(e => {
+                    console.error("[WechatAdapter] Agent message loop threw an error:", e);
+                });
+                console.log(`[WechatAdapter] Started successfully.`);
+            } catch (e) {
+                this.isRunning = false;
+                console.error(`[WechatAdapter] Failed to start Wechat adapter:`, e);
+            }
+        })();
+    }
+
+    async stop(): Promise<void> {
+        if (!this.isRunning) return;
+        console.log(`[WechatAdapter] Stopping Wechat adapter...`);
+        // weixin-agent-sdk doesn't export a stop() method currently.
+        // We'll just mark it as not running to prevent restarts.
+        // It might keep running in the background for this process lifecycle.
+        this.isRunning = false;
+    }
+}

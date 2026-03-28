@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
-import { TelegramConfig, WeComConfig, LarkConfig } from '../../../common/types/settings';
+import { TelegramConfig, WeComConfig, LarkConfig, WechatConfig } from '../../../common/types/settings';
 
 export function ImSettings() {
     const telegramConfig = useSettingsStore(s => s.settings.telegram);
     const wecomConfig = useSettingsStore(s => s.settings.wecom);
+    const wechatConfig = useSettingsStore(s => s.settings.wechat);
     const larkConfig = useSettingsStore(s => s.settings.lark);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
@@ -21,6 +22,7 @@ export function ImSettings() {
     // Draft States
     const [tgDraft, setTgDraft] = useState<TelegramConfig>(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
     const [wecomDraft, setWecomDraft] = useState<WeComConfig>(wecomConfig || { enabled: false, botId: '', secret: '' });
+    const [wechatDraft, setWechatDraft] = useState<WechatConfig>(wechatConfig || { enabled: false });
     const [larkDraft, setLarkDraft] = useState<LarkConfig>(larkConfig || { enabled: false, appId: '', appSecret: '' });
     
     // Test Status
@@ -31,11 +33,13 @@ export function ImSettings() {
     useEffect(() => {
         if (telegramConfig) setTgDraft(telegramConfig);
         if (wecomConfig) setWecomDraft(wecomConfig);
+        if (wechatConfig) setWechatDraft(wechatConfig);
         if (larkConfig) setLarkDraft(larkConfig);
-    }, [telegramConfig, wecomConfig, larkConfig]);
+    }, [telegramConfig, wecomConfig, wechatConfig, larkConfig]);
 
     const isDirty = JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig) ||
                     JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig) ||
+                    JSON.stringify(wechatDraft) !== JSON.stringify(wechatConfig) ||
                     JSON.stringify(larkDraft) !== JSON.stringify(larkConfig);
 
     const handleSave = async () => {
@@ -44,6 +48,7 @@ export function ImSettings() {
             await updateSettings({
                 telegram: tgDraft,
                 wecom: wecomDraft,
+                wechat: wechatDraft,
                 lark: larkDraft
             });
         } catch (e) {
@@ -56,6 +61,7 @@ export function ImSettings() {
     const handleReset = () => {
         setTgDraft(telegramConfig || { enabled: false, token: '', proxyUrl: '' });
         setWecomDraft(wecomConfig || { enabled: false, botId: '', secret: '' });
+        setWechatDraft(wechatConfig || { enabled: false });
         setLarkDraft(larkConfig || { enabled: false, appId: '', appSecret: '' });
     };
 
@@ -106,6 +112,15 @@ export function ImSettings() {
             color: '#3370ff',
             enabled: larkDraft.enabled,
             onToggle: (val) => setLarkDraft({ ...larkDraft, enabled: val })
+        },
+        { 
+            id: 'wechat', 
+            label: 'WeChat (微信)', 
+            icon: Bot, 
+            desc: '扫码登录微信个人号接入 Agent', 
+            color: '#07c160',
+            enabled: wechatDraft.enabled,
+            onToggle: (val) => setWechatDraft({ ...wechatDraft, enabled: val })
         },
     ];
 
@@ -297,11 +312,27 @@ export function ImSettings() {
                                 </div>
                             </>
                         )}
+
+                        {selectedIM === 'wechat' && (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-sm leading-relaxed">
+                                    <h3 className="font-bold flex items-center gap-2 mb-2">
+                                        <Bot size={16} /> 如何接入个人微信
+                                    </h3>
+                                    <ol className="list-decimal pl-5 space-y-1">
+                                        <li>开启左侧的运行开关，并点击底部的“保存”按钮。</li>
+                                        <li>保存后，系统会自动启动终端进程并生成登录二维码。</li>
+                                        <li>目前请<b>打开开发者控制台查看命令行输出的二维码</b>，使用微信扫一扫即可登录。</li>
+                                        <li>后续版本将在界面上直接显示二维码，敬请期待。</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        )}
                         
                         <div className="pt-6">
                             <button 
                                 onClick={handleTestConnection}
-                                disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
+                                disabled={selectedIM === 'wechat' || isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
                                 className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
                             >
                                 {isTesting ? (
