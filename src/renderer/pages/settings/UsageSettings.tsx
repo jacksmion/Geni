@@ -100,7 +100,7 @@ export function UsageSettings() {
                     <div className="text-3xl font-black text-slate-900 dark:text-white">
                         {formatNumber(stats.today.total_tokens)}
                     </div>
-                    <div className="mt-2 text-xs text-indigo-500/60 dark:text-indigo-300/60 font-medium">TOTAL TOKENS TODAY</div>
+                    <div className="mt-2 text-xs text-indigo-500/60 dark:text-indigo-300/60 font-medium uppercase tracking-tight">{t('usageSettings.totalTokensToday')}</div>
                 </div>
 
                 <div className="bg-white dark:bg-[#18181b]/50 border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
@@ -133,12 +133,12 @@ export function UsageSettings() {
                         <BarChart3 size={16} />
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 dark:text-gray-400 uppercase font-bold tracking-tighter">All-Time Usage</div>
-                        <div className="text-sm font-bold text-slate-800 dark:text-gray-200">{formatNumber(stats.total.total_tokens)} Tokens</div>
+                        <div className="text-xs text-slate-500 dark:text-gray-400 uppercase font-bold tracking-tighter">{t('usageSettings.allTimeUsage')}</div>
+                        <div className="text-sm font-bold text-slate-800 dark:text-gray-200">{formatNumber(stats.total.total_tokens)} {t('usageSettings.tokens')}</div>
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-[10px] text-slate-400 dark:text-gray-500 uppercase font-bold">Accumulated</div>
+                    <div className="text-[10px] text-slate-400 dark:text-gray-500 uppercase font-bold">{t('usageSettings.accumulated')}</div>
                     <div className="text-xs font-mono text-slate-500">{formatNumber(stats.total.prompt_tokens)} P / {formatNumber(stats.total.completion_tokens)} C</div>
                 </div>
             </div>
@@ -214,20 +214,20 @@ export function UsageSettings() {
                                     </div>
                                     <div>
                                         <div className="text-sm font-bold text-slate-700 dark:text-gray-200">{day.date === new Date().toISOString().split('T')[0] ? t('usageSettings.today') : day.date}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{day.recordCount} Requests</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{day.recordCount} {t('usageSettings.requests')}</div>
                                     </div>
                                 </div>
                                 <div className="flex gap-8">
                                     <div className="text-right hidden sm:block">
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">Prompt</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase">{t('usageSettings.prompt')}</div>
                                         <div className="text-sm font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.prompt_tokens)}</div>
                                     </div>
                                     <div className="text-right hidden sm:block">
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">Completion</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase">{t('usageSettings.completion')}</div>
                                         <div className="text-sm font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.completion_tokens)}</div>
                                     </div>
                                     <div className="text-right min-w-[100px]">
-                                        <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-0.5">Total Usage</div>
+                                        <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-0.5">{t('usageSettings.totalUsage')}</div>
                                         <div className="text-base font-black text-indigo-600 dark:text-indigo-400 font-mono tracking-tighter">{formatNumber(day.total_tokens)}</div>
                                     </div>
                                 </div>
@@ -240,7 +240,7 @@ export function UsageSettings() {
             {/* Maintenance Note */}
             <div className="text-center pt-8 border-t border-slate-100 dark:border-white/5">
                 <p className="text-[11px] text-slate-400 font-medium uppercase tracking-widest">
-                    Usage records are kept locally. Statistics refresh automatically after each conversation.
+                    {t('usageSettings.maintenanceNote')}
                 </p>
             </div>
         </div>

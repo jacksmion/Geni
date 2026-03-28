@@ -264,15 +264,23 @@
     "usageSettings": {
         "title": "Token 用量统计",
         "todayTotal": "今日总计",
-        "promptTokens": "提示词 Token (Prompt)",
-        "completionTokens": "回复 Token (Completion)",
+        "promptTokens": "提示词 Token",
+        "completionTokens": "回复 Token",
         "today": "今日",
         "tokens": "Tokens",
         "byModel": "按模型统计",
         "dailyHistory": "近期每日消耗",
         "noData": "暂无用量记录",
         "loading": "正在加载统计数据...",
-        "total": "总计"
+        "total": "总计",
+        "totalTokensToday": "今日 Token 总计",
+        "allTimeUsage": "累计总用量",
+        "accumulated": "累计统计",
+        "requests": "请求",
+        "prompt": "提示词 (Prompt)",
+        "completion": "回复 (Completion)",
+        "totalUsage": "总用量",
+        "maintenanceNote": "用量记录仅存储于本地。统计数据在每次对话结束后会自动更新。"
     },
     "modelNames": {
         "gpt-4o": "GPT-4o 顶配版",

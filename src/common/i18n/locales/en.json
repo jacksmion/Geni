@@ -272,7 +272,15 @@
         "dailyHistory": "Daily Usage History",
         "noData": "No usage data recorded yet.",
         "loading": "Loading usage statistics...",
-        "total": "Total"
+        "total": "Total",
+        "totalTokensToday": "TOTAL TOKENS TODAY",
+        "allTimeUsage": "ALL-TIME USAGE",
+        "accumulated": "ACCUMULATED",
+        "requests": "REQUESTS",
+        "prompt": "PROMPT",
+        "completion": "COMPLETION",
+        "totalUsage": "TOTAL USAGE",
+        "maintenanceNote": "Usage records are kept locally. Statistics refresh automatically after each conversation."
     },
     "modelNames": {
         "gpt-4o": "GPT-4o",
