@@ -2,6 +2,7 @@
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import path from 'path'
 import { fileURLToPath } from 'url'
+import log from 'electron-log/main';
 
 // Services
 import { PathManager } from './services/PathManager.js'
@@ -64,6 +65,13 @@ function createWindow(isDark: boolean) {
 app.whenReady().then(async () => {
     // 0. PathManager (must be first, after app.whenReady())
     const pathManager = new PathManager();
+
+    // Initialize electron-log (after PathManager so we can use its paths)
+    log.transports.file.resolvePathFn = () => path.join(pathManager.getLogsDir(), 'main.log');
+    log.transports.file.maxSize = 5 * 1024 * 1024; // 5MB
+    if (app.isPackaged) log.transports.console.level = false; // no terminal output in production
+    log.initialize({ preload: false }); // only main process
+    Object.assign(console, log.functions); // redirect console.* to electron-log
 
     // 1. Initialize Config (with PathManager)
     const configManager = new ConfigManager(pathManager);
