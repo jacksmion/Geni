@@ -3,7 +3,12 @@
     "allow": [
       "Bash(echo:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Read(//d/tmp/openclaw/**)",
+      "Read(//d/workspace/Geni/$HOME/**)",
+      "Bash(node:*)",
+      "Read(//d/workspace/Geni_Subscription/**)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
