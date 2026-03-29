@@ -48,6 +48,9 @@ export function ImSettings() {
                 if (payload === 'connected') {
                     setWechatConnected(true);
                     setWechatQrUrl(null);
+                } else if (payload === 'disconnected') {
+                    setWechatConnected(false);
+                    setWechatQrUrl(null);
                 } else if (payload) {
                     setWechatConnected(false);
                     setWechatQrUrl(payload);

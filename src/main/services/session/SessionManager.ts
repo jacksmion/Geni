@@ -98,7 +98,24 @@ export class SessionManager {
 
             this.storage.saveSession(session);
         } else {
-            console.warn(`[SessionManager] Session NOT FOUND: ${id}. Cannot add message.`);
+            // Auto-create session for external callers (IM, Scheduler) using fixed IDs
+            const newSession: ChatSession = {
+                id,
+                title: id,
+                messages: [],
+                variables: {},
+                activeSkillIds: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            const enrichedMessage: ChatMessage = {
+                ...message,
+                id: message.id || randomUUID(),
+                timestamp: message.timestamp || Date.now(),
+            };
+            newSession.messages.push(enrichedMessage);
+            this.sessions.set(id, newSession);
+            await this.storage.saveSession(newSession);
         }
     }
 

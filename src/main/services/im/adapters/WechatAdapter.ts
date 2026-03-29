@@ -1,6 +1,6 @@
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
 import { ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from '../../agent/ToolGuard';
-import { login, start, type Agent } from 'weixin-agent-sdk';
+import { login, start, isLoggedIn, logout, type Agent } from 'weixin-agent-sdk';
 import { BrowserWindow } from 'electron';
 import { SYSTEM_EVENTS } from '../../../../common/ipc/channels';
 import { createRequire } from 'node:module';
@@ -111,16 +111,16 @@ export class WechatAdapter implements IIMAdapter {
         // if login() waits for QR code scan
         (async () => {
             try {
-                // login() will output QR code to console
-                console.log(`[WechatAdapter] IMPORTANT: Please check the console below for the WeChat login QR Code.`);
-                await login();
-                
-                // Notify UI to display connected status
-                BrowserWindow.getAllWindows().forEach(win => {
-                    if (!win.isDestroyed()) {
-                        win.webContents.send(SYSTEM_EVENTS.WECHAT_QR, 'connected');
-                    }
-                });
+                if (isLoggedIn()) {
+                    // 已有持久化的登录态，直接启动，免扫码
+                    console.log(`[WechatAdapter] Found persisted login session, resuming without QR scan.`);
+                    this.notifyConnected();
+                } else {
+                    // 首次登录，需要扫码
+                    console.log(`[WechatAdapter] No persisted session found. Please scan QR code to login.`);
+                    await login();
+                    this.notifyConnected();
+                }
 
                 // Start agent message loop
                 start(this.agent).catch(e => {
@@ -134,12 +134,40 @@ export class WechatAdapter implements IIMAdapter {
         })();
     }
 
+    private notifyConnected() {
+        BrowserWindow.getAllWindows().forEach(win => {
+            if (!win.isDestroyed()) {
+                win.webContents.send(SYSTEM_EVENTS.WECHAT_QR, 'connected');
+            }
+        });
+    }
+
     async stop(): Promise<void> {
         if (!this.isRunning) return;
         console.log(`[WechatAdapter] Stopping Wechat adapter...`);
-        // weixin-agent-sdk doesn't export a stop() method currently.
-        // We'll just mark it as not running to prevent restarts.
-        // It might keep running in the background for this process lifecycle.
         this.isRunning = false;
+
+        // 清除持久化的登录态，确保界面关闭后不会自动重连
+        try {
+            if (isLoggedIn()) {
+                logout();
+                console.log(`[WechatAdapter] Logged out, persisted session cleared.`);
+            }
+        } catch (e) {
+            console.error(`[WechatAdapter] Failed to logout:`, e);
+        }
+
+        // 清理所有等待中的 chat
+        for (const [sessionId, pending] of this.pendingChats) {
+            pending.reject(new Error('Adapter stopped'));
+        }
+        this.pendingChats.clear();
+
+        // 通知 UI 微信已断开
+        BrowserWindow.getAllWindows().forEach(win => {
+            if (!win.isDestroyed()) {
+                win.webContents.send(SYSTEM_EVENTS.WECHAT_QR, 'disconnected');
+            }
+        });
     }
 }
