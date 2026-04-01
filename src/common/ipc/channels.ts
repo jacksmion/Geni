@@ -44,7 +44,8 @@ export const SYSTEM_CHANNELS = {
     TEST_TELEGRAM: 'system:test-telegram',
     TEST_WECOM: 'system:test-wecom',
     TEST_LARK: 'system:test-lark',
-    GET_USAGE_STATS: 'system:get-usage-stats',
+    TEST_WECHAT: 'system:test-wechat',
+
 } as const;
 
 export const SYSTEM_EVENTS = {

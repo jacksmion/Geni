@@ -27,8 +27,15 @@ export function ImSettings() {
     const [larkDraft, setLarkDraft] = useState<LarkConfig>(larkConfig || { enabled: false, appId: '', appSecret: '' });
 
     // WeChat QR State
+    // WeChat QR State
     const [wechatQrUrl, setWechatQrUrl] = useState<string | null>(null);
     const [wechatConnected, setWechatConnected] = useState(false);
+
+    // Drafts Ref for callbacks
+    const draftsRef = React.useRef({ tgDraft, wecomDraft, wechatDraft, larkDraft });
+    useEffect(() => {
+        draftsRef.current = { tgDraft, wecomDraft, wechatDraft, larkDraft };
+    }, [tgDraft, wecomDraft, wechatDraft, larkDraft]);
 
     // Test Status
     const [isTesting, setIsTesting] = useState(false);
@@ -47,7 +54,21 @@ export function ImSettings() {
             const unsubscribe = window.electronAPI.system.onWechatQr((payload) => {
                 if (payload === 'connected') {
                     setWechatConnected(true);
-                    setWechatQrUrl(null);
+                    setWechatQrUrl((prevUrl) => {
+                        // Automatically enable and save when wechat is connected
+                        const drafts = draftsRef.current;
+                        if (!drafts.wechatDraft.enabled) {
+                            const newWechatDraft = { ...drafts.wechatDraft, enabled: true };
+                            setWechatDraft(newWechatDraft);
+                            useSettingsStore.getState().updateSettings({
+                                telegram: drafts.tgDraft,
+                                wecom: drafts.wecomDraft,
+                                wechat: newWechatDraft,
+                                lark: drafts.larkDraft
+                            }).catch(console.error);
+                        }
+                        return null;
+                    });
                 } else if (payload === 'disconnected') {
                     setWechatConnected(false);
                     setWechatQrUrl(null);
@@ -59,6 +80,12 @@ export function ImSettings() {
             return unsubscribe;
         }
     }, []);
+
+    useEffect(() => {
+        if (selectedIM === 'wechat') {
+            window.electronAPI?.system?.testWechat?.().catch?.((e: any) => console.error(e));
+        }
+    }, [selectedIM]);
 
     const isDirty = JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig) ||
         JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig) ||
@@ -215,6 +242,7 @@ export function ImSettings() {
                         {(() => {
                             const current = IM_PROVIDERS.find(p => p.id === selectedIM);
                             const Icon = current?.icon;
+                            const isConnected = selectedIM === 'wechat' ? wechatConnected : !!testResult?.success;
                             return (
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl shadow-sm transition-colors"
@@ -228,12 +256,12 @@ export function ImSettings() {
                                             </h2>
                                             <div className={clsx(
                                                 "flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                                testResult?.success
+                                                isConnected
                                                     ? "bg-emerald-500/10 text-emerald-500"
                                                     : "bg-slate-100 text-slate-400 dark:bg-white/5"
                                             )}>
-                                                <div className={clsx("w-1.5 h-1.5 rounded-full", testResult?.success ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
-                                                {testResult?.success ? t('modelSettings.connected') : t('mcpSettings.notConnected')}
+                                                <div className={clsx("w-1.5 h-1.5 rounded-full", isConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
+                                                {isConnected ? t('modelSettings.connected') : t('mcpSettings.notConnected')}
                                             </div>
                                         </div>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -338,17 +366,9 @@ export function ImSettings() {
 
                         {selectedIM === 'wechat' && (
                             <div className="space-y-4">
-                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-400 text-sm leading-relaxed">
-                                    <h3 className="font-bold flex items-center gap-2 mb-2">
-                                        <Bot size={16} /> 如何接入个人微信
-                                    </h3>
-                                    <ol className="list-decimal pl-5 space-y-1">
-                                        <li>开启左侧的运行开关，并点击底部的“保存”按钮。</li>
-                                        <li>目前请使用微信扫一扫下方生成的二维码即可登录。</li>
-                                    </ol>
-                                </div>
-                                {wechatDraft.enabled && wechatConnected && (
-                                    <div className="mt-8 flex flex-col items-center justify-center p-8 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
+
+                                {wechatConnected && (
+                                    <div className="flex flex-col items-center justify-center p-8 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
                                         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
                                             <Bot size={36} />
                                         </div>
@@ -362,13 +382,10 @@ export function ImSettings() {
                                         <p className="text-emerald-600 dark:text-emerald-500 text-sm mt-2">
                                             身份验证成功，您可以随时在微信中与我对话了。
                                         </p>
-                                        <p className="mt-1 text-xs text-emerald-500/70 dark:text-emerald-500/50">
-                                            （如需重新登录，请先在下方关闭开关保存，再点开启保存）
-                                        </p>
                                     </div>
                                 )}
-                                {wechatDraft.enabled && !wechatConnected && wechatQrUrl && (
-                                    <div className="mt-8 flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 text-center">
+                                {!wechatConnected && wechatQrUrl && (
+                                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 text-center">
                                         <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
                                             <QRCodeSVG value={wechatQrUrl} size={200} />
                                         </div>
@@ -380,8 +397,8 @@ export function ImSettings() {
                                         </p>
                                     </div>
                                 )}
-                                {wechatDraft.enabled && !wechatConnected && !wechatQrUrl && (
-                                    <div className="mt-8 flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-black/20 text-center">
+                                {!wechatConnected && !wechatQrUrl && (
+                                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-black/20 text-center">
                                         <Loader2 size={32} className="animate-spin text-indigo-500 mb-4" />
                                         <p className="text-sm font-bold text-slate-700 dark:text-gray-300">
                                             正在检查登录状态或生成二维码...
@@ -394,37 +411,39 @@ export function ImSettings() {
                             </div>
                         )}
 
-                        <div className="pt-6">
-                            <button
-                                onClick={handleTestConnection}
-                                disabled={selectedIM === 'wechat' || isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
-                                className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
-                            >
-                                {isTesting ? (
-                                    <Loader2 size={18} className="animate-spin" />
-                                ) : (
-                                    <ShieldCheck size={18} />
-                                )}
-                                <span className="text-sm tracking-tight">{t('imSettings.testConnection')}</span>
-                            </button>
+                        {selectedIM !== 'wechat' && (
+                            <div className="pt-6">
+                                <button
+                                    onClick={handleTestConnection}
+                                    disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
+                                    className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
+                                >
+                                    {isTesting ? (
+                                        <Loader2 size={18} className="animate-spin" />
+                                    ) : (
+                                        <ShieldCheck size={18} />
+                                    )}
+                                    <span className="text-sm tracking-tight">{t('imSettings.testConnection')}</span>
+                                </button>
 
-                            {testResult && (
-                                <div className={clsx(
-                                    "mt-4 p-5 rounded-2xl flex items-start gap-4 animate-in slide-in-from-top-2 duration-300",
-                                    testResult.success
-                                        ? "bg-emerald-50/50 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20"
-                                        : "bg-red-50/50 dark:bg-red-500/5 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20"
-                                )}>
-                                    <div className={clsx("mt-0.5", testResult.success ? "text-emerald-500" : "text-red-500")}>
-                                        {testResult.success ? <CheckCircle2 size={18} /> : <X size={18} />}
+                                {testResult && (
+                                    <div className={clsx(
+                                        "mt-4 p-5 rounded-2xl flex items-start gap-4 animate-in slide-in-from-top-2 duration-300",
+                                        testResult.success
+                                            ? "bg-emerald-50/50 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20"
+                                            : "bg-red-50/50 dark:bg-red-500/5 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20"
+                                    )}>
+                                        <div className={clsx("mt-0.5", testResult.success ? "text-emerald-500" : "text-red-500")}>
+                                            {testResult.success ? <CheckCircle2 size={18} /> : <X size={18} />}
+                                        </div>
+                                        <div className="flex-1 flex flex-col gap-1">
+                                            <span className="text-sm font-bold">{testResult.success ? t('modelSettings.connected') : t('modelSettings.testFailed')}</span>
+                                            <span className="text-xs opacity-80 leading-relaxed font-medium">{testResult.message}</span>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 flex flex-col gap-1">
-                                        <span className="text-sm font-bold">{testResult.success ? t('modelSettings.connected') : t('modelSettings.testFailed')}</span>
-                                        <span className="text-xs opacity-80 leading-relaxed font-medium">{testResult.message}</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

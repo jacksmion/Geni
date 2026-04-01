@@ -38,6 +38,7 @@ export interface IElectronAPI {
         testTelegram: (config: any) => Promise<{ success: boolean, message: string }>;
         testWeCom: (config: any) => Promise<{ success: boolean, message: string }>;
         testLark: (config: any) => Promise<{ success: boolean, message: string }>;
+        testWechat: () => Promise<{ success: boolean, message: string }>;
         onSettingsChanged: (callback: (settings: any) => void) => () => void;
         onWechatQr: (callback: (qrUrl: string) => void) => () => void;
     };

@@ -47,7 +47,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_TELEGRAM, (_, config) => this.handleTestTelegram(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
-        ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
+        ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
     }
 
     public broadcastSettingsChanged(settings: AppSettings) {
@@ -69,7 +69,7 @@ export class SystemController {
             console.log(`[SystemController] Fetching models for ${providerId}...`);
             // Dynamic import to avoid circular dependency or early loading issues if factory is complex
             const { createChatModel } = await import('../services/llm');
-            
+
             const model = createChatModel(providerId, {
                 apiKey: config.apiKey,
                 baseUrl: config.baseUrl,
@@ -220,5 +220,13 @@ export class SystemController {
             return { success: false, message: 'IM Service not initialized' };
         }
         return await this.imServiceManager.testConnection('lark', config);
+    }
+
+    private async handleTestWechat() {
+        if (!this.imServiceManager) {
+            return { success: false, message: 'IM Service not initialized' };
+        }
+        // Config is empty since it just needs to start the login process without saving
+        return await this.imServiceManager.testConnection('wechat', {});
     }
 }

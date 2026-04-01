@@ -26,6 +26,7 @@ export class WechatAdapter implements IIMAdapter {
     readonly providerId = 'wechat';
     private isRunning = false;
     private messageHandler?: (message: IMMessage) => Promise<void>;
+    private loginPromise: Promise<any> | null = null;
     
     // Wechat agent instance
     private agent: Agent;
@@ -41,6 +42,12 @@ export class WechatAdapter implements IIMAdapter {
         this.agent = {
             chat: (req) => {
                 return new Promise((resolve, reject) => {
+                    // If the adapter is stopped, ignore incoming messages
+                    if (!this.isRunning) {
+                        resolve({ text: "" });
+                        return;
+                    }
+
                     const sessionId = `wechat_${req.conversationId}`;
                     this.pendingChats.set(sessionId, { resolve, reject, buffer: '', lastUpdate: Date.now() });
                     
@@ -64,6 +71,26 @@ export class WechatAdapter implements IIMAdapter {
 
     onMessage(handler: (message: IMMessage) => Promise<void>): void {
         this.messageHandler = handler;
+    }
+
+    async testConnection(config: any): Promise<{ success: boolean; message: string }> {
+        if (isLoggedIn()) {
+            this.notifyConnected();
+            return { success: true, message: 'Already connected' };
+        }
+
+        if (!this.loginPromise) {
+            console.log(`[WechatAdapter] Triggering login via testConnection`);
+            this.loginPromise = login().then(() => {
+                console.log(`[WechatAdapter] Login successful via QR scan`);
+                this.notifyConnected();
+                this.loginPromise = null;
+            }).catch(e => {
+                console.error(`[WechatAdapter] Login failed:`, e);
+                this.loginPromise = null;
+            });
+        }
+        return { success: true, message: 'Generating QR code...' };
     }
 
     async requestAuthorization(
@@ -116,10 +143,17 @@ export class WechatAdapter implements IIMAdapter {
                     console.log(`[WechatAdapter] Found persisted login session, resuming without QR scan.`);
                     this.notifyConnected();
                 } else {
-                    // 首次登录，需要扫码
-                    console.log(`[WechatAdapter] No persisted session found. Please scan QR code to login.`);
-                    await login();
-                    this.notifyConnected();
+                    // 首次登录，需要扫码或者已经触发了扫码
+                    if (this.loginPromise) {
+                        console.log(`[WechatAdapter] Waiting for pending login...`);
+                        await this.loginPromise;
+                    } else {
+                        console.log(`[WechatAdapter] No persisted session found. Please scan QR code to login.`);
+                        this.loginPromise = login();
+                        await this.loginPromise;
+                        this.loginPromise = null;
+                        this.notifyConnected();
+                    }
                 }
 
                 // Start agent message loop
@@ -147,15 +181,8 @@ export class WechatAdapter implements IIMAdapter {
         console.log(`[WechatAdapter] Stopping Wechat adapter...`);
         this.isRunning = false;
 
-        // 清除持久化的登录态，确保界面关闭后不会自动重连
-        try {
-            if (isLoggedIn()) {
-                logout();
-                console.log(`[WechatAdapter] Logged out, persisted session cleared.`);
-            }
-        } catch (e) {
-            console.error(`[WechatAdapter] Failed to logout:`, e);
-        }
+        // 移除强行 logout()，保护用户缓存，改为仅挂起接管服务
+        console.log(`[WechatAdapter] Adapter paused. Persisted session kept intact.`);
 
         // 清理所有等待中的 chat
         for (const [sessionId, pending] of this.pendingChats) {
