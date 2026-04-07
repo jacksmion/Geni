@@ -1,12 +1,6 @@
-export enum ErrorCategory {
-    Network = 'network',
-    RateLimit = 'rate_limit',
-    Authentication = 'auth',
-    ToolExecution = 'tool',
-    TokenLimit = 'token_limit',
-    Unknown = 'unknown',
-    Aborted = 'aborted'
-}
+import { ErrorCategory } from '../../../common/types/agent';
+export { ErrorCategory }; // Re-export for compatibility
+
 
 export interface ClassifiedError {
     category: ErrorCategory;

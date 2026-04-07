@@ -3,7 +3,7 @@ import { ipcMain, IpcMainInvokeEvent, WebContents } from 'electron';
 import { AgentRuntime, AgentRuntimeOptions, AgentStateEvent } from '../services/agent';
 import { SessionManager } from '../services/session';
 import { AGENT_CHANNELS, AGENT_EVENTS } from '../../common/ipc/channels';
-import { AgentStartRequest, AgentStartResponse } from '../../common/types/agentEvents';
+import { AgentStartRequest, AgentStartResponse, AgentEvent } from '../../common/types/agentEvents';
 
 import { ToolRegistry } from '../services/tools/ToolRegistry';
 import { AppSettings } from '../../common/types/settings';
@@ -173,6 +173,16 @@ export class AgentController {
         }
     }
 
+    private buildEmitFn(_sid: string): (event: AgentEvent) => void {
+        return (event: AgentEvent) => {
+            // Phase 1: 仅 log，等 Phase 4 再接管 IPC 广播
+            // state_change / auth_request / error 已有独立路径，暂不重复
+            if (event.type !== 'state_change' && event.type !== 'auth_request') {
+                console.log(`[AgentController] emit <- ${event.type}`);
+            }
+        };
+    }
+
     /**
      * Handle Agent Start Request
      */
@@ -218,7 +228,8 @@ export class AgentController {
                 history: history,
                 model: options?.model,
                 skills: skillList,
-                sessionId: sid
+                sessionId: sid,
+                emit: this.buildEmitFn(sid)
             };
 
             const prepTime = performance.now() - pipelineStartTime;

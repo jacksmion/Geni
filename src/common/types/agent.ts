@@ -16,3 +16,13 @@ export interface AgentContext {
     messages: Message[];
     activeTools: string[]; // Enabled skill IDs
 }
+
+export enum ErrorCategory {
+    Network = 'network',
+    RateLimit = 'rate_limit',
+    Authentication = 'auth',
+    ToolExecution = 'tool',
+    TokenLimit = 'token_limit',
+    Unknown = 'unknown',
+    Aborted = 'aborted'
+}

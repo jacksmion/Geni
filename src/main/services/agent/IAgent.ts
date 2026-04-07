@@ -6,6 +6,7 @@ import { ITool } from '../../../common/types/tool';
 import { Skill } from '../../../common/types/skill';
 import { AppSettings } from '../../../common/types/settings';
 import { ChatMessage, AgentStep } from '../../../common/types/chat';
+import { AgentEvent } from '../../../common/types/agentEvents';
 
 export interface AgentRunOptions {
     model?: string;
@@ -14,6 +15,7 @@ export interface AgentRunOptions {
     skills?: Skill[];
     history?: ChatMessage[];
     signal?: AbortSignal;
+    emit?: (event: AgentEvent) => void;
 }
 
 // Re-export AgentStep from common (Single Source of Truth)

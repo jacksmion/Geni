@@ -141,7 +141,20 @@ export class AgentRuntime implements IAgentService {
         onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult> {
         // Create session-specific managers to ensure concurrency safety
-        const sessionStateManager = new AgentStateManager(options?.onStateChange || this.stateChangeCallback);
+        const sessionStateManager = new AgentStateManager((stateEvent) => {
+            const legacyCb = options?.onStateChange || this.stateChangeCallback;
+            legacyCb?.(stateEvent);
+            options?.emit?.({
+                type: 'state_change',
+                payload: {
+                    previousState: stateEvent.previousState,
+                    currentState: stateEvent.currentState,
+                    message: stateEvent.message,
+                    metadata: stateEvent.metadata,
+                    timestamp: stateEvent.timestamp
+                }
+            });
+        });
         const sessionToolGuard = new ToolGuard(options?.onAuthorizationRequired || this.authCallback);
 
         // Update instance properties for potential external getState() calls
@@ -149,6 +162,7 @@ export class AgentRuntime implements IAgentService {
         this.toolGuard = sessionToolGuard;
 
         sessionStateManager.transition(AgentState.Thinking, 'Starting agent execution');
+        options?.emit?.({ type: 'agent_start', payload: { taskDescription: prompt.substring(0, 100) } });
 
         const chatModel = this.createChatModel(options);
         const chatModelTools = this.convertTools(tools);
@@ -166,6 +180,7 @@ export class AgentRuntime implements IAgentService {
 
                 if (options?.signal?.aborted) throw new Error('Agent execution aborted by user.');
                 onStream?.('', true);
+                options?.emit?.({ type: 'turn_start', payload: { turnIndex: loopCount } });
 
                 // 1. 上下文优化
                 const optStartTime = performance.now();
@@ -216,15 +231,18 @@ export class AgentRuntime implements IAgentService {
                 // 3. 工具处理
                 if (toolCalls.length > 0) {
                     await this.handleToolCalls(toolCalls, tools, messages, newMessages, steps, currentReasoning || currentContent, sessionStateManager, sessionToolGuard, options, onStepUpdate);
+                    const hadToolCalls = toolCalls.length > 0;
+                    options?.emit?.({ type: 'turn_end', payload: { turnIndex: loopCount, hadToolCalls } });
                 } else {
                     console.log(`[AgentPerf] ===== Loop ${loopCount} Total: ${(performance.now() - roundStartTime).toFixed(2)}ms =====`);
+                    options?.emit?.({ type: 'agent_end', payload: { totalSteps: steps.length, newMessages } });
                     return { finalAnswer: currentContent, steps, newMessages };
                 }
                 console.log(`[AgentPerf] ===== Loop ${loopCount} Total: ${(performance.now() - roundStartTime).toFixed(2)}ms =====`);
             }
-            return this.handleMaxSteps(steps, newMessages, onStream);
+            return this.handleMaxSteps(steps, newMessages, options, onStream);
         } catch (error: any) {
-            return this.handleError(error, steps, newMessages, sessionStateManager);
+            return this.handleError(error, steps, newMessages, sessionStateManager, options);
         } finally {
             if (sessionStateManager.getState() !== AgentState.Aborted) {
                 sessionStateManager.transition(AgentState.Idle, 'Execution finished');
@@ -385,11 +403,13 @@ export class AgentRuntime implements IAgentService {
                             if (isReasoning) { isReasoning = false; onStream?.('\n```\n\n'); }
                             currentContent += event.delta;
                             onStream?.(event.delta);
+                            options?.emit?.({ type: 'message_delta', payload: { delta: event.delta } });
                             break;
                         case 'reasoning_delta':
                             if (!isReasoning) { isReasoning = true; onStream?.('```thinking\n'); }
                             currentReasoning += event.delta;
                             onStream?.(event.delta);
+                            options?.emit?.({ type: 'reasoning_delta', payload: { delta: event.delta } });
                             break;
                         case 'tool_call_delta': {
                             const acc = accumulators.get(event.index) || { id: '', name: '', arguments: '', type: 'function' };
@@ -475,6 +495,7 @@ Break your work into smaller steps: generate less content at once, split large f
 
             const startTime = Date.now();
             sessionStateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
+            options?.emit?.({ type: 'tool_start', payload: { toolCallId: tc.id, toolName: fnName, args } });
 
             let step = steps.find(s => s.tool === fnName && !s.isComplete);
             if (!step) {
@@ -535,6 +556,7 @@ Break your work into smaller steps: generate less content at once, split large f
             obs = ContextManager.truncateToolOutput(fnName, obs);
             if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
 
+            options?.emit?.({ type: 'tool_end', payload: { toolCallId: tc.id, result: obs, isError: !!result.isError, duration } });
             this.recordToolResult(tc.id, obs, messages, newMessages);
             step.observation = obs;
             step.isComplete = true;
@@ -551,6 +573,13 @@ Break your work into smaller steps: generate less content at once, split large f
         if (decision.requiresUserConfirmation) {
             steps.push({ thought, tool: tc.function.name, toolInput: JSON.stringify(args), isComplete: false, isWaitingAuthorization: true, authRequestId: req.requestId, authReason: decision.reason });
             onStepUpdate?.([...steps]);
+            
+            options?.emit?.({ type: 'auth_request', payload: {
+                requestId: req.requestId || '',
+                toolName: req.toolName,
+                args: req.args,
+                reason: decision.reason || ''
+            }});
 
             const authorized = await sessionToolGuard.checkAuthorization(req);
             if (options?.signal?.aborted) return false;
@@ -575,13 +604,14 @@ Break your work into smaller steps: generate less content at once, split large f
 
 
 
-    private handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[], onStream?: (c: string) => void) {
+    private handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[], options?: AgentRuntimeOptions, onStream?: (c: string) => void) {
         const warning = `\n\n---\n⚠️ **Max steps reached (50)**\nSend a message to continue.`;
         onStream?.(warning);
+        options?.emit?.({ type: 'agent_end', payload: { totalSteps: steps.length, newMessages } });
         return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
     }
 
-    private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], sessionStateManager: AgentStateManager) {
+    private handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], sessionStateManager: AgentStateManager, options?: AgentRuntimeOptions) {
         console.error('[AgentRuntime] Error:', error);
         const classified = classifyError(error);
         const state = classified.category === ErrorCategory.Aborted ? AgentState.Aborted : AgentState.Error;
@@ -590,6 +620,7 @@ Break your work into smaller steps: generate less content at once, split large f
             finalMessage += `\n\n💡 建议: ${classified.suggestedAction}`;
         }
         sessionStateManager.transition(state, finalMessage);
+        options?.emit?.({ type: 'error', payload: { message: classified.message, category: classified.category } });
         return { finalAnswer: finalMessage, steps, newMessages };
     }
 
