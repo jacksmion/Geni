@@ -113,16 +113,65 @@ export class OpenAIAdapter implements IChatModel {
                 signal: options?.signal,
             });
 
+            let isFakeReasoning = false;
+            let contentBuffer = '';
+
             // 处理流式响应
             for await (const chunk of stream) {
                 const delta = chunk.choices[0]?.delta;
                 const finishReason = chunk.choices[0]?.finish_reason;
 
                 if (delta?.content) {
-                    yield {
-                        type: 'content_delta',
-                        delta: delta.content,
-                    };
+                    contentBuffer += delta.content;
+                    
+                    while (contentBuffer.length > 0) {
+                        if (!isFakeReasoning) {
+                            const matchIndex = contentBuffer.indexOf('<think>');
+                            if (matchIndex !== -1) {
+                                const before = contentBuffer.slice(0, matchIndex);
+                                if (before) yield { type: 'content_delta', delta: before };
+                                isFakeReasoning = true;
+                                contentBuffer = contentBuffer.slice(matchIndex + 7);
+                                if (contentBuffer.startsWith('\n')) contentBuffer = contentBuffer.slice(1);
+                                continue;
+                            } else {
+                                let safeIndex = contentBuffer.length;
+                                for (let i = 1; i <= Math.min(6, contentBuffer.length); i++) {
+                                    if ('<think>'.startsWith(contentBuffer.slice(-i))) {
+                                        safeIndex = contentBuffer.length - i;
+                                        break;
+                                    }
+                                }
+                                const safeContent = contentBuffer.slice(0, safeIndex);
+                                if (safeContent) yield { type: 'content_delta', delta: safeContent };
+                                contentBuffer = contentBuffer.slice(safeIndex);
+                                break;
+                            }
+                        } else {
+                            const matchIndex = contentBuffer.indexOf('</think>');
+                            if (matchIndex !== -1) {
+                                const reasoning = contentBuffer.slice(0, matchIndex);
+                                if (reasoning) yield { type: 'reasoning_delta', delta: reasoning };
+                                isFakeReasoning = false;
+                                contentBuffer = contentBuffer.slice(matchIndex + 8);
+                                if (contentBuffer.startsWith('\n')) contentBuffer = contentBuffer.slice(1);
+                                if (contentBuffer.startsWith('\n')) contentBuffer = contentBuffer.slice(1);
+                                continue;
+                            } else {
+                                let safeIndex = contentBuffer.length;
+                                for (let i = 1; i <= Math.min(7, contentBuffer.length); i++) {
+                                    if ('</think>'.startsWith(contentBuffer.slice(-i))) {
+                                        safeIndex = contentBuffer.length - i;
+                                        break;
+                                    }
+                                }
+                                const safeContent = contentBuffer.slice(0, safeIndex);
+                                if (safeContent) yield { type: 'reasoning_delta', delta: safeContent };
+                                contentBuffer = contentBuffer.slice(safeIndex);
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 // 处理推理内容 (DeepSeek R1 等)
@@ -148,6 +197,15 @@ export class OpenAIAdapter implements IChatModel {
 
                 // 检查是否结束
                 if (finishReason) {
+                    // 刷出最后的 buffer
+                    if (contentBuffer.length > 0) {
+                        yield {
+                            type: isFakeReasoning ? 'reasoning_delta' : 'content_delta',
+                            delta: contentBuffer
+                        };
+                        contentBuffer = '';
+                    }
+
                     const usage = chunk.usage;
                     yield {
                         type: 'message_end',
