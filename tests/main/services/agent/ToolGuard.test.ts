@@ -28,8 +28,8 @@ describe('ToolGuard', () => {
             const toolHigh: ITool = { ...mockTool, requireConfirmation: true };
             expect(guard.getToolTrustLevel('custom_tool', toolHigh)).toBe(ToolTrustLevel.High);
 
-            const toolLow: ITool = { ...mockTool, requireConfirmation: false };
-            expect(guard.getToolTrustLevel('custom_tool', toolLow)).toBe(ToolTrustLevel.Low);
+            const toolSafe: ITool = { ...mockTool, requireConfirmation: false };
+            expect(guard.getToolTrustLevel('custom_tool', toolSafe)).toBe(ToolTrustLevel.Safe);
         });
 
         it('should identify dangerous tools from heuristic name matching', () => {

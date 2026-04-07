@@ -3,13 +3,15 @@ import { PromptBuilder, AgentContext } from '@/main/services/agent/PromptBuilder
 import { Skill } from '@/common/types/skill';
 
 describe('PromptBuilder', () => {
-    it('should build prompt using default base prompt if not provided', () => {
+    it('should build prompt with default base prompt', () => {
         const builder = new PromptBuilder();
         const context: AgentContext = {};
 
         const prompt = builder.buildSystemPrompt(context);
 
-        expect(prompt).toContain('You are Geni, a highly efficient AI coding assistant.');
+        expect(prompt).toContain('You are Geni');
+        expect(prompt).toContain('[System Environment]');
+        expect(prompt).toContain('<memory>');
         expect(prompt).not.toContain('<skills>');
     });
 
@@ -21,7 +23,8 @@ describe('PromptBuilder', () => {
 
         const prompt = builder.buildSystemPrompt(context);
 
-        expect(prompt).toBe('You are a Custom AI Assistant.');
+        expect(prompt).toContain('You are a Custom AI Assistant.');
+        expect(prompt).toContain('[System Environment]');
         expect(prompt).not.toContain('You are Geni');
     });
 
@@ -68,6 +71,7 @@ describe('PromptBuilder', () => {
         builder.updateConfig({ defaultBasePrompt: 'New Global Base Prompt' });
 
         const prompt = builder.buildSystemPrompt({});
-        expect(prompt).toBe('New Global Base Prompt');
+        expect(prompt).toContain('New Global Base Prompt');
+        expect(prompt).toContain('[System Environment]');
     });
 });
