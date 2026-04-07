@@ -1,43 +1,45 @@
 # Geni Project - AI Agent Documentation
 
 > **Last Updated**: 2026-04-07  
-> **Architecture Version**: V3.2 - Layered Architecture
+> **Architecture Version**: V3.3 - Layered Architecture
 
 ## 1. Project Overview
 
 **Geni** is an Electron-based AI coding assistant designed to act as a "Virtual Pair Programmer". It adopts a **Layered Architecture** with clear separation of concerns:
 
+- **Trigger Layer**: External event sources (Scheduler, IM)
+- **Application Layer**: Controllers handling requests
 - **Agent Kernel**: Core runtime with explicit state machine
-- **Cognitive Layer**: LLM provider abstraction (OpenAI/Claude/DeepSeek)
+- **Cognitive Layer**: LLM provider abstraction
 - **Capability Layer**: Tools (Functions) + Skills (Knowledge)
-- **Infrastructure Layer**: Session management and persistence
-- **Integration Layer**: IM adapters for multi-platform messaging
+- **Infrastructure Layer**: Storage, Config, and System services
 
 ## 2. Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│                     Trigger Layer (外部触发源)                     │
+│           SchedulerService │ IMServiceManager                    │
+│           (Cron Jobs)    │  (Telegram │ WeCom │ Lark │ Wechat)  │
+├─────────────────────────────────────────────────────────────────┤
 │                   Application Layer (Controllers)                │
 │    AgentController │ SessionController │ SystemController        │
-│    ToolController │ SchedulerController │ StaffController       │
+│    ToolController │ SchedulerController │ StaffController         │
 │    UpdateController │ AppRouter (DI)                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                        Agent Kernel                              │
-│   AgentRuntime │ PromptBuilder │ StateManager │ ToolGuard        │
-│   ContextManager │ TokenCounter │ Summarizer │ RetryPolicy       │
-│   ErrorClassifier │ AgentStateManager                            │
+│   AgentRuntime │ PromptBuilder │ ToolGuard │ ContextManager     │
+│   TokenCounter │ Summarizer │ RetryPolicy │ ErrorClassifier     │
 ├─────────────────────────────────────────────────────────────────┤
-│                    Cognitive Layer (IChatModel)                  │
-│         OpenAIAdapter │ AnthropicAdapter │ ChatModelFactory     │
+│                    Cognitive Layer (LLM)                         │
+│         IChatModel │ OpenAIAdapter │ AnthropicAdapter          │
 ├─────────────────────────────────────────────────────────────────┤
-│                 Capability Layer (Tools + Skills)                │
-│   ToolRegistry │ CoreToolManager │ MCP Manager │ SkillRegistry  │
+│                 Capability Layer                                 │
+│   ToolRegistry │ CoreToolManager │ MCP │ SkillRegistry          │
 ├─────────────────────────────────────────────────────────────────┤
-│                Infrastructure (Session + Storage)                │
-│              SessionManager │ MemoryStore │ UsageManager        │
-├─────────────────────────────────────────────────────────────────┤
-│                   Integration Layer (IM)                         │
-│           Telegram │ WeCom │ Lark │ Wechat Adapters            │
+│                Infrastructure Layer                              │
+│   SessionManager │ MemoryStore │ UsageManager                     │
+│   PathManager │ ConfigManager │ SystemTrayManager                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -51,6 +53,12 @@
 - **Single Source of Truth for Types**: All shared types (`ChatMessage`, `ToolCall`, `AgentStep`) defined in `common/types/`.
 
 ### 2.2 System Layers
+
+#### Trigger Layer
+- **Components**: SchedulerService, IMServiceManager
+- **Role**: External event sources that trigger Agent execution
+- **Scheduler**: Cron-based scheduled tasks
+- **IM**: Multi-platform messaging (Telegram, WeCom, Lark, WeChat)
 
 #### Frontend (Renderer)
 - **Tech**: React 19, Tailwind v4, Zustand, TypeScript 5.9
@@ -467,7 +475,7 @@ src/
 │       │   └── providers/
 │       │       ├── OpenAIAdapter.ts
 │       │       └── AnthropicAdapter.ts
-│       ├── tools/             # Capability Layer - Hard
+│       ├── tools/             # Capability Layer
 │       │   ├── ToolRegistry.ts
 │       │   ├── core/          # Built-in tools
 │       │   │   ├── CoreToolManager.ts
@@ -494,11 +502,11 @@ src/
 │       ├── session/           # Infrastructure Layer
 │       │   ├── SessionManager.ts
 │       │   └── SessionStorage.ts
-│       ├── scheduler/         # Automated Tasks
+│       ├── scheduler/         # Trigger Layer
 │       │   ├── SchedulerService.ts
 │       │   ├── SchedulerStorage.ts
 │       │   └── SchedulerLog.ts
-│       ├── im/                # Instant Messaging Layer
+│       ├── im/                # Trigger Layer
 │       │   ├── IMServiceManager.ts
 │       │   ├── IIMAdapter.ts
 │       │   └── adapters/
@@ -506,19 +514,19 @@ src/
 │       │       ├── WeComAdapter.ts
 │       │       ├── LarkAdapter.ts
 │       │       └── WechatAdapter.ts
-│       ├── staff/             # Digital Staff
+│       ├── staff/             # Application Layer
 │       │   ├── StaffManager.ts
 │       │   ├── Staff.ts
 │       │   └── StaffRegistry.ts
-│       ├── memory/            # Memory Storage
+│       ├── memory/            # Infrastructure Layer
 │       │   └── MemoryStore.ts
-│       ├── usage/             # Usage Tracking
+│       ├── usage/             # Infrastructure Layer
 │       │   └── UsageManager.ts
-│       ├── update/            # Auto Update
+│       ├── update/            # Application Layer
 │       │   └── UpdateService.ts
-│       ├── ConfigManager.ts
-│       ├── PathManager.ts
-│       └── SystemTrayManager.ts
+│       ├── ConfigManager.ts   # Infrastructure Layer
+│       ├── PathManager.ts     # Infrastructure Layer
+│       └── SystemTrayManager.ts # Infrastructure Layer
 └── renderer/                  # Frontend UI
     ├── main.tsx               # Renderer entry point
     ├── App.tsx                # Root component
