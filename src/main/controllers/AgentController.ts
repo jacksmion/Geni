@@ -11,6 +11,7 @@ import { ToolController } from './ToolController';
 import { Skill } from '../../common/types/skill';
 import { MemoryStore } from '../services/memory/MemoryStore';
 import { UsageManager } from '../services/usage/UsageManager';
+import { StaffManager } from '../services/staff/StaffManager';
 
 /**
  * Agent Controller
@@ -23,6 +24,7 @@ export class AgentController {
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
     private toolController: ToolController;
+    private staffManager: StaffManager;
     private activeWebContents: WebContents | null = null;
     private currentSessionId: string | null = null;
     private abortControllers = new Map<string, AbortController>();
@@ -32,7 +34,7 @@ export class AgentController {
     private pendingSteps: any[] | null = null;
     private throttleTimer: NodeJS.Timeout | null = null;
     private throttleRef: number = 0;
-    private readonly THROTTLE_MS = 120; // Lower UI pressure during streaming while keeping updates responsive
+    private readonly THROTTLE_MS = 120;
 
     constructor(
         settings: AppSettings,
@@ -40,11 +42,13 @@ export class AgentController {
         sessionManager: SessionManager,
         toolController: ToolController,
         memoryStore: MemoryStore,
-        usageManager: UsageManager
+        usageManager: UsageManager,
+        staffManager: StaffManager
     ) {
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
+        this.staffManager = staffManager;
         this.agentRuntime = new AgentRuntime(settings, toolRegistry, memoryStore, usageManager);
 
         this.setupResultListeners();
@@ -219,14 +223,38 @@ export class AgentController {
                 description: obj.description,
                 content: obj.instruction,
                 path: obj.path || '',
-                enabled: true, // Known because coming from getEnabledSkillObjects
-                trustLevel: 'Auto' // Skills are prompt-instructions, inherently safe to load
+                enabled: true,
+                trustLevel: 'Auto'
             }));
+
+            // 4b. Resolve Staff Profile (if staffId present)
+            const staffId = payload.options?.staffId;
+            let systemPromptOverride: string | undefined;
+            let modelOverride: string | undefined;
+
+            if (staffId) {
+                const profile = this.staffManager.get(staffId);
+                if (profile) {
+                    systemPromptOverride = profile.persona;
+                    modelOverride = profile.model;
+                    // Override skills if staff has specific skillIds configured
+                    if (profile.skillIds.length > 0) {
+                        const staffSkills = this.toolController.getSkillObjectsByIds(profile.skillIds);
+                        skillList.length = 0;
+                        staffSkills.forEach(obj => skillList.push({
+                            id: obj.id, name: obj.name, description: obj.description,
+                            content: obj.instruction, path: obj.path || '',
+                            enabled: true, trustLevel: 'Auto'
+                        }));
+                    }
+                }
+            }
 
             const runOptions: AgentRuntimeOptions = {
                 signal: controller.signal,
                 history: history,
-                model: options?.model,
+                model: options?.model || modelOverride,
+                systemPrompt: systemPromptOverride,
                 skills: skillList,
                 sessionId: sid,
                 emit: this.buildEmitFn(sid)

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 
 import { GeniLogo } from '../components/GeniLogo'
 import { ArtifactPanel } from '../components/ArtifactPanel'
+import { useStaffStore } from '../store/useStaffStore'
 
 export function ChatLayout() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
@@ -19,9 +20,11 @@ export function ChatLayout() {
         const session = s.sessions[activeSessionId];
         if (!session) return null;
         return {
+            id: session.id,
             title: session.title,
             updatedAt: session.updatedAt,
-            hasMessages: session.messages && session.messages.length > 0
+            hasMessages: session.messages && session.messages.length > 0,
+            staffId: session.staffId
         };
     }));
 
@@ -116,6 +119,11 @@ export function ChatLayout() {
                                 <div className="text-xs text-slate-400 dark:text-zinc-600">选择一个任务...</div>
                             )}
                         </div>
+
+                        {/* Right: Staff Selector */}
+                        <div className="flex items-center gap-2 no-drag pr-[140px]">
+                            {currentSessionMeta && <StaffSelector currentSessionId={currentSessionMeta.id} currentStaffId={currentSessionMeta.staffId} />}
+                        </div>
                     </header>
 
                     {hasMessages ? (
@@ -171,6 +179,80 @@ export function ChatLayout() {
                     </aside>
                 )}
             </div>
+        </div>
+    )
+}
+
+function StaffSelector({ currentSessionId, currentStaffId }: { currentSessionId: string, currentStaffId?: string }) {
+    const { profiles, loadProfiles } = useStaffStore()
+    const assignStaff = useChatStore(s => s.assignStaff)
+    const [isOpen, setIsOpen] = React.useState(false)
+    const currentStaff = profiles.find(p => p.id === currentStaffId)
+
+    React.useEffect(() => {
+        if (profiles.length === 0) loadProfiles()
+    }, [profiles.length, loadProfiles])
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700/60 transition-colors text-[11px] font-medium text-slate-600 dark:text-zinc-300 shadow-sm"
+            >
+                <div className="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[9px] shrink-0">
+                    {currentStaff ? currentStaff.name.charAt(0).toUpperCase() : 'AI'}
+                </div>
+                <span className="truncate max-w-[80px]">
+                    {currentStaff ? currentStaff.name : 'AI 助手 (默认)'}
+                </span>
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1.5 w-48 bg-white dark:bg-zinc-800 rounded-xl shadow-xl shadow-black/5 dark:shadow-black/20 border border-slate-100 dark:border-zinc-700/60 z-50 py-1 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="px-3 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-700/60 mb-1">
+                            指派给员工
+                        </div>
+                        
+                        <button
+                            onClick={() => { assignStaff(currentSessionId, undefined); setIsOpen(false) }}
+                            className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-zinc-700/40 transition-colors ${!currentStaffId ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-slate-600 dark:text-zinc-300'}`}
+                        >
+                            <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-zinc-700 flex items-center justify-center font-bold text-[10px] text-slate-500 dark:text-zinc-400">
+                                AI
+                            </div>
+                            AI 助手 (无覆写)
+                        </button>
+                        
+                        <div className="h-px bg-slate-100 dark:bg-zinc-700/60 my-1 line-clamp-1" />
+                        
+                        <div className="max-h-60 overflow-y-auto">
+                            {profiles.length === 0 ? (
+                                <div className="px-3 py-4 text-center text-[10px] text-slate-400 dark:text-zinc-500">
+                                    暂无其他数字员工
+                                </div>
+                            ) : (
+                                profiles.map(p => (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => { assignStaff(currentSessionId, p.id); setIsOpen(false) }}
+                                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-zinc-700/40 transition-colors ${currentStaffId === p.id ? 'text-indigo-600 dark:text-indigo-400 font-medium bg-indigo-50/50 dark:bg-indigo-500/10' : 'text-slate-600 dark:text-zinc-300'}`}
+                                    >
+                                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-[10px] text-white">
+                                            {p.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate">{p.name}</div>
+                                            {p.description && <div className="text-[10px] text-slate-400 dark:text-zinc-500 truncate">{p.description}</div>}
+                                        </div>
+                                    </button>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }

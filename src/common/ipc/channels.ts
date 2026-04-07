@@ -102,3 +102,12 @@ export const UPDATE_EVENTS = {
     ERROR: 'update:error',
     CHECKING: 'update:checking',
 } as const;
+
+// Staff (Digital Employee) Channels
+export const STAFF_CHANNELS = {
+    LIST: 'staff:list',
+    GET: 'staff:get',
+    CREATE: 'staff:create',
+    UPDATE: 'staff:update',
+    DELETE: 'staff:delete',
+} as const;

@@ -76,6 +76,15 @@ export interface IElectronAPI {
         onNavigateToSettings: (callback: () => void) => () => void;
         onNewTask: (callback: () => void) => () => void;
     };
+
+    // Staff (Digital Employee) Namespace
+    staff: {
+        list: () => Promise<any[]>;
+        get: (id: string) => Promise<any>;
+        create: (input: any) => Promise<any>;
+        update: (id: string, updates: any) => Promise<any>;
+        delete: (id: string) => Promise<boolean>;
+    };
 }
 
 declare global {

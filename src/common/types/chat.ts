@@ -61,6 +61,7 @@ export interface ChatMessage {
 export interface ChatSession {
     id: string;
     title: string;
+    staffId?: string;              // 绑定的数字员工 ID
     createdAt: number;
     updatedAt: number;
     messages: ChatMessage[];

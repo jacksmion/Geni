@@ -20,6 +20,8 @@ import { MemoryStore } from './services/memory/MemoryStore';
 import { UsageManager } from './services/usage/UsageManager';
 import { UpdateService } from './services/update/UpdateService';
 import { UpdateController } from './controllers/UpdateController';
+import { StaffManager } from './services/staff/StaffManager';
+import { StaffController } from './controllers/StaffController';
 import { app } from 'electron';
 
 /**
@@ -38,6 +40,8 @@ export class AppRouter {
     private schedulerController: SchedulerController;
     private updateService: UpdateService;
     private updateController: UpdateController;
+    private staffManager: StaffManager;
+    private staffController: StaffController;
 
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
@@ -68,6 +72,7 @@ export class AppRouter {
         this.pathManager = pathManager;
         this.usageManager = new UsageManager(pathManager);
         this.sessionManager = new SessionManager(pathManager);
+        this.staffManager = new StaffManager(pathManager);
 
         const settings = this.configManager.load();
         this.currentWorkspacePath = settings.workspacePath || process.cwd();
@@ -101,12 +106,14 @@ export class AppRouter {
             this.sessionManager,
             this.toolController,
             memoryStore,
-            this.usageManager
+            this.usageManager,
+            this.staffManager
         );
         this.sessionController = new SessionController(this.sessionManager);
 
         this.updateService = new UpdateService();
         this.updateController = new UpdateController(this.updateService);
+        this.staffController = new StaffController(this.staffManager);
 
 
         // Wiring
@@ -186,6 +193,7 @@ export class AppRouter {
         this.toolController.registerHandlers();
         this.schedulerController.registerHandlers();
         this.updateController.registerHandlers();
+        this.staffController.registerHandlers();
 
         this.imServiceManager.start().catch((err: any) => console.error('[AppRouter] Error starting IM Service Manager:', err));
 

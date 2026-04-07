@@ -136,5 +136,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('update:error', sub)
             return () => ipcRenderer.removeListener('update:error', sub)
         }
+    },
+    staff: {
+        list: () => ipcRenderer.invoke('staff:list'),
+        get: (id: string) => ipcRenderer.invoke('staff:get', id),
+        create: (input: any) => ipcRenderer.invoke('staff:create', input),
+        update: (id: string, updates: any) => ipcRenderer.invoke('staff:update', id, updates),
+        delete: (id: string) => ipcRenderer.invoke('staff:delete', id),
     }
 })

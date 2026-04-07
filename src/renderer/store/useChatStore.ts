@@ -14,7 +14,7 @@ interface ChatState {
     sessionMetas: { id: string, title?: string, updatedAt: number }[]
     activeSessionId: string
     isSending: boolean
-    activeTab: 'chat' | 'skills' | 'scheduler' | 'settings'
+    activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
     currentAgentEvent: any | null
@@ -30,7 +30,7 @@ interface ChatState {
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
     setSending: (sending: boolean) => void
     setAgentEvent: (event: any | null) => void
-    setActiveTab: (tab: 'chat' | 'skills' | 'scheduler' | 'settings') => void
+    setActiveTab: (tab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings') => void
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
@@ -38,6 +38,7 @@ interface ChatState {
     setActiveArtifact: (artifact: ActiveArtifact | null) => void
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
+    assignStaff: (sessionId: string, staffId: string | undefined) => void
 }
 
 // Helper: initial default session
@@ -222,6 +223,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
             await window.electronAPI.session.save({ id, title: newTitle }); // Async save
         } catch (error) {
             console.error('Failed to rename session', id, ':', error);
+        }
+    },
+
+    assignStaff: async (id, staffId) => {
+        set(state => {
+            const session = state.sessions[id];
+            if (!session) return state;
+
+            const updated = { ...session, staffId };
+            return {
+                sessions: { ...state.sessions, [id]: updated }
+            };
+        });
+
+        try {
+            // we should also save to backend, passing staffId
+            await window.electronAPI.session.save({ id, staffId });
+        } catch (error) {
+            console.error('Failed to assign staff to session', id, ':', error);
         }
     },
 
@@ -519,10 +539,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         try {
             // Start Agent
             const skillIds = get().selectedSkillIds;
+            const options: any = {};
+            if (skillIds !== null) options.skills = skillIds;
+            if (currentSession.staffId) options.staffId = currentSession.staffId;
+
             await window.electronAPI.agent.start({
                 sessionId: activeSessionId,
                 prompt: userInput,
-                options: skillIds !== null ? { skills: skillIds } : undefined
+                options: Object.keys(options).length > 0 ? options : undefined
             });
             // Result comes via stream/events
         } catch (err: any) {
