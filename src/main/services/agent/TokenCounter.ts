@@ -36,7 +36,17 @@ export class TokenCounter {
 
         for (const msg of messages) {
             // Content tokens
-            total += this.count(msg.content);
+            if (typeof msg.content === 'string') {
+                total += this.count(msg.content);
+            } else if (Array.isArray(msg.content)) {
+                for (const part of msg.content) {
+                    if (part.type === 'text') {
+                        total += this.count(part.text);
+                    } else if (part.type === 'image_url') {
+                        total += 85; // Estimation for images
+                    }
+                }
+            }
 
             // Role overhead (approximate)
             total += 4;

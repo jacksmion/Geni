@@ -1,0 +1,36 @@
+src/main/services/agent/Summarizer.ts(126,72): error TS2345: Argument of type 'string | ContentPart[]' is not assignable to parameter of type 'string'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/agent/Summarizer.ts(129,64): error TS2345: Argument of type 'string | ContentPart[]' is not assignable to parameter of type 'string'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/agent/Summarizer.ts(133,50): error TS2345: Argument of type 'string | ContentPart[]' is not assignable to parameter of type 'string'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/agent/Summarizer.ts(204,13): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/llm/providers/AnthropicAdapter.ts(243,17): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string | null'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/llm/providers/AnthropicAdapter.ts(252,21): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string | ContentBlockParam[]'.
+  Type 'ContentPart[]' is not assignable to type 'string | ContentBlockParam[]'.
+    Type 'ContentPart[]' is not assignable to type 'ContentBlockParam[]'.
+      Type 'ContentPart' is not assignable to type 'ContentBlockParam'.
+        Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is not assignable to type 'ContentBlockParam'.
+          Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is missing the following properties from type 'WebSearchToolResultBlockParam': content, tool_use_id
+src/main/services/llm/providers/AnthropicAdapter.ts(263,29): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/llm/providers/AnthropicAdapter.ts(291,25): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string | ContentBlockParam[]'.
+  Type 'ContentPart[]' is not assignable to type 'string | ContentBlockParam[]'.
+    Type 'ContentPart[]' is not assignable to type 'ContentBlockParam[]'.
+      Type 'ContentPart' is not assignable to type 'ContentBlockParam'.
+        Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is not assignable to type 'ContentBlockParam'.
+          Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is missing the following properties from type 'WebSearchToolResultBlockParam': content, tool_use_id
+src/main/services/llm/providers/AnthropicAdapter.ts(302,21): error TS2322: Type 'string | ContentPart[]' is not assignable to type 'string | (TextBlockParam | ImageBlockParam | DocumentBlockParam | SearchResultBlockParam)[] | undefined'.
+  Type 'ContentPart[]' is not assignable to type 'string | (TextBlockParam | ImageBlockParam | DocumentBlockParam | SearchResultBlockParam)[] | undefined'.
+    Type 'ContentPart[]' is not assignable to type '(TextBlockParam | ImageBlockParam | DocumentBlockParam | SearchResultBlockParam)[]'.
+      Type 'ContentPart' is not assignable to type 'TextBlockParam | ImageBlockParam | DocumentBlockParam | SearchResultBlockParam'.
+        Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is not assignable to type 'TextBlockParam | ImageBlockParam | DocumentBlockParam | SearchResultBlockParam'.
+          Type '{ type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" | undefined; }; }' is missing the following properties from type 'SearchResultBlockParam': content, source, title
+src/main/services/session/SessionStorage.ts(97,29): error TS2322: Type 'string | ContentPart[] | undefined' is not assignable to type 'string | undefined'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/main/services/session/SessionStorage.ts(203,13): error TS2322: Type 'string | ContentPart[] | undefined' is not assignable to type 'string | undefined'.
+  Type 'ContentPart[]' is not assignable to type 'string'.
+src/renderer/store/useChatStore.ts(248,48): error TS2339: Property 'trim' does not exist on type 'string | ContentPart[]'.
+  Property 'trim' does not exist on type 'ContentPart[]'.

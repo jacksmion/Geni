@@ -20,6 +20,7 @@
 
 import { EventEmitter } from 'events';
 import { IAgentService, AgentRunOptions, AgentRunResult, AgentStep } from './IAgent';
+import { ContentPart } from '../../../common/types/chat';
 import { ITool } from '../../../common/types/tool';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings';
@@ -134,7 +135,7 @@ export class AgentRuntime implements IAgentService {
     }
 
     public async run(
-        prompt: string,
+        prompt: string | ContentPart[],
         tools: ITool[],
         options?: AgentRuntimeOptions,
         onStream?: (chunk: string, reset?: boolean) => void,
@@ -162,7 +163,7 @@ export class AgentRuntime implements IAgentService {
         this.toolGuard = sessionToolGuard;
 
         sessionStateManager.transition(AgentState.Thinking, 'Starting agent execution');
-        options?.emit?.({ type: 'agent_start', payload: { taskDescription: prompt.substring(0, 100) } });
+        options?.emit?.({ type: 'agent_start', payload: { taskDescription: typeof prompt === 'string' ? prompt.substring(0, 100) : '[Multimodal Prompt]' } });
 
         const chatModel = this.createChatModel(options);
         const chatModelTools = this.convertTools(tools);
@@ -295,7 +296,7 @@ export class AgentRuntime implements IAgentService {
         });
     }
 
-    private prepareMessages(prompt: string, options?: AgentRuntimeOptions): ChatMessage[] {
+    private prepareMessages(prompt: string | ContentPart[], options?: AgentRuntimeOptions): ChatMessage[] {
         const context = {
             basePrompt: options?.systemPrompt,
             workspacePath: this.settings.workspacePath,

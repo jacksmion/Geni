@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testWeCom: (config: any) => ipcRenderer.invoke('system:test-wecom', config),
         testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config),
         testWechat: () => ipcRenderer.invoke('system:test-wechat'),
+        readFileBase64: (path: string) => ipcRenderer.invoke('system:read-file-base64', path),
         getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
         onSettingsChanged: (callback: (settings: any) => void) => {
             const sub = (_: any, settings: any) => callback(settings)

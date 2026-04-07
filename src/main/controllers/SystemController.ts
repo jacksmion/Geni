@@ -1,4 +1,5 @@
 import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow, WebContents, IpcMainInvokeEvent } from 'electron';
+import fs from 'fs';
 import { SYSTEM_CHANNELS, SYSTEM_EVENTS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
@@ -48,6 +49,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
+        ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
     }
 
     public broadcastSettingsChanged(settings: AppSettings) {
@@ -228,5 +230,15 @@ export class SystemController {
         }
         // Config is empty since it just needs to start the login process without saving
         return await this.imServiceManager.testConnection('wechat', {});
+    }
+
+    private async handleReadFileBase64(filePath: string) {
+        try {
+            const buffer = await fs.promises.readFile(filePath);
+            return buffer.toString('base64');
+        } catch (error: any) {
+            console.error(`[SystemController] Failed to read file ${filePath}:`, error);
+            throw error;
+        }
     }
 }

@@ -29,6 +29,11 @@ export interface ToolCall {
     };
 }
 
+// 多模态内容块 - 渐进式扩展
+export type ContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string; detail?: 'low' | 'high' | 'auto' } };
+
 /**
  * Unified ChatMessage format
  *
@@ -41,7 +46,7 @@ export interface ToolCall {
 export interface ChatMessage {
     id?: string;
     role: MessageRole;
-    content: string | null;
+    content: string | ContentPart[] | null;
     timestamp?: number;
     // LLM Specific
     tool_calls?: ToolCall[];

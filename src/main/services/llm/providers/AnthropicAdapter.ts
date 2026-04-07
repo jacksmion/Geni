@@ -240,16 +240,17 @@ export class AnthropicAdapter implements IChatModel {
         for (const msg of messages) {
             if (msg.role === 'system') {
                 // 累积所有 system 消息
+                const text = this.extractTextFromContent(msg.content);
                 systemPrompt = systemPrompt
-                    ? `${systemPrompt}\n\n${msg.content}`
-                    : (msg.content || '');
+                    ? `${systemPrompt}\n\n${text}`
+                    : text;
                 continue;
             }
 
             if (msg.role === 'user') {
                 anthropicMessages.push({
                     role: 'user',
-                    content: msg.content || '',
+                    content: this.convertMessageContent(msg.content),
                 });
             } else if (msg.role === 'assistant') {
                 if (msg.tool_calls && msg.tool_calls.length > 0) {
@@ -257,10 +258,11 @@ export class AnthropicAdapter implements IChatModel {
                     const content: Anthropic.Messages.ContentBlockParam[] = [];
 
                     // 如果有文本内容，先添加
-                    if (msg.content) {
+                    const assistantText = this.extractTextFromContent(msg.content);
+                    if (assistantText) {
                         content.push({
                             type: 'text',
-                            text: msg.content,
+                            text: assistantText,
                         });
                     }
 
@@ -288,7 +290,7 @@ export class AnthropicAdapter implements IChatModel {
                 } else {
                     anthropicMessages.push({
                         role: 'assistant',
-                        content: msg.content || '',
+                        content: this.convertMessageContent(msg.content),
                     });
                 }
             } else if (msg.role === 'tool') {
@@ -299,7 +301,7 @@ export class AnthropicAdapter implements IChatModel {
                 const toolResultBlock: Anthropic.Messages.ToolResultBlockParam = {
                     type: 'tool_result',
                     tool_use_id: msg.tool_call_id || '',
-                    content: msg.content || '',
+                    content: this.extractTextFromContent(msg.content),
                 };
 
                 if (lastMsg && lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
@@ -316,6 +318,39 @@ export class AnthropicAdapter implements IChatModel {
         }
 
         return { systemPrompt, anthropicMessages };
+    }
+
+    private extractTextFromContent(content: ChatMessage['content']): string {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        return content.filter(p => p.type === 'text').map((p: any) => p.text).join('\n');
+    }
+
+    private convertMessageContent(content: ChatMessage['content']): string | Anthropic.Messages.ContentBlockParam[] {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        
+        return content.map(part => {
+            if (part.type === 'text') {
+                return { type: 'text', text: part.text } as Anthropic.Messages.TextBlockParam;
+            } else if (part.type === 'image_url') {
+                const url = part.image_url.url;
+                if (url.startsWith('data:image/')) {
+                    try {
+                        const [meta, data] = url.split(',');
+                        const mediaType = meta.split(';')[0].replace('data:', '') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+                        return {
+                            type: 'image',
+                            source: { type: 'base64', media_type: mediaType, data }
+                        } as Anthropic.Messages.ImageBlockParam;
+                    } catch {
+                        // ignore error
+                    }
+                }
+                return { type: 'text', text: `[Image: ${url}]` } as Anthropic.Messages.TextBlockParam;
+            }
+            return { type: 'text', text: '' } as Anthropic.Messages.TextBlockParam;
+        });
     }
 
     /**

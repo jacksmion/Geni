@@ -1,4 +1,4 @@
-import { ChatMessage } from './chat';
+import { ChatMessage, ContentPart } from './chat';
 import { ErrorCategory } from '../../main/services/agent/ErrorClassifier';
 import { AgentStep } from '../../main/services/agent/IAgent';
 
@@ -8,7 +8,7 @@ import { AgentStep } from '../../main/services/agent/IAgent';
 
 export interface AgentStartRequest {
     sessionId?: string;
-    prompt: string;
+    prompt: string | ContentPart[];
     options?: {
         model?: string;
         skills?: string[]; // skill IDs

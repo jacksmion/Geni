@@ -4,7 +4,7 @@ import { Skill } from '../common/types/skill';
 export interface IElectronAPI {
     // Agent Namespace
     agent: {
-        start: (payload: { sessionId?: string, prompt: string, options?: any }) => Promise<{ success: boolean, error?: string }>;
+        start: (payload: { sessionId?: string, prompt: string | any[], options?: any }) => Promise<{ success: boolean, error?: string }>;
         stop: (sessionId?: string) => Promise<void>;
         getState: () => Promise<string>;
         onStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
@@ -39,6 +39,8 @@ export interface IElectronAPI {
         testWeCom: (config: any) => Promise<{ success: boolean, message: string }>;
         testLark: (config: any) => Promise<{ success: boolean, message: string }>;
         testWechat: () => Promise<{ success: boolean, message: string }>;
+        readFileBase64: (path: string) => Promise<string>;
+        getUsageStats: () => Promise<any>;
         onSettingsChanged: (callback: (settings: any) => void) => () => void;
         onWechatQr: (callback: (qrUrl: string) => void) => () => void;
     };

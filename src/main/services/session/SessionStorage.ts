@@ -94,7 +94,7 @@ export class SessionStorage {
                             title: session.title,
                             createdAt: session.createdAt,
                             updatedAt: session.updatedAt,
-                            preview: session.messages?.[session.messages.length - 1]?.content?.slice(0, 100) || undefined
+                            preview: this.extractTextFromContent(session.messages?.[session.messages.length - 1]?.content).slice(0, 100) || undefined
                         });
                     }
                 } catch (fileError) {
@@ -200,7 +200,7 @@ export class SessionStorage {
             title: session.title,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt,
-            preview: session.messages[session.messages.length - 1]?.content?.slice(0, 100) || undefined
+            preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined
         };
 
         if (index > -1) {
@@ -217,6 +217,15 @@ export class SessionStorage {
 
         // 原子写入磁盘
         await atomicWriteFile(this.indexFile, JSON.stringify(list, null, 2));
+    }
+
+    private extractTextFromContent(content: any): string {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+            return content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n');
+        }
+        return '';
     }
 
     /**

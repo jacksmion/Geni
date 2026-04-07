@@ -45,6 +45,7 @@ export const SYSTEM_CHANNELS = {
     TEST_WECOM: 'system:test-wecom',
     TEST_LARK: 'system:test-lark',
     TEST_WECHAT: 'system:test-wechat',
+    READ_FILE_BASE64: 'system:read-file-base64',
 
 } as const;
 

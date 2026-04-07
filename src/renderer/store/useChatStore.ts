@@ -245,7 +245,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let updatedMetas = state.sessionMetas;
         // Auto-title logic for first user message
         if (session.messages.length <= 1 && msg.role === 'user' && msg.content) {
-            const potentialTitle = msg.content.trim().slice(0, 20);
+            const textContent = typeof msg.content === 'string' 
+                ? msg.content 
+                : (Array.isArray(msg.content) ? msg.content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n') : '');
+            const potentialTitle = textContent.trim().slice(0, 20);
             if (potentialTitle) {
                 updatedSession.title = potentialTitle;
                 window.electronAPI.session.save({ id: session.id, title: potentialTitle });
@@ -327,17 +330,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (!currentSession) return;
 
         let finalPrompt = input;
+        const finalContent: any[] = [];
+        const fileAttachments: string[] = [];
 
         // 如果有附件，在 Prompt 前面追加上下文说明
         if (attachments.length > 0) {
-            const attachmentInfo = attachments.map(p => `- ${p}`).join('\n');
-            finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`;
+            for (const path of attachments) {
+                const ext = path.split('.').pop()?.toLowerCase();
+                if (ext && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const base64Data = await (window as any).electronAPI.system.readFileBase64(path);
+                        const mimeType = ext === 'jpg' ? 'jpeg' : ext;
+                        finalContent.push({
+                            type: 'image_url',
+                            image_url: { url: `data:image/${mimeType};base64,${base64Data}` }
+                        });
+                    } catch (e) {
+                        console.error('Failed to read image', path, e);
+                        fileAttachments.push(path);
+                    }
+                } else {
+                    fileAttachments.push(path);
+                }
+            }
+
+            if (fileAttachments.length > 0) {
+                const attachmentInfo = fileAttachments.map(p => `- ${p}`).join('\n');
+                finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`;
+            }
         }
 
-        const userInput = input;
+        if (finalContent.length > 0) {
+            finalContent.push({ type: 'text', text: finalPrompt });
+        }
+
+        const userInput = finalContent.length > 0 ? finalContent : finalPrompt;
 
         // 1. Add User Message
-        addMessage({ role: 'user', content: userInput });
+        addMessage({ role: 'user', content: userInput as any });
 
         // 2. Add Placeholder for Assistant
         setSending(true);
@@ -490,7 +521,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const skillIds = get().selectedSkillIds;
             await window.electronAPI.agent.start({
                 sessionId: activeSessionId,
-                prompt: finalPrompt,
+                prompt: userInput,
                 options: skillIds !== null ? { skills: skillIds } : undefined
             });
             // Result comes via stream/events
