@@ -235,8 +235,8 @@ export class AgentController {
             if (staffId) {
                 const profile = this.staffManager.get(staffId);
                 if (profile) {
-                    systemPromptOverride = profile.persona;
-                    modelOverride = profile.model;
+                    systemPromptOverride = profile.systemPrompt;
+                    modelOverride = profile.modelId?.split('/')[1];
                     // Override skills if staff has specific skillIds configured
                     if (profile.skillIds && profile.skillIds.length > 0) {
                         const staffSkills = this.toolController.getSkillObjectsByIds(profile.skillIds);

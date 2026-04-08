@@ -7,7 +7,7 @@ interface StaffState {
     editingId: string | null       // 当前编辑中的 Profile ID (null = 列表视图)
 
     loadProfiles: () => Promise<void>
-    createProfile: (input: Partial<StaffProfile> & { name: string; persona: string }) => Promise<StaffProfile | null>
+    createProfile: (input: Partial<StaffProfile> & { name: string }) => Promise<StaffProfile | null>
     updateProfile: (id: string, updates: Partial<StaffProfile>) => Promise<void>
     deleteProfile: (id: string) => Promise<void>
     setEditingId: (id: string | null) => void

@@ -11,18 +11,6 @@ export interface StaffProfile extends Agent {
     avatar?: string;
     description?: string;
     status: 'idle' | 'busy' | 'off-duty';
-
-    /** @deprecated Use agent.systemPrompt */
-    persona?: string;
-    /** @deprecated Use agent.modelId (format: 'provider/model') */
-    provider?: string;
-    /** @deprecated Use agent.modelId (format: 'provider/model') */
-    model?: string;
-    /** @deprecated Runtime derives path from agent.id */
-    memoryFile?: string;
-    /** @deprecated Use agent.allowedTools (supports wildcards like 'github/*') */
-    allowedMcpServerIds?: string[];
-
     createdAt: number;
     updatedAt: number;
 }

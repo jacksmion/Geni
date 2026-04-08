@@ -9,6 +9,8 @@ import { PathManager } from '../PathManager';
  *
  * 存储结构: ~/.geni/staff/{id}.json
  * 员工数量少（通常 <20），无需索引文件，启动时全量加载。
+ *
+ * Phase 3: 支持新旧字段自动迁移
  */
 export class StaffManager {
     private staffDir: string;
@@ -29,6 +31,36 @@ export class StaffManager {
         this.loaded = true;
     }
 
+    /**
+     * 字段迁移函数 - 将旧字段格式转换为新格式
+     *
+     * 迁移映射：
+     * - `persona` → `systemPrompt`
+     * - `provider` + `model` → `modelId` (格式: '${provider}/${model}')
+     * - `memoryFile` → 移除（Runtime 按 agent.id 推导路径）
+     * - `allowedMcpServerIds` → `allowedTools` (转换为通配符: ['github'] → ['github/*'])
+     */
+    private migrate(raw: any): StaffProfile {
+        return {
+            id: raw.id,
+            name: raw.name,
+            modelId: raw.modelId ?? (raw.provider && raw.model
+                ? `${raw.provider}/${raw.model}`
+                : raw.modelId ?? 'openai/gpt-4o'),
+            systemPrompt: raw.systemPrompt ?? raw.persona,
+            temperature: raw.temperature,
+            skillIds: raw.skillIds,
+            allowedTools: raw.allowedTools ?? raw.allowedMcpServerIds?.map(
+                (id: string) => `${id}/*`
+            ),
+            avatar: raw.avatar,
+            description: raw.description,
+            status: raw.status ?? 'idle',
+            createdAt: raw.createdAt ?? Date.now(),
+            updatedAt: raw.updatedAt ?? Date.now(),
+        };
+    }
+
     /** 启动时全量加载 */
     private loadAll(): void {
         try {
@@ -38,8 +70,9 @@ export class StaffManager {
             for (const file of files) {
                 try {
                     const data = fs.readFileSync(path.join(this.staffDir, file), 'utf-8');
-                    const profile = JSON.parse(data) as StaffProfile;
-                    if (profile.id) {
+                    const raw = JSON.parse(data);
+                    if (raw.id) {
+                        const profile = this.migrate(raw);
                         this.profiles.set(profile.id, profile);
                     }
                 } catch (e) {
@@ -71,26 +104,20 @@ export class StaffManager {
     }
 
     /** 创建 */
-    public create(input: Partial<StaffProfile> & { name: string; persona: string }): StaffProfile {
+    public create(input: Partial<StaffProfile> & { name: string }): StaffProfile {
         const id = randomUUID();
         const now = Date.now();
         const profile: StaffProfile = {
             id,
             name: input.name,
-            modelId: input.provider && input.model
-                ? `${input.provider}/${input.model}`
-                : 'openai/gpt-4o',
-            systemPrompt: input.persona,
+            modelId: input.modelId ?? 'openai/gpt-4o',
+            systemPrompt: input.systemPrompt,
+            temperature: input.temperature,
+            skillIds: input.skillIds || [],
+            allowedTools: input.allowedTools,
             avatar: input.avatar,
             description: input.description,
             status: 'idle',
-            persona: input.persona,
-            provider: input.provider,
-            model: input.model,
-            temperature: input.temperature,
-            skillIds: input.skillIds || [],
-            allowedMcpServerIds: input.allowedMcpServerIds,
-            memoryFile: path.join(this.pathManager.getRootDir(), 'memory', `staff_${id}.md`),
             createdAt: now,
             updatedAt: now,
         };
@@ -106,7 +133,6 @@ export class StaffManager {
         const existing = this.profiles.get(id);
         if (!existing) return undefined;
 
-        // 禁止修改 id/createdAt
         const { id: _id, createdAt: _ca, ...safeUpdates } = updates;
         Object.assign(existing, safeUpdates, { updatedAt: Date.now() });
 

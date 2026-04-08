@@ -74,7 +74,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                         </p>
                     )}
                     <p className="text-xs text-slate-400 dark:text-zinc-500 mt-2 line-clamp-2">
-                        {(profile.persona || profile.systemPrompt || '').slice(0, 80)}{((profile.persona || profile.systemPrompt || '').length > 80) ? '...' : ''}
+                        {(profile.systemPrompt || '').slice(0, 80)}{((profile.systemPrompt || '').length > 80) ? '...' : ''}
                     </p>
                 </div>
             </div>
@@ -90,8 +90,8 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
     const [name, setName] = useState(existing?.name || '')
     const [description, setDescription] = useState(existing?.description || '')
-    const [persona, setPersona] = useState(existing?.persona || '')
-    const [model, setModel] = useState(existing?.model || '')
+    const [persona, setPersona] = useState(existing?.systemPrompt || '')
+    const [model, setModel] = useState(existing?.modelId?.split('/')[1] || '')
     const [skillIds, setSkillIds] = useState<string[]>(existing?.skillIds || [])
     const [allSkills, setAllSkills] = useState<{ id: string, name: string, description: string }[]>([])
     const [saving, setSaving] = useState(false)
@@ -112,9 +112,9 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
         try {
             const payload = {
                 name: name.trim(),
-                persona: persona.trim(),
+                systemPrompt: persona.trim(),
                 description: description.trim() || undefined,
-                model: model.trim() || undefined,
+                modelId: model.trim() ? `openai/${model.trim()}` : undefined,
                 skillIds
             }
             if (isNew) {
