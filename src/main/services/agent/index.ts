@@ -43,3 +43,9 @@ export type {
     AgentRunResult as InternalAgentRunResult,
     extractTextFromPrompt,
 } from './types';
+
+// Phase 2: 三层架构 - Runtime 层
+export { DefaultAgentRuntime } from './runtime/DefaultAgentRuntime';
+
+// Phase 2: 三层架构 - Executor 层
+export { DefaultAgenticExecutor } from './executor/DefaultAgenticExecutor';
