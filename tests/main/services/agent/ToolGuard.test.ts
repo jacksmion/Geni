@@ -46,7 +46,7 @@ describe('ToolGuard', () => {
         });
     });
 
-    describe('checkAuthorization', () => {
+    describe('checkAuthorization (callback mode — legacy)', () => {
         let requestTemplate: ToolExecutionRequest;
 
         beforeEach(() => {
@@ -75,7 +75,7 @@ describe('ToolGuard', () => {
             const isAllowed = await guard.checkAuthorization({ ...requestTemplate, toolName: 'bash' });
 
             expect(isAllowed).toBe(true);
-            expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no callback is set'));
+            expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no callback or emit'));
         });
 
         it('should execute callback and return false if user denies High risk tool', async () => {
@@ -125,6 +125,112 @@ describe('ToolGuard', () => {
             const thirdResult = await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_action' });
             expect(thirdResult).toBe(false);
             expect(mockCallback).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('checkAuthorization (emit+resolve mode — new)', () => {
+        let requestTemplate: ToolExecutionRequest;
+        let emittedEvents: any[];
+
+        beforeEach(() => {
+            emittedEvents = [];
+            requestTemplate = {
+                toolName: 'bash',
+                definition: {} as any,
+                args: { command: 'rm -rf /' },
+                tool: mockTool,
+            };
+        });
+
+        it('should emit auth_request event and wait for resolve() when emit is set', async () => {
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(undefined, emit);
+
+            // Start authorization (will hang until resolved)
+            const authPromise = guard.checkAuthorization(requestTemplate);
+
+            // Should have emitted auth_request
+            expect(emittedEvents).toHaveLength(1);
+            expect(emittedEvents[0].type).toBe('auth_request');
+            expect(emittedEvents[0].payload.toolName).toBe('bash');
+            expect(emittedEvents[0].payload.args).toEqual({ command: 'rm -rf /' });
+
+            // Resolve with approval
+            const requestId = emittedEvents[0].payload.requestId;
+            guard.resolve(requestId, true);
+
+            const result = await authPromise;
+            expect(result).toBe(true);
+        });
+
+        it('should return false when resolve() is called with false', async () => {
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(undefined, emit);
+
+            const authPromise = guard.checkAuthorization(requestTemplate);
+            const requestId = emittedEvents[0].payload.requestId;
+            guard.resolve(requestId, false);
+
+            const result = await authPromise;
+            expect(result).toBe(false);
+        });
+
+        it('should include runId in auth_request payload', async () => {
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(undefined, emit);
+
+            const req = { ...requestTemplate, runId: 'run-123' };
+            const authPromise = guard.checkAuthorization(req);
+
+            expect(emittedEvents[0].payload.runId).toBe('run-123');
+
+            guard.resolve(emittedEvents[0].payload.requestId, true);
+            await authPromise;
+        });
+
+        it('should prefer emit mode over callback mode', async () => {
+            const callback = vi.fn();
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(callback, emit);
+
+            const authPromise = guard.checkAuthorization(requestTemplate);
+
+            // Should use emit, not callback
+            expect(emittedEvents).toHaveLength(1);
+            expect(callback).not.toHaveBeenCalled();
+
+            guard.resolve(emittedEvents[0].payload.requestId, true);
+            await authPromise;
+        });
+
+        it('should auto-allow safe tools without emitting', async () => {
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(undefined, emit);
+
+            const result = await guard.checkAuthorization({ ...requestTemplate, toolName: 'read' });
+            expect(result).toBe(true);
+            expect(emittedEvents).toHaveLength(0);
+        });
+
+        it('should remember approved patterns after resolve', async () => {
+            const emit = (event: any) => emittedEvents.push(event);
+            const guard = new ToolGuard(undefined, emit);
+
+            // First call: emit + resolve
+            const firstPromise = guard.checkAuthorization(requestTemplate);
+            guard.resolve(emittedEvents[0].payload.requestId, true);
+            expect(await firstPromise).toBe(true);
+
+            // Second call: should be auto-approved (remembered)
+            const secondResult = await guard.checkAuthorization(requestTemplate);
+            expect(secondResult).toBe(true);
+            expect(emittedEvents).toHaveLength(1); // Only one emit, not two
+        });
+
+        it('should ignore resolve() for unknown requestId', () => {
+            const guard = new ToolGuard(undefined, (event: any) => {});
+            // Should not throw
+            guard.resolve('unknown-id', true);
         });
     });
 });

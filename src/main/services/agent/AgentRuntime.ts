@@ -19,6 +19,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { randomUUID } from 'crypto';
 import { IAgentService, AgentRunOptions, AgentRunResult, AgentStep } from './IAgent';
 import { ContentPart } from '../../../common/types/chat';
 import { ITool } from '../../../common/types/tool';
@@ -85,6 +86,7 @@ export class AgentRuntime implements IAgentService {
     private memoryStore: MemoryStore;
     private usageManager: UsageManager;
     private stateChangeCallback?: (event: AgentStateEvent) => void;
+    private lastActiveStateManager?: AgentStateManager;
 
     constructor(settings: AppSettings, toolRegistry: ToolRegistry, memoryStore: MemoryStore, usageManager: UsageManager) {
         this.settings = settings;
@@ -129,9 +131,10 @@ export class AgentRuntime implements IAgentService {
 
     /**
      * 获取当前 Agent 状态
+     * 注意：并发场景下返回最后活跃 session 的状态
      */
     public getState(): AgentState {
-        return this.stateManager.getState();
+        return (this.lastActiveStateManager || this.stateManager).getState();
     }
 
     public async run(
@@ -141,6 +144,9 @@ export class AgentRuntime implements IAgentService {
         onStream?: (chunk: string, reset?: boolean) => void,
         onStepUpdate?: (steps: AgentStep[]) => void
     ): Promise<AgentRunResult> {
+        // Generate unique run ID for concurrent safety and tracing
+        const runId = crypto.randomUUID();
+
         // Create session-specific managers to ensure concurrency safety
         const sessionStateManager = new AgentStateManager((stateEvent) => {
             const legacyCb = options?.onStateChange || this.stateChangeCallback;
@@ -158,9 +164,9 @@ export class AgentRuntime implements IAgentService {
         });
         const sessionToolGuard = new ToolGuard(options?.onAuthorizationRequired || this.authCallback);
 
-        // Update instance properties for potential external getState() calls
-        this.stateManager = sessionStateManager;
-        this.toolGuard = sessionToolGuard;
+        // Track last active session for getState() backward compatibility
+        // Note: In concurrent scenarios, getState() returns the most recently started session's state
+        this.lastActiveStateManager = sessionStateManager;
 
         sessionStateManager.transition(AgentState.Thinking, 'Starting agent execution');
         options?.emit?.({ type: 'agent_start', payload: { taskDescription: typeof prompt === 'string' ? prompt.substring(0, 100) : '[Multimodal Prompt]' } });

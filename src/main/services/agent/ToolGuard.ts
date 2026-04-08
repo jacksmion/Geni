@@ -33,6 +33,8 @@ export enum ToolTrustLevel {
 export interface ToolExecutionRequest {
     /** 唯一请求 ID（用户关联 UI） */
     requestId?: string;
+    /** 运行 ID（并发场景下标识归属 session） */
+    runId?: string;
     /** 工具名称 */
     toolName: string;
     /** 工具定义 */
@@ -98,6 +100,8 @@ interface ApprovedPattern {
 export class ToolGuard {
     private approvedPatterns: ApprovedPattern[] = [];
     private authorizationCallback?: AuthorizationCallback;
+    private emit?: (event: any) => void;
+    private pendingRequests = new Map<string, (approved: boolean) => void>();
 
     /**
      * 已知工具的信任级别映射
@@ -122,8 +126,9 @@ export class ToolGuard {
         'bash': ToolTrustLevel.Dangerous,
     };
 
-    constructor(authorizationCallback?: AuthorizationCallback) {
+    constructor(authorizationCallback?: AuthorizationCallback, emit?: (event: any) => void) {
         this.authorizationCallback = authorizationCallback;
+        this.emit = emit;
     }
 
     /**
@@ -225,7 +230,11 @@ export class ToolGuard {
 
     /**
      * 检查工具执行是否需要授权，并在需要时请求授权
-     * 
+     *
+     * 支持两种授权模式：
+     * 1. emit 模式（新）：通过 emit 发出 auth_request 事件，等待 resolve() 调用
+     * 2. callback 模式（旧）：通过 authorizationCallback 直接获取用户决策
+     *
      * @returns 如果允许执行返回 true，否则返回 false
      */
     async checkAuthorization(request: ToolExecutionRequest): Promise<boolean> {
@@ -239,10 +248,34 @@ export class ToolGuard {
             return false;
         }
 
-        // 需要用户确认，但没有回调
+        // 优先使用 emit 模式（新路径）
+        if (this.emit) {
+            const requestId = request.requestId || Math.random().toString(36).substring(7);
+            this.emit({
+                type: 'auth_request',
+                payload: {
+                    runId: request.runId,
+                    requestId,
+                    toolName: request.toolName,
+                    args: request.args,
+                    reason: decision.reason,
+                }
+            });
+
+            return new Promise<boolean>((resolve) => {
+                this.pendingRequests.set(requestId, (approved) => {
+                    if (approved) {
+                        this.addApprovedPattern(request, 3600000);
+                    }
+                    resolve(approved);
+                });
+            });
+        }
+
+        // 回退到 callback 模式（旧路径）
         if (!this.authorizationCallback) {
             console.warn(
-                `[ToolGuard] Tool "${request.toolName}" requires user confirmation but no callback is set`
+                `[ToolGuard] Tool "${request.toolName}" requires user confirmation but no callback or emit is set`
             );
             return true;
         }
@@ -251,14 +284,29 @@ export class ToolGuard {
         const userDecision = await this.authorizationCallback(request, decision);
 
         if (userDecision.approved) {
-            // 如果用户选择记住决定，记录批准
             if (userDecision.rememberDecision) {
-                this.addApprovedPattern(request, 3600000); // 1 小时有效
+                this.addApprovedPattern(request, 3600000);
             }
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * 外部调用：解决授权请求
+     *
+     * 当 emit 模式下用户做出决策后，由调用方通过此方法传递结果。
+     *
+     * @param requestId 授权请求 ID
+     * @param approved 用户是否批准
+     */
+    resolve(requestId: string, approved: boolean): void {
+        const resolve = this.pendingRequests.get(requestId);
+        if (resolve) {
+            resolve(approved);
+            this.pendingRequests.delete(requestId);
+        }
     }
 
     /**
