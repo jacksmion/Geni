@@ -24,6 +24,32 @@ export class ToolRegistry {
         return this.getTools().map(t => t.getDefinition());
     }
 
+    /**
+     * 按工具名过滤，返回新的 ToolRegistry 实例
+     *
+     * 支持精确匹配和通配符：
+     * - 精确匹配：'read' → 只匹配名为 'read' 的工具
+     * - 通配符：'github/*' → 匹配所有以 'github/' 开头的工具
+     *
+     * @param toolNames 允许的工具名模式列表
+     * @returns 新的 ToolRegistry 实例（不可变，不影响原 Registry）
+     */
+    filter(toolNames: string[]): ToolRegistry {
+        const filtered = Array.from(this.tools.entries())
+            .filter(([name]) => toolNames.some(pattern =>
+                pattern.endsWith('/*')
+                    ? name.startsWith(pattern.slice(0, -2))
+                    : name === pattern
+            ))
+            .map(([_, tool]) => tool);
+
+        const registry = new ToolRegistry();
+        for (const tool of filtered) {
+            registry.register(tool);
+        }
+        return registry;
+    }
+
     async executeTool(name: string, args: any, signal?: AbortSignal, onStream?: (chunk: string) => void): Promise<ToolExecutionResult> {
         const tool = this.tools.get(name);
         if (!tool) {

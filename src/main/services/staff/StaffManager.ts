@@ -77,6 +77,10 @@ export class StaffManager {
         const profile: StaffProfile = {
             id,
             name: input.name,
+            modelId: input.provider && input.model
+                ? `${input.provider}/${input.model}`
+                : 'openai/gpt-4o',
+            systemPrompt: input.persona,
             avatar: input.avatar,
             description: input.description,
             status: 'idle',

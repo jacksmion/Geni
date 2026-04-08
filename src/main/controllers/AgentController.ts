@@ -238,7 +238,7 @@ export class AgentController {
                     systemPromptOverride = profile.persona;
                     modelOverride = profile.model;
                     // Override skills if staff has specific skillIds configured
-                    if (profile.skillIds.length > 0) {
+                    if (profile.skillIds && profile.skillIds.length > 0) {
                         const staffSkills = this.toolController.getSkillObjectsByIds(profile.skillIds);
                         skillList.length = 0;
                         staffSkills.forEach(obj => skillList.push({

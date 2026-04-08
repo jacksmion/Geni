@@ -234,3 +234,13 @@ export interface ChatModelConfig {
  * ChatModel 工厂函数类型
  */
 export type ChatModelFactory = (config: ChatModelConfig) => IChatModel;
+
+/**
+ * LLM Client 工厂 — 按 Agent 配置创建 IChatModel 实例
+ *
+ * 为什么用工厂而非单例：
+ * - 模型切换（用户改 Settings）：下次 run() 自动生效
+ * - 不同 Agent 使用不同模型：按 agent.modelId 创建
+ * - 测试：传入 mock 工厂函数
+ */
+export type LLMClientFactory = (agent: import('../../../common/types/agent').Agent) => IChatModel;

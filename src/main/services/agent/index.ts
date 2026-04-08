@@ -34,3 +34,12 @@ export { TokenCounter } from './TokenCounter';
 export { ContextManager } from './ContextManager';
 export type { ContextManagerOptions } from './ContextManager';
 export { Summarizer } from './Summarizer';
+
+// 新类型定义（Phase 0 — 三层架构基础）
+export type { AgentContext as RuntimeAgentContext } from './AgentContext';
+export type {
+    AgentEvent as InternalAgentEvent,
+    AgentRunRequest,
+    AgentRunResult as InternalAgentRunResult,
+    extractTextFromPrompt,
+} from './types';

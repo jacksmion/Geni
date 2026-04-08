@@ -74,7 +74,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                         </p>
                     )}
                     <p className="text-xs text-slate-400 dark:text-zinc-500 mt-2 line-clamp-2">
-                        {profile.persona.slice(0, 80)}{profile.persona.length > 80 ? '...' : ''}
+                        {(profile.persona || profile.systemPrompt || '').slice(0, 80)}{((profile.persona || profile.systemPrompt || '').length > 80) ? '...' : ''}
                     </p>
                 </div>
             </div>

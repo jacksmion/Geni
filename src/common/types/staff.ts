@@ -5,27 +5,23 @@
  * 本质上是对 AgentRuntime 配置参数的命名化、持久化封装。
  */
 
-export interface StaffProfile {
-    id: string;
-    name: string;
+import type { Agent } from './agent';
+
+export interface StaffProfile extends Agent {
     avatar?: string;
     description?: string;
     status: 'idle' | 'busy' | 'off-duty';
 
-    // Brain 模块
-    persona: string;               // System Prompt (人格描述)
-    provider?: string;             // 可选覆盖 LLM Provider
-    model?: string;                // 可选覆盖 Model
-    temperature?: number;
-
-    // Skill 模块
-    skillIds: string[];
-
-    // Action 模块 - MCP Server 白名单 (空数组 = 使用全局)
+    /** @deprecated Use agent.systemPrompt */
+    persona?: string;
+    /** @deprecated Use agent.modelId (format: 'provider/model') */
+    provider?: string;
+    /** @deprecated Use agent.modelId (format: 'provider/model') */
+    model?: string;
+    /** @deprecated Runtime derives path from agent.id */
+    memoryFile?: string;
+    /** @deprecated Use agent.allowedTools (supports wildcards like 'github/*') */
     allowedMcpServerIds?: string[];
-
-    // Memory 模块
-    memoryFile?: string;           // 默认: memory/staff_{id}.md
 
     createdAt: number;
     updatedAt: number;
