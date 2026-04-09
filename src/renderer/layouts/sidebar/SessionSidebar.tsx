@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
+import { useModalStore } from '../../store/useModalStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -111,9 +112,10 @@ export function SessionSidebar() {
 
     const handleDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (confirm(t('sessionSidebar.confirmDelete'))) {
-            deleteSession(id);
-        }
+        useModalStore.getState().showConfirm({
+            message: t('sessionSidebar.confirmDelete'),
+            onConfirm: () => deleteSession(id),
+        });
     };
 
     // Custom order for groups

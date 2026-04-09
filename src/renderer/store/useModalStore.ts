@@ -9,20 +9,29 @@ export interface AuthorizationRequest {
     runId?: string;
 }
 
+export interface ConfirmConfig {
+    message: string;
+    onConfirm: () => void;
+}
+
 interface ModalState {
     authRequest: AuthorizationRequest | null;
     requestQueue: AuthorizationRequest[];
     showAuthModal: boolean;
+    confirmConfig: ConfirmConfig | null;
 
     setAuthRequest: (request: AuthorizationRequest | null) => void;
     pushAuthRequest: (request: AuthorizationRequest) => void;
     popAuthRequest: () => void;
+    showConfirm: (config: ConfirmConfig) => void;
+    dismissConfirm: () => void;
 }
 
 export const useModalStore = create<ModalState>((set) => ({
     authRequest: null,
     requestQueue: [],
     showAuthModal: false,
+    confirmConfig: null,
 
     setAuthRequest: (request) => set({
         authRequest: request,
@@ -42,5 +51,8 @@ export const useModalStore = create<ModalState>((set) => ({
             return { authRequest: next, requestQueue: rest, showAuthModal: true };
         }
         return { authRequest: null, showAuthModal: false };
-    })
+    }),
+
+    showConfirm: (config) => set({ confirmConfig: config }),
+    dismissConfirm: () => set({ confirmConfig: null })
 }));
