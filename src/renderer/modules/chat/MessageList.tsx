@@ -442,7 +442,8 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
     if (prevIsArray && JSON.stringify(prevProps.message.content) !== JSON.stringify(nextProps.message.content)) return false;
     
     if (prevProps.message.role !== nextProps.message.role) return false;
-    
+    if (prevProps.message.reasoning_content !== nextProps.message.reasoning_content) return false;
+
     const prevStepsLen = prevProps.message.steps?.length || 0;
     const nextStepsLen = nextProps.message.steps?.length || 0;
     if (prevStepsLen !== nextStepsLen) return false;
