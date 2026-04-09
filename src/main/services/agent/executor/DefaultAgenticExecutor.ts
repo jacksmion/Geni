@@ -1,15 +1,10 @@
 /**
  * DefaultAgenticExecutor.ts - Executor 层默认实现
  *
- * Phase 2: 三层架构 Executor 层
- *
  * 职责：
  * - 推理策略：think → act → observe 循环
  * - LLM 调用、Tool 执行、状态管理、Context 压缩
- *
- * 设计说明：
- * - Phase 2 初期实现用 emit callback + return Promise
- * - AsyncGenerator 接口已预留，Phase 5 才完全切换
+ * - 使用 AsyncGenerator 向 Runtime 层流式产出事件
  */
 
 import type { Agent } from '../../../../common/types/agent';

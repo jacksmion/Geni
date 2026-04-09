@@ -36,9 +36,9 @@ export interface AgentContext {
     emit?: (event: AgentEvent) => void;
 
     /**
-     * Phase 4: ToolGuard 注册回调
+     * ToolGuard 注册回调
      * Executor 创建 ToolGuard 后通过此回调注册到 Runtime，
-     * 以便 Runtime 桥接授权响应。Phase 5 切换到 AsyncGenerator 后移除。
+     * 以便 Runtime 桥接授权响应。
      */
     registerToolGuard?: (guard: ToolGuard) => void;
 }

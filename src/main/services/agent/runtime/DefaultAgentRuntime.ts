@@ -1,8 +1,6 @@
 /**
  * DefaultAgentRuntime.ts - Runtime 层默认实现
  *
- * Phase 2: 三层架构 Runtime 层
- *
  * 职责：
  * - 生命周期管理：准备 → 委托 → 后处理
  * - Skill 解析、Tool 过滤、History 加载
@@ -46,7 +44,7 @@ export class DefaultAgentRuntime implements AgentRuntime {
     private executor: AgentExecutor;
     private promptBuilder: PromptBuilder;
     private knowledgeMemory: KnowledgeMemory;
-    /** Phase 4: 活跃 ToolGuard 映射 (runId → ToolGuard) */
+    /** 活跃 ToolGuard 映射 (runId → ToolGuard) */
     private activeGuards = new Map<string, ToolGuard>();
 
     constructor(
@@ -196,7 +194,7 @@ export class DefaultAgentRuntime implements AgentRuntime {
     }
 
     /**
-     * Phase 4: 桥接授权响应到 Executor 内部的 ToolGuard
+     * 桥接授权响应到 Executor 内部的 ToolGuard
      */
     resolveAuth(runId: string, requestId: string, approved: boolean): void {
         const guard = this.activeGuards.get(runId);

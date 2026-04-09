@@ -14,11 +14,10 @@ import { AppSettings, ScheduledTaskConfig } from '../../../common/types/settings
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { SessionManager } from '../session';
 import { ToolController } from '../../controllers/ToolController';
-import { AgentRuntime, AgentRuntimeOptions } from '../agent';
-import { Skill } from '../../../common/types/skill';
+import { Agent } from '../../../common/types/agent';
+import { AgentRuntime } from '../agent/runtime/AgentRuntime';
+import { AgentRunRequest, AgentRunResult } from '../agent/types';
 import { SchedulerStorage, TaskExecutionLog } from './SchedulerStorage';
-import { MemoryStore } from '../memory/MemoryStore';
-import { UsageManager } from '../usage/UsageManager';
 import { IMServiceManager } from '../im/IMServiceManager';
 import { ConfigManager } from '../ConfigManager';
 
@@ -56,9 +55,8 @@ export class SchedulerService {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private storage: SchedulerStorage;
-    private memoryStore: MemoryStore;
     private configManager: ConfigManager;
-    private usageManager: UsageManager;
+    private runtime: AgentRuntime;
     private imServiceManager: IMServiceManager;
     private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
 
@@ -71,8 +69,7 @@ export class SchedulerService {
         sessionManager: SessionManager,
         toolController: ToolController,
         storage: SchedulerStorage,
-        memoryStore: MemoryStore,
-        usageManager: UsageManager,
+        runtime: AgentRuntime,
         imServiceManager: IMServiceManager,
         configManager: ConfigManager
     ) {
@@ -81,8 +78,7 @@ export class SchedulerService {
         this.sessionManager = sessionManager;
         this.toolController = toolController;
         this.storage = storage;
-        this.memoryStore = memoryStore;
-        this.usageManager = usageManager;
+        this.runtime = runtime;
         this.imServiceManager = imServiceManager;
         this.configManager = configManager;
 
@@ -272,63 +268,48 @@ export class SchedulerService {
         this.runningTasks.set(task.id, controller);
 
         try {
-            // 1. 准备 Session & History
-            const sessionId = `scheduled-${task.id}`;
-            let history = task.keepHistory
-                ? await this.sessionManager.getHistory(sessionId)
-                : [];
-
-            // 限制历史轮数
-            if (task.keepHistory && task.maxHistoryTurns) {
-                const maxMessages = task.maxHistoryTurns * 2; // user + assistant = 1 turn
-                if (history.length > maxMessages) {
-                    history = history.slice(-maxMessages);
-                }
-            }
-
-            // 2. 准备 Skills
-            const skillList = this.prepareSkills();
-
-            // 3. 准备 Runtime 配置
+            // 1. Build Agent
             const effectiveSettings = this.getEffectiveSettings(task);
-            const runOptions: AgentRuntimeOptions = {
-                signal: controller.signal,
-                history,
-                model: task.model || effectiveSettings.llm.providers[effectiveSettings.llm.activeProvider]?.model,
-                skills: skillList,
-                // 定时任务默认自动授权所有工具（无人值守）
-                onAuthorizationRequired: async (_request, _decision) => {
-                    return { approved: true };
-                }
+            const provider = effectiveSettings.llm.activeProvider || 'OpenAI';
+            const providerConfig = effectiveSettings.llm.providers?.[provider];
+            let model = task.model || providerConfig?.activeModelId || providerConfig?.model || 'gpt-4o';
+            if (providerConfig?.models) {
+                const activeInstance = providerConfig.models.find((m: any) => m.id === model);
+                if (activeInstance) model = activeInstance.model;
+            }
+            const agent: Agent = {
+                id: `scheduler-${task.id}`,
+                name: task.name,
+                modelId: `${provider}/${model}`,
+                systemPrompt: effectiveSettings.systemPrompt,
+                temperature: providerConfig?.temperature,
+                allowedTools: task.enableTools !== false ? undefined : []
             };
 
-            // 4. 创建独立的 AgentRuntime 实例
-            const runtime = new AgentRuntime(effectiveSettings, this.toolRegistry, this.memoryStore, this.usageManager);
+            // 2. Prepare skill IDs
+            const skillIds = this.prepareSkillIds();
 
-            // 5. 执行
-            const tools = task.enableTools !== false ? this.toolRegistry.getTools() : [];
-            const result = await runtime.run(
-                task.prompt,
-                tools,
-                runOptions
-            );
+            // 3. Build request — scheduled tasks auto-authorize all tools
+            const sessionId = task.keepHistory ? `scheduled-${task.id}` : undefined;
+            const request: AgentRunRequest = {
+                sessionId,
+                prompt: task.prompt,
+                signal: controller.signal,
+                skillIds: skillIds.length > 0 ? skillIds : undefined
+            };
 
-            // 6. 保存历史（可选）
-            if (task.keepHistory && result.newMessages) {
-                for (const msg of result.newMessages) {
-                    await this.sessionManager.addMessage(sessionId, msg as any);
-                }
-            }
+            // 4. Execute via unified runtime
+            const result: AgentRunResult = await this.runtime.run(agent, request);
 
             const durationMs = Date.now() - startTime;
 
-            // 7. 更新状态
+            // 5. 更新状态
             status.lastRunStatus = 'success';
             status.lastRunError = undefined;
             status.lastRunDurationMs = durationMs;
             status.isRunning = false;
 
-            // 8. 持久化状态 + 记录日志
+            // 6. 持久化状态 + 记录日志
             this.persistStatuses();
             this.storage.addLog({
                 id: `${task.id}-${startTime}`,
@@ -348,7 +329,7 @@ export class SchedulerService {
                 durationMs,
             };
 
-            // 9. Send Notification (Async)
+            // 7. Send Notification (Async)
             this.sendNotification(task, execResult).catch(err => console.error('[Scheduler] Notification failed:', err));
 
             return execResult;
@@ -552,17 +533,9 @@ export class SchedulerService {
 
     // ============ Private Helpers ============
 
-    private prepareSkills(): Skill[] {
+    private prepareSkillIds(): string[] {
         const enabledSkillObjects = this.toolController.getEnabledSkillObjects();
-        return enabledSkillObjects.map(obj => ({
-            id: obj.id,
-            name: obj.name,
-            description: obj.description,
-            content: obj.instruction,
-            path: obj.path || '',
-            enabled: true,
-            trustLevel: 'Auto' as const,
-        }));
+        return enabledSkillObjects.map(obj => obj.id);
     }
 
     /**

@@ -1,8 +1,5 @@
 /**
  * Agent 类型定义 — 内部执行层使用的类型
- *
- * 注意：这些类型与 common/types/agentEvents.ts 中的 IPC 层类型并存，
- * Phase 5 时会统一。目前保持独立以避免影响现有运行时。
  */
 
 import type { ChatMessage, ContentPart, AgentStep } from '../../../common/types/chat';

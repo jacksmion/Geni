@@ -2,13 +2,6 @@
  * Agent Module - 核心 Agent 运行时导出
  */
 
-// 核心运行时
-export { AgentRuntime } from './AgentRuntime';
-export type { AgentRuntimeOptions } from './AgentRuntime';
-
-// 接口定义
-export type { IAgentService, AgentRunOptions, AgentRunResult, IAgent } from './IAgent';
-
 // AgentStep 从 common 统一导出
 export type { AgentStep } from '../../../common/types/chat';
 
@@ -35,7 +28,7 @@ export { ContextManager } from './ContextManager';
 export type { ContextManagerOptions } from './ContextManager';
 export { Summarizer } from './Summarizer';
 
-// 新类型定义（Phase 0 — 三层架构基础）
+// 三层架构类型定义
 export type { AgentContext as RuntimeAgentContext } from './AgentContext';
 export type {
     AgentEvent as InternalAgentEvent,
@@ -44,8 +37,8 @@ export type {
     extractTextFromPrompt,
 } from './types';
 
-// Phase 2: 三层架构 - Runtime 层
+// Runtime 层
 export { DefaultAgentRuntime } from './runtime/DefaultAgentRuntime';
 
-// Phase 2: 三层架构 - Executor 层
+// Executor 层
 export { DefaultAgenticExecutor } from './executor/DefaultAgenticExecutor';

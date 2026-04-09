@@ -1,6 +1,5 @@
 import { ChatMessage, ContentPart } from './chat';
 import { ErrorCategory } from '../../main/services/agent/ErrorClassifier';
-import { AgentStep } from '../../main/services/agent/IAgent';
 
 /**
  * IPC Payload Definitions
