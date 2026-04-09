@@ -8,10 +8,15 @@
  *
  * Phase 5: 内部私有方法全部改为 sub-generator，通过 yield/yield* 传递事件。
  * 不再使用 emit 回调参数。
+ *
+ * Phase 6: 智能终止 + Token 预算管理
+ * - 从 LLM message_end 事件收集真实 token 用量
+ * - 基于模型 contextWindow 的绝对余量触发压缩
+ * - 多重终止条件：token 预算耗尽 / 重复检测 / 硬上限
  */
 
 import type { Agent } from '../../../../common/types/agent';
-import type { AppSettings } from '../../../../common/types/settings';
+import type { AppSettings, ModelInstance } from '../../../../common/types/settings';
 import type { ChatMessage, AgentStep, ToolCall } from '../../../../common/types/chat';
 import { AgentContext, AgentRunRequest, AgentEvent, AgentRunResult } from '../types';
 import { AgentExecutor } from './AgentExecutor';
@@ -30,6 +35,30 @@ interface ToolCallAccumulator {
     type: string;
 }
 
+/** LLM turn result with real token usage */
+interface LlmTurnResult {
+    content: string;
+    reasoning: string;
+    toolCalls: ToolCall[];
+    promptTokens: number;
+    completionTokens: number;
+}
+
+/** Reason for loop termination */
+enum TerminationReason {
+    None = 'none',
+    MaxSteps = 'max_steps',
+    TokenBudgetExhausted = 'token_budget_exhausted',
+    StuckDetected = 'stuck_detected',
+    NormalEnd = 'normal_end'
+}
+
+// Default model config fallback
+const DEFAULT_CONTEXT_WINDOW = 128000;
+const DEFAULT_MAX_OUTPUT = 16000;
+const MAX_LOOPS = 200;
+const STUCK_DETECTION_WINDOW = 3;
+
 export class ReActExecutor implements AgentExecutor {
     private contextManager: ContextManager;
     private summarizer: Summarizer;
@@ -38,8 +67,50 @@ export class ReActExecutor implements AgentExecutor {
         private llmFactory: LLMClientFactory,
         private settings: AppSettings
     ) {
-        this.contextManager = new ContextManager({ maxTokens: 32000, preserveRecentMessages: 20 });
+        this.contextManager = new ContextManager({ maxTokens: DEFAULT_CONTEXT_WINDOW, preserveRecentMessages: 20 });
         this.summarizer = new Summarizer();
+    }
+
+    /**
+     * Resolve model's contextWindow and maxOutput from settings
+     */
+    private resolveModelConfig(agent: Agent): { contextWindow: number; maxOutput: number } {
+        const [provider, ...rest] = agent.modelId.split('/');
+        const modelId = rest.join('/') || 'gpt-4o';
+        const providers = this.settings.llm.providers || {};
+        const config = providers[provider];
+        if (!config?.models) {
+            return { contextWindow: DEFAULT_CONTEXT_WINDOW, maxOutput: DEFAULT_MAX_OUTPUT };
+        }
+        const modelInstance = config.models.find(
+            (m: ModelInstance) => m.id === modelId || m.model === modelId
+        );
+        return {
+            contextWindow: modelInstance?.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+            maxOutput: modelInstance?.maxOutput ?? DEFAULT_MAX_OUTPUT
+        };
+    }
+
+    /**
+     * Detect if the agent is stuck (repeating same tool or consecutive errors)
+     */
+    private isStuck(steps: AgentStep[]): boolean {
+        if (steps.length < STUCK_DETECTION_WINDOW) return false;
+
+        const recent = steps.slice(-STUCK_DETECTION_WINDOW);
+
+        // All recent steps are the same tool
+        const toolNames = recent.map(s => s.tool);
+        if (toolNames.length > 0 && new Set(toolNames).size === 1) {
+            return true;
+        }
+
+        // All recent steps are errors
+        if (recent.every(s => s.isError)) {
+            return true;
+        }
+
+        return false;
     }
 
     async *execute(
@@ -56,19 +127,60 @@ export class ReActExecutor implements AgentExecutor {
         const newMessages: ChatMessage[] = [];
         const steps: AgentStep[] = [];
         let loopCount = 0;
-        const MAX_LOOPS = 50;
+        let lastPromptTokens = 0;
+
+        // Resolve model config and set up token budget
+        const { contextWindow, maxOutput } = this.resolveModelConfig(agent);
+        // Reserve maxOutput for current LLM response, use 85% of window as budget
+        // Floor ensures small context windows still work (avoid negative budget)
+        const tokenBudget = Math.max(
+            Math.floor(contextWindow * 0.85),
+            contextWindow - maxOutput
+        );
+        this.contextManager.setMaxTokens(tokenBudget);
+
+        console.log(`[ReActExecutor] Model config: contextWindow=${contextWindow}, maxOutput=${maxOutput}, tokenBudget=${tokenBudget}`);
+
+        let terminationReason = TerminationReason.None;
 
         try {
             while (loopCount++ < MAX_LOOPS) {
                 signal?.throwIfAborted();
 
+                // Stuck detection (before expensive LLM call)
+                if (this.isStuck(steps)) {
+                    terminationReason = TerminationReason.StuckDetected;
+                    console.warn(`[ReActExecutor] Stuck detected: repeating same tool or consecutive errors`);
+                    break;
+                }
+
                 yield { type: 'turn_start', payload: { turnIndex: loopCount, resetStream: true } };
 
-                const optimized = yield* this.optimizeContext(messages, llm, stateManager, pendingStateEvents, signal);
-                
+                // Compress first, then check budget — compression frees space for continued execution
+                const optimized = yield* this.optimizeContext(
+                    messages, llm, stateManager, pendingStateEvents,
+                    contextWindow, lastPromptTokens, signal
+                );
+
+                // After compression, check if still over budget
+                // Use real tokens if available, otherwise estimate compressed size
+                const currentTokens = lastPromptTokens > 0
+                    ? lastPromptTokens
+                    : 0; // First turn — no real data yet
+                if (currentTokens > 0 && currentTokens >= tokenBudget) {
+                    terminationReason = TerminationReason.TokenBudgetExhausted;
+                    console.warn(`[ReActExecutor] Token budget exhausted after compression: ${currentTokens} >= ${tokenBudget}`);
+                    break;
+                }
+
                 yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Thinking, 'Thinking...');
 
-                const llmResult = yield* this.executeLlmTurn(optimized, tools, llm, stateManager, signal);
+                const llmResult = yield* this.executeLlmTurn(optimized, tools, llm, maxOutput, signal);
+
+                // Track real token usage (this reflects the compressed input size)
+                if (llmResult.promptTokens > 0) {
+                    lastPromptTokens = llmResult.promptTokens;
+                }
 
                 const assistantMsg: ChatMessage = {
                     role: 'assistant',
@@ -79,6 +191,7 @@ export class ReActExecutor implements AgentExecutor {
                 newMessages.push(assistantMsg);
 
                 if (llmResult.toolCalls.length === 0) {
+                    terminationReason = TerminationReason.NormalEnd;
                     yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
                     return { finalAnswer: llmResult.content, steps, newMessages };
                 }
@@ -100,7 +213,11 @@ export class ReActExecutor implements AgentExecutor {
                 yield { type: 'turn_end', payload: { turnIndex: loopCount, hadToolCalls: true } };
             }
 
-            return yield* this.handleMaxSteps(steps, newMessages, stateManager, pendingStateEvents);
+            // Handle termination based on reason
+            if (terminationReason === TerminationReason.None) {
+                terminationReason = TerminationReason.MaxSteps;
+            }
+            return yield* this.handleTermination(terminationReason, steps, newMessages, stateManager, pendingStateEvents, lastPromptTokens);
         } catch (error: any) {
             return yield* this.handleError(error, steps, newMessages, stateManager, pendingStateEvents);
         }
@@ -111,22 +228,35 @@ export class ReActExecutor implements AgentExecutor {
         chatModel: IChatModel,
         stateManager: AgentStateManager,
         pendingStateEvents: AgentStateEvent[],
+        contextWindow: number,
+        lastPromptTokens: number,
         signal?: AbortSignal
     ): AsyncGenerator<AgentEvent, ChatMessage[]> {
         let optimized = [...messages];
 
         if (signal?.aborted) return optimized;
 
-        if (Summarizer.shouldSummarize(optimized, 32000)) {
-            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Thinking, 'Summarizing history...');
+        // Step 1: Fast prune first (millisecond-level, no LLM call)
+        optimized = this.contextManager.prune(optimized);
+
+        // Step 2: Check if still over budget after pruning
+        const tokensAfterPrune = lastPromptTokens > 0
+            ? lastPromptTokens
+            : 0;
+        const stillOverBudget = tokensAfterPrune >= contextWindow * 0.8;
+
+        // Step 3: Only summarize if pruning wasn't enough (slow, requires LLM call)
+        if (stillOverBudget && optimized.length > 2) {
+            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Thinking, 'Compressing history...');
             try {
                 optimized = await this.summarizer.summarize(optimized, chatModel);
+                console.log('[ReActExecutor] Context summarized after pruning was insufficient');
             } catch (e) {
                 console.warn('[ReActExecutor] Summarization failed:', e);
             }
         }
 
-        return this.contextManager.prune(optimized);
+        return optimized;
     }
 
     private async *flushStateEvents(events: AgentStateEvent[]): AsyncGenerator<AgentEvent, void> {
@@ -150,12 +280,12 @@ export class ReActExecutor implements AgentExecutor {
         messages: ChatMessage[],
         tools: any,
         chatModel: IChatModel,
-        stateManager: AgentStateManager,
+        maxOutput: number,
         signal?: AbortSignal
-    ): AsyncGenerator<AgentEvent, { content: string; reasoning: string; toolCalls: ToolCall[] }> {
+    ): AsyncGenerator<AgentEvent, LlmTurnResult> {
         const chatModelTools = this.convertTools(tools.getTools ? tools.getTools() : []);
         const chatOptions: ChatModelOptions = {
-            max_tokens: 16000,
+            max_tokens: maxOutput,
             tools: chatModelTools.length > 0 ? chatModelTools : undefined,
             tool_choice: chatModelTools.length > 0 ? 'auto' : undefined,
             signal
@@ -165,6 +295,8 @@ export class ReActExecutor implements AgentExecutor {
         let currentReasoning = '';
         let isReasoning = false;
         const accumulators = new Map<number, ToolCallAccumulator>();
+        let promptTokens = 0;
+        let completionTokens = 0;
 
         // Stream directly from LLM — no retry wrapper needed since
         // yield cannot be used inside withRetry's async callback.
@@ -197,9 +329,19 @@ export class ReActExecutor implements AgentExecutor {
                     accumulators.set(event.index, acc);
                     break;
                 }
+                case 'message_end':
+                    if (event.usage) {
+                        promptTokens = event.usage.prompt_tokens ?? 0;
+                        completionTokens = event.usage.completion_tokens ?? 0;
+                    }
+                    break;
                 case 'error':
                     throw new Error(event.error.message);
             }
+        }
+
+        if (promptTokens > 0) {
+            console.log(`[ReActExecutor] Token usage: prompt=${promptTokens}, completion=${completionTokens}`);
         }
 
         return {
@@ -209,7 +351,9 @@ export class ReActExecutor implements AgentExecutor {
                 id: acc.id,
                 type: acc.type as 'function',
                 function: { name: acc.name, arguments: acc.arguments }
-            }))
+            })),
+            promptTokens,
+            completionTokens
         };
     }
 
@@ -304,9 +448,6 @@ export class ReActExecutor implements AgentExecutor {
                     },
                     signal
                 );
-                // Flush after transition in callback (which is sync inside withRetry, so we flush immediately after withRetry if there's any, 
-                // but actually the callback itself runs synchronously before each retry wait, 
-                // we'll flush pending state events post attempt if any)
                 yield* this.flushStateEvents(pendingStateEvents);
             } catch (err: any) {
                 result = { isError: true, result: String(err) };
@@ -361,10 +502,8 @@ export class ReActExecutor implements AgentExecutor {
             };
             steps.push(authStep);
 
-            // 【新增】更新并立刻发出状态
             yield* this.transitionState(pendingStateEvents, stateManager, AgentState.AwaitingInput, `等待工具授权: ${tc.function.name}`);
 
-            // yield auth_request 事件；Runtime 通过 iterator.next(approved) 回传用户决策
             const approved: boolean = yield {
                 type: 'auth_request',
                 payload: {
@@ -398,9 +537,37 @@ export class ReActExecutor implements AgentExecutor {
         newMessages.push(msg);
     }
 
-    private async *handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[]): AsyncGenerator<AgentEvent, AgentRunResult> {
-        const warning = `\n\n---\n⚠️ **Max steps reached (50)**\nSend a message to continue.`;
-        yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Idle, 'Done (Max Steps)');
+    /**
+     * Unified termination handler with reason-aware messages
+     */
+    private async *handleTermination(
+        reason: TerminationReason,
+        steps: AgentStep[],
+        newMessages: ChatMessage[],
+        stateManager: AgentStateManager,
+        pendingStateEvents: AgentStateEvent[],
+        lastPromptTokens: number
+    ): AsyncGenerator<AgentEvent, AgentRunResult> {
+        let warning: string;
+        let stateMsg: string;
+
+        switch (reason) {
+            case TerminationReason.TokenBudgetExhausted:
+                warning = `\n\n---\nToken budget exhausted (${lastPromptTokens} tokens used). Send a message to continue.`;
+                stateMsg = 'Done (Token Budget Exhausted)';
+                break;
+            case TerminationReason.StuckDetected:
+                warning = `\n\n---\nDetected repeated actions without progress. Please review the results and provide new instructions.`;
+                stateMsg = 'Done (Stuck Detected)';
+                break;
+            case TerminationReason.MaxSteps:
+            default:
+                warning = `\n\n---\nMax steps reached (${MAX_LOOPS}). Send a message to continue.`;
+                stateMsg = 'Done (Max Steps)';
+                break;
+        }
+
+        yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Idle, stateMsg);
         yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
         return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
     }

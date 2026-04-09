@@ -141,8 +141,8 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'gpt-5.2',
         models: [
-            { id: 'gpt-5.2', label: 'GPT-5.2', model: 'gpt-5.2', temperature: 0.7, enabled: true },
-            { id: 'gpt-4o', label: 'GPT-4o', model: 'gpt-4o', temperature: 0.7, enabled: true },
+            { id: 'gpt-5.2', label: 'GPT-5.2', model: 'gpt-5.2', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 16000 },
+            { id: 'gpt-4o', label: 'GPT-4o', model: 'gpt-4o', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 16000 },
         ]
     },
     'Anthropic': {
@@ -151,8 +151,8 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'claude-4-6-sonnet',
         models: [
-            { id: 'claude-4-6-sonnet', label: 'Claude 4.6 Sonnet', model: 'claude-4-6-sonnet', temperature: 0.7, enabled: true },
-            { id: 'claude-4-6-opus', label: 'Claude 4.6 Opus', model: 'claude-4-6-opus', temperature: 0.7, enabled: true },
+            { id: 'claude-4-6-sonnet', label: 'Claude 4.6 Sonnet', model: 'claude-4-6-sonnet', temperature: 0.7, enabled: true, contextWindow: 200000, maxOutput: 16000 },
+            { id: 'claude-4-6-opus', label: 'Claude 4.6 Opus', model: 'claude-4-6-opus', temperature: 0.7, enabled: true, contextWindow: 200000, maxOutput: 32000 },
         ]
     },
     'DeepSeek': {
@@ -161,8 +161,8 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'deepseek-v3.2',
         models: [
-            { id: 'deepseek-v3.2', label: 'DeepSeek V3.2', model: 'deepseek-v3.2', temperature: 0.7, enabled: true },
-            { id: 'deepseek-chat', label: 'DeepSeek Chat', model: 'deepseek-chat', temperature: 0.7, enabled: true },
+            { id: 'deepseek-v3.2', label: 'DeepSeek V3.2', model: 'deepseek-v3.2', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
+            { id: 'deepseek-chat', label: 'DeepSeek Chat', model: 'deepseek-chat', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
         ]
     },
     'ZhipuAI': {
@@ -171,7 +171,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'glm-4',
         models: [
-            { id: 'glm-4', label: 'GLM-4', model: 'glm-4', temperature: 0.7, enabled: true },
+            { id: 'glm-4', label: 'GLM-4', model: 'glm-4', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
         ]
     },
     'Volcengine': {
@@ -180,7 +180,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'doubao-pro-4k',
         models: [
-            { id: 'doubao-pro-4k', label: 'Doubao Pro 4K', model: 'doubao-pro-4k', temperature: 0.7, enabled: true },
+            { id: 'doubao-pro-4k', label: 'Doubao Pro 4K', model: 'doubao-pro-4k', temperature: 0.7, enabled: true, contextWindow: 4000, maxOutput: 4000 },
         ]
     },
     'Qwen': {
@@ -189,8 +189,8 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'qwen-3.5',
         models: [
-            { id: 'qwen-3.5', label: 'Qwen 3.5', model: 'qwen-3.5', temperature: 0.7, enabled: true },
-            { id: 'qwen-3', label: 'Qwen 3', model: 'qwen-3', temperature: 0.7, enabled: true },
+            { id: 'qwen-3.5', label: 'Qwen 3.5', model: 'qwen-3.5', temperature: 0.7, enabled: true, contextWindow: 131072, maxOutput: 16000 },
+            { id: 'qwen-3', label: 'Qwen 3', model: 'qwen-3', temperature: 0.7, enabled: true, contextWindow: 131072, maxOutput: 8000 },
         ]
     },
     'MiniMax': {
@@ -199,7 +199,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'minimax-m2.5',
         models: [
-            { id: 'minimax-m2.5', label: 'MiniMax M2.5', model: 'minimax-m2.5', temperature: 1.0, enabled: true },
+            { id: 'minimax-m2.5', label: 'MiniMax M2.5', model: 'minimax-m2.5', temperature: 1.0, enabled: true, contextWindow: 1048576, maxOutput: 16000 },
         ]
     },
     'Ollama': {
@@ -208,7 +208,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'llama3',
         models: [
-            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true },
+            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
         ]
     },
     'LM Studio': {
@@ -217,7 +217,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'local-model',
         models: [
-            { id: 'local-model', label: 'Local Model', model: 'local-model', temperature: 0.7, enabled: true },
+            { id: 'local-model', label: 'Local Model', model: 'local-model', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
         ]
     },
     'Local': {
@@ -226,7 +226,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         enabled: false,
         activeModelId: 'llama3',
         models: [
-            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true },
+            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
         ]
     },
 };
