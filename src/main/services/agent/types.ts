@@ -5,6 +5,7 @@
 import type { Agent } from '../../../common/types/agent';
 import type { ChatMessage, ContentPart, AgentStep } from '../../../common/types/chat';
 import type { ToolRegistry } from '../tools/ToolRegistry';
+import type { AgentStateEvent } from './state/AgentState';
 
 // ============================================================================
 // AgentEvent — 内部执行层事件类型
@@ -19,7 +20,8 @@ export type AgentEvent =
     | { type: 'auth_request'; payload: { runId: string; requestId: string; toolName: string; args: any; reason: string } }
     | { type: 'agent_end'; payload: { totalSteps: number; newMessages: ChatMessage[] } }
     | { type: 'turn_end'; payload: { turnIndex: number; hadToolCalls: boolean } }
-    | { type: 'error'; payload: { message: string; code?: string } };
+    | { type: 'error'; payload: { message: string; code?: string } }
+    | { type: 'state_change'; payload: AgentStateEvent };
 
 // ============================================================================
 // AgentRunRequest / AgentRunResult

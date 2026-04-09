@@ -17,7 +17,7 @@ import { AgentContext, AgentRunRequest, AgentEvent, AgentRunResult } from '../ty
 import { AgentExecutor } from './AgentExecutor';
 import { LLMClientFactory, IChatModel, ChatModelToolDefinition, ChatModelOptions } from '../../llm/IChatModel';
 import { ToolGuard } from '../ToolGuard';
-import { AgentStateManager, AgentState } from '../state/AgentState';
+import { AgentStateManager, AgentState, AgentStateEvent } from '../state/AgentState';
 import { ContextManager } from '../ContextManager';
 import { Summarizer } from '../Summarizer';
 import { withRetry, DEFAULT_TOOL_RETRY } from '../RetryPolicy';
@@ -49,7 +49,10 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         const { messages, tools, signal, agent } = context;
         const llm = this.llmFactory(agent);
         const toolGuard = new ToolGuard();
-        const stateManager = new AgentStateManager();
+        const pendingStateEvents: AgentStateEvent[] = [];
+        const stateManager = new AgentStateManager(event => {
+            pendingStateEvents.push(event);
+        });
         const newMessages: ChatMessage[] = [];
         const steps: AgentStep[] = [];
         let loopCount = 0;
@@ -61,8 +64,9 @@ export class DefaultAgenticExecutor implements AgentExecutor {
 
                 yield { type: 'turn_start', payload: { turnIndex: loopCount, resetStream: true } };
 
-                const optimized = await this.optimizeContext(messages, llm, stateManager, signal);
-                stateManager.transition(AgentState.Thinking, 'Thinking...');
+                const optimized = yield* this.optimizeContext(messages, llm, stateManager, pendingStateEvents, signal);
+                
+                yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Thinking, 'Thinking...');
 
                 const llmResult = yield* this.executeLlmTurn(optimized, tools, llm, stateManager, signal);
 
@@ -89,30 +93,32 @@ export class DefaultAgenticExecutor implements AgentExecutor {
                     stateManager,
                     toolGuard,
                     context.runId,
+                    pendingStateEvents,
                     signal
                 );
 
                 yield { type: 'turn_end', payload: { turnIndex: loopCount, hadToolCalls: true } };
             }
 
-            return yield* this.handleMaxSteps(steps, newMessages);
+            return yield* this.handleMaxSteps(steps, newMessages, stateManager, pendingStateEvents);
         } catch (error: any) {
-            return yield* this.handleError(error, steps, newMessages, stateManager);
+            return yield* this.handleError(error, steps, newMessages, stateManager, pendingStateEvents);
         }
     }
 
-    private async optimizeContext(
+    private async *optimizeContext(
         messages: ChatMessage[],
         chatModel: IChatModel,
         stateManager: AgentStateManager,
+        pendingStateEvents: AgentStateEvent[],
         signal?: AbortSignal
-    ): Promise<ChatMessage[]> {
+    ): AsyncGenerator<AgentEvent, ChatMessage[]> {
         let optimized = [...messages];
 
         if (signal?.aborted) return optimized;
 
         if (Summarizer.shouldSummarize(optimized, 32000)) {
-            stateManager.transition(AgentState.Thinking, 'Summarizing history...');
+            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Thinking, 'Summarizing history...');
             try {
                 optimized = await this.summarizer.summarize(optimized, chatModel);
             } catch (e) {
@@ -121,6 +127,23 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         }
 
         return this.contextManager.prune(optimized);
+    }
+
+    private async *flushStateEvents(events: AgentStateEvent[]): AsyncGenerator<AgentEvent, void> {
+        while (events.length > 0) {
+            yield { type: 'state_change', payload: events.shift()! };
+        }
+    }
+
+    private async *transitionState(
+        events: AgentStateEvent[],
+        stateManager: AgentStateManager,
+        newState: AgentState,
+        message?: string,
+        metadata?: Record<string, any>
+    ): AsyncGenerator<AgentEvent, void> {
+        stateManager.transition(newState, message, metadata);
+        yield* this.flushStateEvents(events);
     }
 
     private async *executeLlmTurn(
@@ -214,9 +237,10 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         stateManager: AgentStateManager,
         toolGuard: ToolGuard,
         runId: string,
+        pendingStateEvents: AgentStateEvent[],
         signal?: AbortSignal
     ): AsyncGenerator<AgentEvent, void> {
-        stateManager.transition(AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
+        yield* this.transitionState(pendingStateEvents, stateManager, AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
 
         for (const tc of toolCalls) {
             if (signal?.aborted) break;
@@ -235,7 +259,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
             const tool = tools.getTools().find((t: any) => t.getDefinition().name === fnName);
             if (!tool) continue;
 
-            const authorized = yield* this.checkAuth(tc, tool, args, thought, steps, toolGuard, runId, signal);
+            const authorized = yield* this.checkAuth(tc, tool, args, thought, steps, toolGuard, stateManager, runId, pendingStateEvents, signal);
             if (signal?.aborted) break;
             if (!authorized) {
                 const denial = `[Authorization Denied] User declined tool "${fnName}".`;
@@ -244,7 +268,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
             }
 
             const startTime = Date.now();
-            stateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
+            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
 
             const startStep: AgentStep = { thought, tool: fnName, toolInput: JSON.stringify(args), isComplete: false };
             yield { type: 'tool_start', payload: startStep };
@@ -280,6 +304,10 @@ export class DefaultAgenticExecutor implements AgentExecutor {
                     },
                     signal
                 );
+                // Flush after transition in callback (which is sync inside withRetry, so we flush immediately after withRetry if there's any, 
+                // but actually the callback itself runs synchronously before each retry wait, 
+                // we'll flush pending state events post attempt if any)
+                yield* this.flushStateEvents(pendingStateEvents);
             } catch (err: any) {
                 result = { isError: true, result: String(err) };
             }
@@ -312,7 +340,9 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         thought: string,
         steps: AgentStep[],
         toolGuard: ToolGuard,
+        stateManager: AgentStateManager,
         runId: string,
+        pendingStateEvents: AgentStateEvent[],
         signal?: AbortSignal
     ): AsyncGenerator<AgentEvent, boolean> {
         const requestId = Math.random().toString(36).substring(7);
@@ -330,6 +360,9 @@ export class DefaultAgenticExecutor implements AgentExecutor {
                 authReason: decision.reason
             };
             steps.push(authStep);
+
+            // 【新增】更新并立刻发出状态
+            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.AwaitingInput, `等待工具授权: ${tc.function.name}`);
 
             // yield auth_request 事件；Runtime 通过 iterator.next(approved) 回传用户决策
             const approved: boolean = yield {
@@ -365,13 +398,14 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         newMessages.push(msg);
     }
 
-    private async *handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[]): AsyncGenerator<AgentEvent, AgentRunResult> {
+    private async *handleMaxSteps(steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[]): AsyncGenerator<AgentEvent, AgentRunResult> {
         const warning = `\n\n---\n⚠️ **Max steps reached (50)**\nSend a message to continue.`;
+        yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Idle, 'Done (Max Steps)');
         yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
         return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
     }
 
-    private async *handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager): AsyncGenerator<AgentEvent, AgentRunResult> {
+    private async *handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[]): AsyncGenerator<AgentEvent, AgentRunResult> {
         console.error('[DefaultAgenticExecutor] Error:', error);
         const classified = classifyError(error);
         const state = classified.category === ErrorCategory.Aborted ? AgentState.Aborted : AgentState.Error;
@@ -379,7 +413,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         if (classified.suggestedAction) {
             finalMessage += `\n\n💡 建议: ${classified.suggestedAction}`;
         }
-        stateManager.transition(state, finalMessage);
+        yield* this.transitionState(pendingStateEvents, stateManager, state, finalMessage);
         yield { type: 'error', payload: { message: classified.message, code: classified.category } };
         return { finalAnswer: finalMessage, steps, newMessages };
     }

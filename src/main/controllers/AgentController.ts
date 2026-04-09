@@ -79,13 +79,6 @@ export class AgentController {
                         this.broadcast(AGENT_EVENTS.STREAM, { content: '', isReset: true });
                         this.broadcast(AGENT_EVENTS.REASONING_STREAM, { content: '', isReset: true });
                     }
-                    // Derive state_change
-                    this.broadcast(AGENT_EVENTS.STATE_CHANGE, {
-                        previousState: 'Idle',
-                        currentState: 'Thinking',
-                        message: `Turn ${event.payload.turnIndex}`,
-                        timestamp: Date.now()
-                    });
                     break;
                 case 'message_delta':
                     this.streamBuffer += event.payload.delta;
@@ -96,13 +89,6 @@ export class AgentController {
                 case 'tool_start':
                     this.activeSteps.push(event.payload);
                     this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
-                    this.broadcast(AGENT_EVENTS.STATE_CHANGE, {
-                        previousState: 'Thinking',
-                        currentState: 'ExecutingTool',
-                        message: `Executing: ${event.payload.tool}`,
-                        metadata: { tool: event.payload.tool },
-                        timestamp: Date.now()
-                    });
                     break;
                 case 'tool_end': {
                     // Replace matching incomplete step
@@ -138,18 +124,15 @@ export class AgentController {
                 }
                 case 'agent_end':
                     this.flushThrottledEvents();
-                    this.broadcast(AGENT_EVENTS.STATE_CHANGE, {
-                        previousState: 'Thinking',
-                        currentState: 'Idle',
-                        message: 'Done',
-                        timestamp: Date.now()
-                    });
                     break;
                 case 'error':
                     this.broadcast(AGENT_EVENTS.ERROR, event.payload);
                     break;
                 case 'turn_end':
                     // No special handling needed
+                    break;
+                case 'state_change':
+                    this.broadcast(AGENT_EVENTS.STATE_CHANGE, event.payload);
                     break;
             }
         };
