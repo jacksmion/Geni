@@ -1,0 +1,170 @@
+/**
+ * AgentRuntime.ts - Runtime 层实现
+ *
+ * 职责：
+ * - 生命周期管理：准备 → 委托 → 后处理
+ * - Skill 解析、Tool 过滤、History 加载
+ * - Memory 检索、System Prompt 组装
+ * - 消息持久化
+ *
+ * Phase 5: 消费 Executor 的 AsyncGenerator，处理 auth_request 双向通信。
+ */
+
+import type { Agent } from '../../../../common/types/agent';
+import type { ChatMessage } from '../../../../common/types/chat';
+import type { Skill } from '../../../../common/types/skill';
+import type { SkillObject } from '../../skills/core/SkillParser';
+import { AgentContext, AgentRunRequest, AgentRunResult, AgentEvent } from '../types';
+import { AgentExecutor } from '../executor/AgentExecutor';
+import { ToolRegistry } from '../../tools/ToolRegistry';
+import { SessionManager } from '../../session/SessionManager';
+import { SkillRegistry } from '../../skills/core/SkillRegistry';
+import { MemoryStore } from '../../memory/MemoryStore';
+import { UsageManager } from '../../usage/UsageManager';
+import { PromptBuilder } from '../PromptBuilder';
+
+
+export class AgentRuntime {
+    private toolRegistry: ToolRegistry;
+    private sessionManager: SessionManager;
+    private skillRegistry: SkillRegistry;
+    private memoryStore: MemoryStore;
+    private usageManager: UsageManager;
+    private executor: AgentExecutor;
+    private promptBuilder: PromptBuilder;
+    /**
+     * Pending auth resolvers: requestId → resolve callback.
+     * When Executor yields auth_request, we register a resolver here.
+     * When user responds (via Controller/IM emit closure), the resolver is called.
+     */
+    private pendingAuthResolvers = new Map<string, (approved: boolean) => void>();
+
+    constructor(
+        toolRegistry: ToolRegistry,
+        sessionManager: SessionManager,
+        skillRegistry: SkillRegistry,
+        memoryStore: MemoryStore,
+        usageManager: UsageManager,
+        executor: AgentExecutor
+    ) {
+        this.toolRegistry = toolRegistry;
+        this.sessionManager = sessionManager;
+        this.skillRegistry = skillRegistry;
+        this.memoryStore = memoryStore;
+        this.usageManager = usageManager;
+        this.executor = executor;
+        this.promptBuilder = new PromptBuilder();
+    }
+
+    /**
+     * Resolve a pending auth request. Called by the emit closure when user responds.
+     */
+    resolveAuth(requestId: string, approved: boolean): void {
+        const resolve = this.pendingAuthResolvers.get(requestId);
+        if (resolve) {
+            this.pendingAuthResolvers.delete(requestId);
+            resolve(approved);
+        }
+    }
+
+    async run(agent: Agent, request: AgentRunRequest): Promise<AgentRunResult> {
+        const runId = crypto.randomUUID();
+
+        const effectiveSkillIds = request.skillIds ?? agent.skillIds;
+        const skills = this.convertToSkills(effectiveSkillIds);
+
+        const effectiveToolNames = request.toolNames ?? agent.allowedTools;
+        const tools = effectiveToolNames
+            ? this.toolRegistry.filter(effectiveToolNames)
+            : this.toolRegistry;
+
+        const history = request.sessionId
+            ? await this.sessionManager.getHistory(request.sessionId)
+            : [];
+
+        const allMemoryContent = this.memoryStore.read();
+
+        const systemPrompt = this.promptBuilder.buildSystemPrompt({
+            basePrompt: agent.systemPrompt,
+            workspacePath: request.workspacePath,
+            skills: skills,
+            language: request.language,
+            memory: allMemoryContent || undefined
+        });
+
+        const messages: ChatMessage[] = [
+            { role: 'system', content: systemPrompt },
+            ...history,
+            { role: 'user', content: request.prompt }
+        ];
+
+        const context: AgentContext = {
+            runId,
+            agent,
+            messages,
+            tools,
+            signal: request.signal
+        };
+
+        let result: AgentRunResult | undefined;
+        const iterator = this.executor.execute(context, request);
+
+        const emit = request.emit;
+
+        let iteration = await iterator.next();
+
+        while (!iteration.done) {
+            const event = iteration.value;
+
+            if (event.type === 'auth_request') {
+                // Forward auth_request to UI via emit
+                emit?.(event);
+
+                // Register a resolver that feeds the user's decision back to the generator
+                const { requestId } = event.payload;
+                const authPromise = new Promise<boolean>((resolve) => {
+                    this.pendingAuthResolvers.set(requestId, resolve);
+                });
+
+                const approved = await authPromise;
+                iteration = await iterator.next(approved);
+            } else {
+                // Forward other events via emit
+                if (event.type === 'error') {
+                    console.error('[AgentRuntime] Executor error:', event.payload.message);
+                }
+                emit?.(event);
+                iteration = await iterator.next();
+            }
+        }
+        result = iteration.value;
+
+        if (request.sessionId && result?.newMessages) {
+            for (const msg of result.newMessages) {
+                await this.sessionManager.addMessage(request.sessionId, msg);
+            }
+        }
+
+        return result!;
+    }
+
+    private getSkillObjects(skillIds: string[] | undefined): SkillObject[] {
+        if (!skillIds || skillIds.length === 0) return [];
+        return skillIds
+            .map(id => this.skillRegistry.get(id))
+            .filter((s): s is SkillObject => s !== undefined);
+    }
+
+    private convertToSkills(skillIds: string[] | undefined): Skill[] {
+        const objects = this.getSkillObjects(skillIds);
+        return objects.map(obj => ({
+            id: obj.id,
+            name: obj.name,
+            description: obj.description,
+            content: obj.instruction,
+            path: obj.path || '',
+            enabled: true,
+            trustLevel: 'Auto' as const
+        }));
+    }
+}

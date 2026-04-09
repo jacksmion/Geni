@@ -7,24 +7,32 @@ Geni is a modern desktop application designed to bridge the gap between AI intel
 
 ## ✨ Features
 
-*   **🤖 Intelligent Chat Interface**: Interact with advanced AI models (Claude, OpenAI) in a deeply integrated chat environment.
+*   **🤖 Intelligent Chat Interface**: Interact with advanced AI models (Claude, GPT-4, DeepSeek, Qwen, etc.) in a deeply integrated chat environment.
 *   **🔌 Model Context Protocol (MCP)**: Extensible architecture supporting MCP servers for file system access, terminal execution, and more.
 *   **🛠️ Built-in Tools**:
-    *   **FileSystem**: Read, write, and search files directly from the chat.
-    *   **Terminal**: Execute commands and scripts securely.
+    *   **FileSystem**: Read, write, edit, and search files directly from the chat.
+    *   **Terminal**: Execute shell commands securely.
+    *   **Web**: Fetch web pages and search the internet.
+    *   **Memory**: Persistent memory storage across sessions.
+    *   **Task**: Todo list management.
+    *   **Cron**: Schedule automated tasks.
+*   **🎭 Digital Staff**: Create and manage AI personas with customizable behaviors and specialties.
+*   **⏰ Scheduler**: Cron-based automated task execution with IM notifications.
+*   **💬 Multi-Platform IM Integration**: Connect with Telegram, WeCom, Lark, and WeChat.
+*   **📚 Skill System**: Extensible knowledge capsules for specialized tasks (code review, git operations, etc.).
 *   **🎨 Premium UI/UX**:
     *   Modern, responsive design with **Tailwind CSS v4**.
     *   Dark/Light mode support.
-    *   Beautiful Markdown rendering with syntax highlighting and typographic optimization.
+    *   Beautiful Markdown rendering with syntax highlighting, Mermaid diagrams, and code artifacts.
 *   **⚡ High Performance**: Powered by Vite for lightning-fast HMR and build times.
 
 ## 🛠️ Tech Stack
 
-*   **Core**: [Electron](https://www.electronjs.org/), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
-*   **Build Tool**: [Vite](https://vitejs.dev/)
+*   **Core**: [Electron 40](https://www.electronjs.org/), [React 19](https://react.dev/), [TypeScript 5.9](https://www.typescriptlang.org/)
+*   **Build Tool**: [Vite 7](https://vitejs.dev/)
 *   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 *   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-*   **AI Integration**: [MCP SDK](https://github.com/modelcontextprotocol), Claude Agent SDK
+*   **AI Integration**: [MCP SDK](https://github.com/modelcontextprotocol), Claude Agent SDK, OpenAI SDK
 
 ## 🚀 Getting Started
 
@@ -92,18 +100,34 @@ The output artifacts (installers, executables) will be generated in the `release
 ```
 geni/
 ├── src/
-│   ├── main/                 # Electron main process
-│   │   ├── services/         # Core business logic (Agents, MCP, Config)
-│   │   └── index.ts          # Entry point
-│   ├── preload/              # Context isolation & IPC bridge
-│   └── renderer/             # React frontend
-│       ├── components/       # Reusable UI components
-│       ├── layouts/          # Page layouts (Sidebar, etc.)
-│       ├── modules/          # Feature scenarios (Chat, etc.)
-│       └── store/            # State management (Zustand)
-├── build/                    # Icons and build resources
-├── release/                  # Packaged output
-└── package.json
+│   ├── common/                 # Shared types and IPC definitions
+│   │   ├── types/              # TypeScript type definitions
+│   │   ├── ipc/                # IPC channel constants
+│   │   └── i18n/               # Internationalization
+│   ├── main/                   # Electron main process
+│   │   ├── controllers/        # IPC controllers
+│   │   └── services/           # Core business logic
+│   │       ├── agent/          # AI Agent runtime
+│   │       ├── llm/            # LLM provider adapters
+│   │       ├── tools/          # Tool system (built-in + MCP)
+│   │       ├── skills/         # Skill registry
+│   │       ├── session/        # Chat session management
+│   │       ├── scheduler/      # Cron task scheduler
+│   │       ├── im/             # IM platform adapters
+│   │       ├── staff/          # Digital staff management
+│   │       ├── memory/         # Memory storage
+│   │       ├── usage/          # API usage tracking
+│   │       └── update/         # Auto-update service
+│   ├── preload/                # Context isolation & IPC bridge
+│   └── renderer/               # React frontend
+│       ├── components/         # Reusable UI components
+│       ├── layouts/           # Page layouts
+│       ├── pages/             # Full page components
+│       └── store/             # Zustand state management
+├── skills/                     # Built-in skills
+├── build/                      # Icons and build resources
+├── release/                    # Packaged output
+└── tests/                      # Unit tests (Vitest)
 ```
 
 ## 📄 License

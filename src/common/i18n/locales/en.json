@@ -303,9 +303,33 @@
     "sidebar": {
         "chat": "Tasks",
         "skills": "Skills",
+        "staff": "Team",
         "scheduler": "Automation",
         "settings": "Settings",
         "lightMode": "Switch to Light Mode",
         "darkMode": "Switch to Dark Mode"
+    },
+    "staffPage": {
+        "title": "Digital Employees",
+        "subtitle": "Manage your virtual team members",
+        "create": "Create Employee",
+        "empty": "No digital employees yet",
+        "emptyDesc": "Create your first digital employee with unique personality, skills, and memory.",
+        "name": "Name",
+        "description": "Description",
+        "persona": "Persona (System Prompt)",
+        "personaPlaceholder": "Define this employee's identity, expertise, and behavior style...",
+        "skills": "Skills",
+        "model": "Model",
+        "modelDefault": "Use global default model",
+        "modelDesc": "Leave empty to use global model settings",
+        "skillPlaceholder": "Select skills (multi-select)",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleteConfirm": "Are you sure you want to delete this digital employee?",
+        "namePlaceholder": "e.g.: Frontend Architect",
+        "descriptionPlaceholder": "A short introduction...",
+        "back": "Back to list"
     }
 }

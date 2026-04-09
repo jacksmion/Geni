@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('agent:stream', sub)
             return () => ipcRenderer.removeListener('agent:stream', sub)
         },
+        onReasoningStream: (callback: (chunk: string, reset?: boolean) => void) => {
+            const sub = (_: any, payload: { content: string, isReset?: boolean }) => callback(payload.content, payload.isReset)
+            ipcRenderer.on('agent:reasoning-stream', sub)
+            return () => ipcRenderer.removeListener('agent:reasoning-stream', sub)
+        },
         onStepUpdate: (callback: (steps: any[]) => void) => {
             const sub = (_: any, payload: { steps: any[] }) => callback(payload.steps)
             ipcRenderer.on('agent:step', sub)
@@ -32,6 +37,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
             return () => ipcRenderer.removeListener('agent:authorization-request', sub)
         },
         respondToAuthorization: (response: any) => ipcRenderer.send('agent:authorization-response', response),
+        onAgentEvent: (callback: (event: any) => void) => {
+            const sub = (_: any, event: any) => callback(event)
+            ipcRenderer.on('agent:event', sub)
+            return () => ipcRenderer.removeListener('agent:event', sub)
+        },
     },
     session: {
         create: () => ipcRenderer.invoke('session:create'),
@@ -53,6 +63,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config),
         testWeCom: (config: any) => ipcRenderer.invoke('system:test-wecom', config),
         testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config),
+        testWechat: () => ipcRenderer.invoke('system:test-wechat'),
+        readFileBase64: (path: string) => ipcRenderer.invoke('system:read-file-base64', path),
         getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
         onSettingsChanged: (callback: (settings: any) => void) => {
             const sub = (_: any, settings: any) => callback(settings)
@@ -134,5 +146,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('update:error', sub)
             return () => ipcRenderer.removeListener('update:error', sub)
         }
+    },
+    staff: {
+        list: () => ipcRenderer.invoke('staff:list'),
+        get: (id: string) => ipcRenderer.invoke('staff:get', id),
+        create: (input: any) => ipcRenderer.invoke('staff:create', input),
+        update: (id: string, updates: any) => ipcRenderer.invoke('staff:update', id, updates),
+        delete: (id: string) => ipcRenderer.invoke('staff:delete', id),
     }
 })

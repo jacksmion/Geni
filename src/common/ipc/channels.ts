@@ -25,10 +25,12 @@ export const SESSION_CHANNELS = {
 // Agent Events (Server -> Client)
 export const AGENT_EVENTS = {
     STREAM: 'agent:stream',         // Content delta
+    REASONING_STREAM: 'agent:reasoning-stream', // Reasoning delta (thinking process)
     STEP_UPDATE: 'agent:step',      // Thought/Tool execution update
     STATE_CHANGE: 'agent:state',    // Idle/Thinking/etc
     ERROR: 'agent:error',           // Fatal error
     AUTHORIZATION_REQUEST: 'agent:authorization-request', // Permission required
+    AGENT_EVENT: 'agent:event',     // Phase 4: unified event channel
 } as const;
 
 export const SYSTEM_CHANNELS = {
@@ -44,7 +46,9 @@ export const SYSTEM_CHANNELS = {
     TEST_TELEGRAM: 'system:test-telegram',
     TEST_WECOM: 'system:test-wecom',
     TEST_LARK: 'system:test-lark',
-    GET_USAGE_STATS: 'system:get-usage-stats',
+    TEST_WECHAT: 'system:test-wechat',
+    READ_FILE_BASE64: 'system:read-file-base64',
+
 } as const;
 
 export const SYSTEM_EVENTS = {
@@ -99,4 +103,13 @@ export const UPDATE_EVENTS = {
     UPDATE_DOWNLOADED: 'update:downloaded',
     ERROR: 'update:error',
     CHECKING: 'update:checking',
+} as const;
+
+// Staff (Digital Employee) Channels
+export const STAFF_CHANNELS = {
+    LIST: 'staff:list',
+    GET: 'staff:get',
+    CREATE: 'staff:create',
+    UPDATE: 'staff:update',
+    DELETE: 'staff:delete',
 } as const;

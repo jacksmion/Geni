@@ -342,8 +342,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
 
     const handleAuthorization = (approved: boolean, remember: boolean = false) => {
         if (step.authRequestId) {
+            const { activeRunId } = useChatStore.getState();
             window.electronAPI.agent.respondToAuthorization({
                 requestId: step.authRequestId,
+                runId: activeRunId || undefined,
                 approved,
                 remember
             });

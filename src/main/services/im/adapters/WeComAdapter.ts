@@ -1,6 +1,7 @@
 import { WSClient, MessageType, EventType, TemplateCardType } from '@wecom/aibot-node-sdk';
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
-import { UserApprovalContext, ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
+import { ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
+import { UserApprovalContext } from '../IIMAdapter';
 import { WeComConfig } from '../../../../common/types/settings';
 
 export class WeComAdapter implements IIMAdapter {

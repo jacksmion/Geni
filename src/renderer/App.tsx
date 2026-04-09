@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import Settings from './pages/Settings'
 import SkillSettings from './pages/settings/SkillSettings'
 import SchedulerPage from './pages/SchedulerPage'
+import StaffPage from './pages/StaffPage'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
 
@@ -80,6 +81,7 @@ function App() {
             ) : (
                 <main className="flex-1 overflow-hidden bg-transparent">
                     {activeTab === 'skills' && <SkillSettings />}
+                    {activeTab === 'staff' && <StaffPage />}
                     {activeTab === 'scheduler' && <SchedulerPage />}
                     {activeTab === 'settings' && <Settings />}
                 </main>

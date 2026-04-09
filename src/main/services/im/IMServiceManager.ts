@@ -3,14 +3,13 @@ import { AppSettings } from '../../../common/types/settings';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { SessionManager } from '../session';
 import { ToolController } from '../../controllers/ToolController';
-import { AgentRuntime, AgentRuntimeOptions } from '../agent';
-import { Skill } from '../../../common/types/skill';
+import { Agent } from '../../../common/types/agent';
+import { AgentRuntime } from '../agent/runtime/AgentRuntime';
+import { AgentRunRequest, AgentEvent } from '../agent/types';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
 import { LarkAdapter } from './adapters/LarkAdapter';
 import { WechatAdapter } from './adapters/WechatAdapter';
-import { MemoryStore } from '../memory/MemoryStore';
-import { UsageManager } from '../usage/UsageManager';
 
 export class IMServiceManager {
     private adapters: Map<string, IIMAdapter> = new Map();
@@ -19,21 +18,20 @@ export class IMServiceManager {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private abortControllers = new Map<string, AbortController>();
-    private memoryStore: MemoryStore;
+    private runtime: AgentRuntime;
 
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        memoryStore: MemoryStore,
-        private usageManager: UsageManager
+        runtime: AgentRuntime
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.toolController = toolController;
-        this.memoryStore = memoryStore;
+        this.runtime = runtime;
 
         // Register default adapters
         this.registerAdapter(new TelegramAdapter());
@@ -126,7 +124,7 @@ export class IMServiceManager {
             console.warn(`[IMServiceManager] Wechat adapter not found in registered adapters!`);
         }
     }
-    
+
     /**
      * Proactively push a message to a specific IM session
      * @param sessionId The targeted IM session ID (e.g. "tg_123456")
@@ -134,7 +132,7 @@ export class IMServiceManager {
      */
     public async pushMessage(sessionId: string, content: string): Promise<void> {
         let providerId = sessionId.split('_')[0];
-        
+
         // Simple mapping to handle shorthand prefixes
         if (providerId === 'tg') providerId = 'telegram';
 
@@ -150,7 +148,7 @@ export class IMServiceManager {
             console.error(`[IMServiceManager] Failed to push message to ${sessionId}:`, error);
         }
     }
-    
+
     public async testConnection(providerId: string, config: any): Promise<{ success: boolean; message: string }> {
         const adapter = this.adapters.get(providerId);
         if (!adapter || !adapter.testConnection) {
@@ -176,33 +174,87 @@ export class IMServiceManager {
         const controller = new AbortController();
         this.abortControllers.set(msg.sessionId, controller);
 
-        // 2. Prepare Context from Session
-        const history = await this.sessionManager.getHistory(msg.sessionId);
+        // 2. Build Agent
+        const provider = this.settings.llm.activeProvider || 'OpenAI';
+        const providerConfig = this.settings.llm.providers?.[provider];
+        let model = providerConfig?.activeModelId || providerConfig?.model || 'gpt-4o';
+        if (providerConfig?.models) {
+            const activeInstance = providerConfig.models.find((m: any) => m.id === model);
+            if (activeInstance) model = activeInstance.model;
+        }
+        const agent: Agent = {
+            id: 'im-agent',
+            name: 'Geni',
+            modelId: `${provider}/${model}`,
+            systemPrompt: this.settings.systemPrompt,
+            temperature: providerConfig?.temperature
+        };
 
-        // 3. Prepare Runtime Options
+        // 3. Prepare skill IDs
         const enabledSkillObjects = this.toolController.getEnabledSkillObjects();
-        const skillList: Skill[] = enabledSkillObjects.map(obj => ({
-            id: obj.id,
-            name: obj.name,
-            description: obj.description,
-            content: obj.instruction,
-            path: obj.path || '',
-            enabled: true,
-            trustLevel: 'Auto'
-        }));
+        const skillIds = enabledSkillObjects.map(obj => obj.id);
 
-        const runOptions: AgentRuntimeOptions = {
-            signal: controller.signal,
-            history: history,
-            model: this.settings.llm.providers[this.settings.llm.activeProvider]?.model,
-            skills: skillList,
-            onAuthorizationRequired: async (request, decision) => {
-                return await adapter.requestAuthorization(msg.sessionId, request, decision);
+        // 4. Build request with emit callback for IM streaming
+        let outputBuffer = '';
+        let isNewRound = false;
+
+        const emit = (event: AgentEvent) => {
+            switch (event.type) {
+                case 'turn_start':
+                    isNewRound = true;
+                    break;
+                case 'message_delta':
+                case 'reasoning_delta':
+                    if (isNewRound) {
+                        outputBuffer = event.payload.delta;
+                        isNewRound = false;
+                    } else {
+                        outputBuffer += event.payload.delta;
+                    }
+                    if (outputBuffer.trim().length > 0) {
+                        adapter.sendOrUpdateMessage(msg.sessionId, outputBuffer, { throttleMs: 100, isComplete: false }).catch(e => console.error(e));
+                    }
+                    break;
+                case 'tool_start':
+                    if (adapter.sendChatAction) {
+                        adapter.sendChatAction(msg.sessionId, 'typing').catch(() => {});
+                    }
+                    break;
+                case 'auth_request':
+                    // IM auth: auto-approve after adapter prompts user
+                    adapter.requestAuthorization(
+                        msg.sessionId,
+                        {
+                            requestId: event.payload.requestId,
+                            toolName: event.payload.toolName,
+                            args: event.payload.args,
+                            definition: { name: event.payload.toolName, description: '', input_schema: { type: 'object', properties: {} } },
+                            tool: null as any,
+                        },
+                        {
+                            allowed: true,
+                            reason: event.payload.reason,
+                            requiresUserConfirmation: true,
+                            trustLevel: 'High' as any
+                        }
+                    ).then(ctx => {
+                        this.runtime.resolveAuth(event.payload.requestId, ctx.approved);
+                    }).catch(() => {
+                        this.runtime.resolveAuth(event.payload.requestId, false);
+                    });
+                    break;
             }
         };
 
-        // 4. Create stateless AgentRuntime for this execution
-        const sessionRuntime = new AgentRuntime(this.settings, this.toolRegistry, this.memoryStore, this.usageManager);
+        const request: AgentRunRequest = {
+            sessionId: msg.sessionId,
+            prompt: msg.content,
+            signal: controller.signal,
+            emit,
+            skillIds: skillIds.length > 0 ? skillIds : undefined,
+            workspacePath: this.settings.workspacePath,
+            language: this.settings.language
+        };
 
         try {
             // Use native typing status if supported, otherwise fallback to friendly text
@@ -212,47 +264,11 @@ export class IMServiceManager {
                 await adapter.sendOrUpdateMessage(msg.sessionId, '正在处理请求...', { throttleMs: 0, isComplete: false });
             }
 
-            let outputBuffer = '';
-            let isNewRound = false; // 新一轮思考标志，避免 trailing throttle 发送空内容
-            const result = await sessionRuntime.run(
-                msg.content,
-                this.toolRegistry.getTools(),
-                runOptions,
-                (chunk, reset) => {
-                    if (reset) {
-                        // 标记新轮次开始，不清空 buffer（防止 trailing throttle 用空内容覆盖已显示的消息）
-                        isNewRound = true;
-                        return;
-                    }
-                    if (isNewRound) {
-                        // 新轮次第一个 chunk 到来时替换旧内容
-                        outputBuffer = chunk;
-                        isNewRound = false;
-                    } else {
-                        outputBuffer += chunk;
-                    }
-                    if (outputBuffer.trim().length > 0) {
-                        adapter.sendOrUpdateMessage(msg.sessionId, outputBuffer, { throttleMs: 100, isComplete: false }).catch(e => console.error(e));
-                    }
-                },
-                (steps) => {
-                    // Update typing status periodically for long tasks
-                    if (adapter.sendChatAction) {
-                        adapter.sendChatAction(msg.sessionId, 'typing').catch(() => {});
-                    }
-                }
-            );
+            const result = await this.runtime.run(agent, request);
 
             // Ensure final output is sent immediately without throttle
             if (result.finalAnswer) {
                 await adapter.sendOrUpdateMessage(msg.sessionId, result.finalAnswer, { throttleMs: 0, isComplete: true });
-            }
-
-            // 5. Update Session History
-            if (result.newMessages) {
-                for (const updatedMsg of result.newMessages) {
-                    await this.sessionManager.addMessage(msg.sessionId, updatedMsg as any);
-                }
             }
         } catch (error: any) {
             console.error(`[IMServiceManager] Agent execution failed for session ${msg.sessionId}:`, error);

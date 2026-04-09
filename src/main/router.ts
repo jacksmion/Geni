@@ -1,5 +1,5 @@
 
-import { AppSettings } from '../common/types/settings';
+import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../common/types/settings';
 import { ToolRegistry } from './services/tools/ToolRegistry';
 import { SessionManager } from './services/session';
 import { AgentController } from './controllers/AgentController';
@@ -20,6 +20,13 @@ import { MemoryStore } from './services/memory/MemoryStore';
 import { UsageManager } from './services/usage/UsageManager';
 import { UpdateService } from './services/update/UpdateService';
 import { UpdateController } from './controllers/UpdateController';
+import { StaffManager } from './services/staff/StaffManager';
+import { StaffController } from './controllers/StaffController';
+import { AgentRuntime } from './services/agent/runtime/AgentRuntime';
+import { ReActExecutor } from './services/agent/executor/ReActExecutor';
+import { LLMClientFactory } from './services/llm/IChatModel';
+import { createChatModel } from './services/llm/ChatModelFactory';
+import { Agent } from '../common/types/agent';
 import { app } from 'electron';
 
 /**
@@ -38,6 +45,8 @@ export class AppRouter {
     private schedulerController: SchedulerController;
     private updateService: UpdateService;
     private updateController: UpdateController;
+    private staffManager: StaffManager;
+    private staffController: StaffController;
 
     private sessionManager: SessionManager;
     private toolRegistry: ToolRegistry;
@@ -68,6 +77,7 @@ export class AppRouter {
         this.pathManager = pathManager;
         this.usageManager = new UsageManager(pathManager);
         this.sessionManager = new SessionManager(pathManager);
+        this.staffManager = new StaffManager(pathManager);
 
         const settings = this.configManager.load();
         this.currentWorkspacePath = settings.workspacePath || process.cwd();
@@ -76,7 +86,31 @@ export class AppRouter {
         this.systemController = new SystemController(this.configManager, pathManager, this.usageManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
 
-        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, memoryStore, this.usageManager);
+        // Three-layer architecture wiring
+        const llmFactory: LLMClientFactory = (agent: Agent) => {
+            const [provider, ...rest] = agent.modelId.split('/');
+            const model = rest.join('/') || 'gpt-4o';
+            const providers = settings.llm.providers || {};
+            const config = providers[provider] || DEFAULT_PROVIDER_CONFIGS[provider] || { apiKey: '', model };
+            const temperature = agent.temperature ?? config.temperature ?? 0.7;
+            return createChatModel(provider, {
+                apiKey: config.apiKey || '',
+                baseUrl: config.baseUrl,
+                model,
+                temperature
+            });
+        };
+        const executor = new ReActExecutor(llmFactory, settings);
+        const runtime = new AgentRuntime(
+            this.toolRegistry,
+            this.sessionManager,
+            this.skillRegistry,
+            memoryStore,
+            this.usageManager,
+            executor
+        );
+
+        this.imServiceManager = new IMServiceManager(settings, this.toolRegistry, this.sessionManager, this.toolController, runtime);
         this.systemController.setIMServiceManager(this.imServiceManager);
 
         // Scheduler
@@ -87,8 +121,7 @@ export class AppRouter {
             this.sessionManager,
             this.toolController,
             schedulerStorage,
-            memoryStore,
-            this.usageManager,
+            runtime,
             this.imServiceManager,
             this.configManager
         );
@@ -96,17 +129,16 @@ export class AppRouter {
         this.coreToolManager.setSchedulerService(this.schedulerService);
 
         this.agentController = new AgentController(
+            runtime,
             settings,
-            this.toolRegistry,
-            this.sessionManager,
-            this.toolController,
-            memoryStore,
-            this.usageManager
+            this.staffManager,
+            this.sessionManager
         );
         this.sessionController = new SessionController(this.sessionManager);
 
         this.updateService = new UpdateService();
         this.updateController = new UpdateController(this.updateService);
+        this.staffController = new StaffController(this.staffManager);
 
 
         // Wiring
@@ -186,6 +218,7 @@ export class AppRouter {
         this.toolController.registerHandlers();
         this.schedulerController.registerHandlers();
         this.updateController.registerHandlers();
+        this.staffController.registerHandlers();
 
         this.imServiceManager.start().catch((err: any) => console.error('[AppRouter] Error starting IM Service Manager:', err));
 

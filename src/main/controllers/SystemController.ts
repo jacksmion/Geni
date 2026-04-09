@@ -1,4 +1,5 @@
 import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow, WebContents, IpcMainInvokeEvent } from 'electron';
+import fs from 'fs';
 import { SYSTEM_CHANNELS, SYSTEM_EVENTS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
@@ -47,7 +48,8 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_TELEGRAM, (_, config) => this.handleTestTelegram(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECOM, (_, config) => this.handleTestWeCom(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
-        ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
+        ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
+        ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
     }
 
     public broadcastSettingsChanged(settings: AppSettings) {
@@ -69,7 +71,7 @@ export class SystemController {
             console.log(`[SystemController] Fetching models for ${providerId}...`);
             // Dynamic import to avoid circular dependency or early loading issues if factory is complex
             const { createChatModel } = await import('../services/llm');
-            
+
             const model = createChatModel(providerId, {
                 apiKey: config.apiKey,
                 baseUrl: config.baseUrl,
@@ -87,7 +89,7 @@ export class SystemController {
     }
 
     private async handleSaveSettings(settings: AppSettings) {
-        console.log('[SystemController] Saving settings:', JSON.stringify(settings, null, 2));
+        console.log('[SystemController] Saving settings... (Sensitive fields redacted)');
 
         // 1. Get old settings to compare if needed (e.g. for MCP reconnects, handled by onSettingsChanged listeners ideally)
         // For now, we just save and notify.
@@ -220,5 +222,23 @@ export class SystemController {
             return { success: false, message: 'IM Service not initialized' };
         }
         return await this.imServiceManager.testConnection('lark', config);
+    }
+
+    private async handleTestWechat() {
+        if (!this.imServiceManager) {
+            return { success: false, message: 'IM Service not initialized' };
+        }
+        // Config is empty since it just needs to start the login process without saving
+        return await this.imServiceManager.testConnection('wechat', {});
+    }
+
+    private async handleReadFileBase64(filePath: string) {
+        try {
+            const buffer = await fs.promises.readFile(filePath);
+            return buffer.toString('base64');
+        } catch (error: any) {
+            console.error(`[SystemController] Failed to read file ${filePath}:`, error);
+            throw error;
+        }
     }
 }

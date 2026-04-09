@@ -6,6 +6,7 @@ export interface AuthorizationRequest {
     args: any;
     trustLevel: string;
     reason: string;
+    runId?: string;
 }
 
 interface ModalState {

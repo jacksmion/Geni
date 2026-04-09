@@ -39,8 +39,6 @@ export class SessionStorage {
         this.storageDir = pathManager.getSessionsDir();
         this.indexFile = pathManager.getSessionsIndexFile();
 
-        console.log('[SessionStorage] Storage Dir:', this.storageDir);
-
         if (!fs.existsSync(this.storageDir)) {
             fs.mkdirSync(this.storageDir, { recursive: true });
         }
@@ -96,7 +94,7 @@ export class SessionStorage {
                             title: session.title,
                             createdAt: session.createdAt,
                             updatedAt: session.updatedAt,
-                            preview: session.messages?.[session.messages.length - 1]?.content?.slice(0, 100) || undefined
+                            preview: this.extractTextFromContent(session.messages?.[session.messages.length - 1]?.content).slice(0, 100) || undefined
                         });
                     }
                 } catch (fileError) {
@@ -126,7 +124,6 @@ export class SessionStorage {
             if (fs.existsSync(filePath)) {
                 const data = await fs.promises.readFile(filePath, 'utf8');
                 const session = JSON.parse(data) as ChatSession;
-                console.log(`[SessionStorage] Loaded ${id} from disk. Messages: ${session.messages?.length || 0}`);
                 return session;
             }
         } catch (error) {
@@ -150,7 +147,6 @@ export class SessionStorage {
             this.enqueueSessionWrite(session.id, async () => {
                 const filePath = path.join(this.storageDir, `${session.id}.json`);
                 await atomicWriteFile(filePath, JSON.stringify(session, null, 2));
-                console.log(`[SessionStorage] Saved ${session.id} to disk. Messages: ${session.messages?.length || 0}`);
             });
 
             return true;
@@ -204,7 +200,7 @@ export class SessionStorage {
             title: session.title,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt,
-            preview: session.messages[session.messages.length - 1]?.content?.slice(0, 100) || undefined
+            preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined
         };
 
         if (index > -1) {
@@ -221,6 +217,15 @@ export class SessionStorage {
 
         // 原子写入磁盘
         await atomicWriteFile(this.indexFile, JSON.stringify(list, null, 2));
+    }
+
+    private extractTextFromContent(content: any): string {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+            return content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n');
+        }
+        return '';
     }
 
     /**

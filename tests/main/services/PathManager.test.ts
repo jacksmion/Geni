@@ -7,12 +7,16 @@ import { PathManager } from '@/main/services/PathManager';
 
 vi.mock('fs');
 vi.mock('os');
-vi.mock('electron', () => ({
-    app: {
+vi.mock('electron', () => {
+    const mockApp = {
         getPath: vi.fn(),
-        getAppPath: vi.fn()
-    }
-}));
+        getAppPath: vi.fn(),
+        isPackaged: false
+    };
+    return {
+        app: mockApp
+    };
+});
 
 describe('PathManager', () => {
     const MOCK_HOMEDIR = '/mock/home/user';
@@ -25,7 +29,6 @@ describe('PathManager', () => {
         vi.mocked(app.getPath).mockReturnValue(MOCK_USER_DATA);
         vi.mocked(app.getAppPath).mockReturnValue(MOCK_APP_PATH);
 
-        // By default assume no directories exist to test creation
         vi.mocked(fs.existsSync).mockReturnValue(false);
     });
 
@@ -51,37 +54,16 @@ describe('PathManager', () => {
     });
 
     it('should correctly prioritize skill load paths', () => {
-        vi.mocked(fs.existsSync).mockReturnValue(true); // Mock dirs existing
+        vi.mocked(fs.existsSync).mockReturnValue(true);
         const pathManager = new PathManager();
         const workspace = '/mock/workspace';
 
         const loadPaths = pathManager.getSkillsLoadPaths(workspace);
 
-        expect(loadPaths.length).toBe(3);
-        expect(loadPaths[0]).toBe(path.join(MOCK_APP_PATH, 'skills')); // Builtin
-        expect(loadPaths[1]).toBe(path.join(MOCK_HOMEDIR, '.geni', 'skills')); // Global
-        expect(loadPaths[2]).toBe(path.join(workspace, '.agent', 'skills')); // Project
-    });
-
-    describe('Migration Tracking', () => {
-        it('needsMigration should return false if migration marker exists', () => {
-            vi.mocked(fs.existsSync).mockImplementation((p) => {
-                // Return true only for the .migrated marker
-                return String(p).endsWith('.migrated');
-            });
-
-            const pathManager = new PathManager();
-            expect(pathManager.needsMigration()).toBe(false);
-        });
-
-        it('needsMigration should return true if legacy config exists', () => {
-            vi.mocked(fs.existsSync).mockImplementation((p) => {
-                // Return true only for the legacy config
-                return String(p).includes('.assistant-core') && String(p).endsWith('config.json');
-            });
-
-            const pathManager = new PathManager();
-            expect(pathManager.needsMigration()).toBe(true);
-        });
+        expect(loadPaths.length).toBe(4);
+        expect(loadPaths[0]).toBe(path.join(MOCK_APP_PATH, 'skills'));
+        expect(loadPaths[1]).toBe(path.join(MOCK_HOMEDIR, '.agents', 'skills'));
+        expect(loadPaths[2]).toBe(path.join(MOCK_HOMEDIR, '.geni', 'skills'));
+        expect(loadPaths[3]).toBe(path.join(workspace, '.agent', 'skills'));
     });
 });

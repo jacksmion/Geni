@@ -116,6 +116,7 @@ export class Summarizer {
         const parts: string[] = [];
 
         for (const msg of messages) {
+            const textContent = this.extractText(msg.content);
             if (msg.role === 'assistant') {
                 if (msg.tool_calls && msg.tool_calls.length > 0) {
                     // Extract tool call info instead of losing it
@@ -123,17 +124,17 @@ export class Summarizer {
                         const args = this.truncateText(tc.function.arguments, 200);
                         return `  → ${tc.function.name}(${args})`;
                     }).join('\n');
-                    const thought = msg.content ? `${this.truncateText(msg.content, 300)}\n` : '';
+                    const thought = textContent ? `${this.truncateText(textContent, 300)}\n` : '';
                     parts.push(`ASSISTANT (tool calls):\n${thought}${toolInfo}`);
                 } else {
-                    parts.push(`ASSISTANT: ${this.truncateText(msg.content || '', 800)}`);
+                    parts.push(`ASSISTANT: ${this.truncateText(textContent, 800)}`);
                 }
             } else if (msg.role === 'tool') {
                 // Truncate large tool outputs
-                const output = this.truncateText(msg.content || '', TOOL_OUTPUT_MAX_CHARS);
+                const output = this.truncateText(textContent, TOOL_OUTPUT_MAX_CHARS);
                 parts.push(`TOOL RESULT: ${output}`);
             } else if (msg.role === 'user') {
-                parts.push(`USER: ${msg.content || ''}`);
+                parts.push(`USER: ${textContent}`);
             }
         }
 
@@ -201,7 +202,7 @@ ${text}`
 
         if (model.invoke) {
             const response = await model.invoke(prompt);
-            result = response.content || 'No summary generated.';
+            result = this.extractText(response.content) || 'No summary generated.';
         } else {
             const stream = model.stream(prompt);
             for await (const event of stream) {
@@ -245,5 +246,17 @@ ${text}`
     private truncateText(text: string, maxChars: number): string {
         if (text.length <= maxChars) return text;
         return text.slice(0, maxChars) + '... (truncated)';
+    }
+
+    /**
+     * Helper to extract text from multimodal content format
+     */
+    private extractText(content: ChatMessage['content']): string {
+        if (!content) return '';
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) {
+            return content.filter(p => p.type === 'text').map(p => (p as any).text).join('\n');
+        }
+        return '';
     }
 }

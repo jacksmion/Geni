@@ -1,37 +1,45 @@
 # Geni Project - AI Agent Documentation
 
-> **Last Updated**: 2026-02-27  
-> **Architecture Version**: V3.1 - Layered Architecture
+> **Last Updated**: 2026-04-07  
+> **Architecture Version**: V3.3 - Layered Architecture
 
 ## 1. Project Overview
 
 **Geni** is an Electron-based AI coding assistant designed to act as a "Virtual Pair Programmer". It adopts a **Layered Architecture** with clear separation of concerns:
 
+- **Trigger Layer**: External event sources (Scheduler, IM)
+- **Application Layer**: Controllers handling requests
 - **Agent Kernel**: Core runtime with explicit state machine
-- **Cognitive Layer**: LLM provider abstraction (OpenAI/Claude/DeepSeek)
+- **Cognitive Layer**: LLM provider abstraction
 - **Capability Layer**: Tools (Functions) + Skills (Knowledge)
-- **Infrastructure Layer**: Session management and persistence
+- **Infrastructure Layer**: Storage, Config, and System services
 
 ## 2. Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
+│                     Trigger Layer (外部触发源)                     │
+│           SchedulerService │ IMServiceManager                    │
+│           (Cron Jobs)    │  (Telegram │ WeCom │ Lark │ Wechat)  │
+├─────────────────────────────────────────────────────────────────┤
 │                   Application Layer (Controllers)                │
 │    AgentController │ SessionController │ SystemController        │
-│    ToolController │ SchedulerController │ AppRouter (DI)         │
+│    ToolController │ SchedulerController │ StaffController         │
+│    UpdateController │ AppRouter (DI)                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                        Agent Kernel                              │
-│   AgentRuntime │ PromptBuilder │ StateManager │ ToolGuard        │
-│   ContextManager │ TokenCounter │ Summarizer                     │
+│   AgentRuntime │ PromptBuilder │ ToolGuard │ ContextManager     │
+│   TokenCounter │ Summarizer │ RetryPolicy │ ErrorClassifier     │
 ├─────────────────────────────────────────────────────────────────┤
-│                    Cognitive Layer (IChatModel)                  │
-│         OpenAIAdapter │ AnthropicAdapter │ ChatModelFactory      │
+│                    Cognitive Layer (LLM)                         │
+│         IChatModel │ OpenAIAdapter │ AnthropicAdapter          │
 ├─────────────────────────────────────────────────────────────────┤
-│                 Capability Layer (Tools + Skills)                │
-│   ToolRegistry │ CoreToolManager │ MCP Manager │ SkillRegistry  │
+│                 Capability Layer                                 │
+│   ToolRegistry │ CoreToolManager │ MCP │ SkillRegistry          │
 ├─────────────────────────────────────────────────────────────────┤
-│                Infrastructure (Session + Storage)                │
-│              SessionManager │ SessionStorage                     │
+│                Infrastructure Layer                              │
+│   SessionManager │ MemoryStore │ UsageManager                     │
+│   PathManager │ ConfigManager │ SystemTrayManager                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -46,19 +54,27 @@
 
 ### 2.2 System Layers
 
+#### Trigger Layer
+- **Components**: SchedulerService, IMServiceManager
+- **Role**: External event sources that trigger Agent execution
+- **Scheduler**: Cron-based scheduled tasks
+- **IM**: Multi-platform messaging (Telegram, WeCom, Lark, WeChat)
+
 #### Frontend (Renderer)
-- **Tech**: React 19, Tailwind v4, Zustand
-- **Role**: UI presentation, state management (`useChatStore`), input handling
-- **Key Components**: `Composer` (input), `ChatLayout` (view), Settings pages
+- **Tech**: React 19, Tailwind v4, Zustand, TypeScript 5.9
+- **Role**: UI presentation, state management, input handling
+- **Key Components**: `Composer` (input), `ChatLayout` (view), Settings pages, `ArtifactPanel`
+- **Stores**: `useChatStore`, `useSettingsStore`, `useLayoutStore`, `useModalStore`, `useStaffStore`
 
 #### Backend (Main Process)
-- **Tech**: Electron Node.js runtime
+- **Tech**: Electron 40, Node.js runtime
 - **Role**: Orchestrates the AI Agent, executes tools, handles file system operations
 - **Entry Point**: `src/main/main.ts` -> `AppRouter` (DI Container)
 
 #### Shared (Common)
 - Types and interfaces shared between processes (`src/common`)
 - IPC channel definitions (`src/common/ipc/channels.ts`)
+- Internationalization (`src/common/i18n/`)
 
 ## 3. The Agent System
 
@@ -85,6 +101,7 @@ The agent implements a **ReAct-like loop** (Reasoning + Acting) with explicit st
 5. **Tool Execution**: Validated commands executed via `ToolRegistry`
 6. **Observation**: Result returned to LLM (truncated if too large)
 7. **Self-Correction**: If tool fails, a "Reflect" hint added to next prompt
+8. **Retry Logic**: RetryPolicy handles transient failures with exponential backoff
 
 ### 3.2 Key Agent Components
 
@@ -97,6 +114,9 @@ The agent implements a **ReAct-like loop** (Reasoning + Acting) with explicit st
 | `ContextManager` | `agent/ContextManager.ts` | Token budget, sliding window pruning |
 | `TokenCounter` | `agent/TokenCounter.ts` | Token estimation (char/4) |
 | `Summarizer` | `agent/Summarizer.ts` | Long conversation summarization |
+| `RetryPolicy` | `agent/RetryPolicy.ts` | Retry strategy with backoff |
+| `ErrorClassifier` | `agent/ErrorClassifier.ts` | Classify and handle errors |
+| `IAgent` | `agent/IAgent.ts` | Agent interface definition |
 
 ## 4. Cognitive Layer (LLM Abstraction)
 
@@ -120,7 +140,11 @@ interface IChatModel {
 | OpenAI | `OpenAIAdapter` | GPT-4, GPT-4o, etc. |
 | Anthropic | `AnthropicAdapter` | Claude 3.5 Sonnet, Opus |
 | DeepSeek | `OpenAIAdapter` | OpenAI-compatible API |
-| Local (Ollama) | `OpenAIAdapter` | OpenAI-compatible API |
+| ZhipuAI | `OpenAIAdapter` | 智谱 GLM |
+| Volcengine | `OpenAIAdapter` | 火山引擎 |
+| Qwen | `OpenAIAdapter` | 阿里通义 |
+| MiniMax | `OpenAIAdapter` | MiniMax |
+| Local (Ollama/LM Studio) | `OpenAIAdapter` | OpenAI-compatible API |
 
 ### 4.3 Stream Event Types
 
@@ -159,6 +183,8 @@ Manages lifecycle of built-in tools: registration, refresh on settings change, t
 | `environment_info` | `EnvironmentInfoTool` | Retrieves OS and project context information |
 | `todowrite` | `TodoWriteTool` | Creates/updates the entire todo list |
 | `todoread` | `TodoReadTool` | Reads the current todo list |
+| `memorize` | `MemorizeTool` | Stores information in agent memory |
+| `cron` | `CronTool` | Schedules cron-based tasks |
 
 ### 5.4 MCP Integration (`src/main/services/tools/mcp/`)
 
@@ -187,7 +213,15 @@ Skills are **"pluggable knowledge capsules"**:
 | `SkillParser` | `core/SkillParser.ts` | Parses SKILL.md frontmatter (zod validation) |
 | `SkillRegistry` | `core/SkillRegistry.ts` | Skill registration center |
 
-### 6.3 SKILL.md Format
+### 6.3 Built-in Skills (`skills/`)
+
+| Skill | Description |
+|:------|:------------|
+| `find-skills` | Find and search available skills |
+| `skill-creator` | Create new skills |
+| `web-search` | Web search capability |
+
+### 6.4 SKILL.md Format
 
 ```yaml
 ---
@@ -223,7 +257,56 @@ interface ChatSession {
 }
 ```
 
-## 8. Shared Type System (`src/common/types/`)
+## 8. Digital Staff System (`src/main/services/staff/`)
+
+Manages AI personas/assistants with configurable behaviors:
+
+| Component | File | Purpose |
+|:----------|:-----|:--------|
+| `StaffManager` | `StaffManager.ts` | Digital staff lifecycle management |
+| `Staff` | `Staff.ts` | Staff definition and configuration |
+| `StaffRegistry` | `StaffRegistry.ts` | Staff registration and lookup |
+
+## 9. IM Integration (`src/main/services/im/`)
+
+Multi-platform instant messaging adapters:
+
+| Platform | Adapter | File |
+|:---------|:--------|:-----|
+| Telegram | `TelegramAdapter` | `adapters/TelegramAdapter.ts` |
+| 企业微信 | `WeComAdapter` | `adapters/WeComAdapter.ts` |
+| 飞书 | `LarkAdapter` | `adapters/LarkAdapter.ts` |
+| 个人微信 | `WechatAdapter` | `adapters/WechatAdapter.ts` |
+
+| Component | File | Purpose |
+|:----------|:-----|:--------|
+| `IMServiceManager` | `IMServiceManager.ts` | Unified IM service management |
+| `IIMAdapter` | `IIMAdapter.ts` | IM adapter interface |
+
+## 10. Scheduler System (`src/main/services/scheduler/`)
+
+Cron-based task scheduling with IM notification support:
+
+| Component | File | Purpose |
+|:----------|:-----|:--------|
+| `SchedulerService` | `SchedulerService.ts` | Cron job management |
+| `SchedulerStorage` | `SchedulerStorage.ts` | Task persistence |
+| `SchedulerLog` | `SchedulerLog.ts` | Execution history logging |
+
+## 11. Memory & Usage Tracking
+
+| Component | File | Purpose |
+|:----------|:-----|:--------|
+| `MemoryStore` | `memory/MemoryStore.ts` | Persistent memory storage |
+| `UsageManager` | `usage/UsageManager.ts` | API usage statistics and tracking |
+
+## 12. Auto-Update System (`src/main/services/update/`)
+
+| Component | File | Purpose |
+|:----------|:-----|:--------|
+| `UpdateService` | `UpdateService.ts` | App update management |
+
+## 13. Shared Type System (`src/common/types/`)
 
 All shared types are defined in `src/common/types/` as the **Single Source of Truth**:
 
@@ -238,12 +321,15 @@ All shared types are defined in `src/common/types/` as the **Single Source of Tr
 | `ITool` | `tool.ts` | Tools, Agent |
 | `Skill` | `skill.ts` | Skills, Agent |
 | `AppSettings` | `settings.ts` | All layers |
+| `staff` | `staff.ts` | Digital staff types |
+| `usage` | `usage.ts` | Usage tracking types |
+| `update` | `update.ts` | Update types |
 
 > **Important**: The LLM layer (`IChatModel.ts`) re-exports `ChatMessage`, `ToolCall`, and `ChatMessageRole` from `common/types/chat.ts`. Do NOT define duplicate types.
 
-## 9. IPC & Controllers
+## 14. IPC & Controllers
 
-### 9.1 Controller Layer (`src/main/controllers/`)
+### 14.1 Controller Layer (`src/main/controllers/`)
 
 | Controller | File | Purpose |
 |:-----------|:-----|:--------|
@@ -252,8 +338,10 @@ All shared types are defined in `src/common/types/` as the **Single Source of Tr
 | `SessionController` | `SessionController.ts` | Session CRUD, history |
 | `SystemController` | `SystemController.ts` | Settings, file dialogs, LLM test |
 | `ToolController` | `ToolController.ts` | Skill toggle, MCP management |
+| `StaffController` | `StaffController.ts` | Digital staff management |
+| `UpdateController` | `UpdateController.ts` | App update operations |
 
-### 9.2 IPC Channels (`src/common/ipc/channels.ts`)
+### 14.2 IPC Channels (`src/common/ipc/channels.ts`)
 
 ```typescript
 // Agent
@@ -270,29 +358,92 @@ system:get-settings, system:save-settings, system:select-file, system:test-llm
 
 // Tools
 tool:get-skills, tool:toggle-skill, tool:mcp-connect, tool:mcp-list-tools
+
+// Scheduler
+scheduler:create, scheduler:list, scheduler:delete, scheduler:toggle
+
+// Staff
+staff:list, staff:get, staff:create, staff:update, staff:delete
+
+// Update
+update:check, update:download, update:install
 ```
 
-### 9.3 AppRouter (`src/main/router.ts`)
+### 14.3 AppRouter (`src/main/router.ts`)
 
 Acts as the **Dependency Injection Container**:
 - Instantiates all services and controllers
 - Wires dependencies together
 - Initializes all IPC handlers
 
-## 10. Directory Structure
+## 15. Frontend Structure (`src/renderer/`)
+
+### 15.1 Pages
+
+| Page | File | Description |
+|:-----|:-----|:------------|
+| Settings | `pages/Settings.tsx` | Main settings container |
+| SchedulerPage | `pages/SchedulerPage.tsx` | Cron task management |
+| StaffPage | `pages/StaffPage.tsx` | Digital staff management |
+
+### 15.2 Settings Pages (`pages/settings/`)
+
+| Page | Description |
+|:-----|:------------|
+| `GeneralSettings.tsx` | General preferences |
+| `ModelSettings.tsx` | LLM model configuration |
+| `SkillSettings.tsx` | Skill management |
+| `MCPSettings.tsx` | MCP server configuration |
+| `IMSettings.tsx` | IM platform settings |
+| `AboutSettings.tsx` | About and updates |
+
+### 15.3 Layouts
+
+| Layout | File | Description |
+|:-------|:-----|:------------|
+| ChatLayout | `layouts/ChatLayout.tsx` | Main chat interface |
+| Sidebar | `layouts/Sidebar.tsx` | Navigation sidebar |
+| SessionSidebar | `layouts/SessionSidebar.tsx` | Session list |
+
+### 15.4 Components
+
+| Component | Description |
+|:----------|:------------|
+| `ThoughtTrace` | Reasoning trace display |
+| `MermaidBlock` | Mermaid diagram renderer |
+| `ArtifactPanel` | Code artifact viewer |
+| `SkillCard` | Skill info card |
+| `Composer` | Message input |
+| `MessageList` | Chat messages display |
+
+### 15.5 State Stores
+
+| Store | File | Purpose |
+|:-------|:-----|:--------|
+| `useChatStore` | `store/useChatStore.ts` | Chat state and sessions |
+| `useSettingsStore` | `store/useSettingsStore.ts` | App settings |
+| `useLayoutStore` | `store/useLayoutStore.ts` | UI layout state |
+| `useModalStore` | `store/useModalStore.ts` | Modal visibility |
+| `useStaffStore` | `store/useStaffStore.ts` | Digital staff state |
+
+## 16. Directory Structure
 
 ```
 src/
 ├── common/                    # Shared Types & IPC
 │   ├── ipc/
 │   │   └── channels.ts        # IPC channel constants
-│   └── types/
-│       ├── agent.ts           # Core Agent types
-│       ├── chat.ts            # ChatMessage, ToolCall, AgentStep, ChatSession (SSoT)
-│       ├── agentEvents.ts     # IPC request/response types
-│       ├── settings.ts        # AppSettings
-│       ├── skill.ts           # Skill types
-│       └── tool.ts            # ITool, ToolDefinition
+│   ├── types/
+│   │   ├── agent.ts           # Core Agent types
+│   │   ├── chat.ts            # ChatMessage, ToolCall, AgentStep, ChatSession (SSoT)
+│   │   ├── agentEvents.ts     # IPC request/response types
+│   │   ├── settings.ts        # AppSettings
+│   │   ├── skill.ts           # Skill types
+│   │   ├── tool.ts            # ITool, ToolDefinition
+│   │   ├── staff.ts           # Digital staff types
+│   │   ├── usage.ts           # Usage tracking types
+│   │   └── update.ts          # Update types
+│   └── i18n/                   # Internationalization
 ├── main/                      # Backend Logic
 │   ├── main.ts                # Entry point
 │   ├── preload.ts             # Electron preload bridge
@@ -302,7 +453,9 @@ src/
 │   │   ├── SchedulerController.ts
 │   │   ├── SessionController.ts
 │   │   ├── SystemController.ts
-│   │   └── ToolController.ts
+│   │   ├── ToolController.ts
+│   │   ├── StaffController.ts
+│   │   └── UpdateController.ts
 │   └── services/
 │       ├── agent/             # Agent Kernel
 │       │   ├── AgentRuntime.ts
@@ -312,6 +465,8 @@ src/
 │       │   ├── ContextManager.ts
 │       │   ├── TokenCounter.ts
 │       │   ├── Summarizer.ts
+│       │   ├── RetryPolicy.ts
+│       │   ├── ErrorClassifier.ts
 │       │   └── state/
 │       │       └── AgentState.ts
 │       ├── llm/               # Cognitive Layer
@@ -320,7 +475,7 @@ src/
 │       │   └── providers/
 │       │       ├── OpenAIAdapter.ts
 │       │       └── AnthropicAdapter.ts
-│       ├── tools/             # Capability Layer - Hard
+│       ├── tools/             # Capability Layer
 │       │   ├── ToolRegistry.ts
 │       │   ├── core/          # Built-in tools
 │       │   │   ├── CoreToolManager.ts
@@ -334,7 +489,9 @@ src/
 │       │   │   ├── SkillLoaderTool.ts
 │       │   │   ├── WebFetchTool.ts
 │       │   │   ├── EnvironmentInfoTool.ts
-│       │   │   └── TodoTool.ts
+│       │   │   ├── TodoTool.ts
+│       │   │   ├── MemorizeTool.ts
+│       │   │   └── CronTool.ts
 │       │   └── mcp/           # MCP Integration
 │       │       ├── McpManager.ts
 │       │       └── McpToolAdapter.ts
@@ -345,68 +502,132 @@ src/
 │       ├── session/           # Infrastructure Layer
 │       │   ├── SessionManager.ts
 │       │   └── SessionStorage.ts
-│       ├── scheduler/         # Automated Tasks
-│       │   └── SchedulerService.ts
-│       ├── im/                # Instant Messaging Layer
+│       ├── scheduler/         # Trigger Layer
+│       │   ├── SchedulerService.ts
+│       │   ├── SchedulerStorage.ts
+│       │   └── SchedulerLog.ts
+│       ├── im/                # Trigger Layer
+│       │   ├── IMServiceManager.ts
 │       │   ├── IIMAdapter.ts
 │       │   └── adapters/
-│       ├── ConfigManager.ts
-│       └── PathManager.ts
+│       │       ├── TelegramAdapter.ts
+│       │       ├── WeComAdapter.ts
+│       │       ├── LarkAdapter.ts
+│       │       └── WechatAdapter.ts
+│       ├── staff/             # Application Layer
+│       │   ├── StaffManager.ts
+│       │   ├── Staff.ts
+│       │   └── StaffRegistry.ts
+│       ├── memory/            # Infrastructure Layer
+│       │   └── MemoryStore.ts
+│       ├── usage/             # Infrastructure Layer
+│       │   └── UsageManager.ts
+│       ├── update/            # Application Layer
+│       │   └── UpdateService.ts
+│       ├── ConfigManager.ts   # Infrastructure Layer
+│       ├── PathManager.ts     # Infrastructure Layer
+│       └── SystemTrayManager.ts # Infrastructure Layer
 └── renderer/                  # Frontend UI
+    ├── main.tsx               # Renderer entry point
+    ├── App.tsx                # Root component
     ├── pages/                 # Full Page Components
-    │   ├── SchedulerPage.tsx
     │   ├── Settings.tsx
-    │   └── settings/          # Tabbed settings view
+    │   ├── SchedulerPage.tsx
+    │   ├── StaffPage.tsx
+    │   └── settings/
+    │       ├── GeneralSettings.tsx
+    │       ├── ModelSettings.tsx
+    │       ├── SkillSettings.tsx
+    │       ├── MCPSettings.tsx
+    │       ├── IMSettings.tsx
+    │       └── AboutSettings.tsx
+    ├── layouts/
+    │   ├── ChatLayout.tsx
+    │   ├── Sidebar.tsx
+    │   └── SessionSidebar.tsx
+    ├── components/
+    │   ├── modals/
+    │   ├── ThoughtTrace.tsx
+    │   ├── MermaidBlock.tsx
+    │   ├── ArtifactPanel.tsx
+    │   ├── SkillCard.tsx
+    │   ├── Composer.tsx
+    │   └── MessageList.tsx
     ├── store/                 # Zustand State
-    │   └── useChatStore.ts
-    └── components/            # React Components
+    │   ├── useChatStore.ts
+    │   ├── useSettingsStore.ts
+    │   ├── useLayoutStore.ts
+    │   ├── useModalStore.ts
+    │   └── useStaffStore.ts
+    ├── hooks/
+    │   ├── useShortcuts.ts
+    │   └── useBreakpoint.ts
+    └── utils/
+        ├── theme.ts
+        ├── markdown.ts
+        └── artifact.ts
+
+skills/                        # Built-in Skills
+├── find-skills/
+├── skill-creator/
+└── web-search/
+
+build/                         # Build resources
+release/                       # Release output
+tests/                         # Test files
 ```
 
-## 11. Development Guidelines
+## 17. Development Guidelines
 
-### 11.1 Adding a New Tool
+### 17.1 Adding a New Tool
 
 1. Create a class implementing `ITool` in `src/main/services/tools/core/`
 2. Define `getDefinition()` with `input_schema` using JSON Schema
 3. Implement `execute(input)` method
 4. Register in `CoreToolManager.ts` `toolFactories` map
 
-### 11.2 Adding a New LLM Provider
+### 17.2 Adding a New LLM Provider
 
 1. Create adapter implementing `IChatModel` in `src/main/services/llm/providers/`
 2. Implement `stream()` method converting provider events to `ChatStreamEvent`
 3. Add provider to `ChatModelFactory.createChatModel()`
 4. Update `normalizeProviderId()` for provider aliases
 
-### 11.3 Adding a New Skill
+### 17.3 Adding a New Skill
 
 1. Create directory under `skills/`
 2. Create `SKILL.md` with frontmatter (id, name, description, version)
 3. Write detailed instructions in markdown body
 4. Skills are auto-loaded on startup
 
-### 11.4 Writing Unit Tests
+### 17.4 Adding a New IM Adapter
+
+1. Create adapter implementing `IIMAdapter` in `src/main/services/im/adapters/`
+2. Implement message sending, receiving, and connection management
+3. Register adapter in `IMServiceManager.ts`
+
+### 17.5 Writing Unit Tests
 
 1. Create tests in the `/tests/` directory at the project root, mirroring the `src/` directory structure.
 2. Use `vitest` as the testing framework.
 3. Use absolute path aliases (`@/`) to import source modules (e.g., `import { TokenCounter } from '@/main/services/agent/TokenCounter';`).
 4. Run tests using `npm run test` or `npm run test:watch`.
 
-### 11.5 Modifying Agent Logic
+### 17.6 Modifying Agent Logic
 
 - Core loop: `src/main/services/agent/AgentRuntime.ts`
 - State transitions: `src/main/services/agent/state/AgentState.ts`
 - Security: `src/main/services/agent/ToolGuard.ts`
 - Ensure `onStream` and `onStepUpdate` callbacks are called for UI sync
 
-### 11.6 Type Changes
+### 17.7 Type Changes
 
 - **All shared types**: Define in `src/common/types/` (Single Source of Truth)
 - **LLM layer**: Re-exports from common via `IChatModel.ts`
 - **Never define duplicate types** across layers
 - IPC protocols: Update `src/common/ipc/channels.ts` AND `src/main/preload.ts`
 
-## 12. Key Files Quick Reference
+## 18. Key Files Quick Reference
 
 | Purpose | File Path |
 |:--------|:----------|
@@ -418,6 +639,11 @@ src/
 | Tool Manager | `src/main/services/tools/core/CoreToolManager.ts` |
 | Skill Registry | `src/main/services/skills/core/SkillRegistry.ts` |
 | Session Manager | `src/main/services/session/SessionManager.ts` |
+| Staff Manager | `src/main/services/staff/StaffManager.ts` |
+| Scheduler Service | `src/main/services/scheduler/SchedulerService.ts` |
+| IM Service | `src/main/services/im/IMServiceManager.ts` |
 | Shared Types | `src/common/types/chat.ts` |
 | IPC Channels | `src/common/ipc/channels.ts` |
 | Preload Bridge | `src/main/preload.ts` |
+| Chat Store | `src/renderer/store/useChatStore.ts` |
+| Settings Store | `src/renderer/store/useSettingsStore.ts` |

@@ -24,11 +24,26 @@ export function MessageList() {
     const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
     const isSending = useChatStore(s => s.isSending)
     const endRef = useRef<HTMLDivElement>(null)
+    const rafScrollRef = useRef<number | null>(null)
 
     useEffect(() => {
-        // 确保新消息或思考过程更新时滚动到底部
-        endRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages, messages.length])
+        // Streaming 时禁用 smooth scroll，避免持续动画挤占主线程。
+        if (rafScrollRef.current !== null) {
+            cancelAnimationFrame(rafScrollRef.current)
+        }
+
+        rafScrollRef.current = requestAnimationFrame(() => {
+            endRef.current?.scrollIntoView({ behavior: isSending ? 'auto' : 'smooth' })
+            rafScrollRef.current = null
+        })
+
+        return () => {
+            if (rafScrollRef.current !== null) {
+                cancelAnimationFrame(rafScrollRef.current)
+                rafScrollRef.current = null
+            }
+        }
+    }, [messages, messages.length, isSending])
 
     // Message Grouping Logic
     // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.
@@ -266,9 +281,16 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
 }
 
 const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) {
-    const isUser = message.role === 'user'
-    const content = message.content || '';
-    const processedContent = !isUser ? preprocessMarkdown(content) : content;
+    const isUser = message.role === 'user';
+    const isArrayContent = Array.isArray(message.content);
+    const contentParts = isArrayContent ? (message.content as import('../../../common/types/chat').ContentPart[]) : [];
+    
+    // Fallback for copy, context, and markdown rendering
+    const textContent = isArrayContent
+        ? contentParts.filter(p => p.type === 'text').map((p: any) => p.text).join('\n')
+        : (message.content as string) || '';
+        
+    const processedContent = !isUser ? preprocessMarkdown(textContent) : textContent;
 
     // Deduplicate content: if the message starts with the same text as the first step's thought,
     // we hide it from the prose body to avoid double-rendering, since ThoughtTrace now always shows it.
@@ -304,18 +326,37 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                 isUser ? "items-end" : "items-start"
             )}>
                 {isUser && (
-                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-slate-100 dark:bg-[#1e1e20] text-slate-800 dark:text-zinc-200 text-[14.5px] font-medium leading-relaxed max-w-[85%]">
-                        {content}
+                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-slate-100 dark:bg-[#1e1e20] text-slate-800 dark:text-zinc-200 text-[14.5px] font-medium leading-relaxed max-w-[85%] flex flex-col gap-3">
+                        {isArrayContent ? (
+                            contentParts.map((part, idx) => {
+                                if (part.type === 'text') {
+                                    return <div key={idx} className="whitespace-pre-wrap">{part.text}</div>;
+                                } else if (part.type === 'image_url') {
+                                    return <img key={idx} src={part.image_url.url} alt="upload" className="max-w-[300px] border border-slate-200 dark:border-white/10 rounded-lg" />;
+                                }
+                                return null;
+                            })
+                        ) : (
+                            textContent
+                        )}
                     </div>
                 )}
 
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
+                        {/* Reasoning / Thinking Process */}
+                        {message.reasoning_content && (
+                            <ThinkingBlock
+                                content={message.reasoning_content}
+                                isComplete={!isStreaming}
+                            />
+                        )}
+
                         {/* Thoughts/Tools */}
                         {message.steps && message.steps.length > 0 && (
                             <div className="mb-4 w-full">
-                                <ThoughtTrace steps={message.steps} contextContent={message.content || ''} />
+                                <ThoughtTrace steps={message.steps} contextContent={textContent} />
                             </div>
                         )}
 
@@ -347,7 +388,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                             
                             prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
                             prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
-                            <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: message.content || '' }}>
+                            <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     components={MarkdownComponents}
@@ -366,13 +407,13 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                         )}>
                             {isUser ? (
                                 <>
-                                    <CopyButton text={content} className="p-0.5" />
+                                    <CopyButton text={textContent} className="p-0.5" />
                                     <span>{message.timestamp ? new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''} · You</span>
                                 </>
                             ) : (
                                 <>
                                     <span>Geni {message.timestamp ? `· ${new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
-                                    <CopyButton text={content} className="p-0.5" />
+                                    <CopyButton text={textContent} className="p-0.5" />
                                 </>
                             )}
                         </div>
@@ -393,9 +434,16 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
     // 阻止由于 groupedMessages 生成新对象引起的大量无效重渲染
     if (prevProps.isStreaming !== nextProps.isStreaming) return false;
     if (prevProps.message.id !== nextProps.message.id) return false;
-    if (prevProps.message.content !== nextProps.message.content) return false;
-    if (prevProps.message.role !== nextProps.message.role) return false;
     
+    const prevIsArray = Array.isArray(prevProps.message.content);
+    const nextIsArray = Array.isArray(nextProps.message.content);
+    if (prevIsArray !== nextIsArray) return false;
+    if (!prevIsArray && prevProps.message.content !== nextProps.message.content) return false;
+    if (prevIsArray && JSON.stringify(prevProps.message.content) !== JSON.stringify(nextProps.message.content)) return false;
+    
+    if (prevProps.message.role !== nextProps.message.role) return false;
+    if (prevProps.message.reasoning_content !== nextProps.message.reasoning_content) return false;
+
     const prevStepsLen = prevProps.message.steps?.length || 0;
     const nextStepsLen = nextProps.message.steps?.length || 0;
     if (prevStepsLen !== nextStepsLen) return false;

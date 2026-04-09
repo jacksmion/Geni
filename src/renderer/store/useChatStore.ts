@@ -14,11 +14,12 @@ interface ChatState {
     sessionMetas: { id: string, title?: string, updatedAt: number }[]
     activeSessionId: string
     isSending: boolean
-    activeTab: 'chat' | 'skills' | 'scheduler' | 'settings'
+    activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
     currentAgentEvent: any | null
     activeArtifact: ActiveArtifact | null
+    activeRunId: string | null
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -30,7 +31,7 @@ interface ChatState {
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
     setSending: (sending: boolean) => void
     setAgentEvent: (event: any | null) => void
-    setActiveTab: (tab: 'chat' | 'skills' | 'scheduler' | 'settings') => void
+    setActiveTab: (tab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings') => void
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
     clearPendingAttachments: () => void
@@ -38,6 +39,7 @@ interface ChatState {
     setActiveArtifact: (artifact: ActiveArtifact | null) => void
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
+    assignStaff: (sessionId: string, staffId: string | undefined) => void
 }
 
 // Helper: initial default session
@@ -62,6 +64,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     selectedSkillIds: null,
     currentAgentEvent: null,
     activeArtifact: null,
+    activeRunId: null,
 
     loadHistory: async () => {
         try {
@@ -225,6 +228,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
     },
 
+    assignStaff: async (id, staffId) => {
+        set(state => {
+            const session = state.sessions[id];
+            if (!session) return state;
+
+            const updated = { ...session, staffId };
+            return {
+                sessions: { ...state.sessions, [id]: updated }
+            };
+        });
+
+        try {
+            // we should also save to backend, passing staffId
+            await window.electronAPI.session.save({ id, staffId });
+        } catch (error) {
+            console.error('Failed to assign staff to session', id, ':', error);
+        }
+    },
+
     addMessage: (msg) => {
         const state = get();
         const session = state.sessions[state.activeSessionId];
@@ -245,7 +267,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let updatedMetas = state.sessionMetas;
         // Auto-title logic for first user message
         if (session.messages.length <= 1 && msg.role === 'user' && msg.content) {
-            const potentialTitle = msg.content.trim().slice(0, 20);
+            const textContent = typeof msg.content === 'string' 
+                ? msg.content 
+                : (Array.isArray(msg.content) ? msg.content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n') : '');
+            const potentialTitle = textContent.trim().slice(0, 20);
             if (potentialTitle) {
                 updatedSession.title = potentialTitle;
                 window.electronAPI.session.save({ id: session.id, title: potentialTitle });
@@ -327,17 +352,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (!currentSession) return;
 
         let finalPrompt = input;
+        const finalContent: any[] = [];
+        const fileAttachments: string[] = [];
 
         // 如果有附件，在 Prompt 前面追加上下文说明
         if (attachments.length > 0) {
-            const attachmentInfo = attachments.map(p => `- ${p}`).join('\n');
-            finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`;
+            for (const path of attachments) {
+                const ext = path.split('.').pop()?.toLowerCase();
+                if (ext && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const base64Data = await (window as any).electronAPI.system.readFileBase64(path);
+                        const mimeType = ext === 'jpg' ? 'jpeg' : ext;
+                        finalContent.push({
+                            type: 'image_url',
+                            image_url: { url: `data:image/${mimeType};base64,${base64Data}` }
+                        });
+                    } catch (e) {
+                        console.error('Failed to read image', path, e);
+                        fileAttachments.push(path);
+                    }
+                } else {
+                    fileAttachments.push(path);
+                }
+            }
+
+            if (fileAttachments.length > 0) {
+                const attachmentInfo = fileAttachments.map(p => `- ${p}`).join('\n');
+                finalPrompt = `[用户分享了以下文件供你参考，你可以使用工具读取其内容]:\n${attachmentInfo}\n\n${input}`;
+            }
         }
 
-        const userInput = input;
+        if (finalContent.length > 0) {
+            finalContent.push({ type: 'text', text: finalPrompt });
+        }
+
+        const userInput = finalContent.length > 0 ? finalContent : finalPrompt;
 
         // 1. Add User Message
-        addMessage({ role: 'user', content: userInput });
+        addMessage({ role: 'user', content: userInput as any });
 
         // 2. Add Placeholder for Assistant
         setSending(true);
@@ -375,6 +428,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 if (!isFlushingStream) {
                     isFlushingStream = true;
                     requestAnimationFrame(flushStream);
+                }
+            }
+        });
+
+        // --- Throttled Reasoning Stream Mechanism ---
+        let reasoningBuf = '';
+        let isFlushingReasoning = false;
+
+        const flushReasoning = () => {
+            if (!reasoningBuf) {
+                isFlushingReasoning = false;
+                return;
+            }
+
+            const chunkToFlush = reasoningBuf;
+            reasoningBuf = '';
+
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                reasoning_content: (msg.reasoning_content || '') + chunkToFlush
+            }));
+
+            requestAnimationFrame(flushReasoning);
+        };
+
+        const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((chunk: string, reset?: boolean) => {
+            if (reset) {
+                reasoningBuf = '';
+                get().updateLastMessage((msg) => ({ ...msg, reasoning_content: '' }));
+            } else {
+                reasoningBuf += chunk;
+                if (!isFlushingReasoning) {
+                    isFlushingReasoning = true;
+                    requestAnimationFrame(flushReasoning);
                 }
             }
         });
@@ -456,11 +543,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
             }
 
-            // Limit step UI updates more heavily since they're large objects
+            // Limit step UI updates more heavily since they're large objects.
+            // A coarser cadence keeps the renderer responsive while tools stream.
             setTimeout(() => {
                 if (pendingSteps) flushSteps();
                 else isFlushingSteps = false;
-            }, 100);
+            }, 250);
         };
 
         const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
@@ -484,13 +572,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
             get().setAgentEvent(event);
         });
 
+        // Track activeRunId from auth_request events (needed for ThoughtTrace inline auth)
+        const cleanupAuth = window.electronAPI.agent.onAuthorizationRequest((req: any) => {
+            if (req?.runId) {
+                set({ activeRunId: req.runId });
+            }
+        });
+
         try {
             // Start Agent
             const skillIds = get().selectedSkillIds;
+            const options: any = {};
+            if (skillIds !== null) options.skills = skillIds;
+            if (currentSession.staffId) options.staffId = currentSession.staffId;
+
             await window.electronAPI.agent.start({
                 sessionId: activeSessionId,
-                prompt: finalPrompt,
-                options: skillIds !== null ? { skills: skillIds } : undefined
+                prompt: userInput,
+                options: Object.keys(options).length > 0 ? options : undefined
             });
             // Result comes via stream/events
         } catch (err: any) {
@@ -501,11 +600,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }));
         } finally {
             cleanupStream();
+            cleanupReasoningStream();
             cleanupTrace();
             cleanupError();
             cleanupState();
+            cleanupAuth();
             get().setAgentEvent(null);
             get().setSending(false);
+            set({ activeRunId: null });
         }
     }
 }))

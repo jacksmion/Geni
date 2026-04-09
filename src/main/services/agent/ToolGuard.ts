@@ -1,12 +1,13 @@
 /**
- * ToolGuard.ts - 工具执行拦截器
- * 
- * Phase 1.4 实现: 在执行工具前检查权限，处理敏感操作
- * 
+ * ToolGuard.ts - 工具执行评估器
+ *
+ * Phase 5: 纯评估器，不再负责授权等待。
+ * 授权流程由 Executor 通过 AsyncGenerator yield/next 双向通信处理。
+ *
  * 功能:
  * - 根据工具的 trustLevel/dangerLevel 评估风险
- * - 对敏感操作请求用户授权
- * - 记录审计日志
+ * - 返回评估结果，由调用方决定如何处理
+ * - 支持 "记住决定" 以减少打扰
  */
 
 import { ITool, ToolDefinition } from '../../../common/types/tool';
@@ -33,6 +34,8 @@ export enum ToolTrustLevel {
 export interface ToolExecutionRequest {
     /** 唯一请求 ID（用户关联 UI） */
     requestId?: string;
+    /** 运行 ID（并发场景下标识归属 session） */
+    runId?: string;
     /** 工具名称 */
     toolName: string;
     /** 工具定义 */
@@ -58,26 +61,6 @@ export interface AuthorizationDecision {
 }
 
 /**
- * 用户授权上下文
- */
-export interface UserApprovalContext {
-    /** 是否批准 */
-    approved: boolean;
-    /** 用户消息 */
-    message?: string;
-    /** 是否记住此决定 */
-    rememberDecision?: boolean;
-}
-
-/**
- * 授权回调函数类型
- */
-export type AuthorizationCallback = (
-    request: ToolExecutionRequest,
-    decision: AuthorizationDecision
-) => Promise<UserApprovalContext>;
-
-/**
  * 已授权的工具模式（用于 "记住决定" 功能）
  */
 interface ApprovedPattern {
@@ -88,16 +71,15 @@ interface ApprovedPattern {
 }
 
 /**
- * ToolGuard - 工具执行拦截器
- * 
+ * ToolGuard - 工具执行评估器
+ *
  * 实现安全策略:
  * 1. 评估每个工具调用的风险级别
- * 2. 对高风险操作请求用户确认
+ * 2. 返回评估结果（是否需要用户确认）
  * 3. 支持 "记住决定" 以减少打扰
  */
 export class ToolGuard {
     private approvedPatterns: ApprovedPattern[] = [];
-    private authorizationCallback?: AuthorizationCallback;
 
     /**
      * 已知工具的信任级别映射
@@ -122,22 +104,11 @@ export class ToolGuard {
         'bash': ToolTrustLevel.Dangerous,
     };
 
-    constructor(authorizationCallback?: AuthorizationCallback) {
-        this.authorizationCallback = authorizationCallback;
-    }
-
-    /**
-     * 设置授权回调
-     */
-    setAuthorizationCallback(callback: AuthorizationCallback): void {
-        this.authorizationCallback = callback;
-    }
-
     /**
      * 获取工具的信任级别
      */
     getToolTrustLevel(toolName: string, tool?: ITool): ToolTrustLevel {
-        // 1. 检查工具实例是否明确声明了需要确认 (这来源于用户的配置或工具强制要求)
+        // 1. 检查工具实例是否明确声明了需要确认
         if (tool?.requireConfirmation !== undefined) {
             return tool.requireConfirmation ? ToolTrustLevel.High : ToolTrustLevel.Safe;
         }
@@ -196,7 +167,6 @@ export class ToolGuard {
                 };
 
             case ToolTrustLevel.Medium:
-                // 中等风险：可以自动允许，但记录日志
                 return {
                     allowed: true,
                     reason: 'Medium risk operation - proceeding with caution',
@@ -224,41 +194,10 @@ export class ToolGuard {
     }
 
     /**
-     * 检查工具执行是否需要授权，并在需要时请求授权
-     * 
-     * @returns 如果允许执行返回 true，否则返回 false
+     * 标记工具已被批准（由外部授权流程调用）
      */
-    async checkAuthorization(request: ToolExecutionRequest): Promise<boolean> {
-        const decision = this.evaluateRequest(request);
-
-        if (decision.allowed) {
-            return true;
-        }
-
-        if (!decision.requiresUserConfirmation) {
-            return false;
-        }
-
-        // 需要用户确认，但没有回调
-        if (!this.authorizationCallback) {
-            console.warn(
-                `[ToolGuard] Tool "${request.toolName}" requires user confirmation but no callback is set`
-            );
-            return true;
-        }
-
-        // 请求用户授权
-        const userDecision = await this.authorizationCallback(request, decision);
-
-        if (userDecision.approved) {
-            // 如果用户选择记住决定，记录批准
-            if (userDecision.rememberDecision) {
-                this.addApprovedPattern(request, 3600000); // 1 小时有效
-            }
-            return true;
-        }
-
-        return false;
+    markApproved(request: ToolExecutionRequest, ttl?: number): void {
+        this.addApprovedPattern(request, ttl ?? 3600000);
     }
 
     /**
@@ -300,7 +239,6 @@ export class ToolGuard {
         if (name.includes('bash') || name.includes('shell') || name.includes('cmd') || name === 'exec') {
             const cmd = args.command || args.cmd || '';
             if (cmd) {
-                // Detect specific dangerous patterns
                 if (/\brm\b.*-rf?\b/.test(cmd) || /\bdel\b/i.test(cmd) || /Remove-Item/i.test(cmd)) {
                     return '即将执行删除操作，请确认命令内容';
                 }

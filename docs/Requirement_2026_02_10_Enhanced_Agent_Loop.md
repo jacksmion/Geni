@@ -58,40 +58,47 @@ export interface AgentEventEnvelope {
 // ===== 语义事件（AgentRuntime 只产出这一层）=====
 // 采用辨识联合类型保证强类型
 export type AgentEvent =
-    | { type: 'agent_start'; payload: { taskDescription?: string } }
-    | { type: 'message_delta'; payload: {
-          delta: string;
-          isReasoning?: boolean;
-          contentType?: 'text' | 'image';  // 默认 'text'，向后兼容；未来可扩展 'audio' | 'video'
-          mediaUrl?: string;               // 当 contentType 非 text 时，指向资源
-      }}
-    | { type: 'tool_start'; payload: { toolCallId: string; toolName: string; args: Record<string, any> } }
-    | { type: 'tool_update'; payload: { toolCallId: string; progress?: number; output?: string } }
-    | { type: 'tool_end'; payload: { toolCallId: string; result: string; isError: boolean; duration: number } }
-    | { type: 'steering_detected'; payload: {
+    | { type: 'agent_start';      payload: { taskDescription?: string } }
+    | { type: 'turn_start';       payload: { turnIndex: number } }                          // 多轮边界：防止前端 delta 混淆
+    | { type: 'message_delta';    payload: { delta: string } }                              // 只负责文本内容增量，不再混入 isReasoning flag
+    | { type: 'reasoning_delta';  payload: { delta: string } }                              // 独立事件，与 IChatModel stream event 命名对称
+    | { type: 'tool_start';       payload: { toolCallId: string; toolName: string; args: Record<string, any> } }
+    | { type: 'tool_end';         payload: { toolCallId: string; result: string; isError: boolean; duration: number } }
+    | { type: 'turn_end';         payload: { turnIndex: number; hadToolCalls: boolean } }   // 标记本轮是否产生工具调用，供前端渲染决策
+    | { type: 'state_change';     payload: AgentStateEvent }                                // 合并原 setStateChangeCallback，统一进入 emit 管道
+    | { type: 'auth_request';     payload: { requestId: string; toolName: string; args: Record<string, any>; reason: string } }
+    | { type: 'steering_detected';payload: {
           newMessage: string | ContentPart[];  // 与 ChatMessage.content 对齐，支持图片干预
           skippedTools: string[];
       }}
-    | { type: 'auth_request'; payload: { requestId: string; toolName: string; args: Record<string, any>; reason: string } }
-    | { type: 'agent_end'; payload: {
-          finalAnswer: string | ContentPart[] | null;  // 与 ChatMessage.content 对齐
+    | { type: 'agent_end';        payload: {
           totalSteps: number;
-          newMessages: ChatMessage[];                   // 强类型替代 any[]，自动获得多模态能力
+          newMessages: ChatMessage[];  // finalAnswer 可从最后一条 assistant 消息提取，不单独维护以防不一致
       }}
-    | { type: 'error'; payload: { message: string; category?: string } };
+    | { type: 'error';            payload: { message: string; category?: ErrorCategory } }; // 对齐现有 ErrorClassifier，避免两套分类体系
 
 export type AgentEventType = AgentEvent['type'];  // 从联合类型自动推导，避免手动维护
 ```
+**设计决策说明**：
+- **`reasoning_delta` 独立**：不用 `isReasoning` flag，与 `IChatModel` 已有的 `reasoning_delta` stream event 对称，前端 switch-case 更清晰
+- **去掉 `tool_update`**：当前所有工具（`BashTool`、`ReadFileTool` 等）没有进度上报基础，`progress` 字段是无法实现的承诺；工具流式输出已通过 `onStream` 回调处理，现阶段够用，遵循 YAGNI
+- **去掉 `agent_end.finalAnswer`**：它等价于 `newMessages` 最后一条 `assistant.content`，重复维护容易产生不一致
+- **新增 `turn_start` / `turn_end`**：多轮 LLM 调用时（如循环 10 次），前端需要知道每轮的边界，否则 `message_delta` 混在一起无法独立渲染
+- **`state_change` 合并进 emit**：原来的 `setStateChangeCallback` 和 `setAuthorizationCallback` 是独立的实例级 setter，与统一事件流设计矛盾；全部走 `emit` 管道，Controller 统一订阅
+- **`error.category` 对齐 `ErrorCategory`**：项目已有 `ErrorClassifier.ts`，`string` 类型会引发两套分类体系并存
+
 **益处**：
 - **Runtime 职责单一**：只关心"发生了什么事"，不需要感知 sessionId
-- **Controller / Gateway 负责包装**：在转发时打上 `sessionId` + `timestamp`，语义更准确（时间戳反映发送时间而非产出时间）
-- **前端收到完整的 `AgentEventEnvelope`**：通过 `event.type` 做 switch 即享有类型提示
+- **Controller / Gateway 负责包装**：在转发时打上 `sessionId` + `timestamp`，语义更准确
+- **前端收到完整的 `AgentEventEnvelope`**：通过 `event.type` 做 switch 即享有完整类型提示
 
 ### 2.2 核心双循环结构与 IAgentService 重构
 
 **重构 `IAgent.ts` 接口**：
 ```typescript
 interface IAgentService {
+    // emit 替代原有的 onStream、onStepUpdate、setStateChangeCallback、setAuthorizationCallback
+    // 所有事件统一从单一管道流出，Controller 负责分发
     run(
         prompt: string,
         tools: ITool[],
@@ -100,6 +107,8 @@ interface IAgentService {
     ): Promise<{ success: boolean; reason?: string }>;
 }
 ```
+
+> **迁移注意**：`AgentController` 中现有的 `setStateChangeCallback` 和 `setAuthorizationCallback` 两个实例级 setter 在 Phase 4（旧系统剥离）时一并废弃，Phase 1-3 双向兼容期内两者并存。
 
 **双循环重塑 `AgentRuntime.run(emit)`**：
 - **外部大循环 (Turn Loop)**：调用 LLM，监听流式推流。
@@ -158,14 +167,17 @@ string | null  →  string | ContentPart[] | null
 
 | 事件类型 | 是否需要改 | 原因 |
 |:---------|:----------:|:-----|
-| `agent_start` | ⚪ 不需要 | 生命周期信号，不含用户/模型内容 |
-| `message_delta` | 🔴 需要 | 增加 `contentType` + `mediaUrl` 可选字段，向后兼容 |
+| `agent_start` | ⚪ 不需要 | 生命周期信号，不含内容 |
+| `turn_start` | ⚪ 不需要 | 仅含 `turnIndex`，无内容字段 |
+| `message_delta` | ⚪ 不需要 | 已精简为 `{ delta: string }`，图片不走 delta 流 |
+| `reasoning_delta` | ⚪ 不需要 | 同上，推理内容始终为文本 |
 | `tool_start` | ⚪ 不需要 | 工具元信息，不含内容 |
-| `tool_update` | ⚪ 不需要 | `output?: string` 足够，工具进度无需多模态 |
-| `tool_end` | ⚪ 推迟 | `result: string` 目前够用；等有图片生成工具需求时再评估 |
-| `steering_detected` | 🔴 需要 | `newMessage` 对齐 `ChatMessage.content`，支持图片干预 |
+| `tool_end` | ⚪ 推迟 | `result: string` 目前够用；等图片生成工具落地时再评估 |
+| `turn_end` | ⚪ 不需要 | 纯元信息字段 |
+| `state_change` | ⚪ 不需要 | 纯状态信号 |
 | `auth_request` | ⚪ 不需要 | 纯控制信号 |
-| `agent_end` | 🔴 需要 | `finalAnswer` 对齐 `ChatMessage.content`；`newMessages` 改 `any[]` → `ChatMessage[]` |
+| `steering_detected` | 🔴 需要 | `newMessage` 对齐 `ChatMessage.content`，支持图片干预 |
+| `agent_end` | ⚪ 简化 | 去掉 `finalAnswer`，`newMessages: ChatMessage[]` 已覆盖 |
 | `error` | ⚪ 不需要 | 错误信息始终为文本 |
 
 **入口适配 — `AgentStartRequest`**：

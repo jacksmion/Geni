@@ -1,4 +1,4 @@
-import { ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from '../agent/ToolGuard';
+import { ToolExecutionRequest, AuthorizationDecision } from '../agent/ToolGuard';
 
 export interface IMMessage {
     sessionId: string;
@@ -10,6 +10,15 @@ export interface IMMessage {
 export interface SendOptions {
     throttleMs?: number;
     isComplete?: boolean;
+}
+
+export interface UserApprovalContext {
+    /** 是否批准 */
+    approved: boolean;
+    /** 用户消息 */
+    message?: string;
+    /** 是否记住此决定 */
+    rememberDecision?: boolean;
 }
 
 export interface IIMAdapter {
@@ -29,6 +38,6 @@ export interface IIMAdapter {
     sendOrUpdateMessage(sessionId: string, content: string, options?: SendOptions): Promise<void>;
     sendChatAction?(sessionId: string, action: 'typing' | 'upload_document'): Promise<void>;
     clearSession?(sessionId: string): void;
-    
+
     testConnection?(config: any): Promise<{ success: boolean; message: string }>;
 }

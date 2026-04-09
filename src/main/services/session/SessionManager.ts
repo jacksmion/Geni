@@ -49,7 +49,6 @@ export class SessionManager {
         }
 
         // 2. 尝试从磁盘加载
-        console.log(`[SessionManager] Loading session ${id} from disk...`);
         const session = await this.storage.loadSession(id);
         if (session) {
             this.sessions.set(id, session);
@@ -97,10 +96,26 @@ export class SessionManager {
             session.messages.push(enrichedMessage);
             session.updatedAt = Date.now();
 
-            console.log(`[SessionManager] Message added to ${id}. Total messages: ${session.messages.length}`);
             this.storage.saveSession(session);
         } else {
-            console.warn(`[SessionManager] Session NOT FOUND: ${id}. Cannot add message.`);
+            // Auto-create session for external callers (IM, Scheduler) using fixed IDs
+            const newSession: ChatSession = {
+                id,
+                title: id,
+                messages: [],
+                variables: {},
+                activeSkillIds: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            const enrichedMessage: ChatMessage = {
+                ...message,
+                id: message.id || randomUUID(),
+                timestamp: message.timestamp || Date.now(),
+            };
+            newSession.messages.push(enrichedMessage);
+            this.sessions.set(id, newSession);
+            await this.storage.saveSession(newSession);
         }
     }
 

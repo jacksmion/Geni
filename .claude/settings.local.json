@@ -4,11 +4,19 @@
       "Bash(echo:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Read(//d/tmp/openclaw/**)",
-      "Read(//d/workspace/Geni/$HOME/**)",
-      "Bash(node:*)",
-      "Read(//d/workspace/Geni_Subscription/**)",
-      "Bash(npx tsc:*)"
+      "Bash(find /d/workspace/Geni/src/main/services/agent -type f -name \"*.ts\" 2>/dev/null | head -30)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 | head -30)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 | head -40)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 | head -20)",
+      "Bash(cd D:/workspace/Geni && npx vitest run tests/common/types/staff-type.test.ts 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 | head -10)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 | head -10 && npx vitest run tests/main/services/agent/types.test.ts 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx vitest run tests/main/services/tools/ToolRegistry.filter.test.ts 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx vitest run 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx vitest run tests/main/services/agent/ToolGuard.test.ts 2>&1)",
+      "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 && npx vitest run 2>&1)",
+      "Bash(find /d/workspace/Geni/src -name \"*ontroller*\" -type f 2>/dev/null | head -20)"
     ]
   }
 }

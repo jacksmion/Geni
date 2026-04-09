@@ -303,9 +303,33 @@
     "sidebar": {
         "chat": "任务",
         "skills": "技能",
+        "staff": "团队",
         "scheduler": "自动化",
         "settings": "设置",
         "lightMode": "切换到浅色模式",
         "darkMode": "切换到深色模式"
+    },
+    "staffPage": {
+        "title": "数字员工",
+        "subtitle": "管理你的虚拟团队成员",
+        "create": "创建员工",
+        "empty": "还没有数字员工",
+        "emptyDesc": "创建你的第一个数字员工，赋予它独特的人格、技能和记忆。",
+        "name": "名称",
+        "description": "描述",
+        "persona": "人格描述 (System Prompt)",
+        "personaPlaceholder": "定义这个员工的身份、专长和行为风格...",
+        "skills": "技能",
+        "model": "模型",
+        "modelDefault": "使用全局默认模型",
+        "modelDesc": "留空则使用全局模型设置",
+        "skillPlaceholder": "选择技能（可多选）",
+        "save": "保存",
+        "cancel": "取消",
+        "delete": "删除",
+        "deleteConfirm": "确定要删除这个数字员工吗？",
+        "namePlaceholder": "例如: 前端架构师",
+        "descriptionPlaceholder": "一句话介绍这位员工...",
+        "back": "返回列表"
     }
 }

@@ -1,5 +1,4 @@
-
-import { AgentStep } from '../../main/services/agent/IAgent';
+import { ContentPart } from './chat';
 
 /**
  * IPC Payload Definitions
@@ -7,16 +6,17 @@ import { AgentStep } from '../../main/services/agent/IAgent';
 
 export interface AgentStartRequest {
     sessionId?: string;
-    prompt: string;
+    prompt: string | ContentPart[];
     options?: {
         model?: string;
         skills?: string[]; // skill IDs
+        staffId?: string;  // 绑定的数字员工 ID
     };
 }
 
 export interface AgentStartResponse {
     success: boolean;
-    sessionId?: string; // Add this
+    sessionId?: string;
     error?: string;
 }
 
@@ -25,15 +25,21 @@ export interface SessionCreateResponse {
     createdAt: number;
 }
 
-/**
- * Event Payloads
- */
-
+/** Legacy IPC payloads */
 export interface AgentStreamEventPayload {
     content: string;
     isReset?: boolean;
 }
 
 export interface AgentStepEventPayload {
-    steps: any[]; // Changed back
+    steps: any[];
+}
+
+/** Controller → UI 状态变更事件 */
+export interface AgentStateEvent {
+    previousState: string;
+    currentState: string;
+    message?: string;
+    metadata?: Record<string, any>;
+    timestamp: number;
 }
