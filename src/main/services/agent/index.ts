@@ -17,9 +17,7 @@ export type { AgentStateEvent } from './state/AgentState';
 export { ToolGuard, ToolTrustLevel, defaultToolGuard } from './ToolGuard';
 export type {
     ToolExecutionRequest,
-    AuthorizationDecision,
-    UserApprovalContext,
-    AuthorizationCallback
+    AuthorizationDecision
 } from './ToolGuard';
 
 // Context & Summarization

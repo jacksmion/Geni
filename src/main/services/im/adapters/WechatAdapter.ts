@@ -1,5 +1,6 @@
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
-import { ToolExecutionRequest, AuthorizationDecision, UserApprovalContext } from '../../agent/ToolGuard';
+import { ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
+import { UserApprovalContext } from '../IIMAdapter';
 import { login, start, isLoggedIn, logout, type Agent } from 'weixin-agent-sdk';
 import { BrowserWindow } from 'electron';
 import { SYSTEM_EVENTS } from '../../../../common/ipc/channels';

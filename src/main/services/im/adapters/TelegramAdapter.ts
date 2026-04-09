@@ -3,7 +3,8 @@ import { run, RunnerHandle } from '@grammyjs/runner';
 import fetch from 'node-fetch';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { IIMAdapter, IMMessage, SendOptions } from '../IIMAdapter';
-import { UserApprovalContext, ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
+import { ToolExecutionRequest, AuthorizationDecision } from '../../agent/ToolGuard';
+import { UserApprovalContext } from '../IIMAdapter';
 import { TelegramConfig } from '../../../../common/types/settings';
 import throttle from 'lodash/throttle';
 

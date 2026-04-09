@@ -4,7 +4,6 @@ import { ITool } from '@/common/types/tool';
 
 describe('ToolGuard', () => {
     let mockTool: ITool;
-    const mockCallback = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -46,7 +45,7 @@ describe('ToolGuard', () => {
         });
     });
 
-    describe('checkAuthorization (callback mode — legacy)', () => {
+    describe('evaluateRequest', () => {
         let requestTemplate: ToolExecutionRequest;
 
         beforeEach(() => {
@@ -58,179 +57,104 @@ describe('ToolGuard', () => {
             };
         });
 
-        it('should automatically allow Safe and Low/Medium risk tools without callback', async () => {
-            const guard = new ToolGuard(mockCallback);
+        it('should automatically allow Safe tools', () => {
+            const guard = new ToolGuard();
             guard.registerToolTrustLevel('safe_custom', ToolTrustLevel.Safe);
 
-            const isAllowed = await guard.checkAuthorization({ ...requestTemplate, toolName: 'safe_custom' });
+            const decision = guard.evaluateRequest({ ...requestTemplate, toolName: 'safe_custom' });
 
-            expect(isAllowed).toBe(true);
-            expect(mockCallback).not.toHaveBeenCalled();
+            expect(decision.allowed).toBe(true);
+            expect(decision.requiresUserConfirmation).toBe(false);
         });
 
-        it('should block High risk tools if no callback is provided, but falls back to returning true with a warning (fail open in headless)', async () => {
-            const guard = new ToolGuard(); // NO callback
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+        it('should require user confirmation for High risk tools', () => {
+            const guard = new ToolGuard();
 
-            const isAllowed = await guard.checkAuthorization({ ...requestTemplate, toolName: 'bash' });
+            const decision = guard.evaluateRequest({ ...requestTemplate, toolName: 'bash' });
 
-            expect(isAllowed).toBe(true);
-            expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('no callback or emit'));
+            expect(decision.allowed).toBe(false);
+            expect(decision.requiresUserConfirmation).toBe(true);
         });
 
-        it('should execute callback and return false if user denies High risk tool', async () => {
-            mockCallback.mockResolvedValueOnce({ approved: false });
-            const guard = new ToolGuard(mockCallback);
+        it('should require user confirmation for Dangerous tools', () => {
+            const guard = new ToolGuard();
 
-            const isAllowed = await guard.checkAuthorization({ ...requestTemplate, toolName: 'bash' });
+            const decision = guard.evaluateRequest({ ...requestTemplate, toolName: 'delete_folder' });
 
-            expect(isAllowed).toBe(false);
-            expect(mockCallback).toHaveBeenCalledTimes(1);
+            expect(decision.allowed).toBe(false);
+            expect(decision.requiresUserConfirmation).toBe(true);
         });
 
-        it('should execute callback and return true if user approves High risk tool', async () => {
-            mockCallback.mockResolvedValueOnce({ approved: true, rememberDecision: false });
-            const guard = new ToolGuard(mockCallback);
+        it('should auto-allow Medium risk tools', () => {
+            const guard = new ToolGuard();
 
-            const isAllowed = await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_folder' });
+            const decision = guard.evaluateRequest({ ...requestTemplate, toolName: 'some_tool' });
 
-            expect(isAllowed).toBe(true);
-            expect(mockCallback).toHaveBeenCalledTimes(1);
-
-            // Verify memory (rememberDecision was false, so next call should prompt again)
-            mockCallback.mockResolvedValueOnce({ approved: true });
-            await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_folder' });
-            expect(mockCallback).toHaveBeenCalledTimes(2);
+            expect(decision.allowed).toBe(true);
+            expect(decision.requiresUserConfirmation).toBe(false);
         });
 
-        it('should remember user decision and bypass callback if TTL is active', async () => {
-            mockCallback.mockResolvedValueOnce({ approved: true, rememberDecision: true });
-            const guard = new ToolGuard(mockCallback);
+        it('should bypass confirmation if tool was previously approved via markApproved', () => {
+            const guard = new ToolGuard();
+            const request = { ...requestTemplate, toolName: 'bash', args: { command: 'ls' } };
 
-            // First call triggers callback
-            const firstResult = await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_action' });
-            expect(firstResult).toBe(true);
-            expect(mockCallback).toHaveBeenCalledTimes(1);
+            // First call: needs confirmation
+            const firstDecision = guard.evaluateRequest(request);
+            expect(firstDecision.requiresUserConfirmation).toBe(true);
 
-            // Second call bypassing callback due to TTL memory
-            const secondResult = await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_action' });
-            expect(secondResult).toBe(true);
-            expect(mockCallback).toHaveBeenCalledTimes(1); // STILL 1 !
+            // Mark as approved
+            guard.markApproved(request);
 
-            // Clear memory
+            // Second call: auto-approved
+            const secondDecision = guard.evaluateRequest(request);
+            expect(secondDecision.allowed).toBe(true);
+            expect(secondDecision.requiresUserConfirmation).toBe(false);
+            expect(secondDecision.reason).toBe('Previously approved by user');
+        });
+
+        it('should forget approvals after clearApprovedPatterns', () => {
+            const guard = new ToolGuard();
+            const request = { ...requestTemplate, toolName: 'bash' };
+
+            guard.markApproved(request);
+            expect(guard.evaluateRequest(request).allowed).toBe(true);
+
             guard.clearApprovedPatterns();
+            expect(guard.evaluateRequest(request).requiresUserConfirmation).toBe(true);
+        });
 
-            // Third call triggers callback again
-            mockCallback.mockResolvedValueOnce({ approved: false });
-            const thirdResult = await guard.checkAuthorization({ ...requestTemplate, toolName: 'delete_action' });
-            expect(thirdResult).toBe(false);
-            expect(mockCallback).toHaveBeenCalledTimes(2);
+        it('should generate human-readable reason for bash commands', () => {
+            const guard = new ToolGuard();
+            const request = { ...requestTemplate, toolName: 'bash', args: { command: 'rm -rf /' } };
+
+            const decision = guard.evaluateRequest(request);
+            expect(decision.reason).toContain('删除');
+        });
+
+        it('should generate human-readable reason for npm install', () => {
+            const guard = new ToolGuard();
+            const request = { ...requestTemplate, toolName: 'bash', args: { command: 'npm install foo' } };
+
+            const decision = guard.evaluateRequest(request);
+            expect(decision.reason).toContain('安装');
         });
     });
 
-    describe('checkAuthorization (emit+resolve mode — new)', () => {
-        let requestTemplate: ToolExecutionRequest;
-        let emittedEvents: any[];
-
-        beforeEach(() => {
-            emittedEvents = [];
-            requestTemplate = {
-                toolName: 'bash',
-                definition: {} as any,
-                args: { command: 'rm -rf /' },
-                tool: mockTool,
-            };
+    describe('registerToolTrustLevel / registerToolTrustLevels', () => {
+        it('should register a single trust level', () => {
+            const guard = new ToolGuard();
+            guard.registerToolTrustLevel('my_tool', ToolTrustLevel.Safe);
+            expect(guard.getToolTrustLevel('my_tool')).toBe(ToolTrustLevel.Safe);
         });
 
-        it('should emit auth_request event and wait for resolve() when emit is set', async () => {
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(undefined, emit);
-
-            // Start authorization (will hang until resolved)
-            const authPromise = guard.checkAuthorization(requestTemplate);
-
-            // Should have emitted auth_request
-            expect(emittedEvents).toHaveLength(1);
-            expect(emittedEvents[0].type).toBe('auth_request');
-            expect(emittedEvents[0].payload.toolName).toBe('bash');
-            expect(emittedEvents[0].payload.args).toEqual({ command: 'rm -rf /' });
-
-            // Resolve with approval
-            const requestId = emittedEvents[0].payload.requestId;
-            guard.resolve(requestId, true);
-
-            const result = await authPromise;
-            expect(result).toBe(true);
-        });
-
-        it('should return false when resolve() is called with false', async () => {
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(undefined, emit);
-
-            const authPromise = guard.checkAuthorization(requestTemplate);
-            const requestId = emittedEvents[0].payload.requestId;
-            guard.resolve(requestId, false);
-
-            const result = await authPromise;
-            expect(result).toBe(false);
-        });
-
-        it('should include runId in auth_request payload', async () => {
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(undefined, emit);
-
-            const req = { ...requestTemplate, runId: 'run-123' };
-            const authPromise = guard.checkAuthorization(req);
-
-            expect(emittedEvents[0].payload.runId).toBe('run-123');
-
-            guard.resolve(emittedEvents[0].payload.requestId, true);
-            await authPromise;
-        });
-
-        it('should prefer emit mode over callback mode', async () => {
-            const callback = vi.fn();
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(callback, emit);
-
-            const authPromise = guard.checkAuthorization(requestTemplate);
-
-            // Should use emit, not callback
-            expect(emittedEvents).toHaveLength(1);
-            expect(callback).not.toHaveBeenCalled();
-
-            guard.resolve(emittedEvents[0].payload.requestId, true);
-            await authPromise;
-        });
-
-        it('should auto-allow safe tools without emitting', async () => {
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(undefined, emit);
-
-            const result = await guard.checkAuthorization({ ...requestTemplate, toolName: 'read' });
-            expect(result).toBe(true);
-            expect(emittedEvents).toHaveLength(0);
-        });
-
-        it('should remember approved patterns after resolve', async () => {
-            const emit = (event: any) => emittedEvents.push(event);
-            const guard = new ToolGuard(undefined, emit);
-
-            // First call: emit + resolve
-            const firstPromise = guard.checkAuthorization(requestTemplate);
-            guard.resolve(emittedEvents[0].payload.requestId, true);
-            expect(await firstPromise).toBe(true);
-
-            // Second call: should be auto-approved (remembered)
-            const secondResult = await guard.checkAuthorization(requestTemplate);
-            expect(secondResult).toBe(true);
-            expect(emittedEvents).toHaveLength(1); // Only one emit, not two
-        });
-
-        it('should ignore resolve() for unknown requestId', () => {
-            const guard = new ToolGuard(undefined, (event: any) => {});
-            // Should not throw
-            guard.resolve('unknown-id', true);
+        it('should batch register trust levels', () => {
+            const guard = new ToolGuard();
+            guard.registerToolTrustLevels({
+                'tool_a': ToolTrustLevel.Safe,
+                'tool_b': ToolTrustLevel.Dangerous
+            });
+            expect(guard.getToolTrustLevel('tool_a')).toBe(ToolTrustLevel.Safe);
+            expect(guard.getToolTrustLevel('tool_b')).toBe(ToolTrustLevel.Dangerous);
         });
     });
 });

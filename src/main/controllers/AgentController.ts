@@ -2,7 +2,7 @@
 import { ipcMain, IpcMainInvokeEvent, WebContents } from 'electron';
 import { AGENT_CHANNELS, AGENT_EVENTS } from '../../common/ipc/channels';
 import { AgentStartRequest, AgentStartResponse } from '../../common/types/agentEvents';
-import { AgentRuntime } from '../services/agent/runtime/AgentRuntime';
+import { DefaultAgentRuntime } from '../services/agent/runtime/DefaultAgentRuntime';
 import { AgentRunRequest, AgentEvent as InternalAgentEvent } from '../services/agent/types';
 import { SessionManager } from '../services/session';
 import { AppSettings } from '../../common/types/settings';
@@ -13,8 +13,10 @@ import { AgentStep } from '../../common/types/chat';
 /**
  * AgentController — IPC 薄壳层
  *
- * Phase 4: 纯协议转换，不含业务逻辑。
+ * Phase 5: 纯协议转换，不含业务逻辑。
  * 职责：接收 IPC 请求 → 构建 Agent/Request → 调用 Runtime → 转发事件到 UI
+ * 授权路径：auth_request 经 emit 转发到 UI，用户响应通过 IPC 回到 Controller，
+ * Controller 通过 runtime.resolveAuth() 通知 Runtime 内部的 pending resolver。
  */
 export class AgentController {
     private activeWebContents: WebContents | null = null;
@@ -34,7 +36,7 @@ export class AgentController {
     private activeRunId: string | null = null;
 
     constructor(
-        private runtime: AgentRuntime,
+        private runtime: DefaultAgentRuntime,
         settings: AppSettings,
         staffManager: StaffManager,
         sessionManager: SessionManager
@@ -56,10 +58,10 @@ export class AgentController {
         ipcMain.handle(AGENT_CHANNELS.START, this.handleStart.bind(this));
         ipcMain.handle(AGENT_CHANNELS.STOP, this.handleStop.bind(this));
 
-        // Auth response: bridge from IPC → Runtime → ToolGuard
+        // Auth response: bridge from IPC → Runtime's pending auth resolver
         ipcMain.on(AGENT_CHANNELS.AUTHORIZATION_RESPONSE, (_e, res) => {
-            if (res?.runId && res?.requestId) {
-                this.runtime.resolveAuth(res.runId, res.requestId, res.approved);
+            if (res?.requestId) {
+                this.runtime.resolveAuth(res.requestId, res.approved);
             }
         });
     }
@@ -110,12 +112,25 @@ export class AgentController {
                     this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
                     break;
                 }
-                case 'auth_request':
+                case 'auth_request': {
+                    // Add auth step to activeSteps so ThoughtTrace shows inline auth UI
+                    const { requestId, toolName, args, reason } = event.payload;
+                    const authStep: AgentStep = {
+                        tool: toolName,
+                        toolInput: JSON.stringify(args),
+                        isComplete: false,
+                        isWaitingAuthorization: true,
+                        authRequestId: requestId,
+                        authReason: reason
+                    };
+                    this.activeSteps.push(authStep);
+                    this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
                     this.broadcast(AGENT_EVENTS.AUTHORIZATION_REQUEST, {
                         ...event.payload,
                         runId
                     });
                     break;
+                }
                 case 'agent_end':
                     this.flushThrottledEvents();
                     this.broadcast(AGENT_EVENTS.STATE_CHANGE, {
@@ -162,7 +177,7 @@ export class AgentController {
             // 4. Build Agent from payload
             const agent = this.resolveAgent(payload);
 
-            // 5. Build request
+            // 5. Build request — emit forwards events from Runtime to Controller's IPC layer
             const request: AgentRunRequest = {
                 sessionId: sid,
                 prompt,

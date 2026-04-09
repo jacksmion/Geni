@@ -6,6 +6,9 @@
  * - Skill 解析、Tool 过滤、History 加载
  * - Memory 检索、System Prompt 组装
  * - 消息持久化
+ *
+ * Phase 5: 消费 Executor 的 AsyncGenerator，处理 auth_request 双向通信。
+ * emit 闭包由调用方（Controller / IMServiceManager）提供，不再通过 AgentRunRequest 传递。
  */
 
 import type { Agent } from '../../../../common/types/agent';
@@ -13,7 +16,7 @@ import type { AppSettings } from '../../../../common/types/settings';
 import type { ChatMessage } from '../../../../common/types/chat';
 import type { Skill } from '../../../../common/types/skill';
 import type { SkillObject } from '../../skills/core/SkillParser';
-import { AgentContext, AgentRunRequest, AgentRunResult, extractTextFromPrompt } from '../types';
+import { AgentContext, AgentRunRequest, AgentRunResult, AgentEvent, extractTextFromPrompt } from '../types';
 import { AgentRuntime } from './AgentRuntime';
 import { AgentExecutor } from '../executor/AgentExecutor';
 import { ToolRegistry } from '../../tools/ToolRegistry';
@@ -22,7 +25,6 @@ import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { MemoryStore } from '../../memory/MemoryStore';
 import { UsageManager } from '../../usage/UsageManager';
 import { PromptBuilder } from '../PromptBuilder';
-import { ToolGuard } from '../ToolGuard';
 
 interface MemoryEntry {
     title: string;
@@ -43,8 +45,12 @@ export class DefaultAgentRuntime implements AgentRuntime {
     private executor: AgentExecutor;
     private promptBuilder: PromptBuilder;
     private knowledgeMemory: KnowledgeMemory;
-    /** 活跃 ToolGuard 映射 (runId → ToolGuard) */
-    private activeGuards = new Map<string, ToolGuard>();
+    /**
+     * Pending auth resolvers: requestId → resolve callback.
+     * When Executor yields auth_request, we register a resolver here.
+     * When user responds (via Controller/IM emit closure), the resolver is called.
+     */
+    private pendingAuthResolvers = new Map<string, (approved: boolean) => void>();
 
     constructor(
         settings: AppSettings,
@@ -121,6 +127,17 @@ export class DefaultAgentRuntime implements AgentRuntime {
         this.promptBuilder.updateConfig({ defaultBasePrompt: settings.systemPrompt });
     }
 
+    /**
+     * Resolve a pending auth request. Called by the emit closure when user responds.
+     */
+    resolveAuth(requestId: string, approved: boolean): void {
+        const resolve = this.pendingAuthResolvers.get(requestId);
+        if (resolve) {
+            this.pendingAuthResolvers.delete(requestId);
+            resolve(approved);
+        }
+    }
+
     async run(agent: Agent, request: AgentRunRequest): Promise<AgentRunResult> {
         const runId = crypto.randomUUID();
 
@@ -160,23 +177,39 @@ export class DefaultAgentRuntime implements AgentRuntime {
             agent,
             messages,
             tools,
-            signal: request.signal,
-            emit: request.emit,
-            registerToolGuard: (guard: ToolGuard) => {
-                this.activeGuards.set(runId, guard);
-            }
+            signal: request.signal
         };
 
         let result: AgentRunResult | undefined;
         const iterator = this.executor.execute(context, request);
+
+        const emit = request.emit;
+
         let iteration = await iterator.next();
 
         while (!iteration.done) {
             const event = iteration.value;
-            if (event.type === 'error') {
-                console.error('[DefaultAgentRuntime] Executor error:', event.payload.message);
+
+            if (event.type === 'auth_request') {
+                // Forward auth_request to UI via emit
+                emit?.(event);
+
+                // Register a resolver that feeds the user's decision back to the generator
+                const { requestId } = event.payload;
+                const authPromise = new Promise<boolean>((resolve) => {
+                    this.pendingAuthResolvers.set(requestId, resolve);
+                });
+
+                const approved = await authPromise;
+                iteration = await iterator.next(approved);
+            } else {
+                // Forward other events via emit
+                if (event.type === 'error') {
+                    console.error('[DefaultAgentRuntime] Executor error:', event.payload.message);
+                }
+                emit?.(event);
+                iteration = await iterator.next();
             }
-            iteration = await iterator.next();
         }
         result = iteration.value;
 
@@ -186,20 +219,7 @@ export class DefaultAgentRuntime implements AgentRuntime {
             }
         }
 
-        // Cleanup guard after execution
-        this.activeGuards.delete(runId);
-
         return result!;
-    }
-
-    /**
-     * 桥接授权响应到 Executor 内部的 ToolGuard
-     */
-    resolveAuth(runId: string, requestId: string, approved: boolean): void {
-        const guard = this.activeGuards.get(runId);
-        if (guard) {
-            guard.resolve(requestId, approved);
-        }
     }
 
     private getSkillObjects(skillIds: string[] | undefined): SkillObject[] {

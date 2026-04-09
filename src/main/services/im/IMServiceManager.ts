@@ -4,9 +4,8 @@ import { ToolRegistry } from '../tools/ToolRegistry';
 import { SessionManager } from '../session';
 import { ToolController } from '../../controllers/ToolController';
 import { Agent } from '../../../common/types/agent';
-import { AgentRuntime } from '../agent/runtime/AgentRuntime';
+import { DefaultAgentRuntime } from '../agent/runtime/DefaultAgentRuntime';
 import { AgentRunRequest, AgentEvent } from '../agent/types';
-import { ToolExecutionRequest, AuthorizationDecision, ToolTrustLevel } from '../agent/ToolGuard';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
 import { LarkAdapter } from './adapters/LarkAdapter';
@@ -19,14 +18,14 @@ export class IMServiceManager {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private abortControllers = new Map<string, AbortController>();
-    private runtime: AgentRuntime;
+    private runtime: DefaultAgentRuntime;
 
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        runtime: AgentRuntime
+        runtime: DefaultAgentRuntime
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;
@@ -125,7 +124,7 @@ export class IMServiceManager {
             console.warn(`[IMServiceManager] Wechat adapter not found in registered adapters!`);
         }
     }
-    
+
     /**
      * Proactively push a message to a specific IM session
      * @param sessionId The targeted IM session ID (e.g. "tg_123456")
@@ -133,7 +132,7 @@ export class IMServiceManager {
      */
     public async pushMessage(sessionId: string, content: string): Promise<void> {
         let providerId = sessionId.split('_')[0];
-        
+
         // Simple mapping to handle shorthand prefixes
         if (providerId === 'tg') providerId = 'telegram';
 
@@ -149,7 +148,7 @@ export class IMServiceManager {
             console.error(`[IMServiceManager] Failed to push message to ${sessionId}:`, error);
         }
     }
-    
+
     public async testConnection(providerId: string, config: any): Promise<{ success: boolean; message: string }> {
         const adapter = this.adapters.get(providerId);
         if (!adapter || !adapter.testConnection) {
@@ -195,7 +194,7 @@ export class IMServiceManager {
         const enabledSkillObjects = this.toolController.getEnabledSkillObjects();
         const skillIds = enabledSkillObjects.map(obj => obj.id);
 
-        // 4. Build request with unified emit callback
+        // 4. Build request with emit callback for IM streaming
         let outputBuffer = '';
         let isNewRound = false;
 
@@ -221,23 +220,29 @@ export class IMServiceManager {
                         adapter.sendChatAction(msg.sessionId, 'typing').catch(() => {});
                     }
                     break;
-                case 'auth_request': {
-                    // IM auth handled via adapter — construct minimal ToolExecutionRequest
-                    const authReq: ToolExecutionRequest = {
-                        requestId: event.payload.requestId,
-                        toolName: event.payload.toolName,
-                        args: event.payload.args,
-                        definition: { name: event.payload.toolName, description: '', input_schema: { type: 'object', properties: {} } },
-                        tool: null as any,
-                    };
-                    const authDecision: AuthorizationDecision = { allowed: true, reason: event.payload.reason, requiresUserConfirmation: true, trustLevel: ToolTrustLevel.High };
-                    adapter.requestAuthorization(msg.sessionId, authReq, authDecision).then(ctx => {
-                        this.runtime.resolveAuth('', event.payload.requestId, ctx.approved);
+                case 'auth_request':
+                    // IM auth: auto-approve after adapter prompts user
+                    adapter.requestAuthorization(
+                        msg.sessionId,
+                        {
+                            requestId: event.payload.requestId,
+                            toolName: event.payload.toolName,
+                            args: event.payload.args,
+                            definition: { name: event.payload.toolName, description: '', input_schema: { type: 'object', properties: {} } },
+                            tool: null as any,
+                        },
+                        {
+                            allowed: true,
+                            reason: event.payload.reason,
+                            requiresUserConfirmation: true,
+                            trustLevel: 'High' as any
+                        }
+                    ).then(ctx => {
+                        this.runtime.resolveAuth(event.payload.requestId, ctx.approved);
                     }).catch(() => {
-                        this.runtime.resolveAuth('', event.payload.requestId, false);
+                        this.runtime.resolveAuth(event.payload.requestId, false);
                     });
                     break;
-                }
             }
         };
 

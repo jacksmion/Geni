@@ -5,7 +5,6 @@
 import type { Agent } from '../../../common/types/agent';
 import type { ChatMessage, ContentPart, AgentStep } from '../../../common/types/chat';
 import type { ToolRegistry } from '../tools/ToolRegistry';
-import type { ToolGuard } from './ToolGuard';
 
 // ============================================================================
 // AgentEvent — 内部执行层事件类型
@@ -31,6 +30,12 @@ export interface AgentRunRequest {
     prompt: string | ContentPart[];
     /** 不传 history — Runtime 内部通过 sessionId 加载 */
     signal?: AbortSignal;
+
+    /**
+     * 事件转发回调 — 由调用方（Controller / IMServiceManager）提供。
+     * Runtime 消费 Executor 的 generator 后，通过此回调将事件转发给上层。
+     * Executor 不使用此回调（通过 yield 产出事件）。
+     */
     emit?: (event: AgentEvent) => void;
 
     /** 运行时覆盖（覆盖 Agent 配置默认值） */
@@ -72,16 +77,6 @@ export interface AgentContext {
 
     /** 取消信号 */
     signal?: AbortSignal;
-
-    /** 事件发射器 — Executor 通过此回调向 Controller 发送事件 */
-    emit?: (event: AgentEvent) => void;
-
-    /**
-     * ToolGuard 注册回调
-     * Executor 创建 ToolGuard 后通过此回调注册到 Runtime，
-     * 以便 Runtime 桥接授权响应。
-     */
-    registerToolGuard?: (guard: ToolGuard) => void;
 }
 
 // ============================================================================
