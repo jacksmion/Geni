@@ -39,4 +39,4 @@ export type {
 export { DefaultAgentRuntime } from './runtime/DefaultAgentRuntime';
 
 // Executor 层
-export { DefaultAgenticExecutor } from './executor/DefaultAgenticExecutor';
+export { ReActExecutor } from './executor/ReActExecutor';

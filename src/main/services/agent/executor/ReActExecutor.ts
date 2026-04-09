@@ -1,5 +1,5 @@
 /**
- * DefaultAgenticExecutor.ts - Executor 层默认实现
+ * ReActExecutor.ts - Executor 层默认实现
  *
  * 职责：
  * - 推理策略：think → act → observe 循环
@@ -30,7 +30,7 @@ interface ToolCallAccumulator {
     type: string;
 }
 
-export class DefaultAgenticExecutor implements AgentExecutor {
+export class ReActExecutor implements AgentExecutor {
     private contextManager: ContextManager;
     private summarizer: Summarizer;
 
@@ -122,7 +122,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
             try {
                 optimized = await this.summarizer.summarize(optimized, chatModel);
             } catch (e) {
-                console.warn('[DefaultAgenticExecutor] Summarization failed:', e);
+                console.warn('[ReActExecutor] Summarization failed:', e);
             }
         }
 
@@ -299,7 +299,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
                     },
                     DEFAULT_TOOL_RETRY,
                     (attempt, error) => {
-                        console.log(`[DefaultAgenticExecutor] Tool ${fnName} failed, retry ${attempt}:`, error.message);
+                        console.log(`[ReActExecutor] Tool ${fnName} failed, retry ${attempt}:`, error.message);
                         stateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName} (Retry ${attempt})`, { tool: fnName });
                     },
                     signal
@@ -406,7 +406,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
     }
 
     private async *handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[]): AsyncGenerator<AgentEvent, AgentRunResult> {
-        console.error('[DefaultAgenticExecutor] Error:', error);
+        console.error('[ReActExecutor] Error:', error);
         const classified = classifyError(error);
         const state = classified.category === ErrorCategory.Aborted ? AgentState.Aborted : AgentState.Error;
         let finalMessage = `Error: ${classified.message}`;

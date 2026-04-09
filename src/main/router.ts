@@ -23,7 +23,7 @@ import { UpdateController } from './controllers/UpdateController';
 import { StaffManager } from './services/staff/StaffManager';
 import { StaffController } from './controllers/StaffController';
 import { DefaultAgentRuntime } from './services/agent/runtime/DefaultAgentRuntime';
-import { DefaultAgenticExecutor } from './services/agent/executor/DefaultAgenticExecutor';
+import { ReActExecutor } from './services/agent/executor/ReActExecutor';
 import { LLMClientFactory } from './services/llm/IChatModel';
 import { createChatModel } from './services/llm/ChatModelFactory';
 import { Agent } from '../common/types/agent';
@@ -100,7 +100,7 @@ export class AppRouter {
                 temperature
             });
         };
-        const executor = new DefaultAgenticExecutor(llmFactory, settings);
+        const executor = new ReActExecutor(llmFactory, settings);
         const runtime = new DefaultAgentRuntime(
             settings,
             this.toolRegistry,
