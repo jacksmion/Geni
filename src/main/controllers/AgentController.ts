@@ -27,6 +27,7 @@ export class AgentController {
 
     // Throttling (stream only)
     private streamBuffer: string = '';
+    private reasoningBuffer: string = '';
     private throttleTimer: NodeJS.Timeout | null = null;
     private throttleRef: number = 0;
     private readonly THROTTLE_MS = 120;
@@ -74,7 +75,9 @@ export class AgentController {
                 case 'turn_start':
                     if (event.payload.resetStream) {
                         this.flushThrottledEvents();
+                        this.reasoningBuffer = '';
                         this.broadcast(AGENT_EVENTS.STREAM, { content: '', isReset: true });
+                        this.broadcast(AGENT_EVENTS.REASONING_STREAM, { content: '', isReset: true });
                     }
                     // Derive state_change
                     this.broadcast(AGENT_EVENTS.STATE_CHANGE, {
@@ -85,8 +88,10 @@ export class AgentController {
                     });
                     break;
                 case 'message_delta':
-                case 'reasoning_delta':
                     this.streamBuffer += event.payload.delta;
+                    break;
+                case 'reasoning_delta':
+                    this.reasoningBuffer += event.payload.delta;
                     break;
                 case 'tool_start':
                     this.activeSteps.push(event.payload);
@@ -287,6 +292,10 @@ export class AgentController {
         if (this.streamBuffer) {
             this.activeWebContents.send(AGENT_EVENTS.STREAM, { content: this.streamBuffer, isReset: false });
             this.streamBuffer = '';
+        }
+        if (this.reasoningBuffer) {
+            this.activeWebContents.send(AGENT_EVENTS.REASONING_STREAM, { content: this.reasoningBuffer, isReset: false });
+            this.reasoningBuffer = '';
         }
     }
 

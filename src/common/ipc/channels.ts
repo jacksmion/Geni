@@ -25,6 +25,7 @@ export const SESSION_CHANNELS = {
 // Agent Events (Server -> Client)
 export const AGENT_EVENTS = {
     STREAM: 'agent:stream',         // Content delta
+    REASONING_STREAM: 'agent:reasoning-stream', // Reasoning delta (thinking process)
     STEP_UPDATE: 'agent:step',      // Thought/Tool execution update
     STATE_CHANGE: 'agent:state',    // Idle/Thinking/etc
     ERROR: 'agent:error',           // Fatal error

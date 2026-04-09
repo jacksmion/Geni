@@ -345,6 +345,14 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
+                        {/* Reasoning / Thinking Process */}
+                        {message.reasoning_content && (
+                            <ThinkingBlock
+                                content={message.reasoning_content}
+                                isComplete={!isStreaming}
+                            />
+                        )}
+
                         {/* Thoughts/Tools */}
                         {message.steps && message.steps.length > 0 && (
                             <div className="mb-4 w-full">

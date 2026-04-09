@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('agent:stream', sub)
             return () => ipcRenderer.removeListener('agent:stream', sub)
         },
+        onReasoningStream: (callback: (chunk: string, reset?: boolean) => void) => {
+            const sub = (_: any, payload: { content: string, isReset?: boolean }) => callback(payload.content, payload.isReset)
+            ipcRenderer.on('agent:reasoning-stream', sub)
+            return () => ipcRenderer.removeListener('agent:reasoning-stream', sub)
+        },
         onStepUpdate: (callback: (steps: any[]) => void) => {
             const sub = (_: any, payload: { steps: any[] }) => callback(payload.steps)
             ipcRenderer.on('agent:step', sub)

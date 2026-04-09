@@ -8,6 +8,7 @@ export interface IElectronAPI {
         stop: (sessionId?: string) => Promise<void>;
         getState: () => Promise<string>;
         onStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
+        onReasoningStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
         onStepUpdate: (callback: (steps: any[]) => void) => () => void;
         onStateChange: (callback: (state: any) => void) => () => void;
         onError: (callback: (error: any) => void) => () => void;

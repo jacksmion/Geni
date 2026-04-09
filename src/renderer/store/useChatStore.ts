@@ -432,6 +432,40 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }
         });
 
+        // --- Throttled Reasoning Stream Mechanism ---
+        let reasoningBuf = '';
+        let isFlushingReasoning = false;
+
+        const flushReasoning = () => {
+            if (!reasoningBuf) {
+                isFlushingReasoning = false;
+                return;
+            }
+
+            const chunkToFlush = reasoningBuf;
+            reasoningBuf = '';
+
+            get().updateLastMessage((msg) => ({
+                ...msg,
+                reasoning_content: (msg.reasoning_content || '') + chunkToFlush
+            }));
+
+            requestAnimationFrame(flushReasoning);
+        };
+
+        const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((chunk: string, reset?: boolean) => {
+            if (reset) {
+                reasoningBuf = '';
+                get().updateLastMessage((msg) => ({ ...msg, reasoning_content: '' }));
+            } else {
+                reasoningBuf += chunk;
+                if (!isFlushingReasoning) {
+                    isFlushingReasoning = true;
+                    requestAnimationFrame(flushReasoning);
+                }
+            }
+        });
+
         // --- Throttled Step Update Mechanism ---
         let pendingSteps: any[] | null = null;
         let isFlushingSteps = false;
@@ -566,6 +600,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }));
         } finally {
             cleanupStream();
+            cleanupReasoningStream();
             cleanupTrace();
             cleanupError();
             cleanupState();
