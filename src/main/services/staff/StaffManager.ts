@@ -46,7 +46,7 @@ export class StaffManager {
             name: raw.name,
             modelId: raw.modelId ?? (raw.provider && raw.model
                 ? `${raw.provider}/${raw.model}`
-                : raw.modelId ?? 'openai/gpt-4o'),
+                : undefined),
             systemPrompt: raw.systemPrompt ?? raw.persona,
             temperature: raw.temperature,
             skillIds: raw.skillIds,
@@ -110,7 +110,7 @@ export class StaffManager {
         const profile: StaffProfile = {
             id,
             name: input.name,
-            modelId: input.modelId ?? 'openai/gpt-4o',
+            modelId: input.modelId || '',
             systemPrompt: input.systemPrompt,
             temperature: input.temperature,
             skillIds: input.skillIds || [],

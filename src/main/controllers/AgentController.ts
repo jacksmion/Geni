@@ -225,7 +225,15 @@ export class AgentController {
         const staffId = payload.options?.staffId;
         if (staffId) {
             const profile = this.staffManager.get(staffId);
-            if (profile) return profile; // StaffProfile extends Agent
+            if (profile) {
+                // Merge: staff fields override base, but fall back to global defaults
+                return {
+                    ...base,
+                    ...profile,
+                    modelId: profile.modelId || base.modelId,
+                    systemPrompt: profile.systemPrompt || base.systemPrompt,
+                };
+            }
         }
 
         // Model override from payload
