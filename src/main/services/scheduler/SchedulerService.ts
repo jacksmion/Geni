@@ -295,7 +295,9 @@ export class SchedulerService {
                 sessionId,
                 prompt: task.prompt,
                 signal: controller.signal,
-                skillIds: skillIds.length > 0 ? skillIds : undefined
+                skillIds: skillIds.length > 0 ? skillIds : undefined,
+                workspacePath: this.settings.workspacePath,
+                language: this.settings.language
             };
 
             // 4. Execute via unified runtime

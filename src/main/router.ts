@@ -102,7 +102,6 @@ export class AppRouter {
         };
         const executor = new ReActExecutor(llmFactory, settings);
         const runtime = new AgentRuntime(
-            settings,
             this.toolRegistry,
             this.sessionManager,
             this.skillRegistry,

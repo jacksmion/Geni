@@ -49,7 +49,6 @@ export class AgentController {
 
     public updateSettings(settings: AppSettings) {
         this.settings = settings;
-        this.runtime.updateSettings(settings);
     }
 
     /**
@@ -171,7 +170,9 @@ export class AgentController {
                 prompt,
                 signal: controller.signal,
                 emit: this.buildEmitFn(runId),
-                skillIds: options?.skills
+                skillIds: options?.skills,
+                workspacePath: this.settings.workspacePath,
+                language: this.settings.language
             };
 
             // 6. Run with throttling

@@ -251,7 +251,9 @@ export class IMServiceManager {
             prompt: msg.content,
             signal: controller.signal,
             emit,
-            skillIds: skillIds.length > 0 ? skillIds : undefined
+            skillIds: skillIds.length > 0 ? skillIds : undefined,
+            workspacePath: this.settings.workspacePath,
+            language: this.settings.language
         };
 
         try {

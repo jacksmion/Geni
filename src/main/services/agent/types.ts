@@ -43,6 +43,11 @@ export interface AgentRunRequest {
     /** 运行时覆盖（覆盖 Agent 配置默认值） */
     skillIds?: string[];
     toolNames?: string[];
+
+    /** 所属工作空间路径 */
+    workspacePath?: string;
+    /** 工作语言 */
+    language?: 'zh' | 'en';
 }
 
 export interface AgentRunResult {

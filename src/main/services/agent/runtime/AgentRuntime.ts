@@ -8,11 +8,9 @@
  * - 消息持久化
  *
  * Phase 5: 消费 Executor 的 AsyncGenerator，处理 auth_request 双向通信。
- * emit 闭包由调用方（Controller / IMServiceManager）提供，不再通过 AgentRunRequest 传递。
  */
 
 import type { Agent } from '../../../../common/types/agent';
-import type { AppSettings } from '../../../../common/types/settings';
 import type { ChatMessage } from '../../../../common/types/chat';
 import type { Skill } from '../../../../common/types/skill';
 import type { SkillObject } from '../../skills/core/SkillParser';
@@ -35,7 +33,6 @@ interface KnowledgeMemory {
 }
 
 export class AgentRuntime {
-    private settings: AppSettings;
     private toolRegistry: ToolRegistry;
     private sessionManager: SessionManager;
     private skillRegistry: SkillRegistry;
@@ -52,7 +49,6 @@ export class AgentRuntime {
     private pendingAuthResolvers = new Map<string, (approved: boolean) => void>();
 
     constructor(
-        settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         skillRegistry: SkillRegistry,
@@ -60,16 +56,13 @@ export class AgentRuntime {
         usageManager: UsageManager,
         executor: AgentExecutor
     ) {
-        this.settings = settings;
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.skillRegistry = skillRegistry;
         this.memoryStore = memoryStore;
         this.usageManager = usageManager;
         this.executor = executor;
-        this.promptBuilder = new PromptBuilder({
-            defaultBasePrompt: settings.systemPrompt
-        });
+        this.promptBuilder = new PromptBuilder();
 
         this.knowledgeMemory = {
             search: async (query: string, options?: { agentId?: string; k?: number }): Promise<Array<{ id: string; text: string; score: number }>> => {
@@ -121,11 +114,6 @@ export class AgentRuntime {
         return score;
     }
 
-    updateSettings(settings: AppSettings): void {
-        this.settings = settings;
-        this.promptBuilder.updateConfig({ defaultBasePrompt: settings.systemPrompt });
-    }
-
     /**
      * Resolve a pending auth request. Called by the emit closure when user responds.
      */
@@ -158,10 +146,10 @@ export class AgentRuntime {
         );
 
         const systemPrompt = this.promptBuilder.buildSystemPrompt({
-            basePrompt: agent.systemPrompt || this.settings.systemPrompt,
-            workspacePath: this.settings.workspacePath,
+            basePrompt: agent.systemPrompt,
+            workspacePath: request.workspacePath,
             skills: skills,
-            language: this.settings.language,
+            language: request.language,
             memory: memories.length > 0 ? memories.map(m => m.text).join('\n\n') : undefined
         });
 
