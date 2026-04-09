@@ -398,60 +398,125 @@ export const useChatStore = create<ChatState>((set, get) => ({
         clearPendingAttachments();
         get().setActiveArtifact(null); // Clear previous artifact on new message
 
-        // --- Throttled Stream Mechanism ---
-        let streamBuffer = '';
-        let isFlushingStream = false;
+        // --- Unified Stream Mechanism ---
+        // Merges content, reasoning, and step updates into a single RAF loop.
+        // Reduces React re-renders from ~180/sec to ~60/sec during streaming.
+        let contentBuf = '';
+        let reasoningBuf = '';
+        let pendingSteps: any[] | null = null;
+        let isFlushing = false;
+        let lastStepFlushTime = 0;
+        const STEP_THROTTLE_MS = 250;
 
-        const flushStream = () => {
-            if (!streamBuffer) {
-                isFlushingStream = false;
+        const scheduleFlush = () => {
+            if (!isFlushing) {
+                isFlushing = true;
+                requestAnimationFrame(flushUnified);
+            }
+        };
+
+        const flushUnified = () => {
+            const now = Date.now();
+            const hasContent = !!contentBuf;
+            const hasReasoning = !!reasoningBuf;
+            const shouldFlushSteps = pendingSteps !== null && (now - lastStepFlushTime >= STEP_THROTTLE_MS);
+
+            if (!hasContent && !hasReasoning && !shouldFlushSteps) {
+                isFlushing = false;
+                // Safety: ensure pending steps get flushed when throttle expires
+                if (pendingSteps) {
+                    setTimeout(scheduleFlush, STEP_THROTTLE_MS - (now - lastStepFlushTime));
+                }
                 return;
             }
 
-            const chunkToFlush = streamBuffer;
-            streamBuffer = '';
+            const chunkContent = contentBuf;
+            const chunkReasoning = reasoningBuf;
+            const stepsToFlush = shouldFlushSteps ? pendingSteps : null;
+
+            contentBuf = '';
+            reasoningBuf = '';
+            if (shouldFlushSteps) {
+                pendingSteps = null;
+                lastStepFlushTime = now;
+            }
 
             get().updateLastMessage((msg) => ({
                 ...msg,
-                content: msg.content + chunkToFlush
+                ...(hasContent ? { content: msg.content + chunkContent } : {}),
+                ...(hasReasoning ? { reasoning_content: (msg.reasoning_content || '') + chunkReasoning } : {}),
+                ...(shouldFlushSteps && stepsToFlush ? { steps: stepsToFlush } : {}),
             }));
 
-            requestAnimationFrame(flushStream);
+            // Artifact logic (only when steps are flushed)
+            if (stepsToFlush) {
+                let latestArtifact: ActiveArtifact | null = get().activeArtifact;
+                for (const step of stepsToFlush) {
+                    if (step.tool === 'write' || step.tool === 'edit') {
+                        if (step.toolInput) {
+                            const { path, content } = extractPathAndContent(step.toolInput, step.tool);
+                            if (path || content) {
+                                latestArtifact = {
+                                    toolName: step.tool,
+                                    path: path || '...',
+                                    content: content
+                                };
+                            }
+                        }
+                    } else if (step.tool === 'bash') {
+                        let cmd = '> bash';
+                        try {
+                            const parsed = JSON.parse(step.toolInput || '{}');
+                            if (parsed.command || parsed.cmd) cmd = '> ' + (parsed.command || parsed.cmd);
+                        } catch {
+                            const cmdMatch = (step.toolInput || '').match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
+                            if (cmdMatch) cmd = '> ' + cmdMatch[1];
+                        }
+
+                        if (step.observation || step.streamingObservation || step.toolInput) {
+                            latestArtifact = {
+                                toolName: step.tool,
+                                path: cmd,
+                                content: step.observation || step.streamingObservation || 'Running...'
+                            };
+                        }
+                    } else if (step.tool === 'read') {
+                        if (step.observation) {
+                            const { path } = extractPathAndContent(step.toolInput || '{}');
+                            latestArtifact = {
+                                toolName: step.tool,
+                                path: path || '...',
+                                content: step.observation
+                            };
+                        }
+                    }
+                }
+
+                if (latestArtifact) {
+                    const { autoOpenArtifact } = useSettingsStore.getState().settings;
+                    const currentArtifact = get().activeArtifact;
+                    const isDifferent = latestArtifact.path !== currentArtifact?.path || latestArtifact.content !== currentArtifact?.content;
+
+                    if (isDifferent) {
+                        if (autoOpenArtifact || currentArtifact !== null) {
+                            get().setActiveArtifact(latestArtifact);
+                        }
+                    }
+                }
+            }
+
+            requestAnimationFrame(flushUnified);
         };
 
         const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
             if (reset) {
-                streamBuffer = '';
+                contentBuf = '';
                 get().updateLastMessage((msg) => ({ ...msg, content: chunk }));
             } else {
-                streamBuffer += chunk;
-                if (!isFlushingStream) {
-                    isFlushingStream = true;
-                    requestAnimationFrame(flushStream);
-                }
+                contentBuf += chunk;
+                scheduleFlush();
             }
         });
-
-        // --- Throttled Reasoning Stream Mechanism ---
-        let reasoningBuf = '';
-        let isFlushingReasoning = false;
-
-        const flushReasoning = () => {
-            if (!reasoningBuf) {
-                isFlushingReasoning = false;
-                return;
-            }
-
-            const chunkToFlush = reasoningBuf;
-            reasoningBuf = '';
-
-            get().updateLastMessage((msg) => ({
-                ...msg,
-                reasoning_content: (msg.reasoning_content || '') + chunkToFlush
-            }));
-
-            requestAnimationFrame(flushReasoning);
-        };
 
         const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((chunk: string, reset?: boolean) => {
             if (reset) {
@@ -459,103 +524,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 get().updateLastMessage((msg) => ({ ...msg, reasoning_content: '' }));
             } else {
                 reasoningBuf += chunk;
-                if (!isFlushingReasoning) {
-                    isFlushingReasoning = true;
-                    requestAnimationFrame(flushReasoning);
-                }
+                scheduleFlush();
             }
         });
 
-        // --- Throttled Step Update Mechanism ---
-        let pendingSteps: any[] | null = null;
-        let isFlushingSteps = false;
-
-        // Parse partial JSON to extract path and content
-        // using the shared utility from utils/artifact.ts
-
-        const flushSteps = () => {
-            if (!pendingSteps) {
-                isFlushingSteps = false;
-                return;
-            }
-
-            const stepsToFlush = pendingSteps;
-            pendingSteps = null;
-
-            get().updateLastMessage((msg) => ({
-                ...msg,
-                steps: stepsToFlush
-            }));
-
-            // Check for active artifact (write, edit, read, bash)
-            let latestArtifact: ActiveArtifact | null = get().activeArtifact;
-            for (const step of stepsToFlush) {
-                if (step.tool === 'write' || step.tool === 'edit') {
-                    if (step.toolInput) {
-                        const { path, content } = extractPathAndContent(step.toolInput, step.tool);
-                        if (path || content) {
-                            latestArtifact = {
-                                toolName: step.tool,
-                                path: path || '...',
-                                content: content
-                            };
-                        }
-                    }
-                } else if (step.tool === 'bash') {
-                    let cmd = '> bash';
-                    try {
-                        const parsed = JSON.parse(step.toolInput || '{}');
-                        if (parsed.command || parsed.cmd) cmd = '> ' + (parsed.command || parsed.cmd);
-                    } catch {
-                        const cmdMatch = (step.toolInput || '').match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
-                        if (cmdMatch) cmd = '> ' + cmdMatch[1];
-                    }
-
-                    if (step.observation || step.streamingObservation || step.toolInput) {
-                        latestArtifact = {
-                            toolName: step.tool,
-                            path: cmd,
-                            content: step.observation || step.streamingObservation || 'Running...'
-                        };
-                    }
-                } else if (step.tool === 'read') {
-                    if (step.observation) {
-                        const { path } = extractPathAndContent(step.toolInput || '{}');
-                        latestArtifact = {
-                            toolName: step.tool,
-                            path: path || '...',
-                            content: step.observation
-                        };
-                    }
-                }
-            }
-
-            if (latestArtifact) {
-                const { autoOpenArtifact } = useSettingsStore.getState().settings;
-                const currentArtifact = get().activeArtifact;
-                const isDifferent = latestArtifact.path !== currentArtifact?.path || latestArtifact.content !== currentArtifact?.content;
-
-                if (isDifferent) {
-                    // Only auto-open if setting is enabled OR if the panel is already open (to keep it updated)
-                    if (autoOpenArtifact || currentArtifact !== null) {
-                        get().setActiveArtifact(latestArtifact);
-                    }
-                }
-            }
-
-            // Limit step UI updates more heavily since they're large objects.
-            // A coarser cadence keeps the renderer responsive while tools stream.
-            setTimeout(() => {
-                if (pendingSteps) flushSteps();
-                else isFlushingSteps = false;
-            }, 250);
-        };
-
         const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
             pendingSteps = steps;
-            if (!isFlushingSteps) {
-                isFlushingSteps = true;
-                flushSteps();
+            const now = Date.now();
+            if (now - lastStepFlushTime >= STEP_THROTTLE_MS) {
+                scheduleFlush();
+            } else if (!isFlushing) {
+                setTimeout(scheduleFlush, STEP_THROTTLE_MS - (now - lastStepFlushTime));
             }
         });
 

@@ -99,10 +99,13 @@ export class ReActExecutor implements AgentExecutor {
 
         const recent = steps.slice(-STUCK_DETECTION_WINDOW);
 
-        // All recent steps are the same tool
+        // All recent steps are the same tool with the same input
         const toolNames = recent.map(s => s.tool);
         if (toolNames.length > 0 && new Set(toolNames).size === 1) {
-            return true;
+            const inputs = recent.map(s => s.toolInput || '');
+            if (new Set(inputs).size === 1) {
+                return true;
+            }
         }
 
         // All recent steps are errors

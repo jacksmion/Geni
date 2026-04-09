@@ -17,7 +17,8 @@
       "Bash(cd D:/workspace/Geni && npx vitest run tests/main/services/agent/ToolGuard.test.ts 2>&1)",
       "Bash(cd D:/workspace/Geni && npx tsc --noEmit 2>&1 && npx vitest run 2>&1)",
       "Bash(find /d/workspace/Geni/src -name \"*ontroller*\" -type f 2>/dev/null | head -20)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
