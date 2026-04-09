@@ -2,7 +2,7 @@
 import { ipcMain, IpcMainInvokeEvent, WebContents } from 'electron';
 import { AGENT_CHANNELS, AGENT_EVENTS } from '../../common/ipc/channels';
 import { AgentStartRequest, AgentStartResponse } from '../../common/types/agentEvents';
-import { DefaultAgentRuntime } from '../services/agent/runtime/DefaultAgentRuntime';
+import { AgentRuntime } from '../services/agent/runtime/AgentRuntime';
 import { AgentRunRequest, AgentEvent as InternalAgentEvent } from '../services/agent/types';
 import { SessionManager } from '../services/session';
 import { AppSettings } from '../../common/types/settings';
@@ -37,7 +37,7 @@ export class AgentController {
     private activeRunId: string | null = null;
 
     constructor(
-        private runtime: DefaultAgentRuntime,
+        private runtime: AgentRuntime,
         settings: AppSettings,
         staffManager: StaffManager,
         sessionManager: SessionManager

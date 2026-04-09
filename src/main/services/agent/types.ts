@@ -56,7 +56,7 @@ export interface AgentRunResult {
 // ============================================================================
 
 /**
- * 由 DefaultAgentRuntime 构建，注入到 AgentExecutor。
+ * 由 AgentRuntime 构建，注入到 AgentExecutor。
  * 生命周期：一次 run() 调用 → 一个 AgentContext 实例。
  *
  * 设计原则：

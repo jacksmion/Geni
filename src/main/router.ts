@@ -22,7 +22,7 @@ import { UpdateService } from './services/update/UpdateService';
 import { UpdateController } from './controllers/UpdateController';
 import { StaffManager } from './services/staff/StaffManager';
 import { StaffController } from './controllers/StaffController';
-import { DefaultAgentRuntime } from './services/agent/runtime/DefaultAgentRuntime';
+import { AgentRuntime } from './services/agent/runtime/AgentRuntime';
 import { ReActExecutor } from './services/agent/executor/ReActExecutor';
 import { LLMClientFactory } from './services/llm/IChatModel';
 import { createChatModel } from './services/llm/ChatModelFactory';
@@ -101,7 +101,7 @@ export class AppRouter {
             });
         };
         const executor = new ReActExecutor(llmFactory, settings);
-        const runtime = new DefaultAgentRuntime(
+        const runtime = new AgentRuntime(
             settings,
             this.toolRegistry,
             this.sessionManager,

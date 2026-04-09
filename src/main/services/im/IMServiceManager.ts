@@ -4,7 +4,7 @@ import { ToolRegistry } from '../tools/ToolRegistry';
 import { SessionManager } from '../session';
 import { ToolController } from '../../controllers/ToolController';
 import { Agent } from '../../../common/types/agent';
-import { DefaultAgentRuntime } from '../agent/runtime/DefaultAgentRuntime';
+import { AgentRuntime } from '../agent/runtime/AgentRuntime';
 import { AgentRunRequest, AgentEvent } from '../agent/types';
 import { TelegramAdapter } from './adapters/TelegramAdapter';
 import { WeComAdapter } from './adapters/WeComAdapter';
@@ -18,14 +18,14 @@ export class IMServiceManager {
     private sessionManager: SessionManager;
     private toolController: ToolController;
     private abortControllers = new Map<string, AbortController>();
-    private runtime: DefaultAgentRuntime;
+    private runtime: AgentRuntime;
 
     constructor(
         settings: AppSettings,
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         toolController: ToolController,
-        runtime: DefaultAgentRuntime
+        runtime: AgentRuntime
     ) {
         this.settings = settings;
         this.toolRegistry = toolRegistry;

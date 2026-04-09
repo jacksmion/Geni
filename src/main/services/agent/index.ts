@@ -36,7 +36,7 @@ export type {
 } from './types';
 
 // Runtime 层
-export { DefaultAgentRuntime } from './runtime/DefaultAgentRuntime';
+export { AgentRuntime } from './runtime/AgentRuntime';
 
 // Executor 层
 export { ReActExecutor } from './executor/ReActExecutor';
