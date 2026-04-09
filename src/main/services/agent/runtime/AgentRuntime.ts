@@ -17,4 +17,9 @@ import type { AppSettings } from '../../../../common/types/settings';
 export interface AgentRuntime {
     run(agent: Agent, request: AgentRunRequest): Promise<AgentRunResult>;
     updateSettings(settings: AppSettings): void;
+    /**
+     * Phase 4: 桥接授权响应到 Executor 内部的 ToolGuard
+     * Phase 5 切换到 AsyncGenerator stream.next() 后移除
+     */
+    resolveAuth(runId: string, requestId: string, approved: boolean): void;
 }

@@ -19,6 +19,7 @@ interface ChatState {
     selectedSkillIds: string[] | null
     currentAgentEvent: any | null
     activeArtifact: ActiveArtifact | null
+    activeRunId: string | null
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -63,6 +64,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     selectedSkillIds: null,
     currentAgentEvent: null,
     activeArtifact: null,
+    activeRunId: null,
 
     loadHistory: async () => {
         try {
@@ -536,6 +538,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
             get().setAgentEvent(event);
         });
 
+        // Track activeRunId from auth_request events (needed for ThoughtTrace inline auth)
+        const cleanupAuth = window.electronAPI.agent.onAuthorizationRequest((req: any) => {
+            if (req?.runId) {
+                set({ activeRunId: req.runId });
+            }
+        });
+
         try {
             // Start Agent
             const skillIds = get().selectedSkillIds;
@@ -560,8 +569,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
             cleanupTrace();
             cleanupError();
             cleanupState();
+            cleanupAuth();
             get().setAgentEvent(null);
             get().setSending(false);
+            set({ activeRunId: null });
         }
     }
 }))

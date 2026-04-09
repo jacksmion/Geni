@@ -14,6 +14,7 @@ import type { Agent } from '../../../common/types/agent';
 import type { ChatMessage } from '../../../common/types/chat';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import type { AgentEvent } from './types';
+import type { ToolGuard } from './ToolGuard';
 
 export interface AgentContext {
     /** 唯一运行标识，用于日志追踪 */
@@ -33,4 +34,11 @@ export interface AgentContext {
 
     /** 事件发射器 — Executor 通过此回调向 Controller 发送事件 */
     emit?: (event: AgentEvent) => void;
+
+    /**
+     * Phase 4: ToolGuard 注册回调
+     * Executor 创建 ToolGuard 后通过此回调注册到 Runtime，
+     * 以便 Runtime 桥接授权响应。Phase 5 切换到 AsyncGenerator 后移除。
+     */
+    registerToolGuard?: (guard: ToolGuard) => void;
 }

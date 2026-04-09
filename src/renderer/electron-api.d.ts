@@ -12,7 +12,8 @@ export interface IElectronAPI {
         onStateChange: (callback: (state: any) => void) => () => void;
         onError: (callback: (error: any) => void) => () => void;
         onAuthorizationRequest: (callback: (request: any) => void) => () => void;
-        respondToAuthorization: (response: { requestId: string, approved: boolean, remember?: boolean }) => void;
+        respondToAuthorization: (response: { requestId: string, approved: boolean, remember?: boolean, runId?: string }) => void;
+        onAgentEvent: (callback: (event: any) => void) => () => void;
     };
 
     // Session Namespace

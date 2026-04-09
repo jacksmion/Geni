@@ -53,6 +53,7 @@ export class DefaultAgenticExecutor implements AgentExecutor {
         const { messages, tools, signal, agent, emit } = context;
         const llm = this.llmFactory(agent);
         const toolGuard = new ToolGuard(undefined, emit);
+        context.registerToolGuard?.(toolGuard);
         const stateManager = new AgentStateManager();
         const newMessages: ChatMessage[] = [];
         const steps: AgentStep[] = [];

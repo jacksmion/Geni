@@ -29,6 +29,7 @@ export const AGENT_EVENTS = {
     STATE_CHANGE: 'agent:state',    // Idle/Thinking/etc
     ERROR: 'agent:error',           // Fatal error
     AUTHORIZATION_REQUEST: 'agent:authorization-request', // Permission required
+    AGENT_EVENT: 'agent:event',     // Phase 4: unified event channel
 } as const;
 
 export const SYSTEM_CHANNELS = {

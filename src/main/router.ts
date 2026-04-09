@@ -1,5 +1,5 @@
 
-import { AppSettings } from '../common/types/settings';
+import { AppSettings, DEFAULT_PROVIDER_CONFIGS } from '../common/types/settings';
 import { ToolRegistry } from './services/tools/ToolRegistry';
 import { SessionManager } from './services/session';
 import { AgentController } from './controllers/AgentController';
@@ -22,6 +22,11 @@ import { UpdateService } from './services/update/UpdateService';
 import { UpdateController } from './controllers/UpdateController';
 import { StaffManager } from './services/staff/StaffManager';
 import { StaffController } from './controllers/StaffController';
+import { DefaultAgentRuntime } from './services/agent/runtime/DefaultAgentRuntime';
+import { DefaultAgenticExecutor } from './services/agent/executor/DefaultAgenticExecutor';
+import { LLMClientFactory } from './services/llm/IChatModel';
+import { createChatModel } from './services/llm/ChatModelFactory';
+import { Agent } from '../common/types/agent';
 import { app } from 'electron';
 
 /**
@@ -100,14 +105,35 @@ export class AppRouter {
         this.schedulerController = new SchedulerController(this.schedulerService);
         this.coreToolManager.setSchedulerService(this.schedulerService);
 
-        this.agentController = new AgentController(
+        // Phase 4: Three-layer architecture wiring
+        const llmFactory: LLMClientFactory = (agent: Agent) => {
+            const [provider, ...rest] = agent.modelId.split('/');
+            const model = rest.join('/') || 'gpt-4o';
+            const providers = settings.llm.providers || {};
+            const config = providers[provider] || DEFAULT_PROVIDER_CONFIGS[provider] || { apiKey: '', model };
+            const temperature = agent.temperature ?? config.temperature ?? 0.7;
+            return createChatModel(provider, {
+                apiKey: config.apiKey || '',
+                baseUrl: config.baseUrl,
+                model,
+                temperature
+            });
+        };
+        const executor = new DefaultAgenticExecutor(llmFactory, settings);
+        const runtime = new DefaultAgentRuntime(
             settings,
             this.toolRegistry,
             this.sessionManager,
-            this.toolController,
+            this.skillRegistry,
             memoryStore,
             this.usageManager,
-            this.staffManager
+            executor
+        );
+        this.agentController = new AgentController(
+            runtime,
+            settings,
+            this.staffManager,
+            this.sessionManager
         );
         this.sessionController = new SessionController(this.sessionManager);
 

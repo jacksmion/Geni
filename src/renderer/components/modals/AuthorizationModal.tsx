@@ -11,6 +11,7 @@ export const AuthorizationModal: React.FC = () => {
     const handleAction = (approved: boolean, remember: boolean = false) => {
         window.electronAPI.agent.respondToAuthorization({
             requestId: authRequest.requestId,
+            runId: authRequest.runId,
             approved,
             remember
         });

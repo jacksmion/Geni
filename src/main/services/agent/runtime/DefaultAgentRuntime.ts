@@ -25,6 +25,7 @@ import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { MemoryStore } from '../../memory/MemoryStore';
 import { UsageManager } from '../../usage/UsageManager';
 import { PromptBuilder } from '../PromptBuilder';
+import { ToolGuard } from '../ToolGuard';
 
 interface MemoryEntry {
     title: string;
@@ -45,6 +46,8 @@ export class DefaultAgentRuntime implements AgentRuntime {
     private executor: AgentExecutor;
     private promptBuilder: PromptBuilder;
     private knowledgeMemory: KnowledgeMemory;
+    /** Phase 4: 活跃 ToolGuard 映射 (runId → ToolGuard) */
+    private activeGuards = new Map<string, ToolGuard>();
 
     constructor(
         settings: AppSettings,
@@ -161,7 +164,10 @@ export class DefaultAgentRuntime implements AgentRuntime {
             messages,
             tools,
             signal: request.signal,
-            emit: request.emit
+            emit: request.emit,
+            registerToolGuard: (guard: ToolGuard) => {
+                this.activeGuards.set(runId, guard);
+            }
         };
 
         let result: AgentRunResult | undefined;
@@ -183,7 +189,20 @@ export class DefaultAgentRuntime implements AgentRuntime {
             }
         }
 
+        // Cleanup guard after execution
+        this.activeGuards.delete(runId);
+
         return result!;
+    }
+
+    /**
+     * Phase 4: 桥接授权响应到 Executor 内部的 ToolGuard
+     */
+    resolveAuth(runId: string, requestId: string, approved: boolean): void {
+        const guard = this.activeGuards.get(runId);
+        if (guard) {
+            guard.resolve(requestId, approved);
+        }
     }
 
     private getSkillObjects(skillIds: string[] | undefined): SkillObject[] {
