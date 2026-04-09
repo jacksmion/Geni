@@ -14,7 +14,7 @@ import type { Agent } from '../../../../common/types/agent';
 import type { ChatMessage } from '../../../../common/types/chat';
 import type { Skill } from '../../../../common/types/skill';
 import type { SkillObject } from '../../skills/core/SkillParser';
-import { AgentContext, AgentRunRequest, AgentRunResult, AgentEvent, extractTextFromPrompt } from '../types';
+import { AgentContext, AgentRunRequest, AgentRunResult, AgentEvent } from '../types';
 import { AgentExecutor } from '../executor/AgentExecutor';
 import { ToolRegistry } from '../../tools/ToolRegistry';
 import { SessionManager } from '../../session/SessionManager';
@@ -23,14 +23,6 @@ import { MemoryStore } from '../../memory/MemoryStore';
 import { UsageManager } from '../../usage/UsageManager';
 import { PromptBuilder } from '../PromptBuilder';
 
-interface MemoryEntry {
-    title: string;
-    content: string;
-}
-
-interface KnowledgeMemory {
-    search(query: string, options?: { agentId?: string; k?: number }): Promise<Array<{ id: string; text: string; score: number }>>;
-}
 
 export class AgentRuntime {
     private toolRegistry: ToolRegistry;
@@ -40,7 +32,6 @@ export class AgentRuntime {
     private usageManager: UsageManager;
     private executor: AgentExecutor;
     private promptBuilder: PromptBuilder;
-    private knowledgeMemory: KnowledgeMemory;
     /**
      * Pending auth resolvers: requestId → resolve callback.
      * When Executor yields auth_request, we register a resolver here.
@@ -63,55 +54,6 @@ export class AgentRuntime {
         this.usageManager = usageManager;
         this.executor = executor;
         this.promptBuilder = new PromptBuilder();
-
-        this.knowledgeMemory = {
-            search: async (query: string, options?: { agentId?: string; k?: number }): Promise<Array<{ id: string; text: string; score: number }>> => {
-                if (!query.trim()) return [];
-                const content = this.memoryStore.read();
-                if (!content) return [];
-
-                const entries = this.parseEntries(content);
-                const results = entries
-                    .map(entry => ({
-                        id: entry.title,
-                        text: entry.content,
-                        score: this.scoreQuery(entry, query)
-                    }))
-                    .filter(c => c.score > 0)
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, options?.k ?? 5);
-
-                return results;
-            }
-        };
-    }
-
-    private parseEntries(content: string): MemoryEntry[] {
-        const entries: MemoryEntry[] = [];
-        const regex = /<!-- memory: (.+?) -->\n([\s\S]*?)(?=<!-- memory: |$)/g;
-        let match;
-        while ((match = regex.exec(content)) !== null) {
-            entries.push({ title: match[1], content: match[2].trim() });
-        }
-        return entries;
-    }
-
-    private scoreQuery(entry: MemoryEntry, query: string): number {
-        const lowerQuery = query.toLowerCase();
-        const lowerTitle = entry.title.toLowerCase();
-        const lowerContent = entry.content.toLowerCase();
-
-        let score = 0;
-        if (lowerTitle.includes(lowerQuery)) score += 10;
-        if (lowerContent.includes(lowerQuery)) score += 1;
-
-        const queryWords = lowerQuery.split(/\s+/).filter(w => w.length > 2);
-        for (const word of queryWords) {
-            if (lowerTitle.includes(word)) score += 3;
-            if (lowerContent.includes(word)) score += 0.5;
-        }
-
-        return score;
     }
 
     /**
@@ -140,17 +82,14 @@ export class AgentRuntime {
             ? await this.sessionManager.getHistory(request.sessionId)
             : [];
 
-        const memories = await this.knowledgeMemory.search(
-            extractTextFromPrompt(request.prompt),
-            { agentId: agent.id }
-        );
+        const allMemoryContent = this.memoryStore.read();
 
         const systemPrompt = this.promptBuilder.buildSystemPrompt({
             basePrompt: agent.systemPrompt,
             workspacePath: request.workspacePath,
             skills: skills,
             language: request.language,
-            memory: memories.length > 0 ? memories.map(m => m.text).join('\n\n') : undefined
+            memory: allMemoryContent || undefined
         });
 
         const messages: ChatMessage[] = [
