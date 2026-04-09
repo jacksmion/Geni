@@ -29,8 +29,8 @@ export type { ContextManagerOptions } from './ContextManager';
 export { Summarizer } from './Summarizer';
 
 // 三层架构类型定义
-export type { AgentContext as RuntimeAgentContext } from './AgentContext';
 export type {
+    AgentContext as RuntimeAgentContext,
     AgentEvent as InternalAgentEvent,
     AgentRunRequest,
     AgentRunResult as InternalAgentRunResult,

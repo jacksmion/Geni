@@ -10,8 +10,7 @@
 import type { Agent } from '../../../../common/types/agent';
 import type { AppSettings } from '../../../../common/types/settings';
 import type { ChatMessage, AgentStep, ToolCall } from '../../../../common/types/chat';
-import { AgentContext } from '../AgentContext';
-import { AgentRunRequest, AgentEvent, AgentRunResult } from '../types';
+import { AgentContext, AgentRunRequest, AgentEvent, AgentRunResult } from '../types';
 import { AgentExecutor } from './AgentExecutor';
 import { LLMClientFactory, IChatModel, ChatModelToolDefinition, ChatModelOptions } from '../../llm/IChatModel';
 import { ToolGuard } from '../ToolGuard';
