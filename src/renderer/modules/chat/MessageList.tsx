@@ -15,6 +15,7 @@ import { useSettingsStore } from '../../store/useSettingsStore'
 import { preprocessMarkdown } from '../../utils/markdown'
 
 const MermaidBlock = lazy(() => import('../../components/MermaidBlock'))
+const SvgBlock = lazy(() => import('../../components/SvgBlock').then(m => ({ default: m.SvgBlock })))
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -236,6 +237,21 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                 </div>
             }>
                 <MermaidBlock code={codeString} />
+            </Suspense>
+        )
+    }
+
+    if (isBlock && match && match[1] === 'svg') {
+        return (
+            <Suspense fallback={
+                <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
+                        <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                        <span>Loading SVG...</span>
+                    </div>
+                </div>
+            }>
+                <SvgBlock code={codeString} />
             </Suspense>
         )
     }
