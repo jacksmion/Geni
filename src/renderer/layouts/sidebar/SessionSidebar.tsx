@@ -2,13 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useChatStore } from '../../store/useChatStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
+import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
+import { StaffAvatar } from '../../components/StaffAvatar';
 
 export function SessionSidebar() {
     const sessionMetas = useChatStore(s => s.sessionMetas);
+    const { profiles, loadProfiles } = useStaffStore();
     const sessions = useMemo(() => {
         // Reconstruct a Record-like object for groupedSessions
         return sessionMetas.reduce((acc, current) => {
@@ -36,6 +39,10 @@ export function SessionSidebar() {
     const [editTitle, setEditTitle] = useState('');
     const [now, setNow] = useState(0);
     const { t } = useTranslation();
+
+    React.useEffect(() => {
+        if (profiles.length === 0) loadProfiles()
+    }, [profiles.length, loadProfiles])
 
     React.useEffect(() => {
         if (searchFocused && searchInputRef.current) {
@@ -215,13 +222,33 @@ export function SessionSidebar() {
                                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
                                                 )}
 
-                                                <MessageSquare
-                                                    size={14}
-                                                    className={clsx(
-                                                        "shrink-0 mr-2.5",
-                                                        isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
-                                                    )}
-                                                />
+                                                {(() => {
+                                                    const staff = session.staffId ? profiles.find(p => p.id === session.staffId) : undefined;
+                                                    return staff ? (
+                                                        <span className="shrink-0 mr-2.5 flex items-center justify-center w-[14px]">
+                                                            <StaffAvatar
+                                                                avatar={staff.avatar}
+                                                                name={staff.name}
+                                                                size={14}
+                                                                className={clsx(
+                                                                    "leading-none",
+                                                                    isActive ? "opacity-100" : "opacity-60"
+                                                                )}
+                                                                iconClassName={clsx(
+                                                                    isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
+                                                                )}
+                                                            />
+                                                        </span>
+                                                    ) : (
+                                                        <MessageSquare
+                                                            size={14}
+                                                            className={clsx(
+                                                                "shrink-0 mr-2.5",
+                                                                isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
+                                                            )}
+                                                        />
+                                                    );
+                                                })()}
 
                                                 {isEditing ? (
                                                     <form onSubmit={handleSaveEdit} className="flex-1 flex items-center gap-1 min-w-0">

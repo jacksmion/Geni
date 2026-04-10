@@ -55,7 +55,7 @@ export class SessionController {
         return this.sessionManager.deleteSession(sessionId);
     }
 
-    private async handleSave(event: IpcMainInvokeEvent, updates: { id: string; title?: string }) {
+    private async handleSave(event: IpcMainInvokeEvent, updates: { id: string; title?: string; staffId?: string }) {
         // 使用 updateSession 进行部分更新，而不是 saveSession 完全覆盖
         // 这样可以保留现有的 messages、createdAt 等字段
         if (!updates.id) {
@@ -63,7 +63,11 @@ export class SessionController {
             return false;
         }
 
-        const result = await this.sessionManager.updateSession(updates.id, { title: updates.title });
+        const patch: { title?: string; staffId?: string } = {};
+        if (updates.title !== undefined) patch.title = updates.title;
+        if (updates.staffId !== undefined) patch.staffId = updates.staffId;
+
+        const result = await this.sessionManager.updateSession(updates.id, patch);
         return result !== undefined;
     }
 

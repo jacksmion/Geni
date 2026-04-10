@@ -11,7 +11,7 @@ interface ActiveArtifact {
 
 interface ChatState {
     sessions: Record<string, ChatSession>
-    sessionMetas: { id: string, title?: string, updatedAt: number }[]
+    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string }[]
     activeSessionId: string
     isSending: boolean
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
@@ -73,11 +73,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             // Convert to Record
             const sessions: Record<string, ChatSession> = {};
-            const sessionMetas: { id: string, title?: string, updatedAt: number }[] = [];
+            const sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string }[] = [];
             list.forEach((meta: any) => {
                 // Ensure messages is initialized (even if empty) to satisfy type
                 sessions[meta.id] = { ...meta, messages: [] };
-                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt });
+                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt, staffId: meta.staffId });
             });
 
             if (list.length > 0) {
@@ -235,7 +235,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             const updated = { ...session, staffId };
             return {
-                sessions: { ...state.sessions, [id]: updated }
+                sessions: { ...state.sessions, [id]: updated },
+                sessionMetas: state.sessionMetas.map(m =>
+                    m.id === id ? { ...m, staffId } : m
+                )
             };
         });
 

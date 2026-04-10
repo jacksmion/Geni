@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
+import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
+import { StaffAvatar } from '../../components/StaffAvatar'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import ReactMarkdown from 'react-markdown'
@@ -23,6 +25,9 @@ const EMPTY_ARRAY: ChatMessage[] = []
 export function MessageList() {
     const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
     const isSending = useChatStore(s => s.isSending)
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const sessions = useChatStore(s => s.sessions)
+    const staffId = sessions[activeSessionId]?.staffId
     const endRef = useRef<HTMLDivElement>(null)
     const rafScrollRef = useRef<number | null>(null)
 
@@ -120,6 +125,7 @@ export function MessageList() {
                     key={msg.id}
                     message={msg}
                     isStreaming={isSending && idx === groupedMessages.length - 1}
+                    staffId={staffId}
                 />
             ))}
             <div ref={endRef} className="h-4" />
@@ -280,7 +286,9 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
     )
 }
 
-const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreaming?: boolean }) {
+const MessageItem = React.memo(function MessageItem({ message, isStreaming, staffId }: { message: ChatMessage, isStreaming?: boolean, staffId?: string }) {
+    const { profiles } = useStaffStore()
+    const staff = staffId ? profiles.find(p => p.id === staffId) : undefined
     const isUser = message.role === 'user';
     const isArrayContent = Array.isArray(message.content);
     const contentParts = isArrayContent ? (message.content as import('../../../common/types/chat').ContentPart[]) : [];
@@ -312,10 +320,14 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
             "flex gap-4 max-w-full group animate-in slide-in-from-bottom-2 duration-500 fade-in",
             isUser && "justify-end"
         )}>
-            {/* ... avatar code stays the same ... */}
             {!isUser && (
                 <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200/80 dark:border-white/10 shadow-sm mt-1">
-                    <Bot size={16} className="text-slate-700 dark:text-indigo-300" />
+                    <StaffAvatar
+                        avatar={staff?.avatar}
+                        name={staff?.name}
+                        size={16}
+                        iconClassName="text-slate-700 dark:text-indigo-300"
+                    />
                 </div>
 
             )}
@@ -412,7 +424,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
                                 </>
                             ) : (
                                 <>
-                                    <span>Geni {message.timestamp ? `· ${new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
+                                    <span>{staff ? staff.name : 'Geni'} {message.timestamp ? `· ${new Date(message.timestamp).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : ''}</span>
                                     <CopyButton text={textContent} className="p-0.5" />
                                 </>
                             )}
@@ -432,6 +444,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming }: { 
     )
 }, (prevProps, nextProps) => {
     // 阻止由于 groupedMessages 生成新对象引起的大量无效重渲染
+    if (prevProps.staffId !== nextProps.staffId) return false;
     if (prevProps.isStreaming !== nextProps.isStreaming) return false;
     if (prevProps.message.id !== nextProps.message.id) return false;
     

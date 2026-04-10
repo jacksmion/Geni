@@ -94,7 +94,8 @@ export class SessionStorage {
                             title: session.title,
                             createdAt: session.createdAt,
                             updatedAt: session.updatedAt,
-                            preview: this.extractTextFromContent(session.messages?.[session.messages.length - 1]?.content).slice(0, 100) || undefined
+                            preview: this.extractTextFromContent(session.messages?.[session.messages.length - 1]?.content).slice(0, 100) || undefined,
+                            staffId: session.staffId
                         });
                     }
                 } catch (fileError) {
@@ -200,7 +201,8 @@ export class SessionStorage {
             title: session.title,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt,
-            preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined
+            preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined,
+            staffId: session.staffId
         };
 
         if (index > -1) {

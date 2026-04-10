@@ -76,4 +76,5 @@ export interface SessionMeta {
     createdAt: number;
     updatedAt: number;
     preview?: string;
+    staffId?: string;
 }
