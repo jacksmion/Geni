@@ -779,7 +779,7 @@ const SchedulerPage: React.FC = () => {
 
             {/* Delete Confirmation Modal */}
             {deleteConfirmId && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/50 dark:bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/10 animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 text-red-600 dark:text-red-500 mb-2">
                             <AlertCircle size={20} />

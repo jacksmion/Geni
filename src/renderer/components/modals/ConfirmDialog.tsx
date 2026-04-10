@@ -25,7 +25,7 @@ export const ConfirmDialog: React.FC = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/10 animate-in fade-in duration-200">
             <div className="w-full max-w-sm bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="px-5 pt-5 pb-3 flex items-center gap-3">

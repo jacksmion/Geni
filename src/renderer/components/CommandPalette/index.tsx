@@ -41,9 +41,9 @@ export function CommandPalette() {
             className="fixed inset-0 z-[100] flex items-start justify-center"
             style={{ paddingTop: '20vh' }}
         >
-            {/* 遮罩 */}
+            {/* 遮罩 - 毛玻璃效果，贴合应用背景 */}
             <div
-                className="absolute inset-0 bg-black/50"
+                className="absolute inset-0 bg-transparent"
                 onClick={() => setPaletteOpen(false)}
             />
 
