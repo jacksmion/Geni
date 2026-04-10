@@ -95,9 +95,6 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                             <Briefcase size={11} /> {profile.description}
                         </p>
                     )}
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-2 line-clamp-2">
-                        {(profile.systemPrompt || '').slice(0, 80)}{((profile.systemPrompt || '').length > 80) ? '...' : ''}
-                    </p>
                 </div>
             </div>
         </button>

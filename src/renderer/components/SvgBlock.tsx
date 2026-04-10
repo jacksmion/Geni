@@ -150,13 +150,15 @@ export function SvgBlock({ code }: SvgBlockProps) {
             >
                 <Download size={14} />
             </button>
-            <button
-                onClick={() => setIsFullscreen(true)}
-                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-                title="全屏预览"
-            >
-                <Maximize2 size={14} />
-            </button>
+            {!isFullscreen && (
+                <button
+                    onClick={() => setIsFullscreen(true)}
+                    className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                    title="全屏预览"
+                >
+                    <Maximize2 size={14} />
+                </button>
+            )}
         </div>
     )
 
@@ -189,16 +191,18 @@ export function SvgBlock({ code }: SvgBlockProps) {
             {/* Fullscreen overlay */}
             {isFullscreen && createPortal(
                 <div className="fixed inset-0 z-[100] bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-xl flex flex-col">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-zinc-800">
+                    <div className="flex items-center justify-between pl-4 pr-[140px] py-3 border-b border-slate-200 dark:border-zinc-800 drag-region">
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">SVG 全屏预览</span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2 no-drag">
                             {toolbar}
+                            <div className="w-px h-4 bg-slate-200 dark:bg-zinc-800 mx-1"></div>
                             <button
                                 onClick={() => setIsFullscreen(false)}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors ml-1"
-                                title="关闭"
+                                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 bg-slate-100 hover:bg-red-500 hover:text-white dark:bg-white/10 dark:hover:bg-red-500 text-slate-600 dark:text-zinc-300 transition-all text-xs font-medium"
+                                title="退出预览 (ESC)"
                             >
                                 <X size={14} />
+                                退出预览
                             </button>
                         </div>
                     </div>
