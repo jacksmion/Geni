@@ -12,6 +12,7 @@ export const useShortcuts = () => {
     const shortcuts = useSettingsStore(s => s.settings.shortcuts);
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar);
     const setSearchFocused = useLayoutStore(s => s.setSearchFocused);
+    const togglePalette = useLayoutStore(s => s.togglePalette);
 
     useEffect(() => {
         if (!shortcuts) return;
@@ -59,9 +60,14 @@ export const useShortcuts = () => {
                 e.preventDefault();
                 toggleSidebar();
             }
+            // 5. Command Palette
+            else if (currentCombo === shortcuts['command_palette']) {
+                e.preventDefault();
+                togglePalette();
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [shortcuts, createSession, setActiveTab, toggleSidebar, setSearchFocused]);
+    }, [shortcuts, createSession, setActiveTab, toggleSidebar, setSearchFocused, togglePalette]);
 };

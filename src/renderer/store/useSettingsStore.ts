@@ -23,17 +23,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
             const data = await window.electronAPI.system.getSettings();
             if (data) {
                 // Merge new default providers that might not exist in the user's saved settings
-                const mergedProviders = { 
-                    ...DEFAULT_SETTINGS.llm.providers, 
-                    ...data.llm.providers 
+                const mergedProviders = {
+                    ...DEFAULT_SETTINGS.llm.providers,
+                    ...data.llm.providers
                 };
-                
+
+                // Merge shortcuts so new defaults are available
+                const mergedShortcuts = {
+                    ...DEFAULT_SETTINGS.shortcuts,
+                    ...(data.shortcuts || {}),
+                };
+
                 const finalSettings = {
                     ...data,
                     llm: {
                         ...data.llm,
                         providers: mergedProviders
-                    }
+                    },
+                    shortcuts: mergedShortcuts,
                 };
                 
                 set({ settings: finalSettings, isLoading: false });

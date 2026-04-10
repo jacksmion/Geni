@@ -13,6 +13,7 @@ import { useLayoutStore } from './store/useLayoutStore'
 import { useBreakpoint } from './hooks/useBreakpoint'
 import { useShortcuts } from './hooks/useShortcuts'
 import { ConfirmDialog } from './components/modals/ConfirmDialog'
+import { CommandPalette } from './components/CommandPalette'
 
 function App() {
     const activeTab = useChatStore(s => s.activeTab)
@@ -89,6 +90,7 @@ function App() {
             )}
 
             <ConfirmDialog />
+            <CommandPalette />
         </div>
     )
 }

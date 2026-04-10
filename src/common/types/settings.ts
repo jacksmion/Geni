@@ -268,7 +268,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
         'new_task': 'Ctrl+N',
         'search_task': 'Ctrl+F',
         'open_settings': 'Ctrl+,',
-        'toggle_sidebar': 'Ctrl+B'
+        'toggle_sidebar': 'Ctrl+B',
+        'command_palette': 'Ctrl+K'
     },
     autoOpenArtifact: true,
     autoUpdate: true

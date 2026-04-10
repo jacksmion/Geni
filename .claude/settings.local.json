@@ -19,7 +19,8 @@
       "Bash(find /d/workspace/Geni/src -name \"*ontroller*\" -type f 2>/dev/null | head -20)",
       "Bash(npx tsc:*)",
       "Bash(xargs grep:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
