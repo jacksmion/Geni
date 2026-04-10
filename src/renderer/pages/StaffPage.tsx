@@ -6,6 +6,18 @@ import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check } from 'lu
 import { StaffProfile } from '../../common/types/staff'
 import { StaffAvatar, STAFF_ICONS } from '../components/StaffAvatar'
 
+/** 常用 Emoji 预设，按用途分组 */
+const EMOJI_PRESETS = [
+    // 人物 & 角色
+    '🧑‍💻', '👨‍🎨', '👩‍🔬', '🧙‍♂️', '🦸', '🕵️', '👨‍🏫', '👩‍⚕️', '🤖',
+    // 物品 & 工具
+    '⚡', '🎯', '💡', '🔬', '🔧', '🛡️', '📊', '📝', '🎨',
+    // 自然 & 符号
+    '🚀', '🌟', '🔮', '💎', '🌈', '🔥', '❄️', '🌸', '🍀',
+    // 动物
+    '🦊', '🐱', '🐶', '🦁', '🐼', '🦉', '🐉', '🐝', '🐙',
+]
+
 export default function StaffPage() {
     const { profiles, loading, editingId, loadProfiles, setEditingId } = useStaffStore()
     const { t } = useTranslation()
@@ -19,14 +31,14 @@ export default function StaffPage() {
     return (
         <div className="h-full overflow-y-auto px-8 py-8">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 pr-[140px]">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">{t('staffPage.title')}</h1>
                     <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{t('staffPage.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => setEditingId('new')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors no-drag"
                 >
                     <Plus size={16} />
                     {t('staffPage.create')}
@@ -101,6 +113,8 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
     const [name, setName] = useState(existing?.name || '')
     const [avatar, setAvatar] = useState(existing?.avatar || '')
+    const [avatarPickerOpen, setAvatarPickerOpen] = useState(false)
+    const [avatarTab, setAvatarTab] = useState<'icon' | 'emoji'>('icon')
     const [description, setDescription] = useState(existing?.description || '')
     const [persona, setPersona] = useState(existing?.systemPrompt || '')
     const [modelId, setModelId] = useState(existing?.modelId || '')
@@ -143,6 +157,19 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
         document.addEventListener('mousedown', handler)
         return () => document.removeEventListener('mousedown', handler)
     }, [skillDropdownOpen])
+
+    // Close avatar picker on outside click
+    const avatarPickerRef = React.useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        if (!avatarPickerOpen) return
+        const handler = (e: MouseEvent) => {
+            if (avatarPickerRef.current && !avatarPickerRef.current.contains(e.target as Node)) {
+                setAvatarPickerOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [avatarPickerOpen])
 
     const toggleSkill = (skillId: string) => {
         setSkillIds(prev => prev.includes(skillId) ? prev.filter(id => id !== skillId) : [...prev, skillId])
@@ -190,57 +217,131 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
             <div className="space-y-6">
                 {/* Avatar Picker */}
-                <div>
-                    <label className="block text-sm font-medium mb-1.5">头像</label>
-                    <div className="flex items-center gap-4 mb-3">
-                        {/* Preview */}
-                        <div className={avatar && STAFF_ICONS[avatar]
-                            ? "w-14 h-14 rounded-2xl bg-slate-100 dark:bg-zinc-700/60 flex items-center justify-center shrink-0 border border-slate-200 dark:border-zinc-600"
-                            : "w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0"
-                        }>
+                <div className="relative" ref={avatarPickerRef}>
+                    <label className="block text-sm font-medium mb-2">头像</label>
+                    <div className="flex items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={() => { setAvatarPickerOpen(!avatarPickerOpen); setAvatarTab('icon') }}
+                            className={`
+                                w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 transition-all border-2 border-dashed
+                                ${avatarPickerOpen
+                                    ? 'border-indigo-400 dark:border-indigo-500/60 bg-indigo-50/50 dark:bg-indigo-500/5 ring-2 ring-indigo-500/20'
+                                    : avatar
+                                        ? 'border-transparent'
+                                        : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:hover:border-zinc-600'
+                                }
+                                ${avatar && STAFF_ICONS[avatar]
+                                    ? 'bg-slate-100 dark:bg-zinc-700/60 border-transparent'
+                                    : avatar
+                                        ? 'bg-gradient-to-br from-indigo-500 to-purple-500 border-transparent'
+                                        : ''
+                                }
+                            `}
+                        >
                             <StaffAvatar
                                 avatar={avatar || undefined}
                                 name={name || undefined}
-                                size={avatar && STAFF_ICONS[avatar] ? 24 : 22}
-                                iconClassName={avatar && STAFF_ICONS[avatar] ? "text-slate-600 dark:text-zinc-300" : undefined}
+                                size={avatar && STAFF_ICONS[avatar] ? 26 : 24}
+                                iconClassName={avatar && STAFF_ICONS[avatar] ? "text-slate-600 dark:text-zinc-300" : "text-slate-400 dark:text-zinc-500"}
                                 className={avatar && STAFF_ICONS[avatar] ? undefined : "text-white font-bold"}
                             />
-                        </div>
-                        <div className="flex-1">
-                            <input
-                                value={avatar}
-                                onChange={e => setAvatar(e.target.value)}
-                                placeholder="输入 Emoji 或 Lucide 图标名（如 🧑‍💻 或 Bot）"
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
-                            />
-                            <p className="mt-1 text-[11px] text-slate-400 dark:text-zinc-500">留空则显示名称首字母</p>
+                        </button>
+                        <div className="text-xs text-slate-400 dark:text-zinc-500">
+                            点击头像选择图标或 Emoji
                         </div>
                     </div>
 
-                    {/* Preset Icon Grid */}
-                    <div className="grid grid-cols-9 gap-1.5">
-                        {Object.keys(STAFF_ICONS).map(iconName => {
-                            const Icon = STAFF_ICONS[iconName]
-                            const isSelected = avatar === iconName
-                            return (
+                    {/* Popup Picker */}
+                    {avatarPickerOpen && (
+                        <div className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            {/* Tab Switch */}
+                            <div className="flex border-b border-slate-100 dark:border-white/5">
                                 <button
-                                    key={iconName}
                                     type="button"
-                                    onClick={() => setAvatar(isSelected ? '' : iconName)}
-                                    className={`
-                                        w-9 h-9 rounded-lg flex items-center justify-center transition-all border
-                                        ${isSelected
-                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20'
-                                            : 'bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-600 hover:text-slate-700 dark:hover:text-zinc-200'
-                                        }
-                                    `}
-                                    title={iconName}
+                                    onClick={() => setAvatarTab('icon')}
+                                    className={`flex-1 py-2.5 text-xs font-medium transition-colors ${avatarTab === 'icon' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'}`}
                                 >
-                                    <Icon size={16} />
+                                    图标
                                 </button>
-                            )
-                        })}
-                    </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAvatarTab('emoji')}
+                                    className={`flex-1 py-2.5 text-xs font-medium transition-colors ${avatarTab === 'emoji' ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500' : 'text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300'}`}
+                                >
+                                    Emoji
+                                </button>
+                            </div>
+
+                            {/* Icon Grid */}
+                            {avatarTab === 'icon' && (
+                                <div className="p-3">
+                                    <div className="grid grid-cols-9 gap-1.5">
+                                        {Object.entries(STAFF_ICONS).map(([iconName, Icon]) => {
+                                            const isSelected = avatar === iconName
+                                            return (
+                                                <button
+                                                    key={iconName}
+                                                    type="button"
+                                                    onClick={() => { setAvatar(isSelected ? '' : iconName); setAvatarPickerOpen(false) }}
+                                                    className={`
+                                                        w-9 h-9 rounded-lg flex items-center justify-center transition-all border
+                                                        ${isSelected
+                                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20'
+                                                            : 'bg-slate-50 dark:bg-white/5 border-slate-200/60 dark:border-white/5 text-slate-500 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-white/10 hover:text-slate-700 dark:hover:text-zinc-200'
+                                                        }
+                                                    `}
+                                                    title={iconName}
+                                                >
+                                                    <Icon size={16} />
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Emoji Grid */}
+                            {avatarTab === 'emoji' && (
+                                <div className="p-3">
+                                    <div className="grid grid-cols-9 gap-1.5">
+                                        {EMOJI_PRESETS.map(emoji => {
+                                            const isSelected = avatar === emoji
+                                            return (
+                                                <button
+                                                    key={emoji}
+                                                    type="button"
+                                                    onClick={() => { setAvatar(isSelected ? '' : emoji); setAvatarPickerOpen(false) }}
+                                                    className={`
+                                                        w-9 h-9 rounded-lg flex items-center justify-center transition-all border text-base leading-none
+                                                        ${isSelected
+                                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/40 ring-1 ring-indigo-500/20'
+                                                            : 'bg-slate-50 dark:bg-white/5 border-slate-200/60 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'
+                                                        }
+                                                    `}
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer: clear selection */}
+                            {avatar && (
+                                <div className="px-3 py-2 border-t border-slate-100 dark:border-white/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setAvatar(''); setAvatarPickerOpen(false) }}
+                                        className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                    >
+                                        移除头像
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Name */}
