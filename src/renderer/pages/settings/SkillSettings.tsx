@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
 import {
-    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight
+    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -108,11 +108,60 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
     );
 };
 
+interface ConflictDialogProps {
+    skillName: string;
+    onAction: (action: 'overwrite' | 'skip' | 'rename') => void;
+    onCancel: () => void;
+}
+
+const ConflictDialog: React.FC<ConflictDialogProps> = ({ skillName, onAction, onCancel }) => {
+    const { t } = useTranslation();
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-2">
+                    {t('skillSettings.import.conflictTitle')}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mb-5">
+                    {t('skillSettings.import.conflictDesc', { name: skillName })}
+                </p>
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => onAction('overwrite')}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors text-left"
+                    >
+                        <span className="font-semibold">{t('skillSettings.import.overwrite')}</span>
+                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.overwriteDesc')}</span>
+                    </button>
+                    <button
+                        onClick={() => onAction('rename')}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors text-left"
+                    >
+                        <span className="font-semibold">{t('skillSettings.import.rename')}</span>
+                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.renameDesc')}</span>
+                    </button>
+                    <button
+                        onClick={() => onAction('skip')}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-left"
+                    >
+                        <span className="font-semibold">{t('skillSettings.import.skip')}</span>
+                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.skipDesc')}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SkillSettings: React.FC = () => {
     const { t } = useTranslation();
     const [skills, setSkills] = useState<Skill[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [importing, setImporting] = useState(false);
+    const [conflict, setConflict] = useState<{ skillName: string; targetPath: string; sourceTempDir?: string; originalPath: string } | null>(null);
+    const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const fetchSkills = async () => {
         try {
@@ -132,6 +181,68 @@ const SkillSettings: React.FC = () => {
     const handleToggle = async (id: string) => {
         const updated = await window.electronAPI.tools.toggleSkill(id);
         setSkills(updated);
+    };
+
+    const showImportMessage = (type: 'success' | 'error', text: string) => {
+        setImportMessage({ type, text });
+        setTimeout(() => setImportMessage(null), 3000);
+    };
+
+    const handleImportFromPath = async (selectedPath: string | null) => {
+        if (!selectedPath) return;
+        setImporting(true);
+        setImportMessage(null);
+        try {
+            const result = await window.electronAPI.tools.importSkill(selectedPath);
+            if (result.status === 'success') {
+                setSkills(await window.electronAPI.tools.getSkills());
+                showImportMessage('success', t('skillSettings.import.success', { name: result.skillName }));
+            } else if (result.status === 'conflict') {
+                setConflict({
+                    skillName: result.skillName!,
+                    targetPath: result.targetPath!,
+                    sourceTempDir: result.sourceTempDir,
+                    originalPath: selectedPath,
+                });
+            } else {
+                showImportMessage('error', result.error || t('skillSettings.import.error'));
+            }
+        } catch (error: any) {
+            showImportMessage('error', error?.message || t('skillSettings.import.error'));
+        } finally {
+            setImporting(false);
+        }
+    };
+
+    const handleImport = async () => {
+        const result = await window.electronAPI.system.selectFile();
+        handleImportFromPath(result);
+    };
+
+    const handleImportFolder = async () => {
+        const result = await window.electronAPI.system.selectDirectory();
+        handleImportFromPath(result);
+    };
+
+    const handleConflictAction = async (action: 'overwrite' | 'skip' | 'rename') => {
+        if (!conflict) return;
+        setImporting(true);
+        try {
+            const result = await window.electronAPI.tools.importSkillConfirm(
+                conflict.originalPath,
+                conflict.sourceTempDir,
+                conflict.skillName,
+                action
+            );
+            if (result.status === 'success' && action !== 'skip') {
+                setSkills(await window.electronAPI.tools.getSkills());
+            }
+        } catch (error) {
+            console.error('Confirm import failed:', error);
+        } finally {
+            setConflict(null);
+            setImporting(false);
+        }
     };
 
     const filteredSkills = skills.filter(s =>
@@ -170,23 +281,55 @@ const SkillSettings: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                        {/* 占位符给窗口控制按钮 */}
-                        <div className="w-20" />
                     </div>
 
-                    {/* 搜索栏 */}
-                    <div className="relative max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
-                        <input
-                            type="text"
-                            placeholder={t('skillSettings.search')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
-                        />
+                    {/* 搜索栏 + 导入按钮 */}
+                    <div className="flex items-center gap-2 max-w-xl">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
+                            <input
+                                type="text"
+                                placeholder={t('skillSettings.search')}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                            />
+                        </div>
+                        <button
+                            onClick={handleImport}
+                            disabled={importing}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
+                        >
+                            {importing ? (
+                                <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                                <Download size={12} />
+                            )}
+                            {t('skillSettings.import.button')}
+                        </button>
+                        <button
+                            onClick={handleImportFolder}
+                            disabled={importing}
+                            title={t('skillSettings.import.folderTitle')}
+                            className="flex items-center px-2 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-500 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
+                        >
+                            <Box size={14} />
+                        </button>
                     </div>
                 </div>
             </header>
+
+            {/* 导入反馈提示 */}
+            {importMessage && (
+                <div className={clsx(
+                    "mx-4 mt-3 px-4 py-2.5 rounded-xl text-xs font-medium animate-in fade-in slide-in-from-top-2 duration-200",
+                    importMessage.type === 'success'
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                        : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"
+                )}>
+                    {importMessage.text}
+                </div>
+            )}
 
             {/* 技能列表 */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -221,6 +364,13 @@ const SkillSettings: React.FC = () => {
                     )}
                 </div>
             </div>
+            {conflict && (
+                <ConflictDialog
+                    skillName={conflict.skillName}
+                    onAction={handleConflictAction}
+                    onCancel={() => setConflict(null)}
+                />
+            )}
         </div>
     );
 };

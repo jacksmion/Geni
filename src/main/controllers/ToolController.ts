@@ -8,15 +8,23 @@ import { ToolRegistry } from '../services/tools/ToolRegistry';
 import { Skill } from '../../common/types/skill';
 import { SkillObject } from '../services/skills/core/SkillParser';
 import { CoreToolManager } from '../services/tools/core/CoreToolManager';
+import { SkillImportService } from '../services/skills/SkillImportService';
+import path from 'node:path';
 
 export class ToolController {
+    private globalSkillsDir: string;
+
     constructor(
         private skillRegistry: SkillRegistry,
         private toolRegistry: ToolRegistry,
         private mcpManager: McpManager,
         private configManager: ConfigManager,
-        private coreToolManager: CoreToolManager
-    ) { }
+        private coreToolManager: CoreToolManager,
+        private skillImportService: SkillImportService,
+        globalSkillsDir: string
+    ) {
+        this.globalSkillsDir = globalSkillsDir;
+    }
 
     public registerHandlers() {
         ipcMain.handle(TOOL_CHANNELS.GET_SKILLS, () => this.handleGetSkills());
@@ -39,6 +47,9 @@ export class ToolController {
         ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_LIST, () => this.handleCoreToolList());
         ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_TOGGLE, (_, toolName) => this.handleCoreToolToggle(toolName));
         ipcMain.handle(TOOL_CHANNELS.CORE_TOOL_SET_TRUST_LEVEL, (_, toolName, level) => this.handleCoreToolSetTrustLevel(toolName, level));
+
+        ipcMain.handle(TOOL_CHANNELS.IMPORT_SKILL, (_, filePath: string) => this.handleImportSkill(filePath));
+        ipcMain.handle(TOOL_CHANNELS.IMPORT_SKILL_CONFIRM, (_, originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') => this.handleImportSkillConfirm(originalPath, sourceTempDir, skillName, action));
     }
 
     private handleCoreToolList() {
@@ -231,5 +242,25 @@ export class ToolController {
 
     private handleListMcpTools() {
         return this.mcpManager.getAllDiscoveredTools();
+    }
+
+    private async handleImportSkill(filePath: string) {
+        const result = await this.skillImportService.importSkill(filePath);
+        if (result.status === 'success' && result.skillName) {
+            await this.skillRegistry.loadFromDirectory(
+                path.join(this.globalSkillsDir, result.skillName), 'global'
+            );
+        }
+        return result;
+    }
+
+    private async handleImportSkillConfirm(originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') {
+        const result = await this.skillImportService.confirmImport(originalPath, sourceTempDir, skillName, action);
+        if (result.status === 'success' && result.skillName && action !== 'skip') {
+            await this.skillRegistry.loadFromDirectory(
+                path.join(this.globalSkillsDir, result.skillName), 'global'
+            );
+        }
+        return result;
     }
 }

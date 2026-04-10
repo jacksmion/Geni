@@ -73,6 +73,22 @@
         "actions": {
             "enable": "Click to enable",
             "disable": "Click to disable"
+        },
+        "import": {
+            "button": "Import Skill",
+            "dialogTitle": "Select skill folder or archive",
+            "success": "Skill '{{name}}' imported successfully",
+            "conflictTitle": "Skill Already Exists",
+            "conflictDesc": "Skill '{{name}}' already exists. Choose an action:",
+            "overwrite": "Overwrite",
+            "overwriteDesc": "Replace the existing skill",
+            "skip": "Skip",
+            "skipDesc": "Keep existing skill, don't import",
+            "rename": "Rename",
+            "renameDesc": "Auto-rename the new skill and import",
+            "error": "Import failed",
+            "invalidSkill": "Not a valid skill package: SKILL.md not found",
+            "folderTitle": "Import from folder"
         }
     },
     "generalSettings": {

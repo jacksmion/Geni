@@ -8,6 +8,7 @@ import { SystemController } from './controllers/SystemController';
 import { ToolController } from './controllers/ToolController';
 import { ConfigManager } from './services/ConfigManager';
 import { SkillRegistry } from './services/skills/core/SkillRegistry';
+import { SkillImportService } from './services/skills/SkillImportService';
 import { McpManager } from './services/tools/mcp/McpManager';
 import { CoreToolManager } from './services/tools/core/CoreToolManager';
 import { PathManager } from './services/PathManager';
@@ -75,6 +76,7 @@ export class AppRouter {
         this.mcpManager = mcpManager;
         this.coreToolManager = coreToolManager;
         this.pathManager = pathManager;
+        const skillImportService = new SkillImportService(pathManager.getGlobalSkillsDir());
         this.usageManager = new UsageManager(pathManager);
         this.sessionManager = new SessionManager(pathManager);
         this.staffManager = new StaffManager(pathManager);
@@ -84,7 +86,7 @@ export class AppRouter {
 
         // Controllers
         this.systemController = new SystemController(this.configManager, pathManager, this.usageManager);
-        this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager);
+        this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager, skillImportService, pathManager.getGlobalSkillsDir());
 
         // Three-layer architecture wiring
         const llmFactory: LLMClientFactory = (agent: Agent) => {

@@ -89,7 +89,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         mcpGetStatuses: () => ipcRenderer.invoke('tool:mcp-get-statuses'),
         coreToolList: () => ipcRenderer.invoke('tool:core-tool-list'),
         coreToolToggle: (toolName: string) => ipcRenderer.invoke('tool:core-tool-toggle', toolName),
-        coreToolSetTrustLevel: (toolName: string, level: string) => ipcRenderer.invoke('tool:core-tool-set-trust-level', toolName, level)
+        coreToolSetTrustLevel: (toolName: string, level: string) => ipcRenderer.invoke('tool:core-tool-set-trust-level', toolName, level),
+        importSkill: (filePath: string) => ipcRenderer.invoke('tool:import-skill', filePath),
+        importSkillConfirm: (originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') => ipcRenderer.invoke('tool:import-skill-confirm', originalPath, sourceTempDir, skillName, action),
     },
     scheduler: {
         triggerTask: (taskId: string) => ipcRenderer.invoke('scheduler:trigger-task', taskId),

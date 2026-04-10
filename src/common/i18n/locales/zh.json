@@ -73,6 +73,22 @@
         "actions": {
             "enable": "点击启用",
             "disable": "点击禁用"
+        },
+        "import": {
+            "button": "导入技能",
+            "dialogTitle": "选择技能文件夹或压缩包",
+            "success": "技能 '{{name}}' 导入成功",
+            "conflictTitle": "技能已存在",
+            "conflictDesc": "技能 '{{name}}' 已存在，请选择操作：",
+            "overwrite": "覆盖",
+            "overwriteDesc": "替换已有的技能",
+            "skip": "跳过",
+            "skipDesc": "保留已有技能，不导入",
+            "rename": "重命名",
+            "renameDesc": "自动重命名新技能后导入",
+            "error": "导入失败",
+            "invalidSkill": "不是有效的技能包：未找到 SKILL.md 文件",
+            "folderTitle": "从文件夹导入"
         }
     },
     "generalSettings": {

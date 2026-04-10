@@ -145,7 +145,11 @@ export class SystemController {
 
     private async handleSelectFile() {
         const result = await dialog.showOpenDialog({
-            properties: ['openFile']
+            properties: ['openFile'],
+            filters: [
+                { name: 'Skill Packages', extensions: ['skill', 'zip'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
         });
         if (!result.canceled && result.filePaths.length > 0) {
             return result.filePaths[0];
