@@ -48,7 +48,7 @@ export const SYSTEM_CHANNELS = {
     TEST_LARK: 'system:test-lark',
     TEST_WECHAT: 'system:test-wechat',
     READ_FILE_BASE64: 'system:read-file-base64',
-
+    GET_USAGE_STATS: 'system:get-usage-stats',
 } as const;
 
 export const SYSTEM_EVENTS = {

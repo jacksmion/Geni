@@ -50,6 +50,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
         ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
+        ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
     }
 
     public broadcastSettingsChanged(settings: AppSettings) {
