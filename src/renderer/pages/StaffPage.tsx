@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/useSettingsStore'
 import { useTranslation } from 'react-i18next'
 import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check } from 'lucide-react'
 import { StaffProfile } from '../../common/types/staff'
+import { StaffAvatar, STAFF_ICONS } from '../components/StaffAvatar'
 
 export default function StaffPage() {
     const { profiles, loading, editingId, loadProfiles, setEditingId } = useStaffStore()
@@ -53,8 +54,7 @@ export default function StaffPage() {
 }
 
 function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () => void }) {
-    const initial = profile.name.charAt(0).toUpperCase()
-
+    const hasIcon = profile.avatar && STAFF_ICONS[profile.avatar]
     return (
         <button
             onClick={onClick}
@@ -62,8 +62,17 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
         >
             <div className="flex items-start gap-4">
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
-                    {initial}
+                <div className={hasIcon
+                    ? "w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-700/60 flex items-center justify-center shrink-0"
+                    : "w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0"
+                }>
+                    <StaffAvatar
+                        avatar={profile.avatar}
+                        name={profile.name}
+                        size={hasIcon ? 22 : 20}
+                        iconClassName={hasIcon ? "text-slate-600 dark:text-zinc-300" : undefined}
+                        className={hasIcon ? undefined : "text-white font-bold"}
+                    />
                 </div>
                 <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
@@ -91,6 +100,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     const existing = isNew ? null : profiles.find(p => p.id === id)
 
     const [name, setName] = useState(existing?.name || '')
+    const [avatar, setAvatar] = useState(existing?.avatar || '')
     const [description, setDescription] = useState(existing?.description || '')
     const [persona, setPersona] = useState(existing?.systemPrompt || '')
     const [modelId, setModelId] = useState(existing?.modelId || '')
@@ -146,6 +156,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
         try {
             const payload = {
                 name: name.trim(),
+                avatar: avatar.trim() || undefined,
                 systemPrompt: persona.trim(),
                 description: description.trim() || undefined,
                 modelId: modelId || undefined,
@@ -178,6 +189,60 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
             </button>
 
             <div className="space-y-6">
+                {/* Avatar Picker */}
+                <div>
+                    <label className="block text-sm font-medium mb-1.5">头像</label>
+                    <div className="flex items-center gap-4 mb-3">
+                        {/* Preview */}
+                        <div className={avatar && STAFF_ICONS[avatar]
+                            ? "w-14 h-14 rounded-2xl bg-slate-100 dark:bg-zinc-700/60 flex items-center justify-center shrink-0 border border-slate-200 dark:border-zinc-600"
+                            : "w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0"
+                        }>
+                            <StaffAvatar
+                                avatar={avatar || undefined}
+                                name={name || undefined}
+                                size={avatar && STAFF_ICONS[avatar] ? 24 : 22}
+                                iconClassName={avatar && STAFF_ICONS[avatar] ? "text-slate-600 dark:text-zinc-300" : undefined}
+                                className={avatar && STAFF_ICONS[avatar] ? undefined : "text-white font-bold"}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <input
+                                value={avatar}
+                                onChange={e => setAvatar(e.target.value)}
+                                placeholder="输入 Emoji 或 Lucide 图标名（如 🧑‍💻 或 Bot）"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                            />
+                            <p className="mt-1 text-[11px] text-slate-400 dark:text-zinc-500">留空则显示名称首字母</p>
+                        </div>
+                    </div>
+
+                    {/* Preset Icon Grid */}
+                    <div className="grid grid-cols-9 gap-1.5">
+                        {Object.keys(STAFF_ICONS).map(iconName => {
+                            const Icon = STAFF_ICONS[iconName]
+                            const isSelected = avatar === iconName
+                            return (
+                                <button
+                                    key={iconName}
+                                    type="button"
+                                    onClick={() => setAvatar(isSelected ? '' : iconName)}
+                                    className={`
+                                        w-9 h-9 rounded-lg flex items-center justify-center transition-all border
+                                        ${isSelected
+                                            ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20'
+                                            : 'bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-600 hover:text-slate-700 dark:hover:text-zinc-200'
+                                        }
+                                    `}
+                                    title={iconName}
+                                >
+                                    <Icon size={16} />
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+
                 {/* Name */}
                 <div>
                     <label className="block text-sm font-medium mb-1.5">{t('staffPage.name')}</label>
