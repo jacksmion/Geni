@@ -541,7 +541,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }
         });
 
+        const isAbortError = (e: any) => {
+            const msg = (e?.message || '').toLowerCase()
+            return e?.name === 'AbortError' || msg.includes('aborted') || msg.includes('取消') || msg.includes('cancel')
+        }
+
         const cleanupError = window.electronAPI.agent.onError((err: any) => {
+            // 用户主动终止不是错误，保留已有内容不做额外处理
+            if (isAbortError(err)) return
             get().updateLastMessage((msg) => ({
                 ...msg,
                 content: `Error: ${err.message || JSON.stringify(err)}`,
@@ -575,11 +582,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             });
             // Result comes via stream/events
         } catch (err: any) {
-            get().updateLastMessage((msg) => ({
-                ...msg,
-                content: `Error: ${err.message}`,
-                isError: true
-            }));
+            // 用户主动终止不是错误，静默处理
+            if (!isAbortError(err)) {
+                get().updateLastMessage((msg) => ({
+                    ...msg,
+                    content: `Error: ${err.message}`,
+                    isError: true
+                }));
+            }
         } finally {
             cleanupStream();
             cleanupReasoningStream();
