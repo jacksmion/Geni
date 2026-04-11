@@ -6,6 +6,7 @@ export interface Skill {
     path: string;
     enabled: boolean;
     trustLevel: 'Ask' | 'Auto';
+    source: 'builtin' | 'global' | 'project' | 'dotAgents';
 }
 
 export interface ToolDefinition {

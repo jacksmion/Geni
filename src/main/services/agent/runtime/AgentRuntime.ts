@@ -179,7 +179,8 @@ export class AgentRuntime {
             content: obj.instruction,
             path: obj.path || '',
             enabled: true,
-            trustLevel: 'Auto' as const
+            trustLevel: 'Auto' as const,
+            source: this.skillRegistry.getSource(obj.id) || 'global'
         }));
     }
 }

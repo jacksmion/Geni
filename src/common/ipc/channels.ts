@@ -71,6 +71,7 @@ export const TOOL_CHANNELS = {
     CORE_TOOL_SET_TRUST_LEVEL: 'tool:core-tool-set-trust-level',
     IMPORT_SKILL: 'tool:import-skill',
     IMPORT_SKILL_CONFIRM: 'tool:import-skill-confirm',
+    DELETE_SKILL: 'tool:delete-skill',
 } as const;
 
 // Scheduler Channels

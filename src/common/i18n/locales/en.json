@@ -89,6 +89,13 @@
             "error": "Import failed",
             "invalidSkill": "Not a valid skill package: SKILL.md not found",
             "folderTitle": "Import from folder"
+        },
+        "delete": {
+            "confirmTitle": "Delete Skill",
+            "confirmDesc": "Are you sure you want to delete skill '{{name}}'? This action cannot be undone.",
+            "button": "Delete",
+            "success": "Skill '{{name}}' deleted",
+            "error": "Delete failed"
         }
     },
     "generalSettings": {

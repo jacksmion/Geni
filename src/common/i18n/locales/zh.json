@@ -89,6 +89,13 @@
             "error": "导入失败",
             "invalidSkill": "不是有效的技能包：未找到 SKILL.md 文件",
             "folderTitle": "从文件夹导入"
+        },
+        "delete": {
+            "confirmTitle": "删除技能",
+            "confirmDesc": "确定要删除技能 '{{name}}' 吗？此操作不可撤销。",
+            "button": "删除",
+            "success": "技能 '{{name}}' 已删除",
+            "error": "删除失败"
         }
     },
     "generalSettings": {

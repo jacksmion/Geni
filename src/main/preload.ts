@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         coreToolSetTrustLevel: (toolName: string, level: string) => ipcRenderer.invoke('tool:core-tool-set-trust-level', toolName, level),
         importSkill: (filePath: string) => ipcRenderer.invoke('tool:import-skill', filePath),
         importSkillConfirm: (originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') => ipcRenderer.invoke('tool:import-skill-confirm', originalPath, sourceTempDir, skillName, action),
+        deleteSkill: (id: string) => ipcRenderer.invoke('tool:delete-skill', id),
     },
     scheduler: {
         triggerTask: (taskId: string) => ipcRenderer.invoke('scheduler:trigger-task', taskId),

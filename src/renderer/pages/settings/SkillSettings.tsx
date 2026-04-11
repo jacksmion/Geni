@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
 import {
-    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download
+    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -54,9 +54,10 @@ interface SkillRowProps {
     skill: Skill;
     palette: typeof NEUTRAL_PALETTES[0];
     onToggle: (id: string) => void;
+    onDelete?: (skill: Skill) => void;
 }
 
-const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
+const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete }) => {
     const { t } = useTranslation();
     const icon = getSkillIcon(skill.id);
 
@@ -97,6 +98,17 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle }) => {
                     {skill.description || t('skillSettings.noDescription')}
                 </p>
             </div>
+
+            {/* Delete Button (only for global/deletable skills) */}
+            {onDelete && skill.source === 'global' && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(skill); }}
+                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-all"
+                    title={t('skillSettings.delete.button')}
+                >
+                    <Trash2 size={14} />
+                </button>
+            )}
 
             {/* Toggle Switch */}
             <Switch
@@ -154,6 +166,43 @@ const ConflictDialog: React.FC<ConflictDialogProps> = ({ skillName, onAction, on
     );
 };
 
+interface DeleteConfirmDialogProps {
+    skillName: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({ skillName, onConfirm, onCancel }) => {
+    const { t } = useTranslation();
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-2">
+                    {t('skillSettings.delete.confirmTitle')}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mb-5">
+                    {t('skillSettings.delete.confirmDesc', { name: skillName })}
+                </p>
+                <div className="flex gap-2 justify-end">
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    >
+                        {t('skillSettings.import.skip')}
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 rounded-xl text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                    >
+                        {t('skillSettings.delete.button')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SkillSettings: React.FC = () => {
     const { t } = useTranslation();
     const [skills, setSkills] = useState<Skill[]>([]);
@@ -162,6 +211,7 @@ const SkillSettings: React.FC = () => {
     const [importing, setImporting] = useState(false);
     const [conflict, setConflict] = useState<{ skillName: string; targetPath: string; sourceTempDir?: string; originalPath: string } | null>(null);
     const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
 
     const fetchSkills = async () => {
         try {
@@ -242,6 +292,23 @@ const SkillSettings: React.FC = () => {
         } finally {
             setConflict(null);
             setImporting(false);
+        }
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        try {
+            const result = await window.electronAPI.tools.deleteSkill(deleteTarget.id);
+            if (result.success) {
+                setSkills(await window.electronAPI.tools.getSkills());
+                showImportMessage('success', t('skillSettings.delete.success', { name: deleteTarget.name }));
+            } else {
+                showImportMessage('error', result.error || t('skillSettings.delete.error'));
+            }
+        } catch (error: any) {
+            showImportMessage('error', error?.message || t('skillSettings.delete.error'));
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
@@ -343,6 +410,7 @@ const SkillSettings: React.FC = () => {
                                         skill={skill}
                                         palette={getPalette(skill.id)}
                                         onToggle={handleToggle}
+                                        onDelete={(s) => setDeleteTarget(s)}
                                     />
                                 ))}
                             </div>
@@ -369,6 +437,13 @@ const SkillSettings: React.FC = () => {
                     skillName={conflict.skillName}
                     onAction={handleConflictAction}
                     onCancel={() => setConflict(null)}
+                />
+            )}
+            {deleteTarget && (
+                <DeleteConfirmDialog
+                    skillName={deleteTarget.name}
+                    onConfirm={handleDeleteConfirm}
+                    onCancel={() => setDeleteTarget(null)}
                 />
             )}
         </div>

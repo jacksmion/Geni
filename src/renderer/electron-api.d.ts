@@ -63,6 +63,7 @@ export interface IElectronAPI {
         coreToolSetTrustLevel: (toolName: string, level: 'Ask' | 'Auto') => Promise<{ success: boolean }>;
         importSkill: (filePath: string) => Promise<{ status: 'success' | 'conflict' | 'error'; skillName?: string; targetPath?: string; sourceTempDir?: string; error?: string }>;
         importSkillConfirm: (originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') => Promise<{ status: 'success' | 'error'; skillName?: string; error?: string }>;
+        deleteSkill: (id: string) => Promise<{ success: boolean; error?: string }>;
     };
 
     // Scheduler Namespace

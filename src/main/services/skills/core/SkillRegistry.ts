@@ -98,6 +98,15 @@ export class SkillRegistry {
     }
 
     /**
+     * Remove a specific skill by id
+     */
+    unregister(id: string): boolean {
+        const deleted = this.skills.delete(id);
+        this.skillSources.delete(id);
+        return deleted;
+    }
+
+    /**
      * Remove all skills from a specific source
      * @param source - The source to remove skills from
      */

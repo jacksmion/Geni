@@ -10,6 +10,7 @@ import { SkillObject } from '../services/skills/core/SkillParser';
 import { CoreToolManager } from '../services/tools/core/CoreToolManager';
 import { SkillImportService } from '../services/skills/SkillImportService';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 
 export class ToolController {
     private globalSkillsDir: string;
@@ -50,6 +51,7 @@ export class ToolController {
 
         ipcMain.handle(TOOL_CHANNELS.IMPORT_SKILL, (_, filePath: string) => this.handleImportSkill(filePath));
         ipcMain.handle(TOOL_CHANNELS.IMPORT_SKILL_CONFIRM, (_, originalPath: string, sourceTempDir: string | undefined, skillName: string, action: 'overwrite' | 'skip' | 'rename') => this.handleImportSkillConfirm(originalPath, sourceTempDir, skillName, action));
+        ipcMain.handle(TOOL_CHANNELS.DELETE_SKILL, (_, id: string) => this.handleDeleteSkill(id));
     }
 
     private handleCoreToolList() {
@@ -191,7 +193,8 @@ export class ToolController {
                 content: obj.instruction,
                 path: obj.path || '',
                 enabled: saved ? saved.enabled : true, // Default true
-                trustLevel: saved ? saved.trustLevel : 'Ask'
+                trustLevel: saved ? saved.trustLevel : 'Ask',
+                source: this.skillRegistry.getSource(obj.id) || 'global'
             };
         });
     }
@@ -262,5 +265,27 @@ export class ToolController {
             );
         }
         return result;
+    }
+
+    private async handleDeleteSkill(id: string): Promise<{ success: boolean; error?: string }> {
+        const source = this.skillRegistry.getSource(id);
+        if (source !== 'global') {
+            return { success: false, error: 'Only skills from ~/.geni/skills/ can be deleted.' };
+        }
+
+        const skill = this.skillRegistry.get(id);
+        if (!skill?.path) {
+            return { success: false, error: 'Skill path not found.' };
+        }
+
+        // The skill path points to SKILL.md — delete the parent directory
+        const skillDir = path.dirname(skill.path);
+        try {
+            await fs.rm(skillDir, { recursive: true, force: true });
+            this.skillRegistry.unregister(id);
+            return { success: true };
+        } catch (err: any) {
+            return { success: false, error: err.message || String(err) };
+        }
     }
 }
