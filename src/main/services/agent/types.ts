@@ -54,6 +54,9 @@ export interface AgentRunResult {
     finalAnswer: string;
     steps: AgentStep[];
     newMessages: ChatMessage[];
+    /** 本次运行累计 token 用量 */
+    promptTokens: number;
+    completionTokens: number;
 }
 
 // ============================================================================

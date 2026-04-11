@@ -79,7 +79,7 @@ export function UsageSettings() {
                     <BarChart3 className="text-indigo-500" />
                     {t('usageSettings.title')}
                 </h2>
-                <button 
+                <button
                     onClick={fetchStats}
                     className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors text-slate-400 hover:text-indigo-500"
                     title="Refresh"

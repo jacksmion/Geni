@@ -27,6 +27,7 @@ import { ContextManager } from '../ContextManager';
 import { Summarizer } from '../Summarizer';
 import { withRetry, DEFAULT_TOOL_RETRY } from '../RetryPolicy';
 import { classifyError, ErrorCategory } from '../ErrorClassifier';
+import { TokenCounter } from '../TokenCounter';
 
 interface ToolCallAccumulator {
     id: string;
@@ -131,6 +132,8 @@ export class ReActExecutor implements AgentExecutor {
         const steps: AgentStep[] = [];
         let loopCount = 0;
         let lastPromptTokens = 0;
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
 
         // Resolve model config and set up token budget
         const { contextWindow, maxOutput } = this.resolveModelConfig(agent);
@@ -183,6 +186,8 @@ export class ReActExecutor implements AgentExecutor {
                 // Track real token usage (this reflects the compressed input size)
                 if (llmResult.promptTokens > 0) {
                     lastPromptTokens = llmResult.promptTokens;
+                    totalPromptTokens += llmResult.promptTokens;
+                    totalCompletionTokens += llmResult.completionTokens;
                 }
 
                 const assistantMsg: ChatMessage = {
@@ -196,7 +201,7 @@ export class ReActExecutor implements AgentExecutor {
                 if (llmResult.toolCalls.length === 0) {
                     terminationReason = TerminationReason.NormalEnd;
                     yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
-                    return { finalAnswer: llmResult.content, steps, newMessages };
+                    return { finalAnswer: llmResult.content, steps, newMessages, promptTokens: totalPromptTokens, completionTokens: totalCompletionTokens };
                 }
 
                 yield* this.handleToolCalls(
@@ -220,9 +225,9 @@ export class ReActExecutor implements AgentExecutor {
             if (terminationReason === TerminationReason.None) {
                 terminationReason = TerminationReason.MaxSteps;
             }
-            return yield* this.handleTermination(terminationReason, steps, newMessages, stateManager, pendingStateEvents, lastPromptTokens);
+            return yield* this.handleTermination(terminationReason, steps, newMessages, stateManager, pendingStateEvents, lastPromptTokens, totalPromptTokens, totalCompletionTokens);
         } catch (error: any) {
-            return yield* this.handleError(error, steps, newMessages, stateManager, pendingStateEvents);
+            return yield* this.handleError(error, steps, newMessages, stateManager, pendingStateEvents, totalPromptTokens, totalCompletionTokens);
         }
     }
 
@@ -343,8 +348,17 @@ export class ReActExecutor implements AgentExecutor {
             }
         }
 
+        // Fallback: estimate tokens when API doesn't return usage
+        if (promptTokens === 0 && completionTokens === 0) {
+            promptTokens = TokenCounter.countMessages(messages);
+            completionTokens = TokenCounter.count(currentContent) + TokenCounter.count(currentReasoning);
+            for (const acc of accumulators.values()) {
+                completionTokens += TokenCounter.count(acc.arguments) + 10;
+            }
+        }
+
         if (promptTokens > 0) {
-            console.log(`[ReActExecutor] Token usage: prompt=${promptTokens}, completion=${completionTokens}`);
+            console.log(`[ReActExecutor] Token usage: prompt=${promptTokens}, completion=${completionTokens} (estimated)`);
         }
 
         return {
@@ -549,7 +563,9 @@ export class ReActExecutor implements AgentExecutor {
         newMessages: ChatMessage[],
         stateManager: AgentStateManager,
         pendingStateEvents: AgentStateEvent[],
-        lastPromptTokens: number
+        lastPromptTokens: number,
+        totalPromptTokens: number,
+        totalCompletionTokens: number
     ): AsyncGenerator<AgentEvent, AgentRunResult> {
         let warning: string;
         let stateMsg: string;
@@ -572,10 +588,10 @@ export class ReActExecutor implements AgentExecutor {
 
         yield* this.transitionState(pendingStateEvents, stateManager, AgentState.Idle, stateMsg);
         yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
-        return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages };
+        return { finalAnswer: (newMessages[newMessages.length - 1]?.content || '') + warning, steps, newMessages, promptTokens: totalPromptTokens, completionTokens: totalCompletionTokens };
     }
 
-    private async *handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[]): AsyncGenerator<AgentEvent, AgentRunResult> {
+    private async *handleError(error: any, steps: AgentStep[], newMessages: ChatMessage[], stateManager: AgentStateManager, pendingStateEvents: AgentStateEvent[], totalPromptTokens: number, totalCompletionTokens: number): AsyncGenerator<AgentEvent, AgentRunResult> {
         console.error('[ReActExecutor] Error:', error);
         const classified = classifyError(error);
         const state = classified.category === ErrorCategory.Aborted ? AgentState.Aborted : AgentState.Error;
@@ -585,6 +601,6 @@ export class ReActExecutor implements AgentExecutor {
         }
         yield* this.transitionState(pendingStateEvents, stateManager, state, finalMessage);
         yield { type: 'error', payload: { message: classified.message, code: classified.category } };
-        return { finalAnswer: finalMessage, steps, newMessages };
+        return { finalAnswer: finalMessage, steps, newMessages, promptTokens: totalPromptTokens, completionTokens: totalCompletionTokens };
     }
 }

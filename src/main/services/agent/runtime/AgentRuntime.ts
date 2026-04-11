@@ -145,6 +145,21 @@ export class AgentRuntime {
             }
         }
 
+        // Record token usage
+        if (result && (result.promptTokens > 0 || result.completionTokens > 0)) {
+            const [providerId, ...rest] = agent.modelId.split('/');
+            const modelId = rest.join('/') || agent.modelId;
+            this.usageManager.recordUsage({
+                sessionId: request.sessionId || '',
+                modelId,
+                providerId,
+                prompt_tokens: result.promptTokens,
+                completion_tokens: result.completionTokens,
+                total_tokens: result.promptTokens + result.completionTokens,
+                isEstimated: true
+            });
+        }
+
         return result!;
     }
 

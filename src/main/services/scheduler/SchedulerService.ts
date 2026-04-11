@@ -210,22 +210,25 @@ export class SchedulerService {
 
             console.log(`[Scheduler] Task "${task.name}" next run at ${nextDate.toLocaleString()} (in ${Math.round(delay / 1000)}s)`);
 
-            const timer = setTimeout(async () => {
-                // 清除已触发的 timer
-                this.timers.delete(task.id);
-
-                // 执行任务
-                await this.executeTask(task);
-
-                // 从最新 settings 读取任务配置（可能已更新）
-                const latestTask = this.settings.scheduledTasks?.find(t => t.id === task.id);
-                if (latestTask && latestTask.enabled) {
-                    // 重新调度下一次
-                    this.scheduleCronTask(latestTask);
+            const MAX_TIMEOUT = 2147483647; // 32-bit signed integer max (~24.8 days)
+            const schedule = () => {
+                const remaining = nextDate.getTime() - Date.now();
+                if (remaining <= 0) {
+                    // Time arrived, execute
+                    this.timers.delete(task.id);
+                    this.executeTask(task).then(() => {
+                        const latestTask = this.settings.scheduledTasks?.find(t => t.id === task.id);
+                        if (latestTask && latestTask.enabled) {
+                            this.scheduleCronTask(latestTask);
+                        }
+                    });
+                    return;
                 }
-            }, delay);
+                const timer = setTimeout(schedule, Math.min(remaining, MAX_TIMEOUT));
+                this.timers.set(task.id, timer);
+            };
 
-            this.timers.set(task.id, timer);
+            schedule();
         } catch (error: any) {
             throw new Error(`Failed to parse cron expression "${task.cronExpression}": ${error.message}`, { cause: error });
         }
