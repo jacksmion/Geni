@@ -182,8 +182,13 @@ export class WechatAdapter implements IIMAdapter {
         console.log(`[WechatAdapter] Stopping Wechat adapter...`);
         this.isRunning = false;
 
-        // 移除强行 logout()，保护用户缓存，改为仅挂起接管服务
-        console.log(`[WechatAdapter] Adapter paused. Persisted session kept intact.`);
+        // 执行 logout 清除登录态，下次启动需要重新扫码绑定
+        try {
+            await logout();
+            console.log(`[WechatAdapter] Logged out. Session cleared.`);
+        } catch (e) {
+            console.warn(`[WechatAdapter] Logout failed (may not be logged in):`, e);
+        }
 
         // 清理所有等待中的 chat
         for (const [sessionId, pending] of this.pendingChats) {

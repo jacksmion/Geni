@@ -81,11 +81,12 @@ export function ImSettings() {
         }
     }, []);
 
-    useEffect(() => {
-        if (selectedIM === 'wechat') {
-            window.electronAPI?.system?.testWechat?.().catch?.((e: any) => console.error(e));
-        }
-    }, [selectedIM]);
+    // 点击"扫码连接微信"按钮时触发
+    const handleWechatScan = () => {
+        setWechatQrUrl(null);
+        setWechatConnected(false);
+        window.electronAPI?.system?.testWechat?.().catch?.((e: any) => console.error(e));
+    };
 
     const isDirty = JSON.stringify(tgDraft) !== JSON.stringify(telegramConfig) ||
         JSON.stringify(wecomDraft) !== JSON.stringify(wecomConfig) ||
@@ -393,18 +394,21 @@ export function ImSettings() {
                                             请使用微信扫描二维码登录
                                         </p>
                                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                            （若二维码过期或未显示，请尝试重新关闭后开启并保存）
+                                            （若二维码过期，请关闭后重新扫码绑定）
                                         </p>
                                     </div>
                                 )}
                                 {!wechatConnected && !wechatQrUrl && (
                                     <div className="flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-black/20 text-center">
-                                        <Loader2 size={32} className="animate-spin text-indigo-500 mb-4" />
-                                        <p className="text-sm font-bold text-slate-700 dark:text-gray-300">
-                                            正在检查登录状态或生成二维码...
-                                        </p>
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                            请耐心等待（初次登录需几秒，已登录则会自动就绪）
+                                        <button
+                                            onClick={handleWechatScan}
+                                            className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/10"
+                                        >
+                                            <Bot size={18} />
+                                            扫码连接微信
+                                        </button>
+                                        <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                                            点击按钮生成二维码，使用微信扫码绑定
                                         </p>
                                     </div>
                                 )}

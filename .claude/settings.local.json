@@ -26,7 +26,8 @@
       "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''src/common/i18n/locales/en.json'',''utf8''\\)\\); console.log\\(''en.json valid''\\)\")",
       "Bash(node -e \"const zh = require\\(''./src/common/i18n/locales/zh.json''\\); const en = require\\(''./src/common/i18n/locales/en.json''\\); console.log\\(''JSON parse: both valid''\\)\")",
       "Bash(node -e \"require\\(''./src/common/i18n/locales/zh.json''\\); console.log\\(''zh.json: valid''\\)\")",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(findstr:*)"
     ]
   }
 }
