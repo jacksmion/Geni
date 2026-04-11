@@ -26,6 +26,7 @@
         "search_task": "搜索任务",
         "open_settings": "打开设置",
         "toggle_sidebar": "侧边栏切换",
+        "command_palette": "全局搜索",
         "record": "正在录制...",
         "pressKey": "点击配置",
         "clear": "清除",

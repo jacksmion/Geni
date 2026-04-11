@@ -26,6 +26,7 @@
         "search_task": "Search Task",
         "open_settings": "Open Settings",
         "toggle_sidebar": "Toggle Sidebar",
+        "command_palette": "Global Search",
         "record": "Recording...",
         "pressKey": "Click to config",
         "clear": "Clear",

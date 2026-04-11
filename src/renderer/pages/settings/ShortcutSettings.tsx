@@ -15,7 +15,8 @@ export function ShortcutSettings() {
         'new_task': 'Ctrl+N',
         'search_task': 'Ctrl+F',
         'open_settings': 'Ctrl+,',
-        'toggle_sidebar': 'Ctrl+B'
+        'toggle_sidebar': 'Ctrl+B',
+        'command_palette': 'Ctrl+K'
     };
 
     const handleRecord = (id: string) => {
@@ -64,6 +65,7 @@ export function ShortcutSettings() {
         { id: 'search_task', label: t('shortcuts.search_task') },
         { id: 'open_settings', label: t('shortcuts.open_settings') },
         { id: 'toggle_sidebar', label: t('shortcuts.toggle_sidebar') },
+        { id: 'command_palette', label: t('shortcuts.command_palette') },
     ];
 
     const handleReset = () => {
@@ -72,7 +74,8 @@ export function ShortcutSettings() {
                 'new_task': 'Ctrl+N',
                 'search_task': 'Ctrl+F',
                 'open_settings': 'Ctrl+,',
-                'toggle_sidebar': 'Ctrl+B'
+                'toggle_sidebar': 'Ctrl+B',
+                'command_palette': 'Ctrl+K'
             }
         });
     };
