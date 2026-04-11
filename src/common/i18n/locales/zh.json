@@ -170,13 +170,34 @@
         "custom": "自定义提供商"
     },
     "personaSettings": {
-        "title": "个性化提示词 (Persona)",
-        "desc": "定义 Agent 的身份、行为准则和回复风格",
+        "title": "个性化设置",
+        "desc": "定义 Agent 的身份、人格以及你的个人档案，让 Agent 更懂你",
         "reset": "恢复默认",
         "save": "保存修改",
         "promptPlaceholder": "输入系统提示词以自定义 Agent 的行为...",
         "expertTip": "专家提示",
-        "expertDesc": "系统提示词是 Agent 的“灵魂”。你可以通过修改它来改变 Agent 的工作语言（如强制使用某种语言）、工作风格（如简洁或详尽）以及它对工具使用的优先级。改动将在下一次开启对话时生效。"
+        "expertDesc": "系统提示词是 Agent 的「灵魂」。你可以通过修改它来改变 Agent 的工作语言（如强制使用某种语言）、工作风格（如简洁或详尽）以及它对工具使用的优先级。改动将在下一次开启对话时生效。",
+        "tabs": {
+            "identity": "身份",
+            "soul": "人格",
+            "user": "用户档案",
+            "prompt": "系统提示词"
+        },
+        "identity": {
+            "title": "Agent 身份",
+            "desc": "定义 Agent 是谁、叫什么名字、扮演什么角色。留空则使用默认身份。",
+            "placeholder": "例如：\n我叫小智，是一个专注于帮助开发者提升效率的 AI 助手。\n我擅长编程、系统设计和问题分析。"
+        },
+        "soul": {
+            "title": "Agent 人格",
+            "desc": "定义 Agent 的说话风格、态度和交流偏好。留空则使用默认风格。",
+            "placeholder": "例如：\n- 说话简洁直接，不啰嗦\n- 偶尔用幽默的方式缓解气氛\n- 回复用中文，代码注释用英文\n- 遇到不确定的事情会坦诚说明"
+        },
+        "user": {
+            "title": "用户档案",
+            "desc": "告诉 Agent 你是谁、你的偏好和背景。Agent 会根据这些信息更好地为你服务。",
+            "placeholder": "例如：\n- 名字：小明\n- 职业：全栈开发工程师\n- 技术栈：TypeScript、React、Node.js\n- 偏好：喜欢简洁的回复风格，喜欢用 Mermaid 画图"
+        }
     },
     "coreToolSettings": {
         "title": "内置核心工具",
@@ -194,7 +215,7 @@
         "noDesc": "无描述",
         "noMatch": "未发现匹配的内置工具",
         "authNoteTitle": "授权说明",
-        "authNoteDesc": "设置为“自动批准 (Auto)”将允许 AI 在不显示确认对话框的情况下直接执行该工具。为了安全起见，建议仅在涉及文件读取或目录浏览等不修改系统状态的操作时使用此模式。"
+        "authNoteDesc": "设置为「自动批准 (Auto)」将允许 AI 在不显示确认对话框的情况下直接执行该工具。为了安全起见，建议仅在涉及文件读取或目录浏览等不修改系统状态的操作时使用此模式。"
     },
     "mcpSettings": {
         "addServer": "添加服务器",
@@ -238,7 +259,7 @@
         "disconnected": "已断开",
         "error": "错误",
         "notConnected": "尚未连接",
-        "notConnectedDesc": "请在“通用设置”中连接服务器以查看可用工具",
+        "notConnectedDesc": "请在「通用设置」中连接服务器以查看可用工具",
         "toolsList": "工具列表",
         "count": "共 {{count}} 个",
         "columns": {
@@ -264,7 +285,7 @@
         "tgBotTitle": "Telegram 机器人",
         "tgBotDesc": "通过 @BotFather 连接 Geni 到 Telegram 世界。",
         "wecomBotTitle": "企业微信",
-        "wecomBotDesc": "通过企业微信后台的“智能机器人”将 Geni 接入您的企业。",
+        "wecomBotDesc": "通过企业微信后台的「智能机器人」将 Geni 接入您的企业。",
         "wecomBotIdLabel": "机器人 ID (Bot ID)",
         "wecomBotIdDesc": "在企业微信管理后台 -> 应用管理 -> 智能机器人 中获取。",
         "wecomSecretLabel": "机器人密钥 (Secret)",
@@ -275,7 +296,7 @@
         "proxyDesc": "部分网络环境连接 Telegram 可能会超时，可在此填写代理地址。",
         "providerLarkDesc": "飞书自建应用 (WebSocket)",
         "larkBotTitle": "飞书 (Lark)",
-        "larkBotDesc": "通过飞书开发者后台的“自建应用”将 Geni 接入您的飞书。",
+        "larkBotDesc": "通过飞书开发者后台的「自建应用」将 Geni 接入您的飞书。",
         "larkAppIdLabel": "App ID",
         "larkAppSecretLabel": "App Secret",
         "connectivityCheck": "连接验证",

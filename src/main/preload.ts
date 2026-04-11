@@ -66,6 +66,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testWechat: () => ipcRenderer.invoke('system:test-wechat'),
         readFileBase64: (path: string) => ipcRenderer.invoke('system:read-file-base64', path),
         getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
+        readProfileFile: (name: string) => ipcRenderer.invoke('system:read-profile-file', name),
+        writeProfileFile: (name: string, content: string) => ipcRenderer.invoke('system:write-profile-file', name, content),
         onSettingsChanged: (callback: (settings: any) => void) => {
             const sub = (_: any, settings: any) => callback(settings)
             ipcRenderer.on('system:settings-changed', sub)

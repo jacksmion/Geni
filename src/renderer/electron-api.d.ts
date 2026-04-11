@@ -43,6 +43,8 @@ export interface IElectronAPI {
         testWechat: () => Promise<{ success: boolean, message: string }>;
         readFileBase64: (path: string) => Promise<string>;
         getUsageStats: () => Promise<any>;
+        readProfileFile: (name: string) => Promise<string>;
+        writeProfileFile: (name: string, content: string) => Promise<void>;
         onSettingsChanged: (callback: (settings: any) => void) => () => void;
         onWechatQr: (callback: (qrUrl: string) => void) => () => void;
     };

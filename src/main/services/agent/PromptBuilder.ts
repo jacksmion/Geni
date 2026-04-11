@@ -27,6 +27,12 @@ export interface AgentContext {
     language?: 'zh' | 'en';
     /** 长期记忆内容（由上层传入） */
     memory?: string;
+    /** Agent 身份定义（IDENTITY.md 内容） */
+    identity?: string;
+    /** Agent 人格/说话风格（SOUL.md 内容） */
+    soul?: string;
+    /** 用户档案（USER.md 内容） */
+    userProfile?: string;
 }
 
 /**
@@ -90,22 +96,37 @@ export class PromptBuilder {
     buildSystemPrompt(context: AgentContext): string {
         const parts: string[] = [];
 
-        // 1. 基础 Prompt (Persona)
+        // 1. Agent 身份 (IDENTITY.md)
+        if (context.identity?.trim()) {
+            parts.push(`<identity>\n${context.identity.trim()}\n</identity>`);
+        }
+
+        // 2. Agent 人格 (SOUL.md)
+        if (context.soul?.trim()) {
+            parts.push(`<soul>\n${context.soul.trim()}\n</soul>`);
+        }
+
+        // 3. 基础 Prompt (Persona)
         parts.push(this.buildPersona(context));
 
-        // 2. 核心环境信息 (Environment Info)
+        // 4. 核心环境信息 (Environment Info)
         const envInfo = this.buildEnvironmentInfo(context);
         if (envInfo) {
             parts.push(envInfo);
         }
 
-        // 3. 长期记忆 (Memory)
+        // 5. 用户档案 (USER.md)
+        if (context.userProfile?.trim()) {
+            parts.push(`<user_profile>\n${context.userProfile.trim()}\n</user_profile>`);
+        }
+
+        // 6. 长期记忆 (Memory)
         const memory = this.buildMemory(context);
         if (memory) {
             parts.push(memory);
         }
 
-        // 4. 技能摘要 (Skill Summary)
+        // 7. 技能摘要 (Skill Summary)
         const skillSummary = this.buildSkillSummary(context);
         if (skillSummary) {
             parts.push(skillSummary);

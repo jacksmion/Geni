@@ -49,6 +49,8 @@ export const SYSTEM_CHANNELS = {
     TEST_WECHAT: 'system:test-wechat',
     READ_FILE_BASE64: 'system:read-file-base64',
     GET_USAGE_STATS: 'system:get-usage-stats',
+    READ_PROFILE_FILE: 'system:read-profile-file',
+    WRITE_PROFILE_FILE: 'system:write-profile-file',
 } as const;
 
 export const SYSTEM_EVENTS = {

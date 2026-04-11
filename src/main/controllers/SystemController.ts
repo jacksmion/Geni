@@ -51,6 +51,8 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
         ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
         ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
+        ipcMain.handle(SYSTEM_CHANNELS.READ_PROFILE_FILE, (_, name: string) => this.handleReadProfileFile(name));
+        ipcMain.handle(SYSTEM_CHANNELS.WRITE_PROFILE_FILE, (_, name: string, content: string) => this.handleWriteProfileFile(name, content));
     }
 
     public broadcastSettingsChanged(settings: AppSettings) {
@@ -243,6 +245,48 @@ export class SystemController {
             return buffer.toString('base64');
         } catch (error: any) {
             console.error(`[SystemController] Failed to read file ${filePath}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Read a profile file (IDENTITY.md, SOUL.md, USER.md)
+     * Returns empty string if file doesn't exist
+     */
+    private async handleReadProfileFile(name: string): Promise<string> {
+        const allowedNames = ['IDENTITY', 'SOUL', 'USER'];
+        const normalizedName = name.toUpperCase();
+        if (!allowedNames.includes(normalizedName)) {
+            throw new Error(`Invalid profile file name: ${name}`);
+        }
+
+        const filePath = this.pathManager.getProfileFile(normalizedName);
+        try {
+            if (!fs.existsSync(filePath)) {
+                return '';
+            }
+            return await fs.promises.readFile(filePath, 'utf-8');
+        } catch (error: any) {
+            console.error(`[SystemController] Failed to read profile file ${name}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Write a profile file (IDENTITY.md, SOUL.md, USER.md)
+     */
+    private async handleWriteProfileFile(name: string, content: string): Promise<void> {
+        const allowedNames = ['IDENTITY', 'SOUL', 'USER'];
+        const normalizedName = name.toUpperCase();
+        if (!allowedNames.includes(normalizedName)) {
+            throw new Error(`Invalid profile file name: ${name}`);
+        }
+
+        const filePath = this.pathManager.getProfileFile(normalizedName);
+        try {
+            await fs.promises.writeFile(filePath, content, 'utf-8');
+        } catch (error: any) {
+            console.error(`[SystemController] Failed to write profile file ${name}:`, error);
             throw error;
         }
     }

@@ -96,6 +96,15 @@ export class PathManager {
     }
 
     /**
+     * Get profile file path by name
+     * @param name - Profile file name (e.g. 'IDENTITY', 'SOUL', 'USER')
+     * @returns ~/.geni/{name}.md
+     */
+    public getProfileFile(name: string): string {
+        return path.join(this.rootDir, `${name.toUpperCase()}.md`);
+    }
+
+    /**
      * Get usage statistics file path
      * @returns ~/.geni/usage.json
      */

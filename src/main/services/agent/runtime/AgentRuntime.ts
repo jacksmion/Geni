@@ -22,6 +22,9 @@ import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { MemoryStore } from '../../memory/MemoryStore';
 import { UsageManager } from '../../usage/UsageManager';
 import { PromptBuilder } from '../PromptBuilder';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 
 export class AgentRuntime {
@@ -89,7 +92,10 @@ export class AgentRuntime {
             workspacePath: request.workspacePath,
             skills: skills,
             language: request.language,
-            memory: allMemoryContent || undefined
+            memory: allMemoryContent || undefined,
+            identity: this.loadProfileFile('IDENTITY'),
+            soul: this.loadProfileFile('SOUL'),
+            userProfile: this.loadProfileFile('USER'),
         });
 
         const messages: ChatMessage[] = [
@@ -168,6 +174,22 @@ export class AgentRuntime {
         return skillIds
             .map(id => this.skillRegistry.get(id))
             .filter((s): s is SkillObject => s !== undefined);
+    }
+
+    /**
+     * Load a profile file from ~/.geni/ (IDENTITY.md, SOUL.md, USER.md)
+     * Returns empty string if file doesn't exist
+     */
+    private loadProfileFile(name: string): string {
+        const filePath = path.join(os.homedir(), '.geni', `${name}.md`);
+        try {
+            if (fs.existsSync(filePath)) {
+                return fs.readFileSync(filePath, 'utf-8');
+            }
+        } catch {
+            // Silently ignore read errors
+        }
+        return '';
     }
 
     private convertToSkills(skillIds: string[] | undefined): Skill[] {

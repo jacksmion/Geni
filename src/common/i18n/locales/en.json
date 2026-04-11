@@ -171,12 +171,33 @@
     },
     "personaSettings": {
         "title": "Persona Settings",
-        "desc": "Define the Agent's identity, behavior guidelines, and response style",
+        "desc": "Define the Agent's identity, personality, and your profile to make it smarter",
         "reset": "Reset to Default",
         "save": "Save Changes",
         "promptPlaceholder": "Enter system prompt to customize Agent behavior...",
         "expertTip": "Expert Tip",
-        "expertDesc": "The system prompt is the 'soul' of the Agent. You can modify it to change its working language, style, and tool priority. Changes take effect on the next conversation."
+        "expertDesc": "The system prompt is the 'soul' of the Agent. You can modify it to change its working language, style, and tool priority. Changes take effect on the next conversation.",
+        "tabs": {
+            "identity": "Identity",
+            "soul": "Soul",
+            "user": "User Profile",
+            "prompt": "System Prompt"
+        },
+        "identity": {
+            "title": "Agent Identity",
+            "desc": "Define who the Agent is, its name, and role. Leave empty to use the default identity.",
+            "placeholder": "Example:\nMy name is Geni, an AI assistant focused on helping developers.\nI excel at programming, system design, and problem analysis."
+        },
+        "soul": {
+            "title": "Agent Personality",
+            "desc": "Define the Agent's speaking style, attitude, and communication preferences. Leave empty to use the default style.",
+            "placeholder": "Example:\n- Be concise and direct, avoid unnecessary verbosity\n- Occasionally use humor to lighten the mood\n- Respond in English, code comments in English\n- Be honest when uncertain about something"
+        },
+        "user": {
+            "title": "User Profile",
+            "desc": "Tell the Agent who you are, your preferences and background. The Agent will serve you better with this information.",
+            "placeholder": "Example:\n- Name: Alex\n- Role: Full-stack developer\n- Tech stack: TypeScript, React, Node.js\n- Preferences: Concise responses, prefers Mermaid diagrams"
+        }
     },
     "coreToolSettings": {
         "title": "Built-in Core Tools",
