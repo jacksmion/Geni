@@ -1,6 +1,6 @@
 {
   "name": "geni",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "AI-powered collaborative workspace assistant",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -33,7 +33,6 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@wecom/aibot-node-sdk": "^1.0.1",
     "adm-zip": "^0.5.17",
-    "bufferutil": "^4.1.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "cron-parser": "^5.5.0",
@@ -60,7 +59,6 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0",
     "undici": "^7.22.0",
-    "utf-8-validate": "^6.0.6",
     "weixin-agent-sdk": "^0.2.0",
     "zod": "^3.24.2",
     "zustand": "^5.0.11"
