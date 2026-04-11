@@ -30,38 +30,43 @@ export default function StaffPage() {
     }
 
     return (
-        <div className="h-full overflow-y-auto px-8 py-8">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8 pr-[140px]">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{t('staffPage.title')}</h1>
-                    <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{t('staffPage.subtitle')}</p>
+        <div className="flex h-full flex-col">
+            {/* Draggable Header */}
+            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                <div className="flex items-center gap-2">
+                    <h1 className="text-sm font-semibold">{t('staffPage.title')}</h1>
+                    <span className="text-xs text-slate-400 dark:text-zinc-500">{t('staffPage.subtitle')}</span>
                 </div>
-                <button
-                    onClick={() => setEditingId('new')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors no-drag"
-                >
-                    <Plus size={16} />
-                    {t('staffPage.create')}
-                </button>
-            </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setEditingId('new')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
+                    >
+                        <Plus size={14} />
+                        {t('staffPage.create')}
+                    </button>
+                    <div className="w-32" />
+                </div>
+            </header>
 
-            {/* Grid */}
-            {loading ? (
-                <div className="text-center py-20 text-slate-400">{t('loading')}</div>
-            ) : profiles.length === 0 ? (
-                <div className="text-center py-20">
-                    <User size={48} className="mx-auto mb-4 text-slate-300 dark:text-zinc-600" />
-                    <h3 className="text-lg font-medium mb-2">{t('staffPage.empty')}</h3>
-                    <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{t('staffPage.emptyDesc')}</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {profiles.map(p => (
-                        <StaffCard key={p.id} profile={p} onClick={() => setEditingId(p.id)} />
-                    ))}
-                </div>
-            )}
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-8 py-6">
+                {loading ? (
+                    <div className="text-center py-20 text-slate-400">{t('loading')}</div>
+                ) : profiles.length === 0 ? (
+                    <div className="text-center py-20">
+                        <User size={48} className="mx-auto mb-4 text-slate-300 dark:text-zinc-600" />
+                        <h3 className="text-lg font-medium mb-2">{t('staffPage.empty')}</h3>
+                        <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{t('staffPage.emptyDesc')}</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {profiles.map(p => (
+                            <StaffCard key={p.id} profile={p} onClick={() => setEditingId(p.id)} />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
@@ -213,13 +218,17 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     const selectedModelOption = modelOptions.find(o => o.value === modelId)
 
     return (
-        <div className="h-full overflow-y-auto px-8 py-8 max-w-2xl mx-auto">
-            {/* Back */}
-            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 mb-6 transition-colors">
-                <ArrowLeft size={16} /> {t('staffPage.back')}
-            </button>
+        <div className="flex h-full flex-col">
+            {/* Draggable Header */}
+            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+                    <ArrowLeft size={16} /> {t('staffPage.back')}
+                </button>
+                <div className="w-32" />
+            </header>
 
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto px-8 py-6 max-w-2xl mx-auto w-full">
+                <div className="space-y-6">
                 {/* Avatar Picker */}
                 <div className="relative" ref={avatarPickerRef}>
                     <label className="block text-sm font-medium mb-2">头像</label>
@@ -497,6 +506,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                         </button>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     )
