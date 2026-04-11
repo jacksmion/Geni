@@ -77,6 +77,8 @@
         },
         "import": {
             "button": "Import Skill",
+            "fromFile": "Import .zip or .skill file",
+            "fromFolder": "Import from folder",
             "dialogTitle": "Select skill folder or archive",
             "success": "Skill '{{name}}' imported successfully",
             "conflictTitle": "Skill Already Exists",

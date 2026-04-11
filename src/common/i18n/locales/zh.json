@@ -77,6 +77,8 @@
         },
         "import": {
             "button": "导入技能",
+            "fromFile": "导入 .zip 或 .skill 文件",
+            "fromFolder": "导入文件夹",
             "dialogTitle": "选择技能文件夹或压缩包",
             "success": "技能 '{{name}}' 导入成功",
             "conflictTitle": "技能已存在",

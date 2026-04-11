@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
 import {
-    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2
+    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2, ChevronDown, FileArchive, FolderOpen
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -212,6 +212,8 @@ const SkillSettings: React.FC = () => {
     const [conflict, setConflict] = useState<{ skillName: string; targetPath: string; sourceTempDir?: string; originalPath: string } | null>(null);
     const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
+    const [importMenuOpen, setImportMenuOpen] = useState(false);
+    const importMenuRef = useRef<HTMLDivElement>(null);
 
     const fetchSkills = async () => {
         try {
@@ -227,6 +229,18 @@ const SkillSettings: React.FC = () => {
     useEffect(() => {
         fetchSkills();
     }, []);
+
+    // Close import menu on outside click
+    useEffect(() => {
+        if (!importMenuOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (importMenuRef.current && !importMenuRef.current.contains(e.target as Node)) {
+                setImportMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [importMenuOpen]);
 
     const handleToggle = async (id: string) => {
         const updated = await window.electronAPI.tools.toggleSkill(id);
@@ -332,7 +346,7 @@ const SkillSettings: React.FC = () => {
     return (
         <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-black/20 overflow-hidden animate-in fade-in duration-500">
             {/* 顶部 Header */}
-            <header className="shrink-0 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#18181b]/80 backdrop-blur-xl draggable">
+            <header className="relative z-50 shrink-0 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#18181b]/80 backdrop-blur-xl draggable">
                 <div className="px-6 py-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -362,26 +376,39 @@ const SkillSettings: React.FC = () => {
                                 className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
                             />
                         </div>
-                        <button
-                            onClick={handleImport}
-                            disabled={importing}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
-                        >
-                            {importing ? (
-                                <Loader2 size={12} className="animate-spin" />
-                            ) : (
-                                <Download size={12} />
+                        <div className="relative" ref={importMenuRef}>
+                            <button
+                                onClick={() => setImportMenuOpen(!importMenuOpen)}
+                                disabled={importing}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
+                            >
+                                {importing ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                    <Download size={12} />
+                                )}
+                                {t('skillSettings.import.button')}
+                                <ChevronDown size={10} className={clsx("transition-transform", importMenuOpen && "rotate-180")} />
+                            </button>
+                            {importMenuOpen && (
+                                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-black/30 py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                                    <button
+                                        onClick={() => { setImportMenuOpen(false); handleImport(); }}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                    >
+                                        <FileArchive size={13} className="text-slate-400 dark:text-gray-500" />
+                                        <span>{t('skillSettings.import.fromFile')}</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { setImportMenuOpen(false); handleImportFolder(); }}
+                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                    >
+                                        <FolderOpen size={13} className="text-slate-400 dark:text-gray-500" />
+                                        <span>{t('skillSettings.import.fromFolder')}</span>
+                                    </button>
+                                </div>
                             )}
-                            {t('skillSettings.import.button')}
-                        </button>
-                        <button
-                            onClick={handleImportFolder}
-                            disabled={importing}
-                            title={t('skillSettings.import.folderTitle')}
-                            className="flex items-center px-2 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-500 dark:text-gray-500 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
-                        >
-                            <Box size={14} />
-                        </button>
+                        </div>
                     </div>
                 </div>
             </header>
