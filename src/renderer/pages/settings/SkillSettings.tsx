@@ -344,9 +344,9 @@ const SkillSettings: React.FC = () => {
     }
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50 dark:bg-black/20 overflow-hidden animate-in fade-in duration-500">
+        <div className="flex flex-col h-full w-full bg-white dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500 border-l border-slate-200 dark:border-white/5">
             {/* 顶部 Header */}
-            <header className="relative z-50 shrink-0 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#18181b]/80 backdrop-blur-xl draggable">
+            <header className="relative z-50 shrink-0 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#09090b] backdrop-blur-xl draggable">
                 <div className="px-6 py-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -426,7 +426,7 @@ const SkillSettings: React.FC = () => {
             )}
 
             {/* 技能列表 */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#09090b]">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     {filteredSkills.length > 0 ? (
                         <div className="bg-white dark:bg-white/[0.02] rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
