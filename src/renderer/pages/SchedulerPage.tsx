@@ -347,32 +347,34 @@ const SchedulerPage: React.FC = () => {
         <div className="flex h-full w-full bg-slate-50 dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500">
             {/* Left Sidebar */}
             <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#09090b] flex flex-col">
-                <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0">
+                <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center px-4 draggable shrink-0">
                     <div className="flex items-center gap-2">
                         <Clock size={16} className="text-slate-800 dark:text-gray-100" />
                         <h1 className="text-sm font-bold text-slate-800 dark:text-gray-100 tracking-tight">
                             定时任务
                         </h1>
                     </div>
-                    <button
-                        onClick={handleAddTask}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white transition-colors nodrag"
-                        title="新建任务"
-                    >
-                        <Plus size={16} />
-                    </button>
                 </header>
 
                 <div className="p-3 flex flex-col gap-3 flex-1 overflow-hidden">
-                    <div className="relative w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                        <input
-                            type="text"
-                            placeholder="搜索..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-white/5 border-none rounded-lg py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-white/20 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                        />
+                    <div className="relative flex items-center gap-2 w-full">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                            <input
+                                type="text"
+                                placeholder="搜索..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-white/5 border-none rounded-lg py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-white/20 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                            />
+                        </div>
+                        <button
+                            onClick={handleAddTask}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white transition-colors shrink-0"
+                            title="新建任务"
+                        >
+                            <Plus size={16} />
+                        </button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
@@ -466,16 +468,16 @@ const SchedulerPage: React.FC = () => {
                 {(editingTask) ? (
                     <>
                         <header className="border-b border-slate-200 dark:border-white/5 px-6 h-12 flex items-center justify-between draggable shrink-0 bg-white dark:bg-[#09090b]">
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
                             <input
                                 type="text"
                                 value={editingTask.name}
                                 onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
                                 placeholder="任务名称..."
-                                className="flex-1 bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors nodrag"
+                                className="w-full max-w-2xl mx-auto block bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors mb-3 px-0"
                             />
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
                             <div className="max-w-2xl mx-auto">
                                 {!isCreating && (
                                     <div className="flex p-1 bg-slate-100 dark:bg-white/5 rounded-xl w-fit mb-3">
