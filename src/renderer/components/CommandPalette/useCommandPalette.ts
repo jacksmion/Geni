@@ -30,8 +30,15 @@ export function useCommandPalette() {
         let items: SearchItem[]
 
         if (!searchTerm) {
-            // 无搜索词：返回全部（或按过滤类型返回全部）
-            items = filterType ? allItems.filter(i => i.type === filterType) : allItems
+            if (filterType) {
+                items = allItems.filter(i => i.type === filterType)
+            } else {
+                // 无搜索词：先展示最近6条会话，再展示命令和页面
+                const sessions = allItems.filter(i => i.type === 'session').slice(0, 6)
+                const commands = allItems.filter(i => i.type === 'command')
+                const pages = allItems.filter(i => i.type === 'page')
+                items = [...sessions, ...commands, ...pages]
+            }
         } else if (filterType) {
             // 有前缀过滤：先搜索再过滤类型
             items = fuse.search(searchTerm).map(r => r.item).filter(i => i.type === filterType)

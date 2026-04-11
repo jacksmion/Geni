@@ -98,7 +98,10 @@ export function getCommandItems(): SearchItem[] {
 export function getSessionItems(): SearchItem[] {
     const { sessionMetas, switchSession } = useChatStore.getState()
 
-    return sessionMetas.map((meta) => ({
+    // 按 updatedAt 降序排列，最近的在最前面
+    const sorted = [...sessionMetas].sort((a, b) => b.updatedAt - a.updatedAt)
+
+    return sorted.map((meta) => ({
         id: `session-${meta.id}`,
         type: 'session' as const,
         label: meta.title || '未命名会话',

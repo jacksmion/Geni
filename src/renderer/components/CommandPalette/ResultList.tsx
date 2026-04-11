@@ -3,11 +3,11 @@ import React from 'react'
 import { SearchItem } from './types'
 import { ResultItem } from './ResultItem'
 
-const typeOrder: SearchItem['type'][] = ['page', 'session', 'command']
+const typeOrder: SearchItem['type'][] = ['session', 'command', 'page']
 const typeLabels: Record<SearchItem['type'], string> = {
-    page: '页面',
-    session: '会话',
+    session: '最近会话',
     command: '命令',
+    page: '页面',
 }
 
 interface ResultListProps {
