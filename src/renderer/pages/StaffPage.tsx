@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useStaffStore } from '../store/useStaffStore'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { useModalStore } from '../store/useModalStore'
 import { useTranslation } from 'react-i18next'
 import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check } from 'lucide-react'
 import { StaffProfile } from '../../common/types/staff'
@@ -197,10 +198,16 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
         }
     }
 
-    const handleDelete = async () => {
-        if (!confirm(t('staffPage.deleteConfirm'))) return
-        await deleteProfile(id)
-        onBack()
+    const showConfirm = useModalStore(s => s.showConfirm)
+
+    const handleDelete = () => {
+        showConfirm({
+            message: t('staffPage.deleteConfirm'),
+            onConfirm: async () => {
+                await deleteProfile(id)
+                onBack()
+            }
+        })
     }
 
     const selectedModelOption = modelOptions.find(o => o.value === modelId)
