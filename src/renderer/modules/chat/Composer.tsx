@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Globe, Zap } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
-import { useStaffStore } from '../../store/useStaffStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
-import { StaffAvatar, STAFF_ICONS } from '../../components/StaffAvatar'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { Skill } from '../../../common/types/skill'
 import { clsx } from 'clsx'
@@ -539,129 +537,6 @@ function WorkspaceSelector() {
     )
 }
 
-function StaffAvatarButton() {
-    const activeSessionId = useChatStore(s => s.activeSessionId)
-    const sessions = useChatStore(s => s.sessions)
-    const assignStaff = useChatStore(s => s.assignStaff)
-    const { profiles, loadProfiles } = useStaffStore()
-    const [isOpen, setIsOpen] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
-
-    const currentStaffId = sessions[activeSessionId]?.staffId
-    const currentStaff = profiles.find(p => p.id === currentStaffId)
-
-    useEffect(() => {
-        if (profiles.length === 0) loadProfiles()
-    }, [profiles.length, loadProfiles])
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        if (isOpen) document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [isOpen])
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={cn(
-                    "w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 transition-all",
-                    "border border-slate-200/80 dark:border-white/10 shadow-sm",
-                    isOpen
-                        ? "bg-white dark:bg-[#1a1a1c] ring-2 ring-indigo-500/20"
-                        : "bg-white dark:bg-[#1a1a1c] hover:ring-1 hover:ring-slate-200 dark:hover:ring-white/10"
-                )}
-                title={currentStaff ? currentStaff.name : 'AI 助手 (默认)'}
-            >
-                <StaffAvatar
-                    avatar={currentStaff?.avatar}
-                    name={currentStaff?.name}
-                    size={14}
-                    iconClassName="text-slate-500 dark:text-indigo-300"
-                />
-            </button>
-
-            {isOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-56 bg-white dark:bg-[#1e1e20] border border-slate-200/60 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                    <div className="px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                        选择数字员工
-                    </div>
-
-                    <div className="py-1 max-h-60 overflow-y-auto">
-                        {/* Default AI option */}
-                        <button
-                            onClick={() => { assignStaff(activeSessionId, undefined); setIsOpen(false) }}
-                            className={cn(
-                                "w-full text-left px-3 py-2.5 text-xs flex items-center gap-2.5 transition-colors",
-                                !currentStaffId
-                                    ? "bg-indigo-50/50 dark:bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 font-medium"
-                                    : "text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                            )}
-                        >
-                            <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-zinc-700/60 flex items-center justify-center shrink-0">
-                                <StaffAvatar size={12} iconClassName="text-slate-500 dark:text-zinc-400" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="truncate">AI 助手 (默认)</div>
-                            </div>
-                            {!currentStaffId && <Check size={14} className="text-indigo-500 shrink-0" />}
-                        </button>
-
-                        <div className="h-px bg-slate-100 dark:bg-white/5 my-1" />
-
-                        {profiles.length === 0 ? (
-                            <div className="px-3 py-4 text-center text-[11px] text-slate-400 dark:text-zinc-500">
-                                暂无数字员工
-                            </div>
-                        ) : (
-                            profiles.map(p => {
-                                const isActive = currentStaffId === p.id
-                                const hasIcon = p.avatar && STAFF_ICONS[p.avatar]
-                                return (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => { assignStaff(activeSessionId, p.id); setIsOpen(false) }}
-                                        className={cn(
-                                            "w-full text-left px-3 py-2.5 text-xs flex items-center gap-2.5 transition-colors",
-                                            isActive
-                                                ? "bg-indigo-50/50 dark:bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 font-medium"
-                                                : "text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
-                                            hasIcon
-                                                ? "bg-slate-100 dark:bg-zinc-700/60"
-                                                : "bg-gradient-to-br from-indigo-500 to-purple-500"
-                                        )}>
-                                            <StaffAvatar
-                                                avatar={p.avatar}
-                                                name={p.name}
-                                                size={hasIcon ? 12 : 13}
-                                                iconClassName={hasIcon ? "text-slate-500 dark:text-zinc-400" : undefined}
-                                                className={hasIcon ? undefined : "text-white"}
-                                            />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="truncate">{p.name}</div>
-                                            {p.description && <div className="text-[10px] text-slate-400 dark:text-zinc-500 truncate">{p.description}</div>}
-                                        </div>
-                                        {isActive && <Check size={14} className="text-indigo-500 shrink-0" />}
-                                    </button>
-                                )
-                            })
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
 export function Composer() {
     const [input, setInput] = useState('')
     const isSending = useChatStore(s => s.isSending)
@@ -755,27 +630,22 @@ export function Composer() {
                         </div>
                     )}
 
-                    {/* TextArea with Staff Avatar */}
-                    <div className="flex items-end">
-                        <div className="pl-4 pb-3.5 pt-3">
-                            <StaffAvatarButton />
-                        </div>
-                        <textarea
-                            ref={textareaRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault()
-                                    handleSend()
-                                }
-                            }}
-                            placeholder="Message Geni..."
-                            className="flex-1 bg-transparent px-3 py-4 min-h-[56px] max-h-64 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
-                            rows={1}
-                            style={{ lineHeight: '1.5' }}
-                        />
-                    </div>
+                    {/* TextArea */}
+                    <textarea
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSend()
+                            }
+                        }}
+                        placeholder="Message Geni..."
+                        className="w-full bg-transparent px-5 py-4 min-h-[56px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
+                        rows={1}
+                        style={{ lineHeight: '1.5' }}
+                    />
 
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
                     <div className="flex items-center justify-between px-3 pb-3 pt-1">
