@@ -358,7 +358,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     sendMessage: async (input: string, attachments: string[]) => {
         const state = get();
-        const { isSending, sessions, addMessage, updateLastMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
+        const { isSending, sessions, addMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
 
         let activeSessionId = state.activeSessionId;
 
@@ -423,6 +423,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }));
         }
 
+        // Track the target session ID for streaming updates (fixed, won't change when user switches sessions)
+        let targetSessionId = activeSessionId;
+
+        // Helper: update last message of the TARGET session (not activeSessionId)
+        const updateTargetMessage = (updater: (msg: ChatMessage) => ChatMessage) => {
+            set(state => {
+                const session = state.sessions[targetSessionId];
+                if (!session || session.messages.length === 0) return state;
+
+                const msgs = [...session.messages];
+                const lastIdx = msgs.length - 1;
+                msgs[lastIdx] = updater(msgs[lastIdx]);
+
+                return {
+                    sessions: { ...state.sessions, [targetSessionId]: { ...session, messages: msgs } }
+                };
+            });
+        };
+
         // --- Unified Stream Mechanism ---
         // Merges content, reasoning, and step updates into a single RAF loop.
         // Reduces React re-renders from ~180/sec to ~60/sec during streaming.
@@ -466,7 +485,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 lastStepFlushTime = now;
             }
 
-            get().updateLastMessage((msg) => ({
+            updateTargetMessage((msg) => ({
                 ...msg,
                 ...(hasContent ? { content: msg.content + chunkContent } : {}),
                 ...(hasReasoning ? { reasoning_content: (msg.reasoning_content || '') + chunkReasoning } : {}),
@@ -536,7 +555,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
             if (reset) {
                 contentBuf = '';
-                get().updateLastMessage((msg) => ({ ...msg, content: chunk }));
+                updateTargetMessage((msg) => ({ ...msg, content: chunk }));
             } else {
                 contentBuf += chunk;
                 scheduleFlush();
@@ -546,7 +565,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((chunk: string, reset?: boolean) => {
             if (reset) {
                 reasoningBuf = '';
-                get().updateLastMessage((msg) => ({ ...msg, reasoning_content: '' }));
+                updateTargetMessage((msg) => ({ ...msg, reasoning_content: '' }));
             } else {
                 reasoningBuf += chunk;
                 scheduleFlush();
@@ -571,7 +590,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const cleanupError = window.electronAPI.agent.onError((err: any) => {
             // 用户主动终止不是错误，保留已有内容不做额外处理
             if (isAbortError(err)) return
-            get().updateLastMessage((msg) => ({
+            updateTargetMessage((msg) => ({
                 ...msg,
                 content: `Error: ${err.message || JSON.stringify(err)}`,
                 isError: true
@@ -621,6 +640,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     };
                 });
                 activeSessionId = realId;
+                targetSessionId = realId;
 
                 // 持久化标题和用户消息到后端
                 const realSession = get().sessions[realId];
@@ -635,7 +655,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         } catch (err: any) {
             // 用户主动终止不是错误，静默处理
             if (!isAbortError(err)) {
-                get().updateLastMessage((msg) => ({
+                updateTargetMessage((msg) => ({
                     ...msg,
                     content: `Error: ${err.message}`,
                     isError: true
