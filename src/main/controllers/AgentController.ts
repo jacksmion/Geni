@@ -11,30 +11,34 @@ import { Agent } from '../../common/types/agent';
 import { AgentStep } from '../../common/types/chat';
 
 /**
- * AgentController — IPC 薄壳层
+ * Per-session state — one entry per active agent run.
+ */
+interface SessionState {
+    streamBuffer: string;
+    reasoningBuffer: string;
+    throttleTimer: NodeJS.Timeout | null;
+    activeSteps: AgentStep[];
+    runId: string;
+}
+
+/**
+ * AgentController — IPC thin shell (per-session, fire-and-forget)
  *
- * Phase 5: 纯协议转换，不含业务逻辑。
- * 职责：接收 IPC 请求 → 构建 Agent/Request → 调用 Runtime → 转发事件到 UI
- * 授权路径：auth_request 经 emit 转发到 UI，用户响应通过 IPC 回到 Controller，
- * Controller 通过 runtime.resolveAuth() 通知 Runtime 内部的 pending resolver。
+ * Supports multiple concurrent agent sessions. Each session has fully
+ * isolated throttling buffers, step accumulators, and WebContents sender.
+ *
+ * `handleStart` returns immediately with a `runId`; the actual agent
+ * execution happens in the background via `runAgent()`.
  */
 export class AgentController {
-    private activeWebContents: WebContents | null = null;
     private abortControllers = new Map<string, AbortController>();
+    private sessionStates = new Map<string, SessionState>();
+    private sessionSenders = new Map<string, WebContents>();
     private settings: AppSettings;
     private staffManager: StaffManager;
     private sessionManager: SessionManager;
 
-    // Throttling (stream only)
-    private streamBuffer: string = '';
-    private reasoningBuffer: string = '';
-    private throttleTimer: NodeJS.Timeout | null = null;
-    private throttleRef: number = 0;
     private readonly THROTTLE_MS = 120;
-
-    // Active steps accumulator (per session)
-    private activeSteps: AgentStep[] = [];
-    private activeRunId: string | null = null;
 
     constructor(
         private runtime: AgentRuntime,
@@ -68,42 +72,46 @@ export class AgentController {
 
     // ========== Event Dispatch ==========
 
-    private buildEmitFn(runId: string): (event: InternalAgentEvent) => void {
+    private buildEmitFn(
+        sessionId: string,
+        sender: WebContents
+    ): (event: InternalAgentEvent) => void {
         return (event: InternalAgentEvent) => {
+            const state = this.sessionStates.get(sessionId);
+            if (!state) return; // session already cleaned up
+
             switch (event.type) {
                 case 'turn_start':
                     if (event.payload.resetStream) {
-                        this.flushThrottledEvents();
-                        this.reasoningBuffer = '';
-                        this.broadcast(AGENT_EVENTS.STREAM, { content: '', isReset: true });
-                        this.broadcast(AGENT_EVENTS.REASONING_STREAM, { content: '', isReset: true });
+                        this.flushThrottledEvents(sessionId);
+                        state.reasoningBuffer = '';
+                        this.sendToSender(sender, AGENT_EVENTS.STREAM, { content: '', isReset: true, sessionId });
+                        this.sendToSender(sender, AGENT_EVENTS.REASONING_STREAM, { content: '', isReset: true, sessionId });
                     }
                     break;
                 case 'message_delta':
-                    this.streamBuffer += event.payload.delta;
+                    state.streamBuffer += event.payload.delta;
                     break;
                 case 'reasoning_delta':
-                    this.reasoningBuffer += event.payload.delta;
+                    state.reasoningBuffer += event.payload.delta;
                     break;
                 case 'tool_start':
-                    this.activeSteps.push(event.payload);
-                    this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
+                    state.activeSteps.push(event.payload);
+                    this.sendToSender(sender, AGENT_EVENTS.STEP_UPDATE, { steps: [...state.activeSteps], sessionId });
                     break;
                 case 'tool_end': {
-                    // Replace matching incomplete step
-                    const idx = this.activeSteps.findIndex(
+                    const idx = state.activeSteps.findIndex(
                         s => s.tool === event.payload.tool && !s.isComplete
                     );
                     if (idx >= 0) {
-                        this.activeSteps[idx] = event.payload;
+                        state.activeSteps[idx] = event.payload;
                     } else {
-                        this.activeSteps.push(event.payload);
+                        state.activeSteps.push(event.payload);
                     }
-                    this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
+                    this.sendToSender(sender, AGENT_EVENTS.STEP_UPDATE, { steps: [...state.activeSteps], sessionId });
                     break;
                 }
                 case 'auth_request': {
-                    // Add auth step to activeSteps so ThoughtTrace shows inline auth UI
                     const { requestId, toolName, args, reason } = event.payload;
                     const authStep: AgentStep = {
                         tool: toolName,
@@ -113,25 +121,26 @@ export class AgentController {
                         authRequestId: requestId,
                         authReason: reason
                     };
-                    this.activeSteps.push(authStep);
-                    this.broadcast(AGENT_EVENTS.STEP_UPDATE, { steps: [...this.activeSteps] });
-                    this.broadcast(AGENT_EVENTS.AUTHORIZATION_REQUEST, {
+                    state.activeSteps.push(authStep);
+                    this.sendToSender(sender, AGENT_EVENTS.STEP_UPDATE, { steps: [...state.activeSteps], sessionId });
+                    this.sendToSender(sender, AGENT_EVENTS.AUTHORIZATION_REQUEST, {
                         ...event.payload,
-                        runId
+                        runId: state.runId,
+                        sessionId
                     });
                     break;
                 }
                 case 'agent_end':
-                    this.flushThrottledEvents();
+                    this.flushThrottledEvents(sessionId);
                     break;
                 case 'error':
-                    this.broadcast(AGENT_EVENTS.ERROR, event.payload);
+                    this.sendToSender(sender, AGENT_EVENTS.ERROR, { ...event.payload, sessionId });
                     break;
                 case 'turn_end':
                     // No special handling needed
                     break;
                 case 'state_change':
-                    this.broadcast(AGENT_EVENTS.STATE_CHANGE, event.payload);
+                    this.sendToSender(sender, AGENT_EVENTS.STATE_CHANGE, { ...event.payload, sessionId });
                     break;
             }
         };
@@ -140,7 +149,7 @@ export class AgentController {
     // ========== Handlers ==========
 
     private async handleStart(event: IpcMainInvokeEvent, payload: AgentStartRequest): Promise<AgentStartResponse> {
-        this.activeWebContents = event.sender;
+        const sender = event.sender;
 
         try {
             const { sessionId, prompt, options } = payload;
@@ -156,41 +165,80 @@ export class AgentController {
             const controller = new AbortController();
             this.abortControllers.set(sid, controller);
 
-            // 3. Reset step accumulator
-            this.activeSteps = [];
+            // 3. Initialize per-session state
             const runId = crypto.randomUUID();
-            this.activeRunId = runId;
+            this.sessionStates.set(sid, {
+                streamBuffer: '',
+                reasoningBuffer: '',
+                throttleTimer: null,
+                activeSteps: [],
+                runId
+            });
 
-            // 4. Build Agent from payload
+            // 4. Store sender for this session
+            this.sessionSenders.set(sid, sender);
+
+            // 5. Build Agent from payload
             const agent = this.resolveAgent(payload);
 
-            // 5. Build request — emit forwards events from Runtime to Controller's IPC layer
+            // 6. Build request
             const request: AgentRunRequest = {
                 sessionId: sid,
                 prompt,
                 signal: controller.signal,
-                emit: this.buildEmitFn(runId),
+                emit: this.buildEmitFn(sid, sender),
                 skillIds: options?.skills,
                 workspacePath: this.settings.workspacePath,
                 language: this.settings.language
             };
 
-            // 6. Run with throttling
-            this.startThrottling();
-            await this.runtime.run(agent, request);
-            this.stopThrottling();
+            // 7. Fire-and-forget — return immediately, agent runs in background
+            this.runAgent(sid, agent, request);
 
-            // 7. Cleanup
-            this.abortControllers.delete(sid);
-            this.activeRunId = null;
-
-            return { success: true, sessionId: sid };
+            return { success: true, sessionId: sid, runId };
 
         } catch (error: any) {
-            console.error('[AgentController] Agent execution failed:', error);
-            this.stopThrottling();
-            this.broadcast(AGENT_EVENTS.ERROR, { message: error.message });
+            console.error('[AgentController] Agent start failed:', error);
+            this.sendToSender(sender, AGENT_EVENTS.ERROR, { message: error.message });
             return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Background agent execution. Handles errors, cleanup, and
+     * sends a state_change to Idle on completion.
+     */
+    private async runAgent(
+        sessionId: string,
+        agent: Agent,
+        request: AgentRunRequest
+    ): Promise<void> {
+        const sender = this.sessionSenders.get(sessionId);
+        try {
+            this.startThrottling(sessionId);
+            await this.runtime.run(agent, request);
+        } catch (error: any) {
+            // AbortError is expected when user cancels — don't log as error
+            if (error.name !== 'AbortError') {
+                console.error('[AgentController] Agent execution failed:', error);
+                if (sender && !sender.isDestroyed()) {
+                    this.sendToSender(sender, AGENT_EVENTS.ERROR, { message: error.message, sessionId });
+                }
+            }
+        } finally {
+            this.stopThrottling(sessionId);
+
+            // Notify UI that this session has returned to Idle
+            if (sender && !sender.isDestroyed()) {
+                this.sendToSender(sender, AGENT_EVENTS.STATE_CHANGE, {
+                    previousState: 'Thinking',
+                    currentState: 'Idle',
+                    timestamp: Date.now(),
+                    sessionId
+                });
+            }
+
+            this.cleanupSessionState(sessionId);
         }
     }
 
@@ -199,14 +247,30 @@ export class AgentController {
             const controller = this.abortControllers.get(sessionId);
             if (controller) {
                 controller.abort();
-                this.abortControllers.delete(sessionId);
             }
+            this.cleanupSessionState(sessionId);
         } else {
+            // Stop all sessions
             for (const [, controller] of this.abortControllers.entries()) {
                 controller.abort();
             }
-            this.abortControllers.clear();
+            for (const sid of this.sessionStates.keys()) {
+                this.cleanupSessionState(sid);
+            }
         }
+    }
+
+    /**
+     * Clean up all per-session maps for a given sessionId.
+     */
+    private cleanupSessionState(sessionId: string): void {
+        const state = this.sessionStates.get(sessionId);
+        if (state?.throttleTimer) {
+            clearInterval(state.throttleTimer);
+        }
+        this.sessionStates.delete(sessionId);
+        this.abortControllers.delete(sessionId);
+        this.sessionSenders.delete(sessionId);
     }
 
     // ========== Agent Resolution ==========
@@ -262,38 +326,54 @@ export class AgentController {
         return `${provider}/${model}`;
     }
 
-    // ========== Throttling ==========
+    // ========== Per-Session Throttling ==========
 
-    private startThrottling() {
-        this.throttleRef++;
-        if (this.throttleTimer) return;
-        this.throttleTimer = setInterval(() => this.flushThrottledEvents(), this.THROTTLE_MS);
+    private startThrottling(sessionId: string): void {
+        const state = this.sessionStates.get(sessionId);
+        if (!state) return;
+        if (state.throttleTimer) return; // already running
+
+        state.throttleTimer = setInterval(
+            () => this.flushThrottledEvents(sessionId),
+            this.THROTTLE_MS
+        );
     }
 
-    private stopThrottling() {
-        this.throttleRef = Math.max(0, this.throttleRef - 1);
-        if (this.throttleRef === 0 && this.throttleTimer) {
-            clearInterval(this.throttleTimer);
-            this.throttleTimer = null;
+    private stopThrottling(sessionId: string): void {
+        const state = this.sessionStates.get(sessionId);
+        if (!state) return;
+
+        if (state.throttleTimer) {
+            clearInterval(state.throttleTimer);
+            state.throttleTimer = null;
         }
-        this.flushThrottledEvents();
+        this.flushThrottledEvents(sessionId);
     }
 
-    private flushThrottledEvents() {
-        if (!this.activeWebContents || this.activeWebContents.isDestroyed()) return;
-        if (this.streamBuffer) {
-            this.activeWebContents.send(AGENT_EVENTS.STREAM, { content: this.streamBuffer, isReset: false });
-            this.streamBuffer = '';
+    private flushThrottledEvents(sessionId: string): void {
+        const state = this.sessionStates.get(sessionId);
+        const sender = this.sessionSenders.get(sessionId);
+        if (!state || !sender || sender.isDestroyed()) return;
+
+        if (state.streamBuffer) {
+            sender.send(AGENT_EVENTS.STREAM, { content: state.streamBuffer, isReset: false, sessionId });
+            state.streamBuffer = '';
         }
-        if (this.reasoningBuffer) {
-            this.activeWebContents.send(AGENT_EVENTS.REASONING_STREAM, { content: this.reasoningBuffer, isReset: false });
-            this.reasoningBuffer = '';
+        if (state.reasoningBuffer) {
+            sender.send(AGENT_EVENTS.REASONING_STREAM, { content: state.reasoningBuffer, isReset: false, sessionId });
+            state.reasoningBuffer = '';
         }
     }
 
-    private broadcast(channel: string, payload: any) {
-        if (this.activeWebContents && !this.activeWebContents.isDestroyed()) {
-            this.activeWebContents.send(channel, payload);
+    // ========== Send Helper ==========
+
+    /**
+     * Send a payload to a specific WebContents sender.
+     * Replaces the old single-instance `broadcast` method.
+     */
+    private sendToSender(sender: WebContents, channel: string, payload: any): void {
+        if (!sender.isDestroyed()) {
+            sender.send(channel, payload);
         }
     }
 }
