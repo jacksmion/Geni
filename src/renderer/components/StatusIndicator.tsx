@@ -9,7 +9,10 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export function StatusIndicator() {
-    const event = useChatStore(s => s.currentAgentEvent);
+    const event = useChatStore(s => {
+        const runState = s.runningSessions.get(s.activeSessionId);
+        return runState?.agentState ?? null;
+    });
 
     if (!event || event.currentState === 'Idle') return null;
 

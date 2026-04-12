@@ -539,7 +539,7 @@ function WorkspaceSelector() {
 
 export function Composer() {
     const [input, setInput] = useState('')
-    const isSending = useChatStore(s => s.isSending)
+    const isSending = useChatStore(s => s.runningSessions.has(s.activeSessionId))
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sendMessage = useChatStore(s => s.sendMessage)
     const pendingAttachments = useChatStore(s => s.pendingAttachments)

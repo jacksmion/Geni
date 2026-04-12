@@ -25,7 +25,7 @@ const EMPTY_ARRAY: ChatMessage[] = []
 
 export function MessageList() {
     const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
-    const isSending = useChatStore(s => s.isSending)
+    const isSending = useChatStore(s => s.runningSessions.has(s.activeSessionId))
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
     const staffId = sessions[activeSessionId]?.staffId

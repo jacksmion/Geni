@@ -25,6 +25,7 @@ export function SessionSidebar() {
     const createSession = useChatStore(s => s.createSession)
     const deleteSession = useChatStore(s => s.deleteSession)
     const renameSession = useChatStore(s => s.renameSession)
+    const runningSessions = useChatStore(s => s.runningSessions)
 
     const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
@@ -264,9 +265,14 @@ export function SessionSidebar() {
                                                     </form>
                                                 ) : (
                                                     <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                                                        <span className="truncate select-none text-[13px]" title={session.title || t('sessionSidebar.defaultTitle')}>
-                                                            {session.title || t('sessionSidebar.defaultTitle')}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            {runningSessions.has(session.id) && (
+                                                                <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                            )}
+                                                            <span className="truncate select-none text-[13px]" title={session.title || t('sessionSidebar.defaultTitle')}>
+                                                                {session.title || t('sessionSidebar.defaultTitle')}
+                                                            </span>
+                                                        </div>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
                                                             "text-[10px] shrink-0 tabular-nums group-hover:hidden transition-opacity",
