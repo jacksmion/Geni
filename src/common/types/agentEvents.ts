@@ -17,6 +17,7 @@ export interface AgentStartRequest {
 export interface AgentStartResponse {
     success: boolean;
     sessionId?: string;
+    runId?: string;
     error?: string;
 }
 
