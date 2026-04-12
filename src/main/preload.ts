@@ -6,33 +6,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
         start: (payload: any) => ipcRenderer.invoke('agent:start', payload),
         stop: (sessionId?: string) => ipcRenderer.invoke('agent:stop', sessionId),
         getState: () => ipcRenderer.invoke('agent:get-state'),
-        onStream: (callback: (chunk: string, reset?: boolean) => void) => {
-            const sub = (_: any, payload: { content: string, isReset?: boolean }) => callback(payload.content, payload.isReset)
+        onStream: (callback: (sessionId: string, chunk: string, reset?: boolean) => void) => {
+            const sub = (_: any, payload: { sessionId: string, content: string, isReset?: boolean }) => callback(payload.sessionId, payload.content, payload.isReset)
             ipcRenderer.on('agent:stream', sub)
             return () => ipcRenderer.removeListener('agent:stream', sub)
         },
-        onReasoningStream: (callback: (chunk: string, reset?: boolean) => void) => {
-            const sub = (_: any, payload: { content: string, isReset?: boolean }) => callback(payload.content, payload.isReset)
+        onReasoningStream: (callback: (sessionId: string, chunk: string, reset?: boolean) => void) => {
+            const sub = (_: any, payload: { sessionId: string, content: string, isReset?: boolean }) => callback(payload.sessionId, payload.content, payload.isReset)
             ipcRenderer.on('agent:reasoning-stream', sub)
             return () => ipcRenderer.removeListener('agent:reasoning-stream', sub)
         },
-        onStepUpdate: (callback: (steps: any[]) => void) => {
-            const sub = (_: any, payload: { steps: any[] }) => callback(payload.steps)
+        onStepUpdate: (callback: (sessionId: string, steps: any[]) => void) => {
+            const sub = (_: any, payload: { sessionId: string, steps: any[] }) => callback(payload.sessionId, payload.steps)
             ipcRenderer.on('agent:step', sub)
             return () => ipcRenderer.removeListener('agent:step', sub)
         },
-        onStateChange: (callback: (event: any) => void) => {
-            const sub = (_: any, event: any) => callback(event)
+        onStateChange: (callback: (sessionId: string, event: any) => void) => {
+            const sub = (_: any, event: any) => callback(event.sessionId, event)
             ipcRenderer.on('agent:state', sub)
             return () => ipcRenderer.removeListener('agent:state', sub)
         },
-        onError: (callback: (error: any) => void) => {
-            const sub = (_: any, payload: { message: string }) => callback(payload)
+        onError: (callback: (sessionId: string, error: any) => void) => {
+            const sub = (_: any, payload: { sessionId: string, message: string }) => callback(payload.sessionId, payload)
             ipcRenderer.on('agent:error', sub)
             return () => ipcRenderer.removeListener('agent:error', sub)
         },
-        onAuthorizationRequest: (callback: (request: any) => void) => {
-            const sub = (_: any, request: any) => callback(request)
+        onAuthorizationRequest: (callback: (sessionId: string, request: any) => void) => {
+            const sub = (_: any, request: any) => callback(request.sessionId, request)
             ipcRenderer.on('agent:authorization-request', sub)
             return () => ipcRenderer.removeListener('agent:authorization-request', sub)
         },
