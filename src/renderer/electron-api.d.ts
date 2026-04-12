@@ -4,15 +4,15 @@ import { Skill } from '../common/types/skill';
 export interface IElectronAPI {
     // Agent Namespace
     agent: {
-        start: (payload: { sessionId?: string, prompt: string | any[], options?: any }) => Promise<{ success: boolean, error?: string }>;
+        start: (payload: { sessionId?: string, prompt: string | any[], options?: any }) => Promise<{ success: boolean, sessionId?: string, runId?: string, error?: string }>;
         stop: (sessionId?: string) => Promise<void>;
         getState: () => Promise<string>;
-        onStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
-        onReasoningStream: (callback: (chunk: string, reset?: boolean) => void) => () => void;
-        onStepUpdate: (callback: (steps: any[]) => void) => () => void;
-        onStateChange: (callback: (state: any) => void) => () => void;
-        onError: (callback: (error: any) => void) => () => void;
-        onAuthorizationRequest: (callback: (request: any) => void) => () => void;
+        onStream: (callback: (sessionId: string, chunk: string, reset?: boolean) => void) => () => void;
+        onReasoningStream: (callback: (sessionId: string, chunk: string, reset?: boolean) => void) => () => void;
+        onStepUpdate: (callback: (sessionId: string, steps: any[]) => void) => () => void;
+        onStateChange: (callback: (sessionId: string, state: any) => void) => () => void;
+        onError: (callback: (sessionId: string, error: any) => void) => () => void;
+        onAuthorizationRequest: (callback: (sessionId: string, request: any) => void) => () => void;
         respondToAuthorization: (response: { requestId: string, approved: boolean, remember?: boolean, runId?: string }) => void;
         onAgentEvent: (callback: (event: any) => void) => () => void;
     };
