@@ -139,10 +139,9 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
         enabled: false,
-        activeModelId: 'gpt-5.2',
+        activeModelId: 'gpt-5.4',
         models: [
-            { id: 'gpt-5.2', label: 'GPT-5.2', model: 'gpt-5.2', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 16000 },
-            { id: 'gpt-4o', label: 'GPT-4o', model: 'gpt-4o', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 16000 },
+            { id: 'gpt-5.4', label: 'GPT-5.4', model: 'gpt-5.4', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 16000 },
         ]
     },
     'Anthropic': {
@@ -162,16 +161,15 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         activeModelId: 'deepseek-v3.2',
         models: [
             { id: 'deepseek-v3.2', label: 'DeepSeek V3.2', model: 'deepseek-v3.2', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
-            { id: 'deepseek-chat', label: 'DeepSeek Chat', model: 'deepseek-chat', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
         ]
     },
     'ZhipuAI': {
         baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
         apiKey: '',
         enabled: false,
-        activeModelId: 'glm-4',
+        activeModelId: 'glm-4.7',
         models: [
-            { id: 'glm-4', label: 'GLM-4', model: 'glm-4', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
+            { id: 'glm-4.7', label: 'glm-4.7', model: 'glm-4.7', temperature: 0.7, enabled: true, contextWindow: 128000, maxOutput: 8000 },
         ]
     },
     'Volcengine': {
@@ -194,12 +192,12 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         ]
     },
     'MiniMax': {
-        baseUrl: 'https://api.minimax.chat/v1',
+        baseUrl: 'https://api.minimaxi.com/v1',
         apiKey: '',
         enabled: false,
-        activeModelId: 'minimax-m2.5',
+        activeModelId: 'MiniMax-M2.7',
         models: [
-            { id: 'minimax-m2.5', label: 'MiniMax M2.5', model: 'minimax-m2.5', temperature: 1.0, enabled: true, contextWindow: 1048576, maxOutput: 16000 },
+            { id: 'MiniMax-M2.7', label: 'MiniMax-M2.7', model: 'MiniMax-M2.7', temperature: 1.0, enabled: true, contextWindow: 1048576, maxOutput: 16000 },
         ]
     },
     'Ollama': {
@@ -219,16 +217,7 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         models: [
             { id: 'local-model', label: 'Local Model', model: 'local-model', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
         ]
-    },
-    'Local': {
-        baseUrl: 'http://localhost:11434/v1',
-        apiKey: '',
-        enabled: false,
-        activeModelId: 'llama3',
-        models: [
-            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
-        ]
-    },
+    }
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
