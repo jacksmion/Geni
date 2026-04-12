@@ -79,4 +79,6 @@ export interface SessionMeta {
     updatedAt: number;
     preview?: string;
     staffId?: string;
+    modelId?: string;
+    workspacePath?: string;
 }

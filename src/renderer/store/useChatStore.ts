@@ -710,10 +710,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 activeSessionId = realId;
                 targetSessionId = realId;
 
-                // 持久化标题和用户消息到后端
+                // 持久化标题、模型和工作目录到后端
                 const realSession = get().sessions[realId];
                 if (realSession) {
-                    window.electronAPI.session.save({ id: realId, title: realSession.title });
+                    const savePayload: any = { id: realId, title: realSession.title };
+                    if (realSession.modelId) savePayload.modelId = realSession.modelId;
+                    if (realSession.workspacePath) savePayload.workspacePath = realSession.workspacePath;
+                    window.electronAPI.session.save(savePayload);
                     const userMsg = realSession.messages.find(m => m.role === 'user');
                     if (userMsg) {
                         window.electronAPI.session.addMessage(realId, userMsg);

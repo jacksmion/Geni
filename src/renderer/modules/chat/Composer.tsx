@@ -431,11 +431,12 @@ function WorkspaceSelector() {
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
+    const currentSession = sessions[activeSessionId]
+    const hasMessages = (currentSession?.messages?.length ?? 0) > 0
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
     // Session-level workspace override, fallback to global
-    const currentSession = sessions[activeSessionId]
     const workspacePath = currentSession?.workspacePath || globalWorkspacePath
 
     useEffect(() => {
@@ -486,11 +487,11 @@ function WorkspaceSelector() {
                     isOpen ? "bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-zinc-200" : "hover:bg-slate-100 dark:hover:bg-white/5",
                     workspacePath
                         ? (!isOpen && "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300")
-                        : (!isOpen && "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300")
+                        : (!isOpen && hasMessages ? "text-slate-400 dark:text-zinc-500" : !isOpen && "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300")
                 )}
-                title={workspacePath ? "切换工作目录" : "请选择工作目录"}
+                title={workspacePath || !hasMessages ? (workspacePath ? "工作目录" : "请选择工作目录") : "未设置工作目录"}
             >
-                <Folder size={12} className={!workspacePath ? "animate-pulse" : ""} />
+                <Folder size={12} className={!workspacePath && !hasMessages ? "animate-pulse" : ""} />
                 <span className="truncate max-w-[200px] font-medium">{displayPath}</span>
                 <ChevronDown size={10} className={cn("transition-transform", isOpen && "rotate-180")} />
             </button>
@@ -507,16 +508,18 @@ function WorkspaceSelector() {
                                 <span>在文件管理器中打开当前目录</span>
                             </button>
                         )}
-                        <button
-                            onClick={handleSelectDirectory}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11.5px] font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors group"
-                        >
-                            <FolderOpen size={14} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-                            <span>浏览其他文件夹...</span>
-                        </button>
+                        {!hasMessages && (
+                            <button
+                                onClick={handleSelectDirectory}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11.5px] font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors group"
+                            >
+                                <FolderOpen size={14} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+                                <span>浏览其他文件夹...</span>
+                            </button>
+                        )}
                     </div>
 
-                    {recentWorkspaces && recentWorkspaces.length > 0 && (
+                    {!hasMessages && recentWorkspaces && recentWorkspaces.length > 0 && (
                         <>
                             <div className="px-3 py-1.5 border-y border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
                                 <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">最近使用</span>

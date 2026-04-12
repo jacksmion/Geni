@@ -95,7 +95,9 @@ export class SessionStorage {
                             createdAt: session.createdAt,
                             updatedAt: session.updatedAt,
                             preview: this.extractTextFromContent(session.messages?.[session.messages.length - 1]?.content).slice(0, 100) || undefined,
-                            staffId: session.staffId
+                            staffId: session.staffId,
+                            modelId: session.modelId,
+                            workspacePath: session.workspacePath
                         });
                     }
                 } catch (fileError) {
@@ -202,7 +204,9 @@ export class SessionStorage {
             createdAt: session.createdAt,
             updatedAt: session.updatedAt,
             preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined,
-            staffId: session.staffId
+            staffId: session.staffId,
+            modelId: session.modelId,
+            workspacePath: session.workspacePath
         };
 
         if (index > -1) {
