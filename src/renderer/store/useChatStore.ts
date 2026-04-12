@@ -13,14 +13,15 @@ interface ChatState {
     sessions: Record<string, ChatSession>
     sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string }[]
     activeSessionId: string
-    isSending: boolean
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
-    currentAgentEvent: any | null
     activeArtifact: ActiveArtifact | null
-    activeRunId: string | null
     draftSessionId: string | null
+    runningSessions: Map<string, {
+        runId: string | null;
+        agentState: any | null;
+    }>
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -30,8 +31,6 @@ interface ChatState {
 
     addMessage: (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => void
     updateLastMessage: (updater: (msg: ChatMessage) => ChatMessage) => void
-    setSending: (sending: boolean) => void
-    setAgentEvent: (event: any | null) => void
     setActiveTab: (tab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings') => void
     addPendingAttachment: (path: string) => void
     removePendingAttachment: (path: string) => void
@@ -59,14 +58,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     sessions: {},
     sessionMetas: [],
     activeSessionId: '',
-    isSending: false,
     activeTab: 'chat',
     pendingAttachments: [],
     selectedSkillIds: null,
-    currentAgentEvent: null,
     activeArtifact: null,
-    activeRunId: null,
     draftSessionId: null,
+    runningSessions: new Map(),
 
     loadHistory: async () => {
         try {
@@ -333,8 +330,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
     },
 
-    setSending: (isSending) => set({ isSending }),
-    setAgentEvent: (currentAgentEvent) => set({ currentAgentEvent }),
     setActiveTab: (activeTab) => set({ activeTab }),
 
     addPendingAttachment: (path) => set((state) => ({
@@ -358,11 +353,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     sendMessage: async (input: string, attachments: string[]) => {
         const state = get();
-        const { isSending, sessions, addMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
+        const { sessions, addMessage, clearPendingAttachments } = state;
 
         let activeSessionId = state.activeSessionId;
 
-        if (!input.trim() || isSending) return;
+        if (!input.trim() || get().runningSessions.has(activeSessionId)) return;
 
         const currentSession = sessions[activeSessionId];
         if (!currentSession) return;
@@ -409,7 +404,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         addMessage({ role: 'user', content: userInput as any });
 
         // 2. Add Placeholder for Assistant
-        setSending(true);
+        set(state => ({
+            runningSessions: new Map(state.runningSessions).set(activeSessionId, { runId: null, agentState: null })
+        }));
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
         get().setActiveArtifact(null); // Clear previous artifact on new message
@@ -552,7 +549,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             requestAnimationFrame(flushUnified);
         };
 
-        const cleanupStream = window.electronAPI.agent.onStream((chunk: string, reset?: boolean) => {
+        const cleanupStream = window.electronAPI.agent.onStream((sid, chunk, reset) => {
+            if (sid !== targetSessionId) return;
             if (reset) {
                 contentBuf = '';
                 updateTargetMessage((msg) => ({ ...msg, content: chunk }));
@@ -562,7 +560,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }
         });
 
-        const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((chunk: string, reset?: boolean) => {
+        const cleanupReasoningStream = window.electronAPI.agent.onReasoningStream((sid, chunk, reset) => {
+            if (sid !== targetSessionId) return;
             if (reset) {
                 reasoningBuf = '';
                 updateTargetMessage((msg) => ({ ...msg, reasoning_content: '' }));
@@ -572,7 +571,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }
         });
 
-        const cleanupTrace = window.electronAPI.agent.onStepUpdate((steps: any[]) => {
+        const cleanupTrace = window.electronAPI.agent.onStepUpdate((sid, steps) => {
+            if (sid !== targetSessionId) return;
             pendingSteps = steps;
             const now = Date.now();
             if (now - lastStepFlushTime >= STEP_THROTTLE_MS) {
@@ -587,8 +587,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             return e?.name === 'AbortError' || msg.includes('aborted') || msg.includes('取消') || msg.includes('cancel')
         }
 
-        const cleanupError = window.electronAPI.agent.onError((err: any) => {
-            // 用户主动终止不是错误，保留已有内容不做额外处理
+        const cleanupError = window.electronAPI.agent.onError((sid, err) => {
+            if (sid !== targetSessionId) return;
             if (isAbortError(err)) return
             updateTargetMessage((msg) => ({
                 ...msg,
@@ -597,15 +597,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }));
         });
 
-        const cleanupState = window.electronAPI.agent.onStateChange((event: any) => {
+        const cleanupState = window.electronAPI.agent.onStateChange((sid, event) => {
+            if (sid !== targetSessionId) return;
             console.log('[Store] Received state change:', event.currentState, event.message);
-            get().setAgentEvent(event);
+            set(state => {
+                const next = new Map(state.runningSessions);
+                const current = next.get(targetSessionId);
+                if (current) {
+                    next.set(targetSessionId, { ...current, agentState: event });
+                }
+                return { runningSessions: next };
+            });
         });
 
         // Track activeRunId from auth_request events (needed for ThoughtTrace inline auth)
-        const cleanupAuth = window.electronAPI.agent.onAuthorizationRequest((req: any) => {
+        const cleanupAuth = window.electronAPI.agent.onAuthorizationRequest((sid, req) => {
+            if (sid !== targetSessionId) return;
             if (req?.runId) {
-                set({ activeRunId: req.runId });
+                set(state => {
+                    const next = new Map(state.runningSessions);
+                    const current = next.get(targetSessionId);
+                    if (current) {
+                        next.set(targetSessionId, { ...current, runId: req.runId });
+                    }
+                    return { runningSessions: next };
+                });
             }
         });
 
@@ -668,9 +684,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             cleanupError();
             cleanupState();
             cleanupAuth();
-            get().setAgentEvent(null);
-            get().setSending(false);
-            set({ activeRunId: null });
+            set(state => {
+                const next = new Map(state.runningSessions);
+                next.delete(targetSessionId);
+                return { runningSessions: next };
+            });
         }
     }
 }))
