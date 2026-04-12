@@ -18,7 +18,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 const typeLabels: Record<string, string> = {
     page: '页面',
-    session: '会话',
+    session: '任务',
     command: '命令',
 }
 

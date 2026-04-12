@@ -5,7 +5,7 @@ import { ResultItem } from './ResultItem'
 
 const typeOrder: SearchItem['type'][] = ['session', 'command', 'page']
 const typeLabels: Record<SearchItem['type'], string> = {
-    session: '最近会话',
+    session: '最近任务',
     command: '命令',
     page: '页面',
 }

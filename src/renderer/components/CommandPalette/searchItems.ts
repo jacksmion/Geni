@@ -71,8 +71,8 @@ export function getCommandItems(): SearchItem[] {
         {
             id: 'cmd-new-chat',
             type: 'command',
-            label: '新建会话',
-            description: '创建一个新的聊天会话',
+            label: '新建任务',
+            description: '创建一个新的聊天任务',
             icon: 'Plus',
             keywords: ['new', '新建', '创建', 'create', 'chat'],
             action: () => {
@@ -104,7 +104,7 @@ export function getSessionItems(): SearchItem[] {
     return sorted.map((meta) => ({
         id: `session-${meta.id}`,
         type: 'session' as const,
-        label: meta.title || '未命名会话',
+        label: meta.title || '未命名任务',
         description: `${new Date(meta.updatedAt).toLocaleDateString()}`,
         icon: 'MessageSquare',
         keywords: [meta.title || ''],

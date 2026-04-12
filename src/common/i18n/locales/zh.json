@@ -36,7 +36,7 @@
         "title": "任务列表",
         "search": "搜索任务...",
         "defaultTitle": "新任务",
-        "confirmDelete": "确定要删除这个会话吗？",
+        "confirmDelete": "确定要删除这个任务吗？",
         "noMatch": "未找到匹配的任务",
         "activeSessions": "{{count}} 个活跃任务",
         "groups": {

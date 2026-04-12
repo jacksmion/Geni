@@ -20,14 +20,14 @@ export function SearchInput({ query, onQueryChange, onKeyDown, inputRef, filterT
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="搜索页面、会话、命令..."
+                placeholder="搜索页面、任务、命令..."
                 className="flex-1 bg-transparent text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none"
                 spellCheck={false}
             />
             {!query && !filterType && (
                 <span className="text-[11px] text-slate-400 dark:text-zinc-600 shrink-0">
                     <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[10px]">&gt;</kbd> 命令{' '}
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[10px]">@</kbd> 会话
+                    <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[10px]">@</kbd> 任务
                 </span>
             )}
         </div>
