@@ -166,6 +166,8 @@
         "importSuccess": "预设导入成功！",
         "importError": "无效的预设文件。",
         "exportWithKey": "导出时是否包含 API 密钥？",
+        "includeKey": "包含密钥",
+        "excludeKey": "不含密钥",
         "fetchFailed": "获取模型失败: ",
         "noModels": "暂无已配置的模型。",
         "startDiscover": "开始自动发现",

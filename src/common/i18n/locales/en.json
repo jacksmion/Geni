@@ -166,6 +166,8 @@
         "importSuccess": "Preset imported successfully!",
         "importError": "Invalid preset file.",
         "exportWithKey": "Do you want to include API Keys in the export?",
+        "includeKey": "Include Keys",
+        "excludeKey": "Exclude Keys",
         "fetchFailed": "Failed to fetch models: ",
         "noModels": "No models configured yet.",
         "startDiscover": "Start Discovering",

@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
+import { useModalStore } from '../../store/useModalStore';
 
 
 const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, color?: string }> = {
@@ -29,10 +30,18 @@ export function ModelSettings() {
     const llm = useSettingsStore(s => s.settings.llm);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
-    
+    const showConfirm = useModalStore(s => s.showConfirm);
+
     // --- Local Draft & Dirty Logic ---
     const [llmDraft, setLlmDraft] = useState({...llm});
     const [isSaving, setIsSaving] = useState(false);
+
+    // --- Toast for inline notifications ---
+    const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
+    const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     useEffect(() => {
         setLlmDraft({...llm});
@@ -120,7 +129,7 @@ export function ModelSettings() {
 
     const handleFetchModels = async () => {
         if (!currentProviderConfig.apiKey && selectedProvider !== 'Local') {
-            alert(t('modelSettings.apiKeyRequired', 'Please enter API Key first'));
+            showToast(t('modelSettings.apiKeyRequired', 'Please enter API Key first'), 'error');
             return;
         }
         setIsFetchingModels(true);
@@ -135,7 +144,7 @@ export function ModelSettings() {
             });
             setAvailableModels(models);
         } catch (e: any) {
-            alert(t('modelSettings.fetchFailed', 'Failed to fetch models: ') + e.message);
+            showToast(t('modelSettings.fetchFailed', 'Failed to fetch models: ') + e.message, 'error');
             setShowModelPicker(false);
         } finally {
             setIsFetchingModels(false);
@@ -143,7 +152,16 @@ export function ModelSettings() {
     };
 
     const handleExportPreset = () => {
-        const withKey = window.confirm(t('modelSettings.exportWithKey', 'Do you want to include API Keys in the export?'));
+        showConfirm({
+            message: t('modelSettings.exportWithKey', 'Do you want to include API Keys in the export?'),
+            confirmText: t('modelSettings.includeKey'),
+            cancelText: t('modelSettings.excludeKey'),
+            onConfirm: () => doExport(true),
+            onCancel: () => doExport(false),
+        });
+    };
+
+    const doExport = (withKey: boolean) => {
         const preset = {
             version: '1.0',
             llm: {
@@ -179,10 +197,10 @@ export function ModelSettings() {
                         ...llmDraft,
                         providers: { ...llmDraft.providers, ...imported.llm.providers }
                     });
-                    alert(t('modelSettings.importSuccess', 'Preset imported successfully!'));
+                    showToast(t('modelSettings.importSuccess', 'Preset imported successfully!'), 'success');
                 }
             } catch (err) {
-                alert(t('modelSettings.importError', 'Invalid preset file.'));
+                showToast(t('modelSettings.importError', 'Invalid preset file.'), 'error');
             }
         };
         input.click();
@@ -220,19 +238,26 @@ export function ModelSettings() {
     };
 
     const handleDeleteProvider = (providerKey: string) => {
-        if (!window.confirm(t('modelSettings.confirmDeleteProvider', `Are you sure you want to delete ${providerKey}?`))) return;
-        
-        const updatedProviders = { ...llmDraft.providers };
-        delete updatedProviders[providerKey];
+        const config = llmDraft.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey];
+        const meta = PROVIDER_META[providerKey];
+        const displayName = config?.label || meta?.label || providerKey;
+        showConfirm({
+            message: t('modelSettings.confirmDeleteProvider', { key: displayName }),
+            confirmText: t('modelSettings.delete', 'Delete'),
+            onConfirm: () => {
+                const updatedProviders = { ...llmDraft.providers };
+                delete updatedProviders[providerKey];
 
-        let newActiveProvider = llmDraft.activeProvider;
-        if (providerKey === llmDraft.activeProvider) {
-            const firstAvailable = Object.keys(updatedProviders)[0] || 'OpenAI';
-            newActiveProvider = firstAvailable;
-            setSelectedProvider(firstAvailable);
-        }
+                let newActiveProvider = llmDraft.activeProvider;
+                if (providerKey === llmDraft.activeProvider) {
+                    const firstAvailable = Object.keys(updatedProviders)[0] || 'OpenAI';
+                    newActiveProvider = firstAvailable;
+                    setSelectedProvider(firstAvailable);
+                }
 
-        setLlmDraft({ ...llmDraft, activeProvider: newActiveProvider, providers: updatedProviders });
+                setLlmDraft({ ...llmDraft, activeProvider: newActiveProvider, providers: updatedProviders });
+            },
+        });
     };
 
     // --- 模型管理 ---
@@ -626,6 +651,18 @@ export function ModelSettings() {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className={clsx(
+                    "fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] px-5 py-3 rounded-2xl shadow-2xl text-sm font-medium animate-in fade-in slide-in-from-bottom-4 duration-300",
+                    toast.type === 'error' && "bg-red-500 text-white",
+                    toast.type === 'success' && "bg-emerald-500 text-white",
+                    toast.type === 'info' && "bg-slate-800 text-white dark:bg-white dark:text-slate-800"
+                )}>
+                    {toast.message}
                 </div>
             )}
 

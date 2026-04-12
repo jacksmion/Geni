@@ -21,6 +21,7 @@ export const ConfirmDialog: React.FC = () => {
     };
 
     const handleCancel = () => {
+        confirmConfig.onCancel?.();
         dismissConfirm();
     };
 
@@ -43,14 +44,14 @@ export const ConfirmDialog: React.FC = () => {
                         onClick={handleCancel}
                         className="px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors"
                     >
-                        取消
+                        {confirmConfig.cancelText ?? '取消'}
                     </button>
                     <button
                         ref={confirmBtnRef}
                         onClick={handleConfirm}
                         className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm"
                     >
-                        删除
+                        {confirmConfig.confirmText ?? '确认'}
                     </button>
                 </div>
             </div>
