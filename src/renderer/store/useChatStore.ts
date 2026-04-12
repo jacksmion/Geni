@@ -597,6 +597,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
             }));
         });
 
+        const cleanupAll = () => {
+            cleanupStream();
+            cleanupReasoningStream();
+            cleanupTrace();
+            cleanupError();
+            cleanupState();
+            cleanupAuth();
+            set(state => {
+                const next = new Map(state.runningSessions);
+                next.delete(targetSessionId);
+                return { runningSessions: next };
+            });
+        };
+
         const cleanupState = window.electronAPI.agent.onStateChange((sid, event) => {
             if (sid !== targetSessionId) return;
             console.log('[Store] Received state change:', event.currentState, event.message);
@@ -608,6 +622,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
                 return { runningSessions: next };
             });
+            // Agent finished — clean up listeners and running state
+            if (event.currentState === 'Idle') {
+                cleanupAll();
+            }
         });
 
         // Track activeRunId from auth_request events (needed for ThoughtTrace inline auth)
@@ -677,18 +695,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     isError: true
                 }));
             }
-        } finally {
-            cleanupStream();
-            cleanupReasoningStream();
-            cleanupTrace();
-            cleanupError();
-            cleanupState();
-            cleanupAuth();
-            set(state => {
-                const next = new Map(state.runningSessions);
-                next.delete(targetSessionId);
-                return { runningSessions: next };
-            });
+            cleanupAll();
         }
     }
 }))
