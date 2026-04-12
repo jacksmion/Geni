@@ -11,6 +11,7 @@ export interface AgentStartRequest {
         model?: string;
         skills?: string[]; // skill IDs
         staffId?: string;  // 绑定的数字员工 ID
+        workspacePath?: string;
     };
 }
 

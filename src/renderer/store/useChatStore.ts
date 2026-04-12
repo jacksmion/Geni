@@ -11,7 +11,7 @@ interface ActiveArtifact {
 
 interface ChatState {
     sessions: Record<string, ChatSession>
-    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string }[]
+    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string }[]
     activeSessionId: string
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
@@ -40,6 +40,7 @@ interface ChatState {
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
     assignStaff: (sessionId: string, staffId: string | undefined) => void
+    setSessionConfig: (sessionId: string, config: { modelId?: string, workspacePath?: string }) => void
 }
 
 // Helper: initial default session
@@ -72,11 +73,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             // Convert to Record
             const sessions: Record<string, ChatSession> = {};
-            const sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string }[] = [];
+            const sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string }[] = [];
             list.forEach((meta: any) => {
                 // Ensure messages is initialized (even if empty) to satisfy type
                 sessions[meta.id] = { ...meta, messages: [] };
-                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt, staffId: meta.staffId });
+                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt, staffId: meta.staffId, modelId: meta.modelId, workspacePath: meta.workspacePath });
             });
 
             if (list.length > 0) {
@@ -253,6 +254,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
             await window.electronAPI.session.save({ id, staffId });
         } catch (error) {
             console.error('Failed to assign staff to session', id, ':', error);
+        }
+    },
+
+    setSessionConfig: async (id, config) => {
+        set(state => {
+            const session = state.sessions[id];
+            if (!session) return state;
+
+            const updated = { ...session, ...config };
+            return {
+                sessions: { ...state.sessions, [id]: updated },
+                sessionMetas: state.sessionMetas.map(m =>
+                    m.id === id ? { ...m, ...config } : m
+                )
+            };
+        });
+
+        try {
+            await window.electronAPI.session.save({ id, ...config });
+        } catch (error) {
+            console.error('Failed to save session config', id, ':', error);
         }
     },
 
@@ -650,6 +672,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const options: any = {};
             if (skillIds !== null) options.skills = skillIds;
             if (currentSession.staffId) options.staffId = currentSession.staffId;
+            if (currentSession.modelId) options.model = currentSession.modelId;
+            if (currentSession.workspacePath) options.workspacePath = currentSession.workspacePath;
 
             const result = await window.electronAPI.agent.start({
                 sessionId: isDraft ? undefined : activeSessionId,

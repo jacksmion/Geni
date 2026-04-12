@@ -62,6 +62,8 @@ export interface ChatSession {
     id: string;
     title: string;
     staffId?: string;              // 绑定的数字员工 ID
+    modelId?: string;              // 任务级模型，e.g. "OpenAI/gpt-4o"
+    workspacePath?: string;        // 任务级工作目录
     createdAt: number;
     updatedAt: number;
     messages: ChatMessage[];

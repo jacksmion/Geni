@@ -29,9 +29,13 @@ function ModelSelector() {
     const llm = useSettingsStore(s => s.settings.llm)
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const setActiveTab = useChatStore(s => s.setActiveTab)
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const sessions = useChatStore(s => s.sessions)
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    const currentSession = sessions[activeSessionId]
 
     // Close dropdown on outside click
     useEffect(() => {
@@ -51,36 +55,50 @@ function ModelSelector() {
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
         ...Object.keys(llm.providers || {})
     ]))
-    
+
     // Filter to only show providers that are enabled
     const availableProviders = allProviderKeys.filter(key => {
         const config = llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
         if (!config) return false
         return config.enabled === true
     })
-    
-    const activeProvider = llm.activeProvider || 'OpenAI'
+
+    // Resolve active model: session-level override > global setting
+    const sessionModelId = currentSession?.modelId
+    let activeProvider = llm.activeProvider || 'OpenAI'
+    let activeModelName: string | undefined
+
+    if (sessionModelId) {
+        // Parse "Provider/model" format
+        const slashIdx = sessionModelId.indexOf('/')
+        if (slashIdx >= 0) {
+            activeProvider = sessionModelId.slice(0, slashIdx)
+            activeModelName = sessionModelId.slice(slashIdx + 1)
+        } else {
+            activeModelName = sessionModelId
+        }
+    }
+
     const activeConfig = llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
-    
-    // Get active model display name
-    const activeInstance = activeConfig?.models?.find(m => m.id === activeConfig.activeModelId)
-    const activeDisplayName = activeInstance?.label || activeConfig?.model || 'Select Model'
-    
+
+    // Get active model display name: session override or global
+    let activeDisplayName: string
+    if (activeModelName) {
+        const matched = activeConfig?.models?.find(m => m.model === activeModelName)
+        activeDisplayName = matched?.label || activeModelName
+    } else {
+        const globalInstance = activeConfig?.models?.find(m => m.id === activeConfig.activeModelId)
+        activeDisplayName = globalInstance?.label || activeConfig?.model || 'Select Model'
+    }
+
     const handleSelectModel = async (providerKey: string, modelId: string) => {
         setIsOpen(false)
-        await updateSettings({
-            llm: {
-                ...llm,
-                activeProvider: providerKey,
-                providers: {
-                    ...llm.providers,
-                    [providerKey]: {
-                        ...(llm.providers[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]),
-                        activeModelId: modelId
-                    }
-                }
-            }
-        })
+        // Write to session-level config instead of global
+        const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+        const modelInstance = config?.models?.find(m => m.id === modelId)
+        const fullModelId = modelInstance ? `${providerKey}/${modelInstance.model}` : `${providerKey}/${modelId}`
+
+        useChatStore.getState().setSessionConfig(activeSessionId, { modelId: fullModelId })
     }
     
     const allModels = availableProviders.flatMap(providerKey => {
@@ -88,7 +106,9 @@ function ModelSelector() {
         return (config?.models || []).filter(m => m.enabled).map(model => ({
             providerKey,
             model,
-            isActive: providerKey === activeProvider && model.id === config?.activeModelId
+            isActive: providerKey === activeProvider && (
+                activeModelName ? model.model === activeModelName : model.id === config?.activeModelId
+            )
         }))
     })
 
@@ -406,11 +426,17 @@ function SkillSelector() {
 }
 
 function WorkspaceSelector() {
-    const workspacePath = useSettingsStore(s => s.settings.workspacePath)
+    const globalWorkspacePath = useSettingsStore(s => s.settings.workspacePath)
     const recentWorkspaces = useSettingsStore(s => s.settings.recentWorkspaces)
     const updateSettings = useSettingsStore(s => s.updateSettings)
+    const activeSessionId = useChatStore(s => s.activeSessionId)
+    const sessions = useChatStore(s => s.sessions)
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
+
+    // Session-level workspace override, fallback to global
+    const currentSession = sessions[activeSessionId]
+    const workspacePath = currentSession?.workspacePath || globalWorkspacePath
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -423,10 +449,11 @@ function WorkspaceSelector() {
     }, [isOpen])
 
     const updateWorkspace = async (path: string) => {
-        // filter out the path from recents if it exists, prepend it, and limit to 5
+        // Update session-level workspace path
+        useChatStore.getState().setSessionConfig(activeSessionId, { workspacePath: path })
+        // Also update global recents
         const newRecents = [path, ...(recentWorkspaces || []).filter(p => p !== path)].slice(0, 5)
         await updateSettings({
-            workspacePath: path,
             recentWorkspaces: newRecents
         })
     }

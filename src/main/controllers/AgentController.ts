@@ -188,7 +188,7 @@ export class AgentController {
                 signal: controller.signal,
                 emit: this.buildEmitFn(sid, sender),
                 skillIds: options?.skills,
-                workspacePath: this.settings.workspacePath,
+                workspacePath: options?.workspacePath || this.settings.workspacePath,
                 language: this.settings.language
             };
 
