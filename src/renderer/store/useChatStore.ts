@@ -41,6 +41,7 @@ interface ChatState {
     sendMessage: (input: string, attachments: string[]) => Promise<void>
     assignStaff: (sessionId: string, staffId: string | undefined) => void
     setSessionConfig: (sessionId: string, config: { modelId?: string, workspacePath?: string }) => void
+    batchDeleteSessions: (ids: string[]) => Promise<void>
 }
 
 // Helper: initial default session
@@ -207,6 +208,46 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 sessionMetas: state.sessionMetas.filter(m => m.id !== id),
                 activeSessionId: nextActiveId,
                 draftSessionId: isDraft ? null : state.draftSessionId,
+            };
+        });
+    },
+
+    batchDeleteSessions: async (ids) => {
+        // 并行删除后端数据（忽略 draft，因为 draft 不在后端）
+        const { draftSessionId } = get();
+        await Promise.all(
+            ids
+                .filter(id => id !== draftSessionId)
+                .map(id => window.electronAPI.session.delete(id).catch(err =>
+                    console.error('Failed to delete session', id, ':', err)
+                ))
+        );
+
+        set(state => {
+            const rest = { ...state.sessions };
+            for (const id of ids) delete rest[id];
+
+            const idSet = new Set(ids);
+            const newMetas = state.sessionMetas.filter(m => !idSet.has(m.id));
+
+            let nextActiveId = state.activeSessionId;
+            if (idSet.has(state.activeSessionId)) {
+                const remaining = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt);
+                if (remaining.length > 0) {
+                    nextActiveId = remaining[0].id;
+                    // defer switch to avoid calling get() inside set
+                    setTimeout(() => get().switchSession(nextActiveId), 0);
+                } else {
+                    setTimeout(() => get().createSession(), 0);
+                    nextActiveId = '';
+                }
+            }
+
+            return {
+                sessions: rest,
+                sessionMetas: newMetas,
+                activeSessionId: nextActiveId,
+                draftSessionId: ids.includes(state.draftSessionId || '') ? null : state.draftSessionId,
             };
         });
     },

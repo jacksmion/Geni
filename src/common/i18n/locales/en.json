@@ -54,7 +54,15 @@
         "actions": {
             "new": "New Task",
             "rename": "Rename",
-            "delete": "Delete"
+            "delete": "Delete",
+            "manage": "Manage"
+        },
+        "confirmBatchDelete": "Are you sure you want to delete {{count}} selected tasks?",
+        "batch": {
+            "selectAll": "Select All",
+            "deselectAll": "Deselect All",
+            "selected": "{{count}} selected",
+            "cancel": "Cancel"
         }
     },
     "chatLayout": {

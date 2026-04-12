@@ -4,7 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, Calendar, Clock } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, CheckSquare, Square } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
@@ -25,6 +25,7 @@ export function SessionSidebar() {
     const createSession = useChatStore(s => s.createSession)
     const deleteSession = useChatStore(s => s.deleteSession)
     const renameSession = useChatStore(s => s.renameSession)
+    const batchDeleteSessions = useChatStore(s => s.batchDeleteSessions)
     const runningSessions = useChatStore(s => s.runningSessions)
 
     const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
@@ -39,6 +40,11 @@ export function SessionSidebar() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [now, setNow] = useState(0);
+
+    // Batch selection state
+    const [selectMode, setSelectMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
     const { t } = useTranslation();
 
     React.useEffect(() => {
@@ -48,7 +54,7 @@ export function SessionSidebar() {
     React.useEffect(() => {
         if (searchFocused && searchInputRef.current) {
             searchInputRef.current.focus();
-            setSearchFocused(false); 
+            setSearchFocused(false);
         }
     }, [searchFocused, setSearchFocused]);
 
@@ -104,6 +110,14 @@ export function SessionSidebar() {
         return groups;
     }, [sessions, searchTerm, getGroupLabel]);
 
+    // All visible session IDs (for select all)
+    const allVisibleIds = useMemo(() => {
+        return Object.values(groupedSessions)
+            .flat()
+            .filter(s => !runningSessions.has(s.id))
+            .map(s => s.id);
+    }, [groupedSessions, runningSessions]);
+
     const handleStartEdit = (e: React.MouseEvent, id: string, currentTitle: string) => {
         e.stopPropagation();
         setEditingId(id);
@@ -126,11 +140,41 @@ export function SessionSidebar() {
         });
     };
 
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectedIds.size === allVisibleIds.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(allVisibleIds));
+        }
+    };
+
+    const exitSelectMode = () => {
+        setSelectMode(false);
+        setSelectedIds(new Set());
+    };
+
+    const handleBatchDelete = () => {
+        if (selectedIds.size === 0) return;
+        useModalStore.getState().showConfirm({
+            message: t('sessionSidebar.confirmBatchDelete', { count: selectedIds.size }),
+            onConfirm: async () => {
+                await batchDeleteSessions([...selectedIds]);
+                exitSelectMode();
+            },
+        });
+    };
+
     // Custom order for groups
     const groupOrder = ['today', 'yesterday', 'last7Days', 'last30Days', 'older'];
-
-    // If mobile and not collapsed, shown as an overlay. 
-    // If tablet/desktop and collapsed, width is 0.
 
     return (
         <>
@@ -160,13 +204,29 @@ export function SessionSidebar() {
                         <h2 className="text-[11px] font-semibold text-slate-500 dark:text-zinc-500 select-none">
                             {t('sessionSidebar.title')}
                         </h2>
-                        <button
-                            onClick={() => createSession()}
-                            className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
-                            title={t('sessionSidebar.actions.new')}
-                        >
-                            <Plus size={16} strokeWidth={2.5} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {sessionMetas.length > 0 && (
+                                <button
+                                    onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                                    className={clsx(
+                                        "p-1.5 rounded-lg transition-colors",
+                                        selectMode
+                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                            : "text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5"
+                                    )}
+                                    title={t('sessionSidebar.actions.manage')}
+                                >
+                                    <CheckSquare size={14} />
+                                </button>
+                            )}
+                            <button
+                                onClick={() => createSession()}
+                                className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
+                                title={t('sessionSidebar.actions.new')}
+                            >
+                                <Plus size={16} strokeWidth={2.5} />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Search Bar - More integrated */}
@@ -206,20 +266,44 @@ export function SessionSidebar() {
                                     {sessionsInGroup.map((session) => {
                                         const isActive = session.id === activeSessionId;
                                         const isEditing = editingId === session.id;
+                                        const isRunning = runningSessions.has(session.id);
+                                        const isSelected = selectedIds.has(session.id);
 
                                         return (
                                             <div
                                                 key={session.id}
-                                                onClick={() => switchSession(session.id)}
+                                                onClick={() => {
+                                                    if (selectMode) {
+                                                        if (!isRunning) toggleSelect(session.id);
+                                                    } else {
+                                                        switchSession(session.id);
+                                                    }
+                                                }}
                                                 className={clsx(
-                                                    "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer",
-                                                    isActive
-                                                        ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
-                                                        : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
+                                                    "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all",
+                                                    selectMode && !isRunning ? "cursor-pointer" : selectMode ? "cursor-not-allowed" : "cursor-pointer",
+                                                    isSelected
+                                                        ? "bg-indigo-50 dark:bg-indigo-500/10"
+                                                        : isActive && !selectMode
+                                                            ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
+                                                            : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
                                                 )}
                                             >
+                                                {/* Checkbox in select mode */}
+                                                {selectMode && (
+                                                    <span className="shrink-0 mr-2.5 flex items-center justify-center">
+                                                        {isRunning ? (
+                                                            <Square size={14} className="text-slate-200 dark:text-zinc-700" />
+                                                        ) : isSelected ? (
+                                                            <CheckSquare size={14} className="text-indigo-500" />
+                                                        ) : (
+                                                            <Square size={14} className="text-slate-300 dark:text-zinc-600" />
+                                                        )}
+                                                    </span>
+                                                )}
+
                                                 {/* Active accent bar */}
-                                                {isActive && (
+                                                {isActive && !selectMode && (
                                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
                                                 )}
 
@@ -233,10 +317,10 @@ export function SessionSidebar() {
                                                                 size={14}
                                                                 className={clsx(
                                                                     "leading-none",
-                                                                    isActive ? "opacity-100" : "opacity-60"
+                                                                    isActive && !selectMode ? "opacity-100" : "opacity-60"
                                                                 )}
                                                                 iconClassName={clsx(
-                                                                    isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
+                                                                    isActive && !selectMode ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
                                                                 )}
                                                             />
                                                         </span>
@@ -245,13 +329,13 @@ export function SessionSidebar() {
                                                             size={14}
                                                             className={clsx(
                                                                 "shrink-0 mr-2.5",
-                                                                isActive ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
+                                                                isActive && !selectMode ? "text-indigo-500" : "text-slate-400 dark:text-zinc-600"
                                                             )}
                                                         />
                                                     );
                                                 })()}
 
-                                                {isEditing ? (
+                                                {isEditing && !selectMode ? (
                                                     <form onSubmit={handleSaveEdit} className="flex-1 flex items-center gap-1 min-w-0">
                                                         <input
                                                             autoFocus
@@ -266,25 +350,25 @@ export function SessionSidebar() {
                                                 ) : (
                                                     <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
                                                         <div className="flex items-center gap-1.5 min-w-0">
-                                                            {runningSessions.has(session.id) && (
+                                                            {isRunning && (
                                                                 <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                             )}
-                                                            <span className="truncate select-none text-[13px]" title={session.title || t('sessionSidebar.defaultTitle')}>
+                                                            <span className={clsx("truncate select-none text-[13px]", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
                                                                 {session.title || t('sessionSidebar.defaultTitle')}
                                                             </span>
                                                         </div>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
                                                             "text-[10px] shrink-0 tabular-nums group-hover:hidden transition-opacity",
-                                                            isActive ? "text-indigo-400/70 dark:text-indigo-400/50" : "text-slate-300 dark:text-zinc-600"
+                                                            isActive && !selectMode ? "text-indigo-400/70 dark:text-indigo-400/50" : "text-slate-300 dark:text-zinc-600"
                                                         )}>
                                                             {getRelativeTime(session.updatedAt)}
                                                         </span>
                                                     </div>
                                                 )}
 
-                                                {/* Actions (Hover) */}
-                                                {!isEditing && (
+                                                {/* Actions (Hover) - hidden in select mode */}
+                                                {!isEditing && !selectMode && (
                                                     <div className="absolute right-2 hidden group-hover:flex items-center gap-0.5">
                                                         <button
                                                             onClick={(e) => handleStartEdit(e, session.id, session.title)}
@@ -318,11 +402,47 @@ export function SessionSidebar() {
                     )}
                 </div>
 
-                <div className="px-4 py-3 border-t border-slate-200 dark:border-white/5 text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
-                    {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
-                </div>
+                {/* Bottom bar: batch actions or session count */}
+                {selectMode ? (
+                    <div className="px-3 py-2.5 border-t border-slate-200 dark:border-white/5 flex items-center justify-between min-w-[200px]">
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleSelectAll}
+                                className="text-[11px] text-slate-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 font-medium transition-colors"
+                            >
+                                {selectedIds.size === allVisibleIds.length && allVisibleIds.length > 0 ? t('sessionSidebar.batch.deselectAll') : t('sessionSidebar.batch.selectAll')}
+                            </button>
+                            <span className="text-[10px] text-slate-300 dark:text-zinc-600">
+                                {t('sessionSidebar.batch.selected', { count: selectedIds.size })}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={exitSelectMode}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                            >
+                                {t('sessionSidebar.batch.cancel')}
+                            </button>
+                            <button
+                                onClick={handleBatchDelete}
+                                disabled={selectedIds.size === 0}
+                                className={clsx(
+                                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
+                                    selectedIds.size > 0
+                                        ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                                        : "text-slate-300 dark:text-zinc-700 cursor-not-allowed"
+                                )}
+                            >
+                                <Trash2 size={13} />
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="px-4 py-3 border-t border-slate-200 dark:border-white/5 text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
+                        {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
+                    </div>
+                )}
             </div>
         </>
     );
 }
-
