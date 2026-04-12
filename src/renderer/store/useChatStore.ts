@@ -20,6 +20,7 @@ interface ChatState {
     currentAgentEvent: any | null
     activeArtifact: ActiveArtifact | null
     activeRunId: string | null
+    draftSessionId: string | null
 
     loadHistory: () => Promise<void>
     createSession: (title?: string) => void
@@ -65,6 +66,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     currentAgentEvent: null,
     activeArtifact: null,
     activeRunId: null,
+    draftSessionId: null,
 
     loadHistory: async () => {
         try {
@@ -115,34 +117,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
     },
 
-    createSession: async (title) => {
-        try {
-            const backendSes = await window.electronAPI.session.create();
-            const sessionTitle = title || '新任务';
+    createSession: (title) => {
+        // 如果当前已经是 draft 空白页，不重复创建
+        const { draftSessionId, activeSessionId } = get();
+        if (draftSessionId && draftSessionId === activeSessionId) return;
 
-            const newSession: ChatSession = {
-                id: backendSes.id,
-                title: sessionTitle,
-                createdAt: backendSes.createdAt,
-                updatedAt: backendSes.createdAt,
-                messages: []
-            };
+        const tempId = crypto.randomUUID();
+        const newSession: ChatSession = {
+            id: tempId,
+            title: title || '新任务',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            messages: []
+        };
 
-            // 保存标题到后端
-            await window.electronAPI.session.save({ id: newSession.id, title: newSession.title });
-
-            set(state => ({
-                sessions: { ...state.sessions, [newSession.id]: newSession },
-                sessionMetas: [{ id: newSession.id, title: newSession.title, updatedAt: newSession.updatedAt }, ...state.sessionMetas],
-                activeSessionId: newSession.id,
-                activeTab: 'chat'
-            }));
-        } catch (error) {
-            console.error('Failed to create session:', error);
-        }
+        // 只建本地 state，不加入 sessionMetas（侧边栏不显示）
+        set(state => ({
+            sessions: { ...state.sessions, [tempId]: newSession },
+            activeSessionId: tempId,
+            draftSessionId: tempId,
+            activeTab: 'chat'
+        }));
     },
 
     switchSession: async (id) => {
+        // 切走时静默丢弃 draft（draft 不在 sessionMetas 中，无需过滤）
+        const { draftSessionId } = get();
+        if (draftSessionId && draftSessionId !== id) {
+            set(state => {
+                const { [draftSessionId]: _, ...rest } = state.sessions;
+                return { sessions: rest, draftSessionId: null };
+            });
+        }
+
         const { sessions } = get();
         const session = sessions[id];
 
@@ -171,37 +178,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     deleteSession: async (id) => {
-        try {
-            await window.electronAPI.session.delete(id);
+        const isDraft = get().draftSessionId === id;
 
-            set(state => {
-                const { [id]: deleted, ...rest } = state.sessions;
-
-                let nextActiveId = state.activeSessionId;
-                if (id === state.activeSessionId) {
-                    const remainingIds = Object.keys(rest);
-                    if (remainingIds.length > 0) {
-                        nextActiveId = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt)[0].id;
-                        // Trigger load for next session
-                        get().switchSession(nextActiveId);
-                    } else {
-                        // Create new locally to avoid async recursion issues if possible, or just call create
-                        // Since create is async, we can't easily do it inside reducer seamlessly.
-                        // We'll set activeId to empty and let UI handle or trigger creation.
-                        // Or cheat:
-                        setTimeout(() => get().createSession(), 0);
-                        nextActiveId = '';
-                    }
-                }
-                return { 
-                    sessions: rest, 
-                    sessionMetas: state.sessionMetas.filter(m => m.id !== id),
-                    activeSessionId: nextActiveId 
-                };
-            });
-        } catch (error) {
-            console.error('Failed to delete session', id, ':', error);
+        // Draft 只存在于本地，不需要调后端删除
+        if (!isDraft) {
+            try {
+                await window.electronAPI.session.delete(id);
+            } catch (error) {
+                console.error('Failed to delete session', id, ':', error);
+                return;
+            }
         }
+
+        set(state => {
+            const { [id]: deleted, ...rest } = state.sessions;
+
+            let nextActiveId = state.activeSessionId;
+            if (id === state.activeSessionId) {
+                const remainingIds = Object.keys(rest);
+                if (remainingIds.length > 0) {
+                    nextActiveId = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt)[0].id;
+                    get().switchSession(nextActiveId);
+                } else {
+                    setTimeout(() => get().createSession(), 0);
+                    nextActiveId = '';
+                }
+            }
+            return {
+                sessions: rest,
+                sessionMetas: state.sessionMetas.filter(m => m.id !== id),
+                activeSessionId: nextActiveId,
+                draftSessionId: isDraft ? null : state.draftSessionId,
+            };
+        });
     },
 
     renameSession: async (id, newTitle) => {
@@ -276,7 +285,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const potentialTitle = textContent.trim().slice(0, 20);
             if (potentialTitle) {
                 updatedSession.title = potentialTitle;
-                window.electronAPI.session.save({ id: session.id, title: potentialTitle });
+                if (!get().draftSessionId) {
+                    window.electronAPI.session.save({ id: session.id, title: potentialTitle });
+                }
                 
                 updatedMetas = state.sessionMetas.map(m => 
                     m.id === session.id ? { ...m, title: potentialTitle, updatedAt: updatedSession.updatedAt } : m
@@ -295,8 +306,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             sessionMetas: updatedMetas
         });
 
-        // 用户消息立即保存到后端持久化（不等待 Agent 执行）
-        if (msg.role === 'user') {
+        // 用户消息保存到后端持久化（draft 尚无后端记录，跳过，由 sendMessage 统一处理）
+        if (msg.role === 'user' && !get().draftSessionId) {
             window.electronAPI.session.addMessage(session.id, newMsg);
         }
     },
@@ -347,7 +358,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     sendMessage: async (input: string, attachments: string[]) => {
         const state = get();
-        const { isSending, sessions, activeSessionId, addMessage, updateLastMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
+        const { isSending, sessions, addMessage, updateLastMessage, setSending, setAgentEvent, clearPendingAttachments } = state;
+
+        let activeSessionId = state.activeSessionId;
 
         if (!input.trim() || isSending) return;
 
@@ -400,6 +413,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
         get().setActiveArtifact(null); // Clear previous artifact on new message
+
+        // 3. Draft 立即加入侧边栏显示（不等后端返回）
+        const isDraft = get().draftSessionId === activeSessionId;
+        if (isDraft) {
+            const session = get().sessions[activeSessionId];
+            set(state => ({
+                sessionMetas: [{ id: activeSessionId, title: session.title, updatedAt: session.updatedAt }, ...state.sessionMetas],
+            }));
+        }
 
         // --- Unified Stream Mechanism ---
         // Merges content, reasoning, and step updates into a single RAF loop.
@@ -570,17 +592,46 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         try {
             // Start Agent
+            const isDraft = get().draftSessionId === activeSessionId;
             const skillIds = get().selectedSkillIds;
             const options: any = {};
             if (skillIds !== null) options.skills = skillIds;
             if (currentSession.staffId) options.staffId = currentSession.staffId;
 
-            await window.electronAPI.agent.start({
-                sessionId: activeSessionId,
+            const result = await window.electronAPI.agent.start({
+                sessionId: isDraft ? undefined : activeSessionId,
                 prompt: userInput,
                 options: Object.keys(options).length > 0 ? options : undefined
             });
-            // Result comes via stream/events
+
+            // Draft → 真实 session：替换临时 ID
+            if (isDraft && result?.sessionId) {
+                const realId = result.sessionId;
+                const tempId = activeSessionId;
+                set(state => {
+                    const session = state.sessions[tempId];
+                    const { [tempId]: _, ...rest } = state.sessions;
+                    return {
+                        sessions: { ...rest, [realId]: { ...session, id: realId } },
+                        sessionMetas: state.sessionMetas.map(m =>
+                            m.id === tempId ? { ...m, id: realId } : m
+                        ),
+                        activeSessionId: realId,
+                        draftSessionId: null,
+                    };
+                });
+                activeSessionId = realId;
+
+                // 持久化标题和用户消息到后端
+                const realSession = get().sessions[realId];
+                if (realSession) {
+                    window.electronAPI.session.save({ id: realId, title: realSession.title });
+                    const userMsg = realSession.messages.find(m => m.role === 'user');
+                    if (userMsg) {
+                        window.electronAPI.session.addMessage(realId, userMsg);
+                    }
+                }
+            }
         } catch (err: any) {
             // 用户主动终止不是错误，静默处理
             if (!isAbortError(err)) {
