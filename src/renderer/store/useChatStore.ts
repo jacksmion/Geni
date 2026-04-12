@@ -664,11 +664,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 set(state => {
                     const session = state.sessions[tempId];
                     const { [tempId]: _, ...rest } = state.sessions;
+
+                    // Migrate runningSessions key from tempId to realId
+                    const nextRunning = new Map(state.runningSessions);
+                    const runState = nextRunning.get(tempId);
+                    if (runState) {
+                        nextRunning.delete(tempId);
+                        nextRunning.set(realId, runState);
+                    }
+
                     return {
                         sessions: { ...rest, [realId]: { ...session, id: realId } },
                         sessionMetas: state.sessionMetas.map(m =>
                             m.id === tempId ? { ...m, id: realId } : m
                         ),
+                        runningSessions: nextRunning,
                         activeSessionId: realId,
                         draftSessionId: null,
                     };
