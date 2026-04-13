@@ -21,7 +21,10 @@ export const ArtifactPanel: React.FC = () => {
 
     const handleCopy = () => {
         if (!activeArtifact?.content) return;
-        navigator.clipboard.writeText(activeArtifact.content);
+        const text = isBash && activeArtifact.path
+            ? `${activeArtifact.path}\n\n${activeArtifact.content}`
+            : activeArtifact.content;
+        navigator.clipboard.writeText(text);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
     };

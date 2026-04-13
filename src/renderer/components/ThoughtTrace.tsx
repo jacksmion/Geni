@@ -409,7 +409,10 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             const lower = tool.toLowerCase();
             if (lower.includes('bash') || lower.includes('command')) {
                 const cmdMatch = input.match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
-                if (cmdMatch) return cmdMatch[1];
+                if (cmdMatch) {
+                    const cmd = cmdMatch[1];
+                    return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
+                }
             }
             if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
                 const pathMatch = input.match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
@@ -425,7 +428,8 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             const lower = tool.toLowerCase();
 
             if (lower.includes('bash') || lower.includes('command')) {
-                return parsed.command || parsed.cmd || '';
+                const cmd = parsed.command || parsed.cmd || '';
+                return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
             }
             if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
                 return parsed.path || parsed.file_path || parsed.target_file || '';
@@ -521,7 +525,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                 {displayName}
                             </span>
                             {inlineInput && (
-                                <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 break-all select-text font-normal pt-0.5">
+                                <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 break-all select-text font-normal pt-0.5 line-clamp-2">
                                     {inlineInput}
                                 </span>
                             )}
