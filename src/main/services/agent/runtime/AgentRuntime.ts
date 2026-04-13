@@ -11,7 +11,7 @@
  */
 
 import type { Agent } from '../../../../common/types/agent';
-import type { ChatMessage } from '../../../../common/types/chat';
+import type { ChatMessage, AgentStep } from '../../../../common/types/chat';
 import type { Skill } from '../../../../common/types/skill';
 import type { SkillObject } from '../../skills/core/SkillParser';
 import { AgentContext, AgentRunRequest, AgentRunResult, AgentEvent } from '../types';
@@ -144,6 +144,26 @@ export class AgentRuntime {
             }
         }
         result = iteration.value;
+
+        // --- Attach steps to last assistant message before persisting ---
+        if (result?.steps && result.steps.length > 0 && result.newMessages) {
+            const cleanSteps: AgentStep[] = result.steps.map(s => ({
+                thought: s.thought,
+                tool: s.tool,
+                toolInput: s.toolInput,
+                observation: s.observation,
+                isComplete: s.isComplete,
+                duration: s.duration,
+                isError: s.isError,
+            }));
+
+            for (let i = result.newMessages.length - 1; i >= 0; i--) {
+                if (result.newMessages[i].role === 'assistant') {
+                    result.newMessages[i].steps = cleanSteps;
+                    break;
+                }
+            }
+        }
 
         if (request.sessionId && result?.newMessages) {
             for (const msg of result.newMessages) {

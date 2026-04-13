@@ -8,7 +8,7 @@ import { FileEditTool } from './FileEditTool';
 import { GlobTool } from './GlobTool';
 import { GrepTool } from './GrepTool';
 import { SkillLoaderTool } from './SkillLoaderTool';
-import { TodoWriteTool, TodoReadTool } from './TodoTool';
+import { TodoWriteTool, TodoReadTool, todoStore } from './TodoTool';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { defaultToolGuard, ToolTrustLevel } from '../../agent/ToolGuard';
 import { PathManager } from '../../PathManager';
@@ -58,6 +58,9 @@ export class CoreToolManager {
     public initialize() {
         const settings = this.configManager.load();
         const coreToolSettings = settings.coreToolSettings || {};
+
+        // Set up TodoStore persistence path
+        todoStore.setFilePath(this.pathManager.getTodosFile());
 
         // Determine allowed paths
         const allowedPaths = this.pathManager.getSkillsLoadPaths(this.workspacePath);

@@ -113,6 +113,14 @@ export class PathManager {
     }
 
     /**
+     * Get todos file path
+     * @returns ~/.geni/todos.json
+     */
+    public getTodosFile(): string {
+        return path.join(this.rootDir, 'todos.json');
+    }
+
+    /**
      * Get sessions directory
      * @returns ~/.geni/sessions/
      */

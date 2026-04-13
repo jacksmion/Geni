@@ -1,4 +1,6 @@
 import { ITool, ToolDefinition, ToolExecutionResult as ToolResult } from '../../../../common/types/tool';
+import fs from 'fs';
+import path from 'path';
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -9,11 +11,13 @@ export interface TodoItem {
     priority?: 'high' | 'medium' | 'low';
 }
 
-// ─── In-Memory Store (Singleton) ─────────────────────────────────
+// ─── Persistent Store (Singleton) ────────────────────────────────
 
 class TodoStore {
     private static instance: TodoStore;
     private todos: TodoItem[] = [];
+    private filePath: string | null = null;
+    private loaded = false;
 
     private constructor() { }
 
@@ -24,7 +28,38 @@ class TodoStore {
         return TodoStore.instance;
     }
 
+    setFilePath(fp: string): void {
+        this.filePath = fp;
+    }
+
+    private ensureLoaded(): void {
+        if (this.loaded || !this.filePath) return;
+        try {
+            if (fs.existsSync(this.filePath)) {
+                const data = fs.readFileSync(this.filePath, 'utf-8');
+                this.todos = JSON.parse(data);
+            }
+        } catch {
+            this.todos = [];
+        }
+        this.loaded = true;
+    }
+
+    private saveToDisk(): void {
+        if (!this.filePath) return;
+        try {
+            const dir = path.dirname(this.filePath);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            const tmp = this.filePath + '.tmp';
+            fs.writeFileSync(tmp, JSON.stringify(this.todos, null, 2), 'utf-8');
+            fs.renameSync(tmp, this.filePath);
+        } catch (err) {
+            console.error('[TodoStore] Failed to save:', err);
+        }
+    }
+
     getAll(): TodoItem[] {
+        this.ensureLoaded();
         return [...this.todos];
     }
 
@@ -33,17 +68,20 @@ class TodoStore {
      * The caller provides the complete desired state of the list.
      */
     replaceAll(items: TodoItem[]): TodoItem[] {
+        this.ensureLoaded();
         this.todos = items.map(item => ({
             id: item.id,
             content: item.content,
             status: item.status || 'pending',
             ...(item.priority ? { priority: item.priority } : {})
         }));
+        this.saveToDisk();
         return this.getAll();
     }
 
     clear(): void {
         this.todos = [];
+        this.saveToDisk();
     }
 }
 
