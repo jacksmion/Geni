@@ -86,6 +86,7 @@ export class AppRouter {
 
         // Controllers
         this.systemController = new SystemController(this.configManager, pathManager, this.usageManager);
+        this.systemController.setCoreToolManager(this.coreToolManager);
         this.toolController = new ToolController(this.skillRegistry, this.toolRegistry, this.mcpManager, this.configManager, this.coreToolManager, skillImportService, pathManager.getGlobalSkillsDir());
 
         // Three-layer architecture wiring

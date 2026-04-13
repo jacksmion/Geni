@@ -445,9 +445,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     } catch (e) {
                         console.error('Failed to read image', path, e);
                         fileAttachments.push(path);
+                        // Allow agent's read tool to access this file
+                        try {
+                            await (window as any).electronAPI.system.addAllowedPath(path);
+                        } catch (e) {
+                            console.error('Failed to add allowed path', path, e);
+                        }
                     }
                 } else {
                     fileAttachments.push(path);
+                    // Allow agent's read tool to access this file
+                    try {
+                        await (window as any).electronAPI.system.addAllowedPath(path);
+                    } catch (e) {
+                        console.error('Failed to add allowed path', path, e);
+                    }
                 }
             }
 

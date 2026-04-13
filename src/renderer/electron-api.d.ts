@@ -32,7 +32,7 @@ export interface IElectronAPI {
     system: {
         getSettings: () => Promise<any>;
         saveSettings: (settings: any) => Promise<boolean>;
-        selectFile: () => Promise<string | null>;
+        selectFile: (forAttachment?: boolean) => Promise<string | null>;
         selectDirectory: () => Promise<string | null>;
         openExplorer: (path: string) => Promise<void>;
         testLLM: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
@@ -42,6 +42,7 @@ export interface IElectronAPI {
         testLark: (config: any) => Promise<{ success: boolean, message: string }>;
         testWechat: () => Promise<{ success: boolean, message: string }>;
         readFileBase64: (path: string) => Promise<string>;
+        addAllowedPath: (filePath: string) => Promise<void>;
         getUsageStats: () => Promise<any>;
         readProfileFile: (name: string) => Promise<string>;
         writeProfileFile: (name: string, content: string) => Promise<void>;

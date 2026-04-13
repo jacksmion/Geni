@@ -12,6 +12,7 @@ export class SystemController {
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
     private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
     private activeWebContents: WebContents | null = null;
+    private coreToolManager?: any;
 
     constructor(
         private configManager: ConfigManager,
@@ -23,6 +24,10 @@ export class SystemController {
 
     public setIMServiceManager(mgr: any) {
         this.imServiceManager = mgr;
+    }
+
+    public setCoreToolManager(mgr: any) {
+        this.coreToolManager = mgr;
     }
 
     public setSettingsChangeCallback(callback: (settings: AppSettings) => void) {
@@ -39,7 +44,7 @@ export class SystemController {
             return this.handleSaveSettings(settings);
         });
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_DIRECTORY, () => this.handleSelectDirectory());
-        ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, () => this.handleSelectFile());
+        ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, (_, forAttachment?: boolean) => this.handleSelectFile(forAttachment));
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LLM, (_, config) => this.handleTestLLM(config));
         ipcMain.handle(SYSTEM_CHANNELS.FETCH_PROVIDER_MODELS, (_, payload) => this.handleFetchProviderModels(payload));
@@ -50,6 +55,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
         ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
+        ipcMain.handle(SYSTEM_CHANNELS.ADD_ALLOWED_PATH, (_, filePath: string) => this.handleAddAllowedPath(filePath));
         ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
         ipcMain.handle(SYSTEM_CHANNELS.READ_PROFILE_FILE, (_, name: string) => this.handleReadProfileFile(name));
         ipcMain.handle(SYSTEM_CHANNELS.WRITE_PROFILE_FILE, (_, name: string, content: string) => this.handleWriteProfileFile(name, content));
@@ -145,13 +151,16 @@ export class SystemController {
         return null;
     }
 
-    private async handleSelectFile() {
-        const result = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: [
+    private async handleSelectFile(forAttachment?: boolean) {
+        const filters = forAttachment
+            ? [{ name: 'All Files', extensions: ['*'] }]
+            : [
                 { name: 'Skill Packages', extensions: ['skill', 'zip'] },
                 { name: 'All Files', extensions: ['*'] }
-            ]
+            ];
+        const result = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters
         });
         if (!result.canceled && result.filePaths.length > 0) {
             return result.filePaths[0];
@@ -246,6 +255,12 @@ export class SystemController {
         } catch (error: any) {
             console.error(`[SystemController] Failed to read file ${filePath}:`, error);
             throw error;
+        }
+    }
+
+    private handleAddAllowedPath(filePath: string): void {
+        if (this.coreToolManager) {
+            this.coreToolManager.addAllowedPath(filePath);
         }
     }
 

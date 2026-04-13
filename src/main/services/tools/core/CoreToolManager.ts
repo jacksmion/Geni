@@ -189,4 +189,15 @@ export class CoreToolManager {
     public updateWorkspacePath(newPath: string) {
         this.workspacePath = newPath;
     }
+
+    /**
+     * Dynamically add an allowed path to the read tool.
+     * Called when user uploads a file from outside the workspace.
+     */
+    public addAllowedPath(filePath: string): void {
+        const tool = this.registry.getTool('read');
+        if (tool && typeof (tool as any).addAllowedPath === 'function') {
+            (tool as any).addAllowedPath(filePath);
+        }
+    }
 }

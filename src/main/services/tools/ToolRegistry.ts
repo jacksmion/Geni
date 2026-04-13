@@ -20,6 +20,10 @@ export class ToolRegistry {
         return Array.from(this.tools.values());
     }
 
+    getTool(name: string): ITool | undefined {
+        return this.tools.get(name);
+    }
+
     getToolDefinitions(): ToolDefinition[] {
         return this.getTools().map(t => t.getDefinition());
     }

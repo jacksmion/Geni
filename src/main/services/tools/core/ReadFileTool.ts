@@ -17,6 +17,23 @@ export class ReadFileTool implements ITool {
         this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
+    /**
+     * Dynamically add an allowed path (e.g. user-uploaded file's directory).
+     * Only adds the parent directory if it's not already covered.
+     */
+    public addAllowedPath(filePath: string): void {
+        const dir = path.dirname(path.resolve(filePath));
+        const alreadyAllowed = this.allowedPaths.some(p => {
+            if (process.platform === 'win32') {
+                return dir.toLowerCase().startsWith(p.toLowerCase());
+            }
+            return dir.startsWith(p);
+        });
+        if (!alreadyAllowed) {
+            this.allowedPaths.push(dir);
+        }
+    }
+
     protected isPathAllowed(targetPath: string): boolean {
         const normalizedTarget = path.resolve(targetPath);
         return this.allowedPaths.some(p => {

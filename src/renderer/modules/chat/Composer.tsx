@@ -592,7 +592,7 @@ export function Composer() {
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     const handleSelectFile = async () => {
-        const path = await window.electronAPI.system.selectFile()
+        const path = await window.electronAPI.system.selectFile(true)
         if (path) {
             addPendingAttachment(path)
         }

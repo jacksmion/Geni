@@ -55,7 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     system: {
         getSettings: () => ipcRenderer.invoke('system:get-settings'),
         saveSettings: (settings: any) => ipcRenderer.invoke('system:save-settings', settings),
-        selectFile: () => ipcRenderer.invoke('system:select-file'),
+        selectFile: (forAttachment?: boolean) => ipcRenderer.invoke('system:select-file', forAttachment),
         selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
         openExplorer: (path: string) => ipcRenderer.invoke('system:open-explorer', path),
         testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config),
         testWechat: () => ipcRenderer.invoke('system:test-wechat'),
         readFileBase64: (path: string) => ipcRenderer.invoke('system:read-file-base64', path),
+        addAllowedPath: (filePath: string) => ipcRenderer.invoke('system:add-allowed-path', filePath),
         getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
         readProfileFile: (name: string) => ipcRenderer.invoke('system:read-profile-file', name),
         writeProfileFile: (name: string, content: string) => ipcRenderer.invoke('system:write-profile-file', name, content),
