@@ -17,7 +17,7 @@ export function Sidebar() {
     ] as const
 
     return (
-        <aside className="w-[50px] flex flex-col items-center py-4 bg-[#f9fafb] dark:bg-[#18181b] shrink-0 z-[100] h-full transition-all duration-300">
+        <aside className="w-[50px] flex flex-col items-center py-4 bg-[#f9fafb] dark:bg-[var(--sidebar-bg)] shrink-0 z-[100] h-full transition-all duration-300">
             {/* Navigation */}
             <nav className="flex-1 flex flex-col gap-1.5 w-full px-2">
                 {navItems.map((item) => (

@@ -188,7 +188,7 @@ export function SessionSidebar() {
 
             <div
                 className={clsx(
-                    "shrink-0 flex flex-col h-full bg-[#f9fafb] dark:bg-[#18181b] border-r border-slate-200 dark:border-white/5 transition-all duration-300 ease-in-out",
+                    "shrink-0 flex flex-col h-full bg-[#f9fafb] dark:bg-[var(--sidebar-bg)] border-r border-slate-200 dark:border-white/5 transition-all duration-300 ease-in-out",
                     sidebarCollapsed ? "w-0 opacity-0 -translate-x-full" : "translate-x-0",
                     isMobile && !sidebarCollapsed && "fixed left-[50px] top-0 bottom-0 z-30 shadow-2xl",
                 )}

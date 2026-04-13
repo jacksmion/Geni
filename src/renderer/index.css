@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+
 :root {
-  --color-primary-50: 238 242 255;
+  /* ─── Primary Color Scale (Indigo by default, themeable) ─── */
+  --color-primary-50:  238 242 255;
   --color-primary-100: 224 231 255;
   --color-primary-200: 199 210 254;
   --color-primary-300: 165 180 252;
@@ -14,38 +16,75 @@
   --color-primary-900: 49 46 129;
   --color-primary-950: 30 27 75;
 
-  /* Default (Light Mode) - Ultra Flat & Clean */
-  --bg-color: #ffffff;
-  --text-color: #1a1a1a;
-  /* Almost black for sharpness */
-  --text-secondary: #71717a;
-  /* Zinc-500 */
+  /* ─── Semantic Color Tokens ─── */
+  /* success = emerald */
+  --color-success-400: 52 211 153;
+  --color-success-500: 16 185 129;
+  --color-success-600: 5 150 105;
+  /* warning = amber */
+  --color-warning-400: 251 191 36;
+  --color-warning-500: 245 158 11;
+  --color-warning-600: 217 119 6;
+  /* danger = red */
+  --color-danger-400: 248 113 113;
+  --color-danger-500: 239 68 68;
+  --color-danger-600: 220 38 38;
+  /* accent = violet (for skills/features) */
+  --color-accent-400: 167 139 250;
+  --color-accent-500: 139 92 246;
+  --color-accent-600: 124 58 237;
 
-  --sidebar-bg: #f4f4f5;
-  /* Zinc-100 */
-  --sidebar-border: #e4e4e7;
-  /* Zinc-200 */
+  /* ─── Shadow Token System ─── */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
+  --shadow-xl: 0 25px 60px -15px rgba(0,0,0,0.15);
+
+  /* ─── Typography (system fonts, no external requests) ─── */
+  --font-display: 'SF Pro Display', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'Cascadia Code', 'Cascadia Mono', 'Fira Code', 'Consolas', 'SF Mono', monospace;
+
+  /* ─── Animation Timing ─── */
+  --duration-fast:   150ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --duration-page:   500ms;
+  --ease-default:    cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Light Mode Backgrounds ─── */
+  --bg-color: #ffffff;
+  --bg-elevated: #f8f8fa;       /* 第二层：卡片/面板 */
+  --bg-sunken: #f4f4f5;         /* 第三层：凹陷区域 */
+  --text-color: #1a1a1a;
+  --text-secondary: #71717a;    /* Zinc-500 */
+  --sidebar-bg: #f4f4f5;        /* Zinc-100 */
+  --sidebar-border: #e4e4e7;    /* Zinc-200 */
 }
 
 :root.dark {
-  /* Dark Mode - Flat Matte */
-  --bg-color: #09090b;
-  /* Zinc-950 */
-  --text-color: #f4f4f5;
-  /* Zinc-100 */
-  --text-secondary: #a1a1aa;
-  /* Zinc-400 */
+  /* ─── Dark Mode Backgrounds (三层背景系统) ─── */
+  --bg-color: #09090b;          /* Zinc-950：主背景（最深） */
+  --bg-elevated: #111113;       /* 第二层：侧边栏/面板（比主背景浅一层） */
+  --bg-sunken: #18181b;         /* 第三层：已有的 sidebar-bg（Zinc-900） */
+  --text-color: #f4f4f5;        /* Zinc-100 */
+  --text-secondary: #a1a1aa;    /* Zinc-400 */
+  --sidebar-bg: #111113;        /* 使用新的第二层背景 */
+  --sidebar-border: #27272a;    /* Zinc-800 */
 
-  --sidebar-bg: #18181b;
-  /* Zinc-900 */
-  --sidebar-border: #27272a;
-  /* Zinc-800 */
+  /* 阴影在暗色模式下加深 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-xl: 0 25px 60px -15px rgba(0,0,0,0.6);
 }
+
 
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body), 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -54,6 +93,11 @@ body {
 /* 仅对非文本区域禁用文字选择，避免 UX 倒退 */
 button, nav, aside, header, .no-select {
   user-select: none;
+}
+
+/* 标题使用 display 字体，加强品牌辨识度 */
+h1, h2, h3 {
+  font-family: var(--font-display), 'Sora', 'Inter', system-ui, sans-serif;
 }
 
 /* 聊天消息和代码块显式允许选择 */
