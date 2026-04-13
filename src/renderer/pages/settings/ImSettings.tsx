@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, CheckCircle2, ShieldCheck, Globe, Key, Zap, Loader2, X, Building2, MessageSquare } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, Globe, Key, Zap, Loader2, X } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
@@ -136,11 +136,11 @@ export function ImSettings() {
         }
     };
 
-    const IM_PROVIDERS: { id: string; label: string; icon: any; desc: string; color: string; enabled: boolean; onToggle: (val: boolean) => void }[] = [
+    const IM_PROVIDERS: { id: string; label: string; icon: string; desc: string; color: string; enabled: boolean; onToggle: (val: boolean) => void }[] = [
         {
             id: 'telegram',
             label: 'Telegram',
-            icon: Bot,
+            icon: '/IM/telegram.svg',
             desc: t('imSettings.providerTgDesc'),
             color: '#0088cc',
             enabled: tgDraft.enabled,
@@ -149,7 +149,7 @@ export function ImSettings() {
         {
             id: 'wecom',
             label: t('imSettings.wecomBotTitle'),
-            icon: Building2,
+            icon: '/IM/wecom.png',
             desc: t('imSettings.providerWeComDesc'),
             color: '#1877f2',
             enabled: wecomDraft.enabled,
@@ -158,7 +158,7 @@ export function ImSettings() {
         {
             id: 'lark',
             label: t('imSettings.larkBotTitle'),
-            icon: MessageSquare,
+            icon: '/IM/feishu.png',
             desc: t('imSettings.providerLarkDesc'),
             color: '#3370ff',
             enabled: larkDraft.enabled,
@@ -167,7 +167,7 @@ export function ImSettings() {
         {
             id: 'wechat',
             label: 'WeChat (微信)',
-            icon: Bot,
+            icon: '/IM/weixin.png',
             desc: '扫码登录微信个人号接入 Agent',
             color: '#07c160',
             enabled: wechatDraft.enabled,
@@ -207,14 +207,8 @@ export function ImSettings() {
                                 )}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div
-                                        className={clsx(
-                                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                                            isSelected ? "bg-indigo-500 text-white shadow-indigo-200 dark:shadow-none" : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10"
-                                        )}
-                                        style={!isSelected ? { borderLeft: `3px solid ${provider.color}` } : {}}
-                                    >
-                                        <provider.icon size={18} />
+                                    <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                                        <img src={provider.icon} alt={provider.label} className="w-7 h-7 object-contain" />
                                     </div>
                                     <span className={clsx("text-sm font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                         {provider.label}
@@ -242,13 +236,12 @@ export function ImSettings() {
                     <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                         {(() => {
                             const current = IM_PROVIDERS.find(p => p.id === selectedIM);
-                            const Icon = current?.icon;
                             const isConnected = selectedIM === 'wechat' ? wechatConnected : !!testResult?.success;
                             return (
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl shadow-sm transition-colors"
                                         style={{ backgroundColor: `${current?.color || '#6366f1'}1a`, color: current?.color || '#6366f1' }}>
-                                        {Icon && <Icon size={24} />}
+                                        {current && <img src={current.icon} alt={current.label} className="w-6 h-6 object-contain" />}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-3">
@@ -371,7 +364,7 @@ export function ImSettings() {
                                 {wechatConnected && (
                                     <div className="flex flex-col items-center justify-center p-8 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
                                         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
-                                            <Bot size={36} />
+                                            <img src="/IM/weixin.png" alt="WeChat" className="w-9 h-9 object-contain" />
                                         </div>
                                         <p className="text-emerald-800 dark:text-emerald-400 font-bold text-lg flex items-center gap-2">
                                             <span className="relative flex h-3 w-3">
@@ -404,7 +397,7 @@ export function ImSettings() {
                                             onClick={handleWechatScan}
                                             className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/10"
                                         >
-                                            <Bot size={18} />
+                                            <img src="/IM/weixin.png" alt="WeChat" className="w-[18px] h-[18px] object-contain brightness-0 invert" />
                                             扫码连接微信
                                         </button>
                                         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">

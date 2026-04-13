@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Cpu, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Globe, Zap } from 'lucide-react'
+import { Send, Sparkles, Square, Plus, Settings2, Folder, ChevronDown, X, FileText, ArrowUp, Check, Shield, ShieldCheck, Search, FolderOpen, ExternalLink, Globe, Zap } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { Skill } from '../../../common/types/skill'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import {
+    OpenAIIcon, AnthropicIcon, DeepSeekIcon, ZhipuIcon,
+    MiniMaxIcon, QwenIcon, OllamaIcon, VolcengineIcon,
+    CustomProviderIcon
+} from '../../components/icons/providers'
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs))
@@ -13,15 +18,15 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 // Provider display metadata
 const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string }> = {
-    'OpenAI': { icon: Cpu, color: '#10a37f', label: 'OpenAI' },
-    'Anthropic': { icon: Cpu, color: '#d97757', label: 'Anthropic' },
-    'DeepSeek': { icon: Cpu, color: '#4d6df1', label: 'DeepSeek' },
-    'ZhipuAI': { icon: Cpu, color: '#343b4d', label: '智谱 AI' },
-    'Volcengine': { icon: Cpu, color: '#ff4d4f', label: '火山引擎' },
-    'Qwen': { icon: Cpu, label: '通义千问', color: '#6340ff' },
-    'MiniMax': { icon: Cpu, label: 'MiniMax', color: '#ff7a00' },
-    'Ollama': { icon: Cpu, color: '#444', label: 'Ollama' },
-    'Local': { icon: Cpu, color: '#64748b', label: 'Local' },
+    'OpenAI': { icon: OpenAIIcon, color: '#10a37f', label: 'OpenAI' },
+    'Anthropic': { icon: AnthropicIcon, color: '#d97757', label: 'Anthropic' },
+    'DeepSeek': { icon: DeepSeekIcon, color: '#4d6df1', label: 'DeepSeek' },
+    'ZhipuAI': { icon: ZhipuIcon, color: '#343b4d', label: '智谱 AI' },
+    'Volcengine': { icon: VolcengineIcon, color: '#ff4d4f', label: '火山引擎' },
+    'Qwen': { icon: QwenIcon, label: '通义千问', color: '#6340ff' },
+    'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', color: '#ff7a00' },
+    'Ollama': { icon: OllamaIcon, color: '#444', label: 'Ollama' },
+    'Local': { icon: CustomProviderIcon, color: '#64748b', label: 'Local' },
 }
 
 

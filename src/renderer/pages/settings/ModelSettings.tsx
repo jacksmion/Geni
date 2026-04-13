@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } from '../../../common/types/settings';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
-import { 
+import {
     Check, Key, Cpu, Zap, Search, Loader2, Plus, X, Globe,
     Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown, ShieldCheck
 } from 'lucide-react';
@@ -10,19 +10,24 @@ import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
 import { Switch } from '../../components/Switch';
 import { useModalStore } from '../../store/useModalStore';
+import {
+    OpenAIIcon, AnthropicIcon, DeepSeekIcon, ZhipuIcon,
+    MiniMaxIcon, QwenIcon, OllamaIcon, VolcengineIcon,
+    OpenRouterIcon, CustomProviderIcon
+} from '../../components/icons/providers';
 
 
 const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, color?: string }> = {
-    'OpenAI': { icon: Cpu, label: 'OpenAI', desc: 'GPT-5.2, GPT-4o', color: '#10a37f' },
-    'Anthropic': { icon: Cpu, label: 'Anthropic', desc: 'Claude 4.6 Opus/Sonnet', color: '#d97757' },
-    'DeepSeek': { icon: Cpu, label: 'DeepSeek', desc: 'DeepSeek-V3.2', color: '#4d6df1' },
-    'ZhipuAI': { icon: Cpu, label: '智谱 AI', desc: 'GLM-4, GLM-3', color: '#343b4d' },
-    'Volcengine': { icon: Cpu, label: '火山引擎', desc: 'Doubao 豆包模型', color: '#ff4d4f' },
-    'Qwen': { icon: Cpu, label: '通义千问', desc: 'Qwen 3.5, Qwen 3', color: '#6340ff' },
-    'MiniMax': { icon: Cpu, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
-    'Ollama': { icon: Cpu, label: 'Ollama', desc: 'Llama 3, Mistral (Local)', color: '#444' },
-    'LM Studio': { icon: Cpu, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
-    'Local': { icon: Cpu, label: 'Local (Custom)', desc: 'Custom OpenAI-compatible', color: '#64748b' },
+    'OpenAI': { icon: OpenAIIcon, label: 'OpenAI', desc: 'GPT-5.2, GPT-4o', color: '#10a37f' },
+    'Anthropic': { icon: AnthropicIcon, label: 'Anthropic', desc: 'Claude 4.6 Opus/Sonnet', color: '#d97757' },
+    'DeepSeek': { icon: DeepSeekIcon, label: 'DeepSeek', desc: 'DeepSeek-V3.2', color: '#4d6df1' },
+    'ZhipuAI': { icon: ZhipuIcon, label: '智谱 AI', desc: 'GLM-4, GLM-3', color: '#343b4d' },
+    'Volcengine': { icon: VolcengineIcon, label: '火山引擎', desc: 'Doubao 豆包模型', color: '#ff4d4f' },
+    'Qwen': { icon: QwenIcon, label: '通义千问', desc: 'Qwen 3.5, Qwen 3', color: '#6340ff' },
+    'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
+    'Ollama': { icon: OllamaIcon, label: 'Ollama', desc: 'Llama 3, Mistral (Local)', color: '#444' },
+    'LM Studio': { icon: CustomProviderIcon, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
+    'Local': { icon: CustomProviderIcon, label: 'Local (Custom)', desc: 'Custom OpenAI-compatible', color: '#64748b' },
 };
 
 
@@ -347,7 +352,7 @@ export function ModelSettings() {
 
                 <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
                     {filteredProviders.map(key => {
-                        const meta = PROVIDER_META[key] || { icon: Cpu, label: key, desc: t('modelSettings.custom') };
+                        const meta = PROVIDER_META[key] || { icon: CustomProviderIcon, label: key, desc: t('modelSettings.custom') };
                         const isSelected = selectedProvider === key;
                         const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
                         const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
@@ -359,11 +364,8 @@ export function ModelSettings() {
                                     isSelected ? "bg-white dark:bg-[#18181b] border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
                                 )} onClick={() => setSelectedProvider(key)}>
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                        <div 
-                                            className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all", isSelected ? "bg-indigo-500 text-white shadow-sm" : "bg-slate-100 dark:bg-white/5 text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10")}
-                                            style={!isSelected ? { backgroundColor: `${meta.color}15`, color: meta.color } : {}}
-                                        >
-                                            <meta.icon size={18} />
+                                        <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                                            <meta.icon className="w-6 h-6" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
                                             <span className={clsx("text-sm font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
@@ -391,9 +393,11 @@ export function ModelSettings() {
                     {/* Detail Header */}
                     <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors"
-                                 style={{ backgroundColor: `${PROVIDER_META[selectedProvider]?.color || '#6366f1'}15`, color: PROVIDER_META[selectedProvider]?.color || '#6366f1' }}>
-                                <Cpu size={24} />
+                            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                                {(() => {
+                                    const Icon = PROVIDER_META[selectedProvider]?.icon || CustomProviderIcon;
+                                    return <Icon className="w-7 h-7" />;
+                                })()}
                             </div>
                             <div>
                                 <div className="flex items-center gap-2.5">
