@@ -63,7 +63,7 @@ export function PageTransition({ pageKey, children, className }: PageTransitionP
         phase === 'exit'  ? 'page-exit'  : ''
 
     return (
-        <div className={`${className ?? 'flex-1 overflow-hidden'} ${animClass}`}>
+        <div className={`${className ?? 'flex-1 h-full overflow-hidden bg-[var(--bg-color)]'} ${animClass}`}>
             {displayChildren}
         </div>
     )
