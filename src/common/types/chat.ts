@@ -52,6 +52,7 @@ export interface ChatMessage {
     tool_calls?: ToolCall[];
     tool_call_id?: string;
     reasoning_content?: string;
+    reasoning_parts?: string[];       // 每轮推理内容（per-turn）
     // Agent / UI Specific
     steps?: AgentStep[];
     isError?: boolean;

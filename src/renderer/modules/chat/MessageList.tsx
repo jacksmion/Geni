@@ -384,58 +384,110 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
-                        {/* Reasoning / Thinking Process */}
-                        {message.reasoning_content && (
-                            <ThinkingBlock
-                                content={message.reasoning_content}
-                                isComplete={!isStreaming}
-                            />
-                        )}
+                        {/* Interleave per turn: ThinkingBlock → Text → Tool Calls */}
+                        {(() => {
+                            const parts = message.reasoning_parts || (message.reasoning_content ? [message.reasoning_content] : []);
+                            const steps = message.steps || [];
 
-                        {/* Thoughts/Tools */}
-                        {message.steps && message.steps.length > 0 && (
-                            <div className="mb-4 w-full">
-                                <ThoughtTrace steps={message.steps} contextContent={textContent} />
-                            </div>
-                        )}
+                            // Group consecutive steps by thought (same turn)
+                            const groups: typeof steps[] = [];
+                            let lastThought: string | undefined;
+                            for (const step of steps) {
+                                if (step.thought !== lastThought && groups.length > 0) {
+                                    groups.push([]);
+                                } else if (groups.length === 0) {
+                                    groups.push([]);
+                                }
+                                groups[groups.length - 1].push(step);
+                                lastThought = step.thought;
+                            }
 
-                        {/* Text Body - High Contrast Fix & Data-Centric Layout */}
-                        <div className="select-text prose prose-slate dark:prose-invert max-w-none 
-                            text-slate-900 dark:text-zinc-100
-                            
-                            /* Paragraph styling */
-                            prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
-                            
-                            /* Heading styling */
-                            prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-                            prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
-                            prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
-                            prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
-                            
-                            /* List styling - The Core Fix */
-                            prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
-                            prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
-                            prose-li:my-1.5 prose-li:pl-1
-                            prose-li:prose-p:my-0 /* Fixes gap in loose lists */
-                            prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
-                            
-                            /* Other elements */
-                            prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
-                            prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
-                            
-                            prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
-                            
-                            prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
-                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
-                            <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    components={MarkdownComponents}
-                                >
-                                    {displayContent}
-                                </ReactMarkdown>
-                            </MessageItemContext.Provider>
-                        </div>
+                            const totalTurns = Math.max(parts.length, groups.length);
+                            if (totalTurns === 0) return null;
+
+                            return (<>
+                                {Array.from({ length: totalTurns }, (_, i) => (
+                                    <React.Fragment key={i}>
+                                        {parts[i] && (
+                                            <ThinkingBlock
+                                                content={parts[i]}
+                                                isComplete={!isStreaming || i < parts.length - 1}
+                                            />
+                                        )}
+                                        {groups[i] && groups[i].length > 0 && (
+                                            <div className="mb-4 w-full">
+                                                <ThoughtTrace steps={groups[i]} contextContent={textContent} />
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                {/* TextBody：所有轮次结束后渲染最终回答 */}
+                                {displayContent && (
+                                    <div className="select-text prose prose-slate dark:prose-invert max-w-none
+                                        text-slate-900 dark:text-zinc-100
+                                        prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
+                                        prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
+                                        prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
+                                        prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
+                                        prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
+                                        prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
+                                        prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
+                                        prose-li:my-1.5 prose-li:pl-1
+                                        prose-li:prose-p:my-0
+                                        prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
+                                        prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
+                                        prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
+                                        prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
+                                        prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
+                                        prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
+                                        <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={MarkdownComponents}
+                                            >
+                                                {displayContent}
+                                            </ReactMarkdown>
+                                        </MessageItemContext.Provider>
+                                    </div>
+                                )}
+                            </>);
+                        })()}
+
+                        {/* TextBody：无推理/工具时单独渲染 */}
+                        {(() => {
+                            const parts = message.reasoning_parts || (message.reasoning_content ? [message.reasoning_content] : []);
+                            const steps = message.steps || [];
+                            const hasTurns = Math.max(parts.length, steps.length > 0 ? 1 : 0) > 0;
+                            if (hasTurns || !displayContent) return null;
+                            return (
+                                <div className="select-text prose prose-slate dark:prose-invert max-w-none
+                                    text-slate-900 dark:text-zinc-100
+                                    prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
+                                    prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
+                                    prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
+                                    prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
+                                    prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
+                                    prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
+                                    prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
+                                    prose-li:my-1.5 prose-li:pl-1
+                                    prose-li:prose-p:my-0
+                                    prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
+                                    prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
+                                    prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
+                                    prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
+                                    prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
+                                    prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
+                                    <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={MarkdownComponents}
+                                        >
+                                            {displayContent}
+                                        </ReactMarkdown>
+                                    </MessageItemContext.Provider>
+                                </div>
+                            );
+                        })()}
 
 
 
@@ -483,6 +535,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
     
     if (prevProps.message.role !== nextProps.message.role) return false;
     if (prevProps.message.reasoning_content !== nextProps.message.reasoning_content) return false;
+    if (prevProps.message.reasoning_parts !== nextProps.message.reasoning_parts) return false;
 
     const prevStepsLen = prevProps.message.steps?.length || 0;
     const nextStepsLen = nextProps.message.steps?.length || 0;

@@ -573,12 +573,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 lastStepFlushTime = now;
             }
 
-            updateTargetMessage((msg) => ({
-                ...msg,
-                ...(hasContent ? { content: msg.content + chunkContent } : {}),
-                ...(hasReasoning ? { reasoning_content: (msg.reasoning_content || '') + chunkReasoning } : {}),
-                ...(shouldFlushSteps && stepsToFlush ? { steps: stepsToFlush } : {}),
-            }));
+            updateTargetMessage((msg) => {
+                const parts = msg.reasoning_parts || [''];
+                const updatedParts = hasReasoning
+                    ? [...parts.slice(0, -1), (parts[parts.length - 1] || '') + chunkReasoning]
+                    : parts;
+
+                return {
+                    ...msg,
+                    ...(hasContent ? { content: msg.content + chunkContent } : {}),
+                    ...(hasReasoning ? { reasoning_parts: updatedParts } : {}),
+                    ...(shouldFlushSteps && stepsToFlush ? { steps: stepsToFlush } : {}),
+                };
+            });
 
             // Artifact logic (only when steps are flushed)
             if (stepsToFlush) {
@@ -655,7 +662,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (sid !== targetSessionId) return;
             if (reset) {
                 reasoningBuf = '';
-                // 不重置 reasoning_content，让所有轮次的思考累积显示
+                // 新轮次：在 reasoning_parts 末尾追加空字符串，开始新一轮思考
+                updateTargetMessage((msg) => ({
+                    ...msg,
+                    reasoning_parts: [...(msg.reasoning_parts || []), ''],
+                }));
             } else {
                 reasoningBuf += chunk;
                 scheduleFlush();
