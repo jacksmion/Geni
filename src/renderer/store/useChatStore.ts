@@ -121,13 +121,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { draftSessionId, activeSessionId } = get();
         if (draftSessionId && draftSessionId === activeSessionId) return;
 
+        // 继承最近任务的工作路径、数字员工和模型
+        const { sessionMetas, sessions: allSessions } = get();
+        const latestMeta = sessionMetas[0]; // sessionMetas 按 updatedAt 降序
+        const prevSession = latestMeta ? allSessions[latestMeta.id] : undefined;
+
         const tempId = crypto.randomUUID();
         const newSession: ChatSession = {
             id: tempId,
             title: title || '新任务',
             createdAt: Date.now(),
             updatedAt: Date.now(),
-            messages: []
+            messages: [],
+            workspacePath: prevSession?.workspacePath,
+            staffId: prevSession?.staffId,
+            modelId: prevSession?.modelId,
         };
 
         // 只建本地 state，不加入 sessionMetas（侧边栏不显示）
