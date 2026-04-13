@@ -5,21 +5,17 @@ import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
 import { StaffAvatar } from '../../components/StaffAvatar'
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { preprocessMarkdown } from '../../utils/markdown'
+import { cn } from '../../utils/cn'
 
 const MermaidBlock = lazy(() => import('../../components/MermaidBlock'))
 const SvgBlock = lazy(() => import('../../components/SvgBlock').then(m => ({ default: m.SvgBlock })))
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs))
-}
 
 const EMPTY_ARRAY: ChatMessage[] = []
 

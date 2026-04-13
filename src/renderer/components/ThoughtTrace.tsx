@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, Eye } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { extractPathAndContent } from '../utils/artifact';
 import { preprocessMarkdown } from '../utils/markdown';
 import { useChatStore } from '../store/useChatStore';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from '../utils/cn';
 
 interface ThoughtStep {
     thought?: string;

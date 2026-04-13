@@ -4,29 +4,11 @@ import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { Skill } from '../../../common/types/skill'
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-import {
-    OpenAIIcon, AnthropicIcon, DeepSeekIcon, ZhipuIcon,
-    MiniMaxIcon, QwenIcon, OllamaIcon, VolcengineIcon,
-    CustomProviderIcon
-} from '../../components/icons/providers'
+import { cn } from '../../utils/cn'
+import { PROVIDER_DISPLAY } from '../../utils/providers'
+import { useClickOutside } from '../../hooks/useClickOutside'
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs))
-}
 
-// Provider display metadata
-const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string }> = {
-    'OpenAI': { icon: OpenAIIcon, color: '#10a37f', label: 'OpenAI' },
-    'Anthropic': { icon: AnthropicIcon, color: '#d97757', label: 'Anthropic' },
-    'DeepSeek': { icon: DeepSeekIcon, color: '#4d6df1', label: 'DeepSeek' },
-    'ZhipuAI': { icon: ZhipuIcon, color: '#343b4d', label: '智谱 AI' },
-    'Volcengine': { icon: VolcengineIcon, color: '#ff4d4f', label: '火山引擎' },
-    'Qwen': { icon: QwenIcon, label: '通义千问', color: '#6340ff' },
-    'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', color: '#ff7a00' },
-    'Ollama': { icon: OllamaIcon, color: '#444', label: 'Ollama' },
-}
 
 
 function ModelSelector() {
@@ -42,17 +24,7 @@ function ModelSelector() {
     const currentSession = sessions[activeSessionId]
 
     // Close dropdown on outside click
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside)
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [isOpen])
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen)
 
     // Build the list of available models from configured providers
     const allProviderKeys = Array.from(new Set([
@@ -274,15 +246,7 @@ function SkillSelector() {
     }, [isOpen])
 
     // Outside click to close
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        if (isOpen) document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [isOpen])
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen)
 
     // Effective selected IDs: null means follow global defaults
     const effectiveIds = selectedSkillIds ?? skills.filter(s => s.enabled).map(s => s.id)
@@ -443,15 +407,7 @@ function WorkspaceSelector() {
     // Session-level workspace override, fallback to global
     const workspacePath = currentSession?.workspacePath || globalWorkspacePath
 
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        if (isOpen) document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [isOpen])
+    useClickOutside(dropdownRef, () => setIsOpen(false), isOpen)
 
     const updateWorkspace = async (path: string) => {
         // Update session-level workspace path

@@ -10,12 +10,8 @@ import { SessionSidebar } from './sidebar/SessionSidebar'
 import { StatusIndicator } from '../components/StatusIndicator'
 import { StaffAvatar, STAFF_ICONS } from '../components/StaffAvatar'
 import { useTranslation } from 'react-i18next'
-import { clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { cn } from '../utils/cn'
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs))
-}
 
 import { GeniLogo } from '../components/GeniLogo'
 import { ArtifactPanel } from '../components/ArtifactPanel'

@@ -1,12 +1,8 @@
 import React from 'react';
 import { ToyBrick as Brick } from 'lucide-react';
 import { Skill } from '../../common/types/skill';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
 
 interface SkillCardProps {
     skill: Skill;

@@ -1,12 +1,8 @@
 import React from 'react';
 import { Sparkles, Loader2, Wrench, AlertTriangle, XCircle, Search, FileText, Terminal } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../utils/cn';
 
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
 
 export function StatusIndicator() {
     const event = useChatStore(s => {
