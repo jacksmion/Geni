@@ -15,6 +15,8 @@ import { cn } from '../utils/cn'
 
 import { GeniLogo } from '../components/GeniLogo'
 import { ArtifactPanel } from '../components/ArtifactPanel'
+import { useDelayedUnmount } from '../hooks/useDelayedUnmount'
+
 
 /** 员工选择卡片网格（仅空状态页使用） */
 function StaffPicker() {
@@ -91,6 +93,7 @@ function StaffPicker() {
 export function ChatLayout() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const hasActiveArtifact = useChatStore(s => !!s.activeArtifact)
+    const { shouldRender: showPanel, isExiting: panelExiting } = useDelayedUnmount(hasActiveArtifact, 250)
     const currentSessionMeta = useChatStore(useShallow(s => {
         const session = s.sessions[activeSessionId];
         if (!session) return null;
@@ -265,10 +268,15 @@ export function ChatLayout() {
                 </main>
 
                 {/* Floating Right Panel: Artifact/Code Preview */}
-                {hasActiveArtifact && (
+                {showPanel && (
                     <aside
                         style={{ width: `${panelWidth}px` }}
-                        className="absolute top-30 right-2 h-[calc(100vh-180px)] flex flex-col overflow-hidden animate-in slide-in-from-right-8 fade-in-0 duration-500 ease-out z-50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] border border-slate-200/10 dark:border-white/10 bg-white/80 dark:bg-[#0d1117]/85 backdrop-blur-2xl ring-1 ring-black/5"
+                        className={cn(
+                            "absolute top-30 right-2 h-[calc(100vh-180px)] flex flex-col overflow-hidden z-50 rounded-2xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] border border-slate-200/10 dark:border-white/10 bg-white/80 dark:bg-[#0d1117]/85 backdrop-blur-2xl ring-1 ring-black/5",
+                            panelExiting
+                                ? "panel-exit"
+                                : "panel-enter"
+                        )}
                     >
                         {/* Left Resize Handle */}
                         <div

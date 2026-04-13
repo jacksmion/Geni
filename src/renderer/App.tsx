@@ -5,6 +5,7 @@ import SchedulerPage from './pages/SchedulerPage'
 import StaffPage from './pages/StaffPage'
 import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
+import { PageTransition } from './components/PageTransition'
 
 import { useChatStore } from './store/useChatStore'
 import { useSettingsStore } from './store/useSettingsStore'
@@ -78,16 +79,18 @@ function App() {
         <div className="flex h-screen w-full bg-transparent text-slate-900 dark:text-gray-100 font-sans overflow-hidden selection:bg-indigo-500/30">
             <Sidebar />
 
-            {activeTab === 'chat' ? (
-                <ChatLayout />
-            ) : (
-                <main className="flex-1 overflow-hidden bg-transparent">
-                    {activeTab === 'skills' && <SkillSettings />}
-                    {activeTab === 'staff' && <StaffPage />}
-                    {activeTab === 'scheduler' && <SchedulerPage />}
-                    {activeTab === 'settings' && <Settings />}
-                </main>
-            )}
+            <PageTransition pageKey={activeTab}>
+                {activeTab === 'chat' ? (
+                    <ChatLayout />
+                ) : (
+                    <main className="flex-1 h-full overflow-hidden bg-transparent">
+                        {activeTab === 'skills' && <SkillSettings />}
+                        {activeTab === 'staff' && <StaffPage />}
+                        {activeTab === 'scheduler' && <SchedulerPage />}
+                        {activeTab === 'settings' && <Settings />}
+                    </main>
+                )}
+            </PageTransition>
 
             <ConfirmDialog />
             <CommandPalette />
@@ -96,3 +99,4 @@ function App() {
 }
 
 export default App
+

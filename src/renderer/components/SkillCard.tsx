@@ -1,7 +1,7 @@
 import React from 'react';
 import { ToyBrick as Brick } from 'lucide-react';
 import { Skill } from '../../common/types/skill';
-import { cn } from '../../utils/cn';
+import { cn } from '../utils/cn';
 
 
 interface SkillCardProps {
