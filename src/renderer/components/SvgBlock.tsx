@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { Eye, Code2, ZoomIn, ZoomOut, Download, Maximize2, X, RotateCcw } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { createPortal } from 'react-dom'
@@ -22,14 +22,39 @@ export function SvgBlock({ code }: SvgBlockProps) {
     const isPanning = useRef(false)
     const lastPos = useRef({ x: 0, y: 0 })
 
+    // 清洗并补全 SVG 尺寸属性
     const sanitized = React.useMemo(() => {
         try {
-            const result = DOMPurify.sanitize(code, PURIFY_CONFIG)
-            // 验证结果是合法 SVG
+            let result = DOMPurify.sanitize(code, PURIFY_CONFIG)
             if (!result.includes('<svg')) {
                 setError('无效的 SVG 内容')
                 return ''
             }
+            // 确保 SVG 有 width/height 以防止尺寸塌缩
+            result = result.replace(
+                /<svg([^>]*)>/,
+                (_match, attrs: string) => {
+                    const hasWidth = /\bwidth\s*=/.test(attrs)
+                    const hasHeight = /\bheight\s*=/.test(attrs)
+                    let newAttrs = attrs
+                    if (!hasWidth) newAttrs += ' width="100%"'
+                    if (!hasHeight) {
+                        // 从 viewBox 提取宽高比，设置合理高度
+                        const vbMatch = attrs.match(/viewBox="([^"]+)"/)
+                        if (vbMatch) {
+                            const parts = vbMatch[1].trim().split(/[\s,]+/)
+                            if (parts.length >= 4) {
+                                const w = parseFloat(parts[2])
+                                const h = parseFloat(parts[3])
+                                if (w > 0 && h > 0) {
+                                    newAttrs += ` style="aspect-ratio: ${w}/${h}; max-height: 400px;"`
+                                }
+                            }
+                        }
+                    }
+                    return `<svg${newAttrs}>`
+                }
+            )
             setError(null)
             return result
         } catch (e: any) {
