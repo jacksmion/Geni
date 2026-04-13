@@ -270,7 +270,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            await window.electronAPI.session.save({ id, title: newTitle }); // Async save
+            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
+            if (!get().draftSessionId) {
+                await window.electronAPI.session.save({ id, title: newTitle }); // Async save
+            }
         } catch (error) {
             console.error('Failed to rename session', id, ':', error);
         }
@@ -291,8 +294,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            // we should also save to backend, passing staffId
-            await window.electronAPI.session.save({ id, staffId });
+            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
+            if (!get().draftSessionId) {
+                await window.electronAPI.session.save({ id, staffId });
+            }
         } catch (error) {
             console.error('Failed to assign staff to session', id, ':', error);
         }
@@ -313,7 +318,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            await window.electronAPI.session.save({ id, ...config });
+            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
+            if (!get().draftSessionId) {
+                await window.electronAPI.session.save({ id, ...config });
+            }
         } catch (error) {
             console.error('Failed to save session config', id, ':', error);
         }
@@ -491,7 +499,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (isDraft) {
             const session = get().sessions[activeSessionId];
             set(state => ({
-                sessionMetas: [{ id: activeSessionId, title: session.title, updatedAt: session.updatedAt }, ...state.sessionMetas],
+                sessionMetas: [{ id: activeSessionId, title: session.title, updatedAt: session.updatedAt, staffId: session.staffId, modelId: session.modelId }, ...state.sessionMetas],
             }));
         }
 
@@ -767,6 +775,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const realSession = get().sessions[realId];
                 if (realSession) {
                     const savePayload: any = { id: realId, title: realSession.title };
+                    if (realSession.staffId) savePayload.staffId = realSession.staffId;
                     if (realSession.modelId) savePayload.modelId = realSession.modelId;
                     if (realSession.workspacePath) savePayload.workspacePath = realSession.workspacePath;
                     window.electronAPI.session.save(savePayload);
