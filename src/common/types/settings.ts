@@ -188,7 +188,6 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         activeModelId: 'qwen-3.5',
         models: [
             { id: 'qwen-3.5', label: 'Qwen 3.5', model: 'qwen-3.5', temperature: 0.7, enabled: true, contextWindow: 131072, maxOutput: 16000 },
-            { id: 'qwen-3', label: 'Qwen 3', model: 'qwen-3', temperature: 0.7, enabled: true, contextWindow: 131072, maxOutput: 8000 },
         ]
     },
     'MiniMax': {
@@ -204,20 +203,16 @@ export const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         baseUrl: 'http://localhost:11434/v1',
         apiKey: '',
         enabled: false,
-        activeModelId: 'llama3',
-        models: [
-            { id: 'llama3', label: 'Llama 3', model: 'llama3:latest', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
-        ]
+        activeModelId: '',
+        models: []
     },
     'LM Studio': {
         baseUrl: 'http://localhost:1234/v1',
         apiKey: '',
         enabled: false,
-        activeModelId: 'local-model',
-        models: [
-            { id: 'local-model', label: 'Local Model', model: 'local-model', temperature: 0.7, enabled: true, contextWindow: 8192, maxOutput: 4096 },
-        ]
-    }
+        activeModelId: '',
+        models: []
+    },
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {

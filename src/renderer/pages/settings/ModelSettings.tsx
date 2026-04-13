@@ -4,7 +4,8 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import {
     Check, Key, Cpu, Zap, Search, Loader2, Plus, X, Globe,
-    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown, ShieldCheck
+    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown, ShieldCheck,
+    Eye, EyeOff
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
@@ -27,7 +28,6 @@ const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, co
     'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
     'Ollama': { icon: OllamaIcon, label: 'Ollama', desc: 'Llama 3, Mistral (Local)', color: '#444' },
     'LM Studio': { icon: CustomProviderIcon, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
-    'Local': { icon: CustomProviderIcon, label: 'Local (Custom)', desc: 'Custom OpenAI-compatible', color: '#64748b' },
 };
 
 
@@ -72,6 +72,7 @@ export function ModelSettings() {
     // API Config Local State (Internal to UI)
     const [apiKeyInput, setApiKeyInput] = useState(currentProviderConfig.apiKey || '');
     const [baseUrlInput, setBaseUrlInput] = useState(currentProviderConfig.baseUrl || '');
+    const [showApiKey, setShowApiKey] = useState(false);
 
     useEffect(() => {
         setApiKeyInput(currentProviderConfig.apiKey || '');
@@ -133,7 +134,7 @@ export function ModelSettings() {
     };
 
     const handleFetchModels = async () => {
-        if (!currentProviderConfig.apiKey && selectedProvider !== 'Local') {
+        if (!currentProviderConfig.apiKey) {
             showToast(t('modelSettings.apiKeyRequired', 'Please enter API Key first'), 'error');
             return;
         }
@@ -452,7 +453,12 @@ export function ModelSettings() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiKey')}</label>
-                                    <input type="password" value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                    <div className="relative">
+                                        <input type={showApiKey ? "text" : "password"} value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                        <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                            {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiUrl')}</label>

@@ -26,7 +26,6 @@ const PROVIDER_DISPLAY: Record<string, { icon: any, color: string, label: string
     'Qwen': { icon: QwenIcon, label: '通义千问', color: '#6340ff' },
     'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', color: '#ff7a00' },
     'Ollama': { icon: OllamaIcon, color: '#444', label: 'Ollama' },
-    'Local': { icon: CustomProviderIcon, color: '#64748b', label: 'Local' },
 }
 
 
