@@ -1,5 +1,5 @@
 // src/renderer/components/CommandPalette/index.tsx
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useLayoutStore } from '../../store/useLayoutStore'
 import { useCommandPalette } from './useCommandPalette'
@@ -9,6 +9,7 @@ import { ResultList } from './ResultList'
 export function CommandPalette() {
     const paletteOpen = useLayoutStore(s => s.paletteOpen)
     const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
+    const previousFocusRef = useRef<HTMLElement | null>(null)
 
     const {
         query,
@@ -20,6 +21,15 @@ export function CommandPalette() {
         inputRef,
         filterType,
     } = useCommandPalette()
+
+    // 打开时记录焦点，关闭时还原
+    useEffect(() => {
+        if (paletteOpen) {
+            previousFocusRef.current = document.activeElement as HTMLElement
+        } else {
+            previousFocusRef.current?.focus()
+        }
+    }, [paletteOpen])
 
     // Esc 键关闭（全局监听，兜底）
     useEffect(() => {
@@ -49,6 +59,9 @@ export function CommandPalette() {
 
             {/* 搜索框容器 */}
             <div
+                role="dialog"
+                aria-label="命令面板"
+                aria-modal="true"
                 className="relative w-full max-w-lg bg-white dark:bg-[#1c1c1e] rounded-xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
             >

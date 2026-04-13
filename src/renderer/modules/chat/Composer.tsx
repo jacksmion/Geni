@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Square, Plus, X, FileText, ArrowUp, Shield, ShieldCheck } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
@@ -90,12 +90,17 @@ export function Composer() {
         }
     }, [input])
 
+    // 新建/切换会话时自动 focus 输入框
+    useEffect(() => {
+        textareaRef.current?.focus()
+    }, [activeSessionId])
+
 
     return (
         <div className="w-full max-w-4xl mx-auto px-4 md:px-8 pb-6 relative z-50 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
-                <div className="relative bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.6)] focus-within:bg-white dark:focus-within:bg-[#1c1c1f] ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-indigo-500/20 dark:focus-within:ring-indigo-500/40">
+                <div className="relative bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.6)] focus-within:bg-white dark:focus-within:bg-[#1c1c1f] ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-2 focus-within:ring-indigo-500/60 dark:focus-within:ring-indigo-500/50">
 
                     {/* Active Items Preview (Attachments & Custom Skills) */}
                     {(pendingAttachments.length > 0 || (selectedSkillIds !== null && selectedSkillIds.length > 0)) && (
@@ -150,7 +155,7 @@ export function Composer() {
                             }
                         }}
                         placeholder="Message Geni..."
-                        className="w-full bg-transparent px-5 py-4 min-h-[56px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
+                        className="composer-textarea w-full bg-transparent px-5 py-4 min-h-[56px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
                         rows={1}
                         style={{ lineHeight: '1.5' }}
                     />
