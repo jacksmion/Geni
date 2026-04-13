@@ -655,7 +655,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (sid !== targetSessionId) return;
             if (reset) {
                 reasoningBuf = '';
-                updateTargetMessage((msg) => ({ ...msg, reasoning_content: '' }));
+                // 不重置 reasoning_content，让所有轮次的思考累积显示
             } else {
                 reasoningBuf += chunk;
                 scheduleFlush();

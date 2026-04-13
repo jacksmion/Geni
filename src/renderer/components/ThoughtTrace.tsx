@@ -679,15 +679,18 @@ const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) =>
 
     return (
         <div className="flex flex-col mb-2">
-            {visibleSteps.map((step, idx) => (
-                <div key={idx} className="flex flex-col w-full">
-                    {/* Always show thought if exists to maintain Intent -> Action flow */}
-                    {step.thought && <ThoughtText thought={step.thought} />}
+            {visibleSteps.map((step, idx) => {
+                // 同一轮并行工具调用共享相同 thought，只在首个 step 显示
+                const prevStep = idx > 0 ? visibleSteps[idx - 1] : null;
+                const shouldShowThought = step.thought && step.thought !== prevStep?.thought;
 
-                    {/* Show tool call card if exists */}
-                    {step.tool && <ToolCallCard step={step} isLast={idx === visibleSteps.length - 1} />}
-                </div>
-            ))}
+                return (
+                    <div key={idx} className="flex flex-col w-full">
+                        {shouldShowThought && <ThoughtText thought={step.thought!} />}
+                        {step.tool && <ToolCallCard step={step} isLast={idx === visibleSteps.length - 1} />}
+                    </div>
+                );
+            })}
         </div>
     );
 };

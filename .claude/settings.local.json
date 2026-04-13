@@ -28,7 +28,8 @@
       "Bash(node -e \"require\\(''./src/common/i18n/locales/zh.json''\\); console.log\\(''zh.json: valid''\\)\")",
       "Bash(python -c \":*)",
       "Bash(findstr:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
