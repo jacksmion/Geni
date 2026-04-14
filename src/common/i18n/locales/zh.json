@@ -67,7 +67,10 @@
     },
     "chatLayout": {
         "startCollaborating": "开始协作",
-        "assistantDesc": "你的 24/7 全天候私人智能体助理，随时为你完成工作"
+        "greetingTitle": "今天想完成什么工作？",
+        "assistantDesc": "你的 24/7 全天候私人智能体助理，随时为你完成工作",
+        "placeholderDraft": "分配任务或直接提问，或输入 / 选择数字员工和技能...",
+        "placeholderContinue": "继续提问..."
     },
     "skillSettings": {
         "title": "技能商店",

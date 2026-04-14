@@ -67,7 +67,10 @@
     },
     "chatLayout": {
         "startCollaborating": "Start Collaborating",
-        "assistantDesc": "A 24/7 personal assistant agent that gets work done for you"
+        "greetingTitle": "What would you like to get done today?",
+        "assistantDesc": "A 24/7 personal assistant agent that gets work done for you",
+        "placeholderDraft": "Assign a task or ask directly, or type / to select staff & skills...",
+        "placeholderContinue": "Continue asking..."
     },
     "skillSettings": {
         "title": "Skill Store",

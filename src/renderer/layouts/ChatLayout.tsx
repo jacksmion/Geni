@@ -18,7 +18,7 @@ import { ArtifactPanel } from '../components/ArtifactPanel'
 import { useDelayedUnmount } from '../hooks/useDelayedUnmount'
 
 
-/** 员工选择卡片网格（仅空状态页使用） */
+/** 员工选择标签条（仅空状态页使用） */
 function StaffPicker() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
@@ -31,52 +31,53 @@ function StaffPicker() {
         if (profiles.length === 0) loadProfiles()
     }, [profiles.length, loadProfiles])
 
+    const MAX_VISIBLE = 5
+
     const allOptions = [
         { id: undefined as string | undefined, name: 'AI 助手', description: '默认通用助手', avatar: 'Bot' },
         ...profiles.map(p => ({ id: p.id as string | undefined, name: p.name, description: p.description, avatar: p.avatar }))
     ]
 
+    // Always show the default + current selected + up to MAX_VISIBLE total
+    const visibleOptions = allOptions.length <= MAX_VISIBLE
+        ? allOptions
+        : (() => {
+            const defaultOpt = allOptions[0]
+            const selected = currentStaffId ? allOptions.find(o => o.id === currentStaffId) : null
+            const rest = allOptions.filter(o => o.id !== undefined && o.id !== currentStaffId)
+            const result = [defaultOpt]
+            if (selected && selected.id !== undefined) result.push(selected)
+            result.push(...rest.slice(0, MAX_VISIBLE - result.length))
+            return result
+          })()
+
     return (
-        <div className="flex flex-wrap justify-center gap-3 max-w-2xl w-full">
-            {allOptions.map(opt => {
+        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/60 dark:bg-white/[0.04]">
+            {visibleOptions.map(opt => {
                 const isActive = currentStaffId === opt.id
-                const hasIcon = opt.avatar && STAFF_ICONS[opt.avatar]
                 return (
                     <button
                         key={opt.id || '__default__'}
                         onClick={() => assignStaff(activeSessionId, opt.id)}
                         className={cn(
-                            "group relative flex flex-col items-center gap-2 w-[110px] py-4 px-3 rounded-2xl transition-all duration-200",
-                            "border shadow-sm",
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200",
                             isActive
-                                ? "border-indigo-400/60 dark:border-indigo-500/50 bg-indigo-50/80 dark:bg-indigo-500/10 shadow-indigo-100 dark:shadow-indigo-500/10"
-                                : "border-slate-200/60 dark:border-white/8 bg-white/60 dark:bg-white/[0.03] hover:border-slate-300 dark:hover:border-white/15 hover:shadow-md"
+                                ? "bg-white dark:bg-white/10 shadow-sm text-indigo-600 dark:text-indigo-400"
+                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200"
                         )}
                     >
-                        <div className="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-110">
-                            <StaffAvatar
-                                avatar={opt.avatar}
-                                name={opt.name}
-                                size={28}
-                                iconClassName="text-slate-500 dark:text-zinc-400"
-                            />
-                        </div>
-                        <div className="text-center min-w-0 w-full">
-                            <div className={cn(
-                                "text-[12px] font-semibold truncate",
-                                isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-zinc-300"
-                            )}>
-                                {opt.name}
-                            </div>
-                            {opt.description && (
-                                <div className="text-[10px] text-slate-400 dark:text-zinc-500 truncate mt-0.5">{opt.description}</div>
-                            )}
-                        </div>
-                        {isActive && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center shadow-sm">
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                            </div>
-                        )}
+                        <StaffAvatar
+                            avatar={opt.avatar}
+                            name={opt.name}
+                            size={18}
+                            iconClassName={isActive ? "text-indigo-500 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"}
+                        />
+                        <span className={cn(
+                            "text-[12.5px] truncate transition-colors leading-none",
+                            isActive ? "font-medium" : ""
+                        )}>
+                            {opt.name}
+                        </span>
                     </button>
                 )
             })}
@@ -235,21 +236,22 @@ export function ChatLayout() {
                             </div>
                         </>
                     ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto w-full h-full pb-[10vh] animate-in fade-in zoom-in-95 duration-500">
+                        <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto w-full h-full animate-in fade-in zoom-in-95 duration-500" style={{ marginTop: '-4vh' }}>
 
-
-                            <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100 mb-4 tracking-tight">
-                                {t('chatLayout.startCollaborating')}
+                            {/* Title */}
+                            <h1 className="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight mb-1">
+                                {t('chatLayout.greetingTitle')}
                             </h1>
-                            <p className="text-[13px] text-slate-400 dark:text-zinc-500 mb-8 text-center">
-                                选择一个数字员工开始对话
+                            <p className="text-[13px] text-slate-400 dark:text-zinc-500 mb-6 text-center">
+                                {t('chatLayout.assistantDesc')}
                             </p>
 
-                            {/* Staff Picker Cards */}
-                            <div className="mb-12 animate-in slide-in-from-bottom-4 fade-in duration-500 delay-100 fill-mode-both">
+                            {/* Staff Picker */}
+                            <div className="flex justify-center mb-6 animate-in slide-in-from-bottom-4 fade-in duration-500 delay-100 fill-mode-both">
                                 <StaffPicker />
                             </div>
 
+                            {/* Composer */}
                             <div className="w-full max-w-3xl animate-in slide-in-from-bottom-4 fade-in duration-500 delay-200 fill-mode-both">
                                 <Composer />
                             </div>
