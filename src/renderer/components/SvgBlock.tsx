@@ -24,7 +24,7 @@ export function SvgBlock({ code }: SvgBlockProps) {
     const isPanning = useRef(false)
     const lastPos = useRef({ x: 0, y: 0 })
 
-    // 清洗并补全 SVG 尺寸属性
+    // 清洗 SVG 内容，保留原始尺寸
     const sanitized = React.useMemo(() => {
         try {
             let result = DOMPurify.sanitize(code, PURIFY_CONFIG)
@@ -32,17 +32,17 @@ export function SvgBlock({ code }: SvgBlockProps) {
                 setError('无效的 SVG 内容')
                 return ''
             }
-            // 移除固定 width/height，让 SVG 自适应容器
+            // 如果 SVG 没有 viewBox 也没有 width/height，补一个 viewBox
             result = result.replace(
                 /<svg([^>]*)>/,
                 (_match, attrs: string) => {
-                    let newAttrs = attrs
-                        .replace(/\bwidth\s*=\s*"[^"]*"/, 'width="100%"')
-                        .replace(/\bheight\s*=\s*"[^"]*"/, '')
-                    if (!/\bwidth\s*=/.test(newAttrs)) {
-                        newAttrs += ' width="100%"'
+                    const hasViewBox = /\bviewBox\s*=/.test(attrs)
+                    const hasWidth = /\bwidth\s*=/.test(attrs)
+                    const hasHeight = /\bheight\s*=/.test(attrs)
+                    if (!hasViewBox && !hasWidth && !hasHeight) {
+                        return `<svg${attrs} viewBox="0 0 800 600">`
                     }
-                    return `<svg${newAttrs}>`
+                    return `<svg${attrs}>`
                 }
             )
             setError(null)
@@ -61,10 +61,11 @@ export function SvgBlock({ code }: SvgBlockProps) {
         if (!svgEl) return
 
         const containerWidth = previewRef.current.clientWidth - 48
-        const svgWidth = svgEl.getBoundingClientRect().width
+        const containerHeight = 600
+        const { width: svgWidth, height: svgHeight } = svgEl.getBoundingClientRect()
 
         if (svgWidth > 0 && containerWidth > 0) {
-            const fitScale = Math.min(1, containerWidth / svgWidth)
+            const fitScale = Math.min(1, containerWidth / svgWidth, containerHeight / svgHeight)
             setBaseZoom(fitScale)
             setZoom(fitScale)
         }
