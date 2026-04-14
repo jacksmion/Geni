@@ -171,7 +171,7 @@ export function ChatLayout() {
             <SessionSidebar />
             <div className="flex-1 flex overflow-hidden relative">
                 <main
-                    className="flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#0a0a0c] transition-all duration-300 ease-in-out"
+                    className="flex flex-col overflow-hidden relative h-full min-w-0 bg-white dark:bg-[#141414] transition-all duration-300 ease-in-out"
                     style={{
                         marginRight: hasActiveArtifact ? `${panelWidth + 12}px` : '0px',
                         width: 'auto',
@@ -179,7 +179,7 @@ export function ChatLayout() {
                     }}
                 >
                     {/* Header */}
-                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/70 dark:bg-[#0a0a0c]/70 backdrop-blur-xl border-b border-slate-100/50 dark:border-white/[0.03]'}`}>
+                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/70 dark:bg-[#141414]/80 backdrop-blur-xl border-b border-slate-100/50 dark:border-white/[0.05]'}`}>
                         {/* Left: Toggle + Title */}
                         <div className="flex items-center gap-2.5 overflow-hidden">
                             <button
@@ -244,7 +244,7 @@ export function ChatLayout() {
                             <StatusIndicator />
 
                             {/* Input Area */}
-                            <div className="shrink-0 relative z-20 bg-white dark:bg-[#0a0a0c]">
+                            <div className="shrink-0 relative z-20 bg-white dark:bg-[#141414]">
                                 <Composer />
                             </div>
                         </>

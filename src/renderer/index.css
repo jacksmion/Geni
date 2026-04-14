@@ -64,20 +64,20 @@
 }
 
 :root.dark {
-  /* ─── Dark Mode Backgrounds (三层背景系统) ─── */
-  --bg-color: #09090b;          /* Zinc-950：主背景（最深） */
-  --bg-elevated: #111113;       /* 第二层：侧边栏/面板（比主背景浅一层） */
-  --bg-sunken: #18181b;         /* 第三层：已有的 sidebar-bg（Zinc-900） */
+  /* ─── Dark Mode Backgrounds (三层背景系统) - Linear/Cursor Style ─── */
+  --bg-color: #141414;          /* 深灰：主背景（最深） */
+  --bg-elevated: #1c1c1e;       /* 第二层：侧边栏/面板 */
+  --bg-sunken: #262626;         /* 第三层：输入框/代码块 */
   --text-color: #f4f4f5;        /* Zinc-100 */
   --text-secondary: #a1a1aa;    /* Zinc-400 */
-  --sidebar-bg: #111113;        /* 使用新的第二层背景 */
-  --sidebar-border: #27272a;    /* Zinc-800 */
+  --sidebar-bg: #111111;        
+  --sidebar-border: rgba(255, 255, 255, 0.05);
 
-  /* 阴影在暗色模式下加深 */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
-  --shadow-xl: 0 25px 60px -15px rgba(0,0,0,0.6);
+  /* 阴影在极黑背景下改用极细微的 white glow 或消除阴影 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-xl: 0 25px 60px -15px rgba(0,0,0,0.5);
 }
 
 

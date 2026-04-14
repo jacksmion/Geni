@@ -124,7 +124,7 @@ export class SystemController {
                 const isDark = settings.theme === 'dark';
                 try {
                     wins[0].setTitleBarOverlay({
-                        color: isDark ? '#0a0a0c' : '#ffffff',
+                        color: isDark ? '#141414' : '#ffffff',
                         symbolColor: isDark ? '#a1a1aa' : '#71717a'
                     });
                 } catch (e) {

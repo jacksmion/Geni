@@ -61,7 +61,7 @@ export default function Settings() {
             {/* Content Area */}
             <div className="flex-1 overflow-hidden flex flex-col h-full bg-white dark:bg-transparent">
                 {/* Draggable Header for window control - 与 ChatLayout 一致 */}
-                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+                <header className="h-14 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#141414]">
                     <div className="flex items-center gap-3">
                         <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100">
                             {sections.find(s => s.id === activeSection)?.label || t('settings.title')}

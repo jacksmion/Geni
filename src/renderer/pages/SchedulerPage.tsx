@@ -346,7 +346,7 @@ const SchedulerPage: React.FC = () => {
     return (
         <div className="flex h-full w-full bg-slate-50 dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500">
             {/* Left Sidebar */}
-            <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#09090b] flex flex-col">
+            <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#141414] flex flex-col">
                 <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center px-4 draggable shrink-0">
                     <div className="flex items-center gap-2">
                         <Clock size={16} className="text-slate-800 dark:text-gray-100" />
@@ -464,10 +464,10 @@ const SchedulerPage: React.FC = () => {
             </div>
 
             {/* Right: Detailed View */}
-            <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#09090b]">
+            <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#141414]">
                 {(editingTask) ? (
                     <>
-                        <header className="border-b border-slate-200 dark:border-white/5 px-6 h-12 flex items-center justify-between draggable shrink-0 bg-white dark:bg-[#09090b]">
+                        <header className="border-b border-slate-200 dark:border-white/5 px-6 h-12 flex items-center justify-between draggable shrink-0 bg-white dark:bg-[#141414]">
                         </header>
 
                         <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">

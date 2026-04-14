@@ -21,7 +21,7 @@ export default function StaffPage() {
     return (
         <div className="flex h-full flex-col">
             {/* Draggable Header */}
-            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#141414]">
                 <div className="flex items-center gap-2">
                     <h1 className="text-sm font-semibold">{t('staffPage.title')}</h1>
                     <span className="text-xs text-slate-400 dark:text-zinc-500">{t('staffPage.subtitle')}</span>
@@ -249,7 +249,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     return (
         <div className="flex h-full flex-col">
             {/* Draggable Header */}
-            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#09090b]">
+            <header className="h-12 border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#141414]">
                 <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
                     <ArrowLeft size={16} /> {t('staffPage.back')}
                 </button>
