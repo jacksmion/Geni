@@ -50,6 +50,8 @@ export function MessageList() {
     // Message Grouping Logic
     // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.
     // The final answer (assistant without tool_calls) is merged with preceding tool iterations.
+    // 只有真正影响 grouping 的字段变化时才重新计算，避免 streaming 每帧重算
+    const lastMsg = messages[messages.length - 1];
     const groupedMessages = React.useMemo(() => {
         const groups: ChatMessage[] = [];
         const skipIndices = new Set<number>();
@@ -113,7 +115,8 @@ export function MessageList() {
             groups.push(msg);
         }
         return groups;
-    }, [messages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length]);
 
     return (
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
@@ -182,7 +185,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
                     <div className="text-[14px] leading-relaxed text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
                         {content.trimStart()}
                         {!isComplete && (
-                            <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 animate-pulse" />
+                            <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 streaming-cursor" />
                         )}
                     </div>
                 </div>
@@ -270,7 +273,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                 </div>
                 <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
                     <code>{codeString}</code>
-                    {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />}
+                    {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 streaming-cursor" />}
                 </pre>
             </div>
         )

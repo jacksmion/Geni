@@ -267,6 +267,17 @@ input {
   animation: spin-slow 3s linear infinite;
 }
 
+/* ─── Streaming Cursor ─── */
+/* 纯 CSS 光标闪烁，完全脱离 React 生命周期，不产生任何 JS 帧开销 */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.streaming-cursor {
+  animation: cursor-blink 1s step-end infinite;
+}
+
 /* ─── Page Transition Animations ─── */
 @keyframes page-enter {
   from {

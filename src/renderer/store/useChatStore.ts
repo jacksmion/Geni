@@ -578,6 +578,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 return;
             }
 
+            // 注意: 先重置 isFlushing，后续若还有 buffer 内容再由下方决定是否继续
+
             const chunkContent = contentBuf;
             const chunkReasoning = reasoningBuf;
             const stepsToFlush = shouldFlushSteps ? pendingSteps : null;
@@ -660,7 +662,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 }
             }
 
-            requestAnimationFrame(flushUnified);
+            // 只有 buffer 还有内容才继续轮询下一帧，否则停止避免空转
+            if (contentBuf || reasoningBuf || pendingSteps !== null) {
+                requestAnimationFrame(flushUnified);
+            } else {
+                isFlushing = false;
+            }
         };
 
         const cleanupStream = window.electronAPI.agent.onStream((sid, chunk, reset) => {
