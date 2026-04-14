@@ -360,17 +360,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
             "flex gap-4 max-w-full group animate-in slide-in-from-bottom-2 duration-500 fade-in",
             isUser && "justify-end"
         )}>
-            {!isUser && (
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-white dark:bg-[#1a1a1c] border border-slate-200/80 dark:border-white/10 shadow-sm mt-1">
-                    <StaffAvatar
-                        avatar={staff?.avatar}
-                        name={staff?.name}
-                        size={16}
-                        iconClassName="text-slate-700 dark:text-indigo-300"
-                    />
-                </div>
 
-            )}
 
             {/* Content Container */}
             <div className={cn(
@@ -526,12 +516,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
 
             </div>
 
-            {/* User Avatar - Right side */}
-            {isUser && (
-                <div className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 bg-slate-100 dark:bg-[#1e1e20] text-slate-600 dark:text-zinc-400 mt-1 border border-slate-200/80 dark:border-white/10 shadow-sm">
-                    <User size={16} />
-                </div>
-            )}
+
         </div>
     )
 }, (prevProps, nextProps) => {
