@@ -72,7 +72,6 @@ export class ToolRegistry {
         */
 
         try {
-            console.log(`[ToolRegistry] Executing ${name} with args:`, JSON.stringify(args));
             return await tool.execute(args, signal, onStream);
         } catch (error: any) {
             console.error(`[ToolRegistry] Execution failed for ${name}:`, error);

@@ -418,7 +418,20 @@ export class ReActExecutor implements AgentExecutor {
             }
 
             const tool = tools.getTools().find((t: any) => t.getDefinition().name === fnName);
-            if (!tool) continue;
+            if (!tool) {
+                const errorResult = `Tool "${fnName}" is not available. Check available tools and try again.`;
+                this.recordToolResult(tc.id, errorResult, messages, newMessages);
+                steps.push({
+                    thought,
+                    tool: fnName,
+                    toolInput: tc.function.arguments,
+                    observation: errorResult,
+                    isComplete: true,
+                    isError: true,
+                    duration: 0,
+                });
+                continue;
+            }
 
             const authorized = yield* this.checkAuth(tc, tool, args, thought, steps, toolGuard, stateManager, runId, pendingStateEvents, signal);
             if (signal?.aborted) break;
