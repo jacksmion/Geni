@@ -346,7 +346,7 @@ const SkillSettings: React.FC = () => {
     return (
         <div className="flex flex-col h-full w-full bg-white dark:bg-[#141414] overflow-hidden">
             {/* 顶部 Header */}
-            <header className="relative z-50 shrink-0 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
+            <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
                 <div className="px-6 py-4">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
