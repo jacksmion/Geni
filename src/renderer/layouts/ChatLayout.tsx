@@ -179,7 +179,7 @@ export function ChatLayout() {
                     }}
                 >
                     {/* Header */}
-                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/95 dark:bg-[#0a0a0c]/95 backdrop-blur-md shadow-sm border-b border-slate-100 dark:border-white/5'}`}>
+                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/70 dark:bg-[#0a0a0c]/70 backdrop-blur-xl border-b border-slate-100/50 dark:border-white/[0.03]'}`}>
                         {/* Left: Toggle + Title */}
                         <div className="flex items-center gap-2.5 overflow-hidden">
                             <button

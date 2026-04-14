@@ -1,25 +1,43 @@
-import { Settings, MessageSquare, Zap, Clock, Sun, Moon, Users } from 'lucide-react'
+import { Settings, MessageSquare, Zap, Clock, Sun, Moon, Users, Search } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { useLayoutStore } from '../../store/useLayoutStore'
 import { clsx } from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 export function Sidebar() {
     const activeTab = useChatStore(s => s.activeTab)
     const setActiveTab = useChatStore(s => s.setActiveTab)
+    const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
     const { t } = useTranslation()
 
     const navItems = [
-        { id: 'chat', icon: MessageSquare, label: t('sidebar.chat') },
         { id: 'skills', icon: Zap, label: t('sidebar.skills') },
         { id: 'staff', icon: Users, label: t('sidebar.staff') },
         { id: 'scheduler', icon: Clock, label: t('sidebar.scheduler') },
     ] as const
 
     return (
-        <aside className="w-[50px] flex flex-col items-center py-4 bg-[#f9fafb] dark:bg-[var(--sidebar-bg)] shrink-0 z-[100] h-full transition-all duration-300">
+        <aside className="w-[50px] flex flex-col items-center py-4 bg-white/70 dark:bg-[#111113]/50 backdrop-blur-xl border-r border-slate-200/40 dark:border-white/[0.03] shrink-0 z-[100] h-full transition-all duration-300">
             {/* Navigation */}
             <nav className="flex-1 flex flex-col gap-1.5 w-full px-2">
+                <NavButton
+                    isActive={activeTab === 'chat'}
+                    onClick={() => setActiveTab('chat')}
+                    icon={MessageSquare}
+                    label={t('sidebar.chat')}
+                />
+                
+                {/* Search Button right below Chat/Tasks */}
+                <NavButton
+                    isActive={false}
+                    onClick={() => setPaletteOpen(true)}
+                    icon={Search}
+                    label={t('sidebar.search', { defaultValue: '全局搜索' })}
+                />
+
+                <div className="w-6 h-[1px] bg-slate-200/50 dark:bg-white/[0.05] mx-auto my-1" />
+
                 {navItems.map((item) => (
                     <NavButton
                         key={item.id}

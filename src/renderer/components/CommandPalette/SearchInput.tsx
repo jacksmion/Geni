@@ -21,7 +21,8 @@ export function SearchInput({ query, onQueryChange, onKeyDown, inputRef, filterT
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="搜索页面、任务、命令..."
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none"
+                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none border-none"
+                style={{ boxShadow: 'none' }}
                 spellCheck={false}
             />
             {!query && !filterType && (

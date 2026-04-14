@@ -188,7 +188,7 @@ export function SessionSidebar() {
 
             <div
                 className={clsx(
-                    "shrink-0 flex flex-col h-full bg-[#f9fafb] dark:bg-[var(--sidebar-bg)] border-r border-slate-200 dark:border-white/5 transition-all duration-300 ease-in-out",
+                    "shrink-0 flex flex-col h-full bg-white/40 dark:bg-transparent backdrop-blur-xl border-r border-slate-200/40 dark:border-white/[0.03] transition-all duration-300 ease-in-out",
                     sidebarCollapsed ? "w-0 opacity-0 -translate-x-full" : "translate-x-0",
                     isMobile && !sidebarCollapsed && "fixed left-[50px] top-0 bottom-0 z-30 shadow-2xl",
                 )}
@@ -229,21 +229,6 @@ export function SessionSidebar() {
                         </div>
                     </div>
 
-                    {/* Search Bar - More integrated */}
-                    <div className="relative group min-w-[200px]">
-                        <Search
-                            size={14}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
-                        />
-                        <input
-                            ref={searchInputRef}
-                            type="text"
-                            placeholder={t('sessionSidebar.search')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full h-8.5 pl-9 pr-3 bg-slate-200/50 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.06] border-transparent dark:border-transparent focus:border-indigo-500/30 focus:bg-white dark:focus:bg-white/5 rounded-lg text-xs text-slate-900 dark:text-gray-100 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-zinc-600 font-medium"
-                        />
-                    </div>
                 </div>
 
 
@@ -259,7 +244,7 @@ export function SessionSidebar() {
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-600">
                                         {t(`sessionSidebar.groups.${group}`)}
                                     </span>
-                                    <div className="h-[1px] flex-1 bg-slate-200/50 dark:bg-white/5" />
+                                    <div className="h-[1px] flex-1 bg-slate-200/40 dark:bg-white/[0.03]" />
                                 </div>
 
                                 <div className="space-y-0.5">
@@ -404,7 +389,7 @@ export function SessionSidebar() {
 
                 {/* Bottom bar: batch actions or session count */}
                 {selectMode ? (
-                    <div className="px-3 py-2.5 border-t border-slate-200 dark:border-white/5 flex items-center justify-between min-w-[200px]">
+                    <div className="px-3 py-2.5 border-t border-slate-200/40 dark:border-white/[0.02] flex items-center justify-between min-w-[200px]">
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSelectAll}
@@ -438,7 +423,7 @@ export function SessionSidebar() {
                         </div>
                     </div>
                 ) : (
-                    <div className="px-4 py-3 border-t border-slate-200 dark:border-white/5 text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
+                    <div className="px-4 py-3 border-t border-slate-200/40 dark:border-white/[0.02] text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
                         {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
                     </div>
                 )}

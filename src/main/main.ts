@@ -38,7 +38,7 @@ function createWindow(isDark: boolean) {
         },
         titleBarStyle: 'hidden',
         titleBarOverlay: {
-            color: isDark ? '#0a0a0c' : '#ffffff',
+            color: 'rgba(0,0,0,0)',
             symbolColor: isDark ? '#a1a1aa' : '#71717a',
             height: 44 // h-11 = 44px, synced with header height
         },
