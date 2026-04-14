@@ -39,6 +39,7 @@
     "docx": "^9.5.1",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
+    "emoji-picker-react": "^4.18.0",
     "fast-glob": "^3.3.3",
     "fuse.js": "^7.3.0",
     "grammy": "^1.41.1",
