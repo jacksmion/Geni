@@ -33,23 +33,35 @@ function StaffPicker() {
 
     const MAX_VISIBLE = 5
 
+    // Build a recency map: staffId → most recent updatedAt across all sessions
+    const staffRecency = React.useMemo(() => {
+        const map = new Map<string, number>()
+        for (const s of Object.values(sessions)) {
+            if (s.staffId) {
+                const existing = map.get(s.staffId) || 0
+                if (s.updatedAt > existing) map.set(s.staffId, s.updatedAt)
+            }
+        }
+        return map
+    }, [sessions])
+
+    const defaultOption = { id: undefined as string | undefined, name: 'AI 助手', description: '默认通用助手', avatar: 'Bot' }
+
+    // Sort profiles by recency (most recently used first), unplaced ones at the end
+    const sortedProfiles = React.useMemo(() => {
+        return [...profiles].sort((a, b) => {
+            const ta = staffRecency.get(a.id) || 0
+            const tb = staffRecency.get(b.id) || 0
+            return tb - ta
+        })
+    }, [profiles, staffRecency])
+
     const allOptions = [
-        { id: undefined as string | undefined, name: 'AI 助手', description: '默认通用助手', avatar: 'Bot' },
-        ...profiles.map(p => ({ id: p.id as string | undefined, name: p.name, description: p.description, avatar: p.avatar }))
+        defaultOption,
+        ...sortedProfiles.map(p => ({ id: p.id as string | undefined, name: p.name, description: p.description, avatar: p.avatar }))
     ]
 
-    // Always show the default + current selected + up to MAX_VISIBLE total
-    const visibleOptions = allOptions.length <= MAX_VISIBLE
-        ? allOptions
-        : (() => {
-            const defaultOpt = allOptions[0]
-            const selected = currentStaffId ? allOptions.find(o => o.id === currentStaffId) : null
-            const rest = allOptions.filter(o => o.id !== undefined && o.id !== currentStaffId)
-            const result = [defaultOpt]
-            if (selected && selected.id !== undefined) result.push(selected)
-            result.push(...rest.slice(0, MAX_VISIBLE - result.length))
-            return result
-          })()
+    const visibleOptions = allOptions.slice(0, MAX_VISIBLE)
 
     return (
         <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/60 dark:bg-white/[0.04]">
