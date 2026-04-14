@@ -121,7 +121,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { draftSessionId, activeSessionId } = get();
         if (draftSessionId && draftSessionId === activeSessionId) return;
 
-        // 继承最近任务的工作路径、数字员工和模型
+        // 继承最近任务的工作路径和大模型，仅仅将数字员工重置为通用助手
         const { sessionMetas, sessions: allSessions } = get();
         const latestMeta = sessionMetas[0]; // sessionMetas 按 updatedAt 降序
         const prevSession = latestMeta ? allSessions[latestMeta.id] : undefined;
@@ -134,7 +134,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             updatedAt: Date.now(),
             messages: [],
             workspacePath: prevSession?.workspacePath,
-            staffId: prevSession?.staffId,
+            staffId: undefined,
             modelId: prevSession?.modelId,
         };
 
