@@ -29,7 +29,12 @@ export class FileEditTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'edit',
-            description: 'Edit a file by replacing a target string with a new string. Target must be exactly matched.',
+            description:
+                "Edit a file by replacing a target string with a new string. " +
+                "Supports fuzzy matching: provide 3-5 lines of surrounding context for reliable matching. " +
+                "The target does NOT need to be an exact copy from the file. " +
+                "Use replaceAll to replace all occurrences. " +
+                "Prefer this tool over write for modifying existing files.",
             input_schema: {
                 type: 'object',
                 properties: {

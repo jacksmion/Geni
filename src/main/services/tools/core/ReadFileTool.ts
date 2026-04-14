@@ -47,7 +47,13 @@ export class ReadFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'read',
-            description: 'Read the contents of a file.',
+            description:
+                "Read the contents of a file. " +
+                "Default reads the first 2000 lines. Use start_line and end_line for specific ranges. " +
+                "Lines longer than 1000 characters are truncated. " +
+                "Files over 10MB are rejected. " +
+                "Binary files are rejected. " +
+                "When a file is not found, similar filenames in the same directory are suggested.",
             input_schema: {
                 type: 'object',
                 properties: {

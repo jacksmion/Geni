@@ -20,68 +20,59 @@ async function collectGenerator<T, R>(gen: AsyncGenerator<T, R>): Promise<{ even
     return { events, result: result! };
 }
 
+function createMockContext(mockTools: any): AgentContext {
+    const messages: ChatMessage[] = [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Test message' },
+    ];
+
+    return {
+        runId: 'test-run',
+        agent: {
+            id: 'test-agent',
+            name: 'Test Agent',
+            modelId: 'test-model',
+            systemPrompt: 'You are a helpful assistant.',
+            skillIds: [],
+            allowedTools: [],
+        } as any,
+        messages,
+        tools: mockTools as any,
+        signal: undefined,
+    };
+}
+
 describe('ReActExecutor', () => {
     describe('unknown tool handling', () => {
         it('should return error result for unknown tool instead of skipping', async () => {
-            // Mock LLM: first call returns tool_call for nonexistent tool,
-            // second call returns final answer (no tool calls)
             let callCount = 0;
             const mockStream = async function* () {
                 callCount++;
                 if (callCount === 1) {
-                    // First turn: return tool call for unknown tool
                     yield { type: 'tool_call_delta', index: 0, id: 'call_unknown', name: 'nonexistent_tool', arguments_delta: '{}' };
                     yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 10 } };
                 } else {
-                    // Second turn: final answer, no tool calls
                     yield { type: 'content_delta', delta: 'Task completed.' };
                     yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 5 } };
                 }
             };
 
-            const mockChatModel = {
-                stream: mockStream,
-            };
-
+            const mockChatModel = { stream: mockStream };
             const llmFactory = vi.fn().mockReturnValue(mockChatModel);
             const settings = { llm: { providers: {} } } as any;
-
             const executor = new ReActExecutor(llmFactory, settings);
 
-            // Mock tools registry with no tools
             const mockTools = {
                 getTools: vi.fn().mockReturnValue([]),
                 getDefinitions: vi.fn().mockReturnValue([]),
                 executeTool: vi.fn(),
             };
 
-            const messages: ChatMessage[] = [
-                { role: 'system', content: 'You are a helpful assistant.' },
-                { role: 'user', content: 'Test message' },
-            ];
+            const context = createMockContext(mockTools);
+            const request: AgentRunRequest = { prompt: 'Test message' };
 
-            const context: AgentContext = {
-                runId: 'test-run',
-                agent: {
-                    id: 'test-agent',
-                    name: 'Test Agent',
-                    modelId: 'test-model',
-                    systemPrompt: 'You are a helpful assistant.',
-                    skillIds: [],
-                    allowedTools: [],
-                } as any,
-                messages,
-                tools: mockTools as any,
-                signal: undefined,
-            };
+            const { result } = await collectGenerator(executor.execute(context, request));
 
-            const request: AgentRunRequest = {
-                prompt: 'Test message',
-            };
-
-            const { events, result } = await collectGenerator(executor.execute(context, request));
-
-            // Verify: messages should contain a tool error result for the unknown tool call
             const toolMessages = result.newMessages.filter(m => m.role === 'tool');
             expect(toolMessages.length).toBeGreaterThanOrEqual(1);
 
@@ -92,10 +83,91 @@ describe('ReActExecutor', () => {
             );
             expect(errorToolMsg).toBeDefined();
 
-            // Verify: steps should contain an error step
             const errorSteps = result.steps.filter(s => s.isError);
             expect(errorSteps.length).toBeGreaterThanOrEqual(1);
             expect(errorSteps[0].tool).toBe('nonexistent_tool');
+        });
+    });
+
+    describe('stuck detection', () => {
+        it('should detect stuck when same tool fails consecutively with different args', async () => {
+            let turn = 0;
+            const mockStream = async function* () {
+                turn++;
+                // Turns 1-3: call 'failing_tool' with different args each time
+                // Turn 4+ should not be reached due to stuck detection
+                yield { type: 'tool_call_delta', index: 0, id: `call_${turn}`, name: 'failing_tool', arguments_delta: `{"arg":"value${turn}"}` };
+                yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 10 } };
+            };
+
+            const mockChatModel = { stream: mockStream };
+            const llmFactory = vi.fn().mockReturnValue(mockChatModel);
+            const settings = { llm: { providers: {} } } as any;
+            const executor = new ReActExecutor(llmFactory, settings);
+
+            const mockToolDef = { name: 'failing_tool', description: 'test', input_schema: {} };
+            const mockTool = {
+                getDefinition: vi.fn().mockReturnValue(mockToolDef),
+                execute: vi.fn().mockResolvedValue({ toolName: 'failing_tool', isError: true, result: 'Error: something failed' }),
+            };
+
+            const mockTools = {
+                getTools: vi.fn().mockReturnValue([mockTool]),
+                getDefinitions: vi.fn().mockReturnValue([mockToolDef]),
+                executeTool: vi.fn().mockResolvedValue({ toolName: 'failing_tool', isError: true, result: 'Error: something failed' }),
+            };
+
+            const context = createMockContext(mockTools);
+            const request: AgentRunRequest = { prompt: 'Test message' };
+
+            const { result } = await collectGenerator(executor.execute(context, request));
+
+            // Should have exactly 3 steps (stuck detected after 3 consecutive failures of same tool)
+            expect(result.steps.length).toBe(3);
+            // All steps should be errors
+            expect(result.steps.every(s => s.isError)).toBe(true);
+            // All steps should be the same tool
+            expect(result.steps.every(s => s.tool === 'failing_tool')).toBe(true);
+        });
+
+        it('should detect stuck when two tools alternate in a loop', async () => {
+            let turn = 0;
+            const mockStream = async function* () {
+                turn++;
+                // Alternate between tool_a and tool_b
+                const toolName = turn % 2 === 1 ? 'tool_a' : 'tool_b';
+                yield { type: 'tool_call_delta', index: 0, id: `call_${turn}`, name: toolName, arguments_delta: '{"x":1}' };
+                yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 10 } };
+            };
+
+            const mockChatModel = { stream: mockStream };
+            const llmFactory = vi.fn().mockReturnValue(mockChatModel);
+            const settings = { llm: { providers: {} } } as any;
+            const executor = new ReActExecutor(llmFactory, settings);
+
+            const createTool = (name: string) => ({
+                getDefinition: vi.fn().mockReturnValue({ name, description: 'test', input_schema: {} }),
+                execute: vi.fn().mockResolvedValue({ toolName: name, result: 'ok' }),
+            });
+
+            const mockTools = {
+                getTools: vi.fn().mockReturnValue([createTool('tool_a'), createTool('tool_b')]),
+                getDefinitions: vi.fn().mockReturnValue([
+                    { name: 'tool_a', description: 'test', input_schema: {} },
+                    { name: 'tool_b', description: 'test', input_schema: {} },
+                ]),
+                executeTool: vi.fn().mockImplementation((name: string) =>
+                    Promise.resolve({ toolName: name, result: 'ok' })
+                ),
+            };
+
+            const context = createMockContext(mockTools);
+            const request: AgentRunRequest = { prompt: 'Test message' };
+
+            const { result } = await collectGenerator(executor.execute(context, request));
+
+            // Should stop at 6 steps (alternating pattern detected)
+            expect(result.steps.length).toBe(6);
         });
     });
 });

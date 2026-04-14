@@ -364,7 +364,7 @@ export class ContextManager {
     private static readonly LIMITS: Record<string, number> = {
         'load_skill': 32000,
         'read': 32000,
-        'web_fetch': 100000,
+        'web_fetch': 20000,
     };
     private static readonly DEFAULT_LIMIT = 2000;
 

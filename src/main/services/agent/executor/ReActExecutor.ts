@@ -100,7 +100,7 @@ export class ReActExecutor implements AgentExecutor {
 
         const recent = steps.slice(-STUCK_DETECTION_WINDOW);
 
-        // All recent steps are the same tool with the same input
+        // Detection 1: Same tool with same input (exact repeat)
         const toolNames = recent.map(s => s.tool);
         if (toolNames.length > 0 && new Set(toolNames).size === 1) {
             const inputs = recent.map(s => s.toolInput || '');
@@ -109,9 +109,30 @@ export class ReActExecutor implements AgentExecutor {
             }
         }
 
-        // All recent steps are errors
+        // Detection 2: Same tool failing consecutively (different args also triggers)
+        if (new Set(toolNames).size === 1 && recent.every(s => s.isError)) {
+            return true;
+        }
+
+        // Detection 3: All recent steps are errors
         if (recent.every(s => s.isError)) {
             return true;
+        }
+
+        // Detection 4: Two tools alternating in a loop (e.g. edit → grep → edit → grep)
+        if (steps.length >= 6) {
+            const last6 = steps.slice(-6);
+            const tools6 = last6.map(s => s.tool);
+            const uniqueTools = new Set(tools6);
+            if (uniqueTools.size === 2) {
+                const [a, b] = uniqueTools;
+                const isAlternating = tools6.every((t, i) =>
+                    (i % 2 === 0 && t === a) || (i % 2 === 1 && t === b)
+                ) || tools6.every((t, i) =>
+                    (i % 2 === 0 && t === b) || (i % 2 === 1 && t === a)
+                );
+                if (isAlternating) return true;
+            }
         }
 
         return false;
@@ -496,6 +517,7 @@ export class ReActExecutor implements AgentExecutor {
             step.observation = obs;
             step.isComplete = true;
             step.duration = duration;
+            step.isError = !!result.isError;
         }
     }
 

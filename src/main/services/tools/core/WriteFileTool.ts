@@ -29,7 +29,11 @@ export class WriteFileTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'write',
-            description: 'Write content to a file. Supports append, idempotency, and chunked writing for large files.',
+            description:
+                "Write content to a file. Overwrites existing files. " +
+                "For large files (>100 lines), use chunked writing: split into multiple calls with chunk_index (0-based) and set is_last_chunk=true on the final call. " +
+                "Has idempotency check: skips write if content is identical. " +
+                "Use append=true to append instead of overwrite.",
             input_schema: {
                 type: 'object',
                 properties: {

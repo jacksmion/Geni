@@ -29,7 +29,12 @@ export class GlobTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'glob',
-            description: 'Find files matching a glob pattern (e.g., **/*.ts, src/services/*.js).',
+            description:
+                "Find files matching a glob pattern. " +
+                "Returns up to 100 results sorted by modification time. " +
+                "Common patterns: **/*.ts, src/**/*.js, *.json. " +
+                "node_modules and .git are excluded by default. " +
+                "Dotfiles are included by default.",
             input_schema: {
                 type: 'object',
                 properties: {

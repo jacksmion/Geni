@@ -141,7 +141,13 @@ export class BashTool implements ITool {
 
         return {
             name: 'bash',
-            description: `Execute a shell command with persistent working directory support.`,
+            description:
+                "Execute a shell command. " +
+                "Working directory persists across calls (use cd to change). " +
+                "Output is truncated to fit context. For long output, pipe to head/tail or redirect to a file then read it. " +
+                "Default timeout is 60 seconds (set timeout param for longer commands). " +
+                "Do not use interactive commands (no stdin support). " +
+                "Prefer dedicated tools (read/edit/write/glob/grep) over shell commands for file operations.",
             input_schema: {
                 type: 'object',
                 properties: {

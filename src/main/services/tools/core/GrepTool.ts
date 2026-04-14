@@ -50,7 +50,13 @@ export class GrepTool implements ITool {
     getDefinition(): ToolDefinition {
         return {
             name: 'grep',
-            description: 'Search for string patterns in files using regex or literal strings.',
+            description:
+                "Search for string patterns in files using regex or literal strings. " +
+                "By default searches common source files (js,ts,py,go,java,etc). " +
+                "Use include param to specify extensions (e.g. '*.md,*.txt'). " +
+                "Results are limited to 1000 matches total. " +
+                "Set isRegex=true when searching with regex patterns. " +
+                "If regex fails, set isRegex=false for literal string search.",
             input_schema: {
                 type: 'object',
                 properties: {
