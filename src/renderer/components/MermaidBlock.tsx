@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useId } from 'react'
-import { Eye, Code2, ZoomIn, ZoomOut, Copy, Check, Download, AlertTriangle, Maximize2, X, RotateCcw } from 'lucide-react'
+import { Eye, Code2, ZoomIn, ZoomOut, Copy, Check, Download, AlertTriangle, Maximize2, X, RotateCcw, ImageIcon } from 'lucide-react'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { createPortal } from 'react-dom'
 
@@ -294,6 +294,63 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
         URL.revokeObjectURL(url)
     }
 
+    const handleExportPng = () => {
+        const svgEl = svgContainerRef.current?.querySelector('svg')
+        if (!svgEl) return
+
+        // Inline computed styles
+        const clone = svgEl.cloneNode(true) as SVGSVGElement
+        const sourceNodes = svgEl.querySelectorAll('*')
+        const cloneNodes = clone.querySelectorAll('*')
+        sourceNodes.forEach((src, i) => {
+            const cs = getComputedStyle(src)
+            const target = cloneNodes[i] as HTMLElement | undefined
+            if (!target) return
+            let style = ''
+            for (let j = 0; j < cs.length; j++) {
+                const prop = cs[j]
+                style += `${prop}:${cs.getPropertyValue(prop)};`
+            }
+            target.setAttribute('style', style)
+        })
+
+        const vb = svgEl.viewBox?.baseVal
+        const w = (vb?.width || svgEl.getBoundingClientRect().width || 800)
+        const h = (vb?.height || svgEl.getBoundingClientRect().height || 600)
+        clone.setAttribute('width', String(w))
+        clone.setAttribute('height', String(h))
+
+        const serializer = new XMLSerializer()
+        const svgStr = serializer.serializeToString(clone)
+        const encoded = encodeURIComponent(svgStr)
+        const dataUri = `data:image/svg+xml;charset=utf-8,${encoded}`
+
+        const img = new window.Image()
+        img.onload = () => {
+            const scale = 2
+            const canvas = document.createElement('canvas')
+            canvas.width = w * scale
+            canvas.height = h * scale
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            ctx.drawImage(img, 0, 0, w * scale, h * scale)
+            canvas.toBlob(pngBlob => {
+                if (pngBlob) {
+                    const pngUrl = URL.createObjectURL(pngBlob)
+                    const a = document.createElement('a')
+                    a.href = pngUrl
+                    a.download = `mermaid-${Date.now()}.png`
+                    a.click()
+                    URL.revokeObjectURL(pngUrl)
+                }
+            }, 'image/png')
+        }
+        img.onerror = () => {
+            console.error('Failed to load SVG image for PNG export')
+        }
+        img.src = dataUri
+    }
+
     const zoomPercent = Math.round(zoom * 100)
 
     const toolbar = (
@@ -327,6 +384,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
                 )}
                 <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="复制代码">{copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}</button>
                 <button onClick={handleExportSvg} disabled={!svgContent} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 SVG"><Download size={13} /></button>
+                <button onClick={handleExportPng} disabled={!svgContent} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 PNG"><ImageIcon size={13} /></button>
             </div>
         </div>
     )

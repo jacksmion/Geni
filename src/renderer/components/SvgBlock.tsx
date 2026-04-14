@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react'
-import { Eye, Code2, ZoomIn, ZoomOut, Download, Maximize2, X, RotateCcw } from 'lucide-react'
+import { Eye, Code2, ZoomIn, ZoomOut, Download, Maximize2, X, RotateCcw, ImageIcon } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { createPortal } from 'react-dom'
 
@@ -103,6 +103,63 @@ export function SvgBlock({ code }: SvgBlockProps) {
         URL.revokeObjectURL(url)
     }, [code])
 
+    const handleExportPng = useCallback(() => {
+        const svgEl = containerRef.current?.querySelector('svg')
+        if (!svgEl) return
+
+        // Inline computed styles for accurate rendering
+        const clone = svgEl.cloneNode(true) as SVGSVGElement
+        const sourceNodes = svgEl.querySelectorAll('*')
+        const cloneNodes = clone.querySelectorAll('*')
+        sourceNodes.forEach((src, i) => {
+            const cs = getComputedStyle(src)
+            const target = cloneNodes[i] as HTMLElement | undefined
+            if (!target) return
+            let style = ''
+            for (let j = 0; j < cs.length; j++) {
+                const prop = cs[j]
+                style += `${prop}:${cs.getPropertyValue(prop)};`
+            }
+            target.setAttribute('style', style)
+        })
+
+        const vb = svgEl.viewBox?.baseVal
+        const w = (vb?.width || svgEl.getBoundingClientRect().width || 800)
+        const h = (vb?.height || svgEl.getBoundingClientRect().height || 600)
+        clone.setAttribute('width', String(w))
+        clone.setAttribute('height', String(h))
+
+        const serializer = new XMLSerializer()
+        const svgStr = serializer.serializeToString(clone)
+        const encoded = encodeURIComponent(svgStr)
+        const dataUri = `data:image/svg+xml;charset=utf-8,${encoded}`
+
+        const img = new window.Image()
+        img.onload = () => {
+            const scale = 2
+            const canvas = document.createElement('canvas')
+            canvas.width = w * scale
+            canvas.height = h * scale
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            ctx.drawImage(img, 0, 0, w * scale, h * scale)
+            canvas.toBlob(pngBlob => {
+                if (pngBlob) {
+                    const pngUrl = URL.createObjectURL(pngBlob)
+                    const a = document.createElement('a')
+                    a.href = pngUrl
+                    a.download = 'diagram.png'
+                    a.click()
+                    URL.revokeObjectURL(pngUrl)
+                }
+            }, 'image/png')
+        }
+        img.onerror = () => {
+            console.error('Failed to load SVG image for PNG export')
+        }
+        img.src = dataUri
+    }, [])
+
     // 渲染区
     const renderArea = (
         <div
@@ -174,6 +231,13 @@ export function SvgBlock({ code }: SvgBlockProps) {
                 title="下载 SVG"
             >
                 <Download size={14} />
+            </button>
+            <button
+                onClick={handleExportPng}
+                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                title="导出 PNG"
+            >
+                <ImageIcon size={14} />
             </button>
             {!isFullscreen && (
                 <button
