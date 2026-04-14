@@ -77,9 +77,26 @@ export class AgentRuntime {
         const skills = this.convertToSkills(effectiveSkillIds);
 
         const effectiveToolNames = request.toolNames ?? agent.allowedTools;
-        const tools = effectiveToolNames
-            ? this.toolRegistry.filter(effectiveToolNames)
-            : this.toolRegistry;
+        const baseTools = effectiveToolNames
+            ? this.toolRegistry.filter(effectiveToolNames).getTools()
+            : this.toolRegistry.getTools();
+
+        const sessionToolRegistry = new ToolRegistry();
+        for (const tool of baseTools) {
+            // Clone the tool down to its prototype to isolate state (e.g. currentCwd) per concurrent session
+            const clonedTool = Object.create(tool);
+            
+            // If the user specified a specific workspacePath for this task, inject it
+            if (request.workspacePath && typeof (clonedTool as any).setRoot === 'function') {
+                try {
+                    (clonedTool as any).setRoot(request.workspacePath);
+                } catch (e) {
+                    console.error('[AgentRuntime] Failed to set session workspace root for tool:', e);
+                }
+            }
+            sessionToolRegistry.register(clonedTool);
+        }
+        const tools = sessionToolRegistry;
 
         const history = request.sessionId
             ? await this.sessionManager.getHistory(request.sessionId)
