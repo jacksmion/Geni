@@ -223,11 +223,15 @@ export function Composer() {
         setShowSlashMenu(false)
     }
 
-    // Auto-resize textarea
+    // Auto-resize textarea (up to max height, then scroll)
     useEffect(() => {
         if (textareaRef.current) {
-            textareaRef.current.style.height = '24px'
-            textareaRef.current.style.height = Math.max(24, textareaRef.current.scrollHeight) + 'px'
+            const el = textareaRef.current
+            const maxHeight = 264
+            el.style.height = '24px'
+            const targetHeight = Math.min(maxHeight, Math.max(24, el.scrollHeight))
+            el.style.height = targetHeight + 'px'
+            el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden'
         }
     }, [input])
 
@@ -449,7 +453,7 @@ export function Composer() {
                                 }
                             }}
                             placeholder={placeholderText}
-                            className="composer-textarea flex-1 min-w-[200px] w-full bg-transparent p-0 m-0 min-h-[24px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
+                            className="composer-textarea flex-1 min-w-[200px] w-full bg-transparent p-0 m-0 min-h-[24px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none"
                             rows={1}
                             style={{ lineHeight: '1.5' }}
                         />
