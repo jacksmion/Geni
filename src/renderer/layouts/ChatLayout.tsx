@@ -53,18 +53,12 @@ function StaffPicker() {
                                 : "border-slate-200/60 dark:border-white/8 bg-white/60 dark:bg-white/[0.03] hover:border-slate-300 dark:hover:border-white/15 hover:shadow-md"
                         )}
                     >
-                        <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                            hasIcon
-                                ? "bg-slate-100 dark:bg-zinc-700/60"
-                                : "bg-gradient-to-br from-indigo-500 to-purple-500"
-                        )}>
+                        <div className="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-110">
                             <StaffAvatar
                                 avatar={opt.avatar}
                                 name={opt.name}
-                                size={hasIcon ? 18 : 20}
-                                iconClassName={hasIcon ? "text-slate-500 dark:text-zinc-400" : undefined}
-                                className={hasIcon ? undefined : "text-white"}
+                                size={28}
+                                iconClassName="text-slate-500 dark:text-zinc-400"
                             />
                         </div>
                         <div className="text-center min-w-0 w-full">
@@ -193,20 +187,12 @@ export function ChatLayout() {
                             {currentSessionMeta ? (
                                 <div className="flex items-center gap-2 min-w-0">
                                     {/* Staff avatar in header (read-only) */}
-                                    <div className={cn(
-                                        "w-5 h-5 rounded-md flex items-center justify-center shrink-0",
-                                        headerStaffId
-                                            ? (headerStaff?.avatar && STAFF_ICONS[headerStaff.avatar]
-                                                ? "bg-slate-100 dark:bg-zinc-700/60"
-                                                : "bg-gradient-to-br from-indigo-500 to-purple-500")
-                                            : "bg-slate-100 dark:bg-zinc-700/60"
-                                    )}>
+                                    <div className="flex items-center justify-center shrink-0 mr-1">
                                         <StaffAvatar
                                             avatar={headerStaff?.avatar}
                                             name={headerStaffName}
-                                            size={11}
-                                            iconClassName={headerStaffId && !(headerStaff?.avatar && STAFF_ICONS[headerStaff?.avatar || '']) ? undefined : "text-slate-500 dark:text-zinc-400"}
-                                            className={headerStaffId && !(headerStaff?.avatar && STAFF_ICONS[headerStaff?.avatar || '']) ? "text-white" : undefined}
+                                            size={18}
+                                            iconClassName="text-slate-500 dark:text-zinc-400"
                                         />
                                     </div>
                                     <h1 className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
