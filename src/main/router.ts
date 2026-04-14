@@ -141,13 +141,14 @@ export class AppRouter {
 
         this.updateService = new UpdateService();
         this.updateController = new UpdateController(this.updateService);
-        this.staffController = new StaffController(this.staffManager);
+        this.staffController = new StaffController(this.staffManager, settings);
 
 
         // Wiring
         const settingsChangeHandler = async (newSettings: AppSettings) => {
             // 1. Update Agent Engine settings
             this.agentController.updateSettings(newSettings);
+            this.staffController.updateSettings(newSettings);
 
             // 2. Sync Scheduled Tasks (Priority)
             this.schedulerService.syncWithSettings(newSettings);

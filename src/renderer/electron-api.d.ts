@@ -92,6 +92,7 @@ export interface IElectronAPI {
         create: (input: any) => Promise<any>;
         update: (id: string, updates: any) => Promise<any>;
         delete: (id: string) => Promise<boolean>;
+        generatePrompt: (name: string, description?: string) => Promise<string>;
     };
 }
 

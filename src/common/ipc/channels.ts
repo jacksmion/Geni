@@ -118,4 +118,5 @@ export const STAFF_CHANNELS = {
     CREATE: 'staff:create',
     UPDATE: 'staff:update',
     DELETE: 'staff:delete',
+    GENERATE_PROMPT: 'staff:generate-prompt',
 } as const;

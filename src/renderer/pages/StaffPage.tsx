@@ -3,7 +3,7 @@ import { useStaffStore } from '../store/useStaffStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useModalStore } from '../store/useModalStore'
 import { useTranslation } from 'react-i18next'
-import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check, Search } from 'lucide-react'
+import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check, Search, Sparkles, Loader2 } from 'lucide-react'
 import EmojiPicker, { Categories, Theme, type EmojiClickData } from 'emoji-picker-react'
 import { StaffProfile } from '../../common/types/staff'
 import { StaffAvatar } from '../components/StaffAvatar'
@@ -152,6 +152,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     const [skillIds, setSkillIds] = useState<string[]>(existing?.skillIds || [])
     const [allSkills, setAllSkills] = useState<{ id: string, name: string, description: string }[]>([])
     const [saving, setSaving] = useState(false)
+    const [generating, setGenerating] = useState(false)
     const [skillDropdownOpen, setSkillDropdownOpen] = useState(false)
     const [skillSearch, setSkillSearch] = useState('')
 
@@ -208,6 +209,20 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     }
 
     const canSave = name.trim() && persona.trim()
+
+    const handleGeneratePrompt = async () => {
+        if (!name.trim() || generating) return
+        setGenerating(true)
+        try {
+            const result = await window.electronAPI.staff.generatePrompt(name.trim(), description.trim() || undefined)
+            setPersona(result)
+        } catch (err: any) {
+            console.error('Failed to generate prompt:', err)
+            alert(err.message || '生成失败，请检查 LLM 配置')
+        } finally {
+            setGenerating(false)
+        }
+    }
 
     const handleSave = async () => {
         if (!canSave) return
@@ -353,7 +368,20 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
                 {/* Persona */}
                 <div>
-                    <label className="block text-sm font-medium mb-1.5">{t('staffPage.persona')}</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium">{t('staffPage.persona')}</label>
+                        <button
+                            type="button"
+                            onClick={handleGeneratePrompt}
+                            disabled={!name.trim() || generating}
+                            className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {generating
+                                ? <><Loader2 size={12} className="animate-spin" /> 生成中...</>
+                                : <><Sparkles size={12} /> 智能生成</>
+                            }
+                        </button>
+                    </div>
                     <textarea
                         value={persona} onChange={e => setPersona(e.target.value)}
                         placeholder={t('staffPage.personaPlaceholder')}
