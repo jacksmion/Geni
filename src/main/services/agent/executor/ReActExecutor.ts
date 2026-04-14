@@ -265,14 +265,19 @@ export class ReActExecutor implements AgentExecutor {
 
         if (signal?.aborted) return optimized;
 
+        // First turn: no real token data, prune is sufficient
+        if (lastPromptTokens <= 0) {
+            optimized = this.contextManager.prune(optimized);
+            return optimized;
+        }
+
         // Step 1: Fast prune first (millisecond-level, no LLM call)
         optimized = this.contextManager.prune(optimized);
 
         // Step 2: Check if still over budget after pruning
-        const tokensAfterPrune = lastPromptTokens > 0
-            ? lastPromptTokens
-            : 0;
-        const stillOverBudget = tokensAfterPrune >= contextWindow * 0.8;
+        // Use real tokens from API + estimated tokens of pruned result for better accuracy
+        const estimatedTokens = TokenCounter.countMessages(optimized);
+        const stillOverBudget = lastPromptTokens >= contextWindow * 0.8 || estimatedTokens >= contextWindow * 0.8;
 
         // Step 3: Only summarize if pruning wasn't enough (slow, requires LLM call)
         if (stillOverBudget && optimized.length > 2) {

@@ -85,14 +85,12 @@ export class AgentRuntime {
             ? await this.sessionManager.getHistory(request.sessionId)
             : [];
 
-        const allMemoryContent = this.memoryStore.read();
-
         const systemPrompt = this.promptBuilder.buildSystemPrompt({
             basePrompt: agent.systemPrompt,
             workspacePath: request.workspacePath,
             skills: skills,
             language: request.language,
-            memory: allMemoryContent || undefined,
+            memoryStore: this.memoryStore,
             identity: this.loadProfileFile('IDENTITY'),
             soul: this.loadProfileFile('SOUL'),
             userProfile: this.loadProfileFile('USER'),

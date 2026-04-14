@@ -11,6 +11,7 @@
  */
 
 import { Skill } from '../../../common/types/skill';
+import type { MemoryStore } from '../memory/MemoryStore';
 import os from 'os';
 
 /**
@@ -25,8 +26,8 @@ export interface AgentContext {
     skills?: Skill[];
     /** 工作语言 */
     language?: 'zh' | 'en';
-    /** 长期记忆内容（由上层传入） */
-    memory?: string;
+    /** 长期记忆存储（用于分层注入） */
+    memoryStore?: MemoryStore;
     /** Agent 身份定义（IDENTITY.md 内容） */
     identity?: string;
     /** Agent 人格/说话风格（SOUL.md 内容） */
@@ -213,38 +214,33 @@ ${skillList}
 - Preferences: tech choices, communication style, tool/format preferences
 - Important decisions: key judgments or choices the user has made
 **Reactive**: When a user explicitly asks you to remember something, ALWAYS call the tool. Never just verbally acknowledge.
-**Rules**: Do NOT memorize trivial info (one-off questions, temp paths). Check existing memories to avoid duplicates — update existing entries instead of creating new ones.`;
+**Rules**: Do NOT memorize trivial info (one-off questions, temp paths). Check existing memories to avoid duplicates — update existing entries instead of creating new ones.
+**Categories**: Use category "preference" for user preferences. Use "project" for project knowledge. Use "workflow" for workflow conventions. Use "fact" (default) for general facts.`;
 
-        if (!context.memory) {
+        // No memory store available — just inject instructions
+        if (!context.memoryStore) {
             return `<memory>\n${instructions}\n</memory>`;
         }
 
-        const MAX_MEMORY_CHARS = 8000; // ≈ 2000 tokens
-        let content = context.memory;
-        if (content.length > MAX_MEMORY_CHARS) {
-            content = this.truncateMemory(content, MAX_MEMORY_CHARS);
+        let memorySection = '';
+
+        // Tier 1: Full-load preference memories (must be visible every turn)
+        const preferences = context.memoryStore.readByCategory('preference');
+        if (preferences) {
+            memorySection += '\n' + preferences;
         }
 
-        return `<memory>\n${instructions}\n\n${content}\n</memory>`;
-    }
-
-    /**
-     * 截断记忆内容，保留最后（最新）的条目
-     */
-    private truncateMemory(content: string, maxChars: number): string {
-        // 按条目分割，保留最新的（靠后的）
-        const entries = content.split(/(?=<!-- memory:)/).filter(Boolean);
-        const result: string[] = [];
-        let totalLen = 0;
-
-        // 从后往前遍历，优先保留最新条目
-        for (let i = entries.length - 1; i >= 0; i--) {
-            if (totalLen + entries[i].length > maxChars) break;
-            result.unshift(entries[i]);
-            totalLen += entries[i].length;
+        // Tier 2: Only inject titles for other categories (on-demand retrieval via memorize read)
+        const otherTitles = context.memoryStore.listTitles()
+            .filter(t => t.category !== 'preference');
+        if (otherTitles.length > 0) {
+            memorySection += '\nAdditional memories (use memorize tool with action="read" to retrieve):\n';
+            for (const t of otherTitles) {
+                memorySection += `- ${t.title} [${t.category || 'fact'}]\n`;
+            }
         }
 
-        return result.join('').trim();
+        return `<memory>\n${instructions}${memorySection}\n</memory>`;
     }
 
     /**

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { PromptBuilder, AgentContext } from '@/main/services/agent/PromptBuilder';
 import { Skill } from '@/common/types/skill';
+import { MemoryStore } from '@/main/services/memory/MemoryStore';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 describe('PromptBuilder', () => {
     it('should build prompt with default base prompt', () => {
@@ -73,5 +77,59 @@ describe('PromptBuilder', () => {
         const prompt = builder.buildSystemPrompt({});
         expect(prompt).toContain('New Global Base Prompt');
         expect(prompt).toContain('[System Environment]');
+    });
+
+    describe('tiered memory injection', () => {
+        let tempDir: string;
+        let filePath: string;
+        let memoryStore: MemoryStore;
+
+        beforeEach(() => {
+            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'geni-prompt-test-'));
+            filePath = path.join(tempDir, 'memory.md');
+            memoryStore = new MemoryStore(filePath);
+        });
+
+        afterEach(() => {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        });
+
+        it('should full-load preference memories and only inject titles for other categories', () => {
+            memoryStore.save('lang pref', 'User prefers Chinese', 'preference');
+            memoryStore.save('editor', 'User uses VS Code', 'preference');
+            memoryStore.save('tech stack', 'React 19 + TypeScript', 'project');
+            memoryStore.save('deploy flow', 'Build then push to S3', 'workflow');
+
+            const builder = new PromptBuilder();
+            const prompt = builder.buildSystemPrompt({ memoryStore });
+
+            // Preference: full content injected
+            expect(prompt).toContain('lang pref');
+            expect(prompt).toContain('User prefers Chinese');
+            expect(prompt).toContain('editor');
+            expect(prompt).toContain('User uses VS Code');
+
+            // Other categories: only titles, not full content
+            expect(prompt).toContain('tech stack [project]');
+            expect(prompt).not.toContain('React 19 + TypeScript');
+            expect(prompt).toContain('deploy flow [workflow]');
+            expect(prompt).not.toContain('Build then push to S3');
+        });
+
+        it('should work without memoryStore (just instructions)', () => {
+            const builder = new PromptBuilder();
+            const prompt = builder.buildSystemPrompt({});
+
+            expect(prompt).toContain('<memory>');
+            expect(prompt).toContain('memorize');
+        });
+
+        it('should include category guidance in instructions', () => {
+            const builder = new PromptBuilder();
+            const prompt = builder.buildSystemPrompt({ memoryStore });
+
+            expect(prompt).toContain('preference');
+            expect(prompt).toContain('project');
+        });
     });
 });
