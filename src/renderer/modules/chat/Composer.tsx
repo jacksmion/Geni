@@ -8,6 +8,45 @@ import { ModelSelector } from './ModelSelector'
 import { SkillSelector } from './SkillSelector'
 import { WorkspaceSelector } from './WorkspaceSelector'
 
+function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
+    const div = document.createElement('div')
+    document.body.appendChild(div)
+
+    const style = div.style
+    const computed = window.getComputedStyle(element)
+
+    style.whiteSpace = 'pre-wrap'
+    style.wordWrap = 'break-word'
+    style.position = 'absolute'
+    style.visibility = 'hidden'
+
+    const properties = [
+        'direction', 'boxSizing', 'width', 'height', 'overflowX', 'overflowY',
+        'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+        'borderStyle', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+        'fontStyle', 'fontVariant', 'fontWeight', 'fontStretch', 'fontSize', 'fontSizeAdjust',
+        'lineHeight', 'fontFamily', 'textAlign', 'textTransform', 'textIndent',
+        'textDecoration', 'letterSpacing', 'wordSpacing', 'tabSize', 'MozTabSize'
+    ]
+    properties.forEach((prop: any) => {
+        style[prop] = computed[prop]
+    })
+
+    div.textContent = element.value.substring(0, position)
+    const span = document.createElement('span')
+    span.textContent = element.value.substring(position) || '.'
+    div.appendChild(span)
+
+    const coordinates = {
+        top: span.offsetTop + parseInt(computed.borderTopWidth || '0'),
+        left: span.offsetLeft + parseInt(computed.borderLeftWidth || '0'),
+        height: parseInt(computed.lineHeight || '0')
+    }
+
+    document.body.removeChild(div)
+    return coordinates
+}
+
 function AccessIndicator() {
     const coreToolSettings = useSettingsStore(s => s.settings.coreToolSettings)
     const updateSettings = useSettingsStore(s => s.updateSettings)
@@ -58,6 +97,16 @@ export function Composer() {
 
     const [skills, setSkills] = useState<Skill[]>([])
 
+    const [showSlashMenu, setShowSlashMenu] = useState(false)
+    const [slashSearchText, setSlashSearchText] = useState('')
+    const [selectedIndex, setSelectedIndex] = useState(0)
+    const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 })
+
+    const filteredSkills = skills.filter(s => 
+        (s.name.toLowerCase().includes(slashSearchText.toLowerCase()) || 
+         s.id.toLowerCase().includes(slashSearchText.toLowerCase()))
+    )
+
     // Fetch skills to display their names in badges
     useEffect(() => {
         window.electronAPI.tools.getSkills().then(setSkills)
@@ -82,11 +131,71 @@ export function Composer() {
         await sendMessage(userInput, attachments)
     }
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value
+        setInput(value)
+
+        const cursorPosition = e.target.selectionStart || value.length
+        const textBeforeCursor = value.slice(0, cursorPosition)
+        
+        // Match "/text" at the start or after a space
+        const match = textBeforeCursor.match(/(?:^|\s)\/([^\s]*)$/)
+        if (match) {
+            setShowSlashMenu(true)
+            setSlashSearchText(match[1])
+            setSelectedIndex(0)
+
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const coords = getCaretCoordinates(textareaRef.current, cursorPosition)
+                    const top = textareaRef.current.offsetTop + coords.top - textareaRef.current.scrollTop - 8
+                    let left = textareaRef.current.offsetLeft + coords.left - textareaRef.current.scrollLeft
+                    // constrain left to avoid spilling over Screen right
+                    const maxLeft = textareaRef.current.offsetWidth - 320 // 320 is max width of menu
+                    if (left > maxLeft) left = maxLeft
+                    setSlashMenuPos({ top, left })
+                }
+            }, 0)
+        } else {
+            setShowSlashMenu(false)
+        }
+    }
+
+    const handleSelectSkill = (skill: Skill) => {
+        if (!selectedSkillIds?.includes(skill.id)) {
+            setSelectedSkillIds([...(selectedSkillIds || []), skill.id])
+        }
+        
+        if (textareaRef.current) {
+            const cursorPosition = textareaRef.current.selectionStart || input.length
+            const textBeforeCursor = input.slice(0, cursorPosition)
+            const textAfterCursor = input.slice(cursorPosition)
+            
+            const match = textBeforeCursor.match(/(^|\s)\/([^\s]*)$/)
+            if (match) {
+                const prefix = match[1] // either "" or " "
+                const newTextBefore = textBeforeCursor.slice(0, match.index) + prefix
+                const newValue = newTextBefore + textAfterCursor
+                setInput(newValue)
+                setTimeout(() => {
+                    if (textareaRef.current) {
+                        textareaRef.current.focus()
+                        const newPos = newTextBefore.length
+                        textareaRef.current.setSelectionRange(newPos, newPos)
+                    }
+                }, 0)
+            }
+        } else {
+            setInput(input.replace(/(^|\s)\/[^\s]*$/, '$1'))
+        }
+        setShowSlashMenu(false)
+    }
+
     // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
-            textareaRef.current.style.height = '56px'
-            textareaRef.current.style.height = Math.max(56, textareaRef.current.scrollHeight) + 'px'
+            textareaRef.current.style.height = '24px'
+            textareaRef.current.style.height = Math.max(24, textareaRef.current.scrollHeight) + 'px'
         }
     }, [input])
 
@@ -102,28 +211,62 @@ export function Composer() {
                 {/* Main Composer Box */}
                 <div className="relative bg-white/95 dark:bg-[#18181b]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.6)] focus-within:bg-white dark:focus-within:bg-[#1c1c1f] ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-1.5 focus-within:ring-indigo-500/40 dark:focus-within:ring-indigo-500/30">
 
-                    {/* Active Items Preview (Attachments & Custom Skills) */}
-                    {(pendingAttachments.length > 0 || (selectedSkillIds !== null && selectedSkillIds.length > 0)) && (
-                        <div className="px-5 pt-4 flex flex-wrap gap-2">
-                            {/* Skills */}
-                            {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
-                                const skill = skills.find(s => s.id === skillId)
-                                return (
-                                    <div key={`skill-${skillId}`} className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-lg px-2.5 py-1 font-medium text-[11.5px] text-violet-700 dark:text-violet-300">
-                                        <Sparkles size={12} />
-                                        <span>{skill?.name || skillId}</span>
+                    {/* Slash Command Menu */}
+                    {showSlashMenu && (
+                        <div 
+                            className="absolute w-[80vw] max-w-[320px] bg-white dark:bg-[#1c1c1f] rounded-xl shadow-xl border border-slate-200 dark:border-white/10 overflow-hidden z-50 animate-in fade-in duration-200"
+                            style={{
+                                top: `${slashMenuPos.top}px`,
+                                left: `${slashMenuPos.left}px`,
+                                transform: 'translateY(-100%)'
+                            }}
+                        >
+                            <div className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-[#18181b] border-b border-slate-100 dark:border-white/5">
+                                Select a skill
+                            </div>
+                            <div className="max-h-[240px] overflow-y-auto p-1.5 scrollbar-hide">
+                                {filteredSkills.length > 0 ? (
+                                    filteredSkills.map((skill, idx) => (
                                         <button
-                                            onClick={() => {
-                                                const newIds = selectedSkillIds.filter(id => id !== skillId);
-                                                setSelectedSkillIds(newIds.length === 0 ? [] : newIds);
+                                            key={skill.id}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleSelectSkill(skill);
                                             }}
-                                            className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                            onMouseEnter={() => setSelectedIndex(idx)}
+                                            className={cn(
+                                                "w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-colors",
+                                                idx === selectedIndex 
+                                                    ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" 
+                                                    : "text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                                            )}
                                         >
-                                            <X size={12} />
+                                            <Sparkles size={14} className={cn("mt-0.5 shrink-0", idx === selectedIndex ? "text-indigo-500" : "text-slate-400 dark:text-zinc-500")} />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-[13px] truncate">{skill.name}</div>
+                                                {skill.description && (
+                                                    <div className={cn(
+                                                        "text-[11px] line-clamp-1 mt-0.5",
+                                                        idx === selectedIndex ? "text-indigo-500/80 dark:text-indigo-400/80" : "text-slate-500 dark:text-zinc-500"
+                                                    )}>
+                                                        {skill.description}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </button>
+                                    ))
+                                ) : (
+                                    <div className="px-3 py-6 text-center text-[13px] text-slate-400 dark:text-zinc-500">
+                                        No matching skills found
                                     </div>
-                                )
-                            })}
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Active Items Preview (Attachments Only) */}
+                    {pendingAttachments.length > 0 && (
+                        <div className="px-5 pt-4 flex flex-wrap gap-2">
                             {/* Attachments */}
                             {pendingAttachments.map((path, idx) => {
                                 const fileName = path.split(/[\\/]/).pop()
@@ -143,23 +286,84 @@ export function Composer() {
                         </div>
                     )}
 
-                    {/* TextArea */}
-                    <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                handleSend()
-                            }
-                        }}
-                        placeholder="Message Geni..."
-                        className="composer-textarea w-full bg-transparent px-5 py-4 min-h-[56px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
-                        rows={1}
-                        style={{ lineHeight: '1.5' }}
-                    />
+                    {/* Input Area with Inline Skills */}
+                    <div className={cn("flex flex-wrap items-start px-5 py-4 gap-2", pendingAttachments.length > 0 ? "pt-2" : "")}>
+                        {/* Skills */}
+                        {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
+                            const skill = skills.find(s => s.id === skillId)
+                            return (
+                                <div key={`skill-${skillId}`} className="flex items-center gap-1.5 mt-[1px] bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-md px-2 py-0.5 font-medium text-[12.5px] text-violet-700 dark:text-violet-300 transition-all">
+                                    <Sparkles size={12} className="text-violet-500" />
+                                    <span>{skill?.name || skillId}</span>
+                                    <button
+                                        onClick={() => {
+                                            const newIds = selectedSkillIds.filter(id => id !== skillId);
+                                            setSelectedSkillIds(newIds.length === 0 ? [] : newIds);
+                                            textareaRef.current?.focus();
+                                        }}
+                                        className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )
+                        })}
 
+                        {/* TextArea */}
+                        <textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={handleInputChange}
+                            onKeyDown={(e) => {
+                                if (showSlashMenu) {
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault()
+                                        setSelectedIndex((prev) => Math.min(prev + 1, filteredSkills.length - 1))
+                                        return
+                                    }
+                                    if (e.key === 'ArrowUp') {
+                                        e.preventDefault()
+                                        setSelectedIndex((prev) => Math.max(prev - 1, 0))
+                                        return
+                                    }
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        const selected = filteredSkills[selectedIndex]
+                                        if (selected) {
+                                            handleSelectSkill(selected)
+                                        }
+                                        return
+                                    }
+                                    if (e.key === 'Escape') {
+                                        e.preventDefault()
+                                        setShowSlashMenu(false)
+                                        return
+                                    }
+                                }
+
+                                if (e.key === 'Backspace' && !showSlashMenu) {
+                                    if (textareaRef.current?.selectionStart === 0 && textareaRef.current?.selectionEnd === 0) {
+                                        if (selectedSkillIds && selectedSkillIds.length > 0) {
+                                            e.preventDefault()
+                                            const newIds = [...selectedSkillIds]
+                                            newIds.pop()
+                                            setSelectedSkillIds(newIds.length > 0 ? newIds : [])
+                                            return
+                                        }
+                                    }
+                                }
+
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault()
+                                    handleSend()
+                                }
+                            }}
+                            placeholder="Message Geni..."
+                            className="composer-textarea flex-1 min-w-[200px] w-full bg-transparent p-0 m-0 min-h-[24px] max-h-264 text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none resize-none scrollbar-hide"
+                            rows={1}
+                            style={{ lineHeight: '1.5' }}
+                        />
+                    </div>
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
                     <div className="flex items-center justify-between px-3 pb-3 pt-1">
                         {/* Left Tools */}
