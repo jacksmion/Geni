@@ -13,7 +13,6 @@ export function ShortcutSettings() {
 
     const shortcuts = savedShortcuts || {
         'new_task': 'Ctrl+N',
-        'search_task': 'Ctrl+F',
         'open_settings': 'Ctrl+,',
         'toggle_sidebar': 'Ctrl+B',
         'command_palette': 'Ctrl+K'
@@ -62,7 +61,6 @@ export function ShortcutSettings() {
 
     const items = [
         { id: 'new_task', label: t('shortcuts.new_task') },
-        { id: 'search_task', label: t('shortcuts.search_task') },
         { id: 'open_settings', label: t('shortcuts.open_settings') },
         { id: 'toggle_sidebar', label: t('shortcuts.toggle_sidebar') },
         { id: 'command_palette', label: t('shortcuts.command_palette') },
@@ -72,7 +70,6 @@ export function ShortcutSettings() {
         updateSettings({
             shortcuts: {
                 'new_task': 'Ctrl+N',
-                'search_task': 'Ctrl+F',
                 'open_settings': 'Ctrl+,',
                 'toggle_sidebar': 'Ctrl+B',
                 'command_palette': 'Ctrl+K'

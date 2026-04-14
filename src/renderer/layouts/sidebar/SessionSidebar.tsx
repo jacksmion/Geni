@@ -4,7 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, X, Check, Search, CheckSquare, Square } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, CheckSquare, Square } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
@@ -32,9 +32,6 @@ export function SessionSidebar() {
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
     const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
     const { isMobile } = useBreakpoint();
-    const searchFocused = useLayoutStore(s => s.searchFocused);
-    const setSearchFocused = useLayoutStore(s => s.setSearchFocused);
-    const searchInputRef = React.useRef<HTMLInputElement>(null);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,13 +47,6 @@ export function SessionSidebar() {
     React.useEffect(() => {
         if (profiles.length === 0) loadProfiles()
     }, [profiles.length, loadProfiles])
-
-    React.useEffect(() => {
-        if (searchFocused && searchInputRef.current) {
-            searchInputRef.current.focus();
-            setSearchFocused(false);
-        }
-    }, [searchFocused, setSearchFocused]);
 
     // Update current time every minute for relative labels
     React.useEffect(() => {
@@ -381,7 +371,6 @@ export function SessionSidebar() {
 
                     {Object.keys(groupedSessions).length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
-                            <Search size={24} className="mb-2 opacity-20" />
                             <span className="text-xs">{t('sessionSidebar.noMatch')}</span>
                         </div>
                     )}

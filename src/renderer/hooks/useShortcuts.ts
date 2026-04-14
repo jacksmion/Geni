@@ -11,7 +11,6 @@ export const useShortcuts = () => {
     const setActiveTab = useChatStore(s => s.setActiveTab);
     const shortcuts = useSettingsStore(s => s.settings.shortcuts);
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar);
-    const setSearchFocused = useLayoutStore(s => s.setSearchFocused);
     const togglePalette = useLayoutStore(s => s.togglePalette);
 
     useEffect(() => {
@@ -44,23 +43,18 @@ export const useShortcuts = () => {
                 e.preventDefault();
                 createSession();
                 setActiveTab('chat');
-            } 
-            // 2. Search Task
-            else if (currentCombo === shortcuts['search_task']) {
-                e.preventDefault();
-                setSearchFocused(true);
-            } 
-            // 3. Open Settings
+            }
+            // 2. Open Settings
             else if (currentCombo === shortcuts['open_settings']) {
                 e.preventDefault();
                 setActiveTab('settings');
-            } 
-            // 4. Toggle Sidebar
+            }
+            // 3. Toggle Sidebar
             else if (currentCombo === shortcuts['toggle_sidebar']) {
                 e.preventDefault();
                 toggleSidebar();
             }
-            // 5. Command Palette
+            // 4. Command Palette
             else if (currentCombo === shortcuts['command_palette']) {
                 e.preventDefault();
                 togglePalette();
@@ -69,5 +63,5 @@ export const useShortcuts = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [shortcuts, createSession, setActiveTab, toggleSidebar, setSearchFocused, togglePalette]);
+    }, [shortcuts, createSession, setActiveTab, toggleSidebar, togglePalette]);
 };
