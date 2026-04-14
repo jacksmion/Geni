@@ -159,6 +159,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         create: (input: any) => ipcRenderer.invoke('staff:create', input),
         update: (id: string, updates: any) => ipcRenderer.invoke('staff:update', id, updates),
         delete: (id: string) => ipcRenderer.invoke('staff:delete', id),
-        generatePrompt: (name: string, description?: string) => ipcRenderer.invoke('staff:generate-prompt', { name, description }),
+        generatePrompt: (name: string, description?: string, modelId?: string) => ipcRenderer.invoke('staff:generate-prompt', { name, description, modelId }),
     }
 })

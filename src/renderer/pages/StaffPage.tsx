@@ -214,7 +214,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
         if (!name.trim() || generating) return
         setGenerating(true)
         try {
-            const result = await window.electronAPI.staff.generatePrompt(name.trim(), description.trim() || undefined)
+            const result = await window.electronAPI.staff.generatePrompt(name.trim(), description.trim() || undefined, modelId || undefined)
             setPersona(result)
         } catch (err: any) {
             console.error('Failed to generate prompt:', err)
