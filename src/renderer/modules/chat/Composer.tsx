@@ -163,7 +163,7 @@ export function Composer() {
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
                     <div className="flex items-center justify-between px-3 pb-3 pt-1">
                         {/* Left Tools */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                             {/* Add / Attach Button */}
                             <button
                                 onClick={handleSelectFile}
@@ -194,8 +194,8 @@ export function Composer() {
                     </div>
                 </div>
 
-                {/* Outer Context Bar: Workspace + Access */}
-                <div className="flex items-center gap-3 px-4 pt-2">
+                {/* Sub-context bar */}
+                <div className="flex items-center justify-center gap-4 mt-2.5 opacity-60 hover:opacity-100 transition-opacity">
                     <WorkspaceSelector />
                     <AccessIndicator />
                 </div>

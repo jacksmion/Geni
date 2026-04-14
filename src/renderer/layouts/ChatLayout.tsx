@@ -220,7 +220,7 @@ export function ChatLayout() {
                                             </span>
                                         </>
                                     )}
-                                    <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0 tabular-nums hidden md:inline">
+                                    <span className="text-[11px] text-slate-400 dark:text-zinc-500 shrink-0 tabular-nums hidden md:inline">
                                         {new Date(currentSessionMeta.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
@@ -250,12 +250,9 @@ export function ChatLayout() {
                         </>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center px-4 overflow-y-auto w-full h-full pb-[10vh] animate-in fade-in zoom-in-95 duration-500">
-                            {/* Logo */}
-                            <div className="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-[#ff512f] to-[#dd2476] flex items-center justify-center text-white mb-6 shadow-lg shadow-red-500/20">
-                                <Cpu size={32} strokeWidth={2.2} className="text-white" />
-                            </div>
 
-                            <h1 className="text-3xl font-bold text-slate-900 dark:text-zinc-100 mb-2 tracking-tight">
+
+                            <h1 className="text-3xl font-semibold text-slate-900 dark:text-zinc-100 mb-4 tracking-tight">
                                 {t('chatLayout.startCollaborating')}
                             </h1>
                             <p className="text-[13px] text-slate-400 dark:text-zinc-500 mb-8 text-center">
@@ -263,7 +260,7 @@ export function ChatLayout() {
                             </p>
 
                             {/* Staff Picker Cards */}
-                            <div className="mb-8 animate-in slide-in-from-bottom-4 fade-in duration-500 delay-100 fill-mode-both">
+                            <div className="mb-12 animate-in slide-in-from-bottom-4 fade-in duration-500 delay-100 fill-mode-both">
                                 <StaffPicker />
                             </div>
 
