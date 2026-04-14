@@ -210,8 +210,16 @@ export function ChatLayout() {
                                         />
                                     </div>
                                     <h1 className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
-                                        {hasMessages ? headerStaffName : (currentSessionMeta.title || '新任务')}
+                                        {currentSessionMeta.title || '新任务'}
                                     </h1>
+                                    {hasMessages && (
+                                        <>
+                                            <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0">·</span>
+                                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 shrink-0 truncate max-w-[120px]">
+                                                {headerStaffName}
+                                            </span>
+                                        </>
+                                    )}
                                     <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0 tabular-nums hidden md:inline">
                                         {new Date(currentSessionMeta.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                     </span>

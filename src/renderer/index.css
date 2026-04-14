@@ -107,18 +107,18 @@ h1, h2, h3 {
 
 /* 统一 focus-visible 样式：键盘焦点时显示 ring，鼠标点击不触发 */
 *:focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
+  outline: 1.5px solid transparent;
+  outline-offset: 1px;
   box-shadow:
-    0 0 0 2px var(--bg-color, #ffffff),
-    0 0 0 4px #6366f1;
+    0 0 0 1px var(--bg-color, #ffffff),
+    0 0 0 2.5px rgba(99, 102, 241, 0.5);
   border-radius: 6px;
 }
 
 /* 输入框：单层 ring，更紧凑 */
 input:focus-visible,
 select:focus-visible {
-  box-shadow: 0 0 0 2px #6366f1;
+  box-shadow: 0 0 0 1.5px rgba(99, 102, 241, 0.45);
   border-radius: 6px;
 }
 
