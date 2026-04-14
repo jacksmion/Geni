@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
+import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight, Brain } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage } from '../../../common/types/chat'
@@ -159,37 +159,32 @@ interface ThinkingBlockProps {
 }
 
 function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
-    const [isExpanded, setIsExpanded] = useState(!isComplete);
-    const [prevIsComplete, setPrevIsComplete] = useState(isComplete);
-
-    if (isComplete !== prevIsComplete) {
-        setPrevIsComplete(isComplete);
-        if (!prevIsComplete && isComplete) {
-            setIsExpanded(false);
-        }
-    }
+    const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div className="not-prose my-3 border border-slate-200/60 dark:border-white/5 rounded-xl bg-slate-50/40 dark:bg-white/[0.01] overflow-hidden">
+        <div className="not-prose my-3">
             <div
-                className="flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors select-none"
+                className="inline-flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity select-none"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                {isExpanded ? (
-                    <ChevronDown size={14} className="text-slate-400 shrink-0" />
-                ) : (
-                    <ChevronRight size={14} className="text-slate-400 shrink-0" />
-                )}
+                <Brain size={14} className={cn("text-slate-500 dark:text-zinc-500", !isComplete && "animate-pulse")} />
                 <span className="text-[13px] text-slate-500 dark:text-zinc-500 font-medium">
-                    思考过程
+                    {isComplete ? '思考过程' : '正在思考'}
                 </span>
+                {isExpanded ? (
+                    <ChevronDown size={14} className="text-slate-400 shrink-0 ml-0.5" />
+                ) : (
+                    <ChevronRight size={14} className="text-slate-400 shrink-0 ml-0.5" />
+                )}
             </div>
             {isExpanded && (
-                <div className="px-4 pb-3 pt-0 text-[14px] leading-relaxed text-slate-600 dark:text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
-                    {content.trimStart()}
-                    {!isComplete && (
-                        <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 animate-pulse" />
-                    )}
+                <div className="mt-2 border-l-2 border-slate-200 dark:border-white/10 pl-4 py-1 overflow-hidden">
+                    <div className="text-[14px] leading-relaxed text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
+                        {content.trimStart()}
+                        {!isComplete && (
+                            <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 animate-pulse" />
+                        )}
+                    </div>
                 </div>
             )}
         </div>
