@@ -251,6 +251,21 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
     }
 
     if (isBlock && match && match[1] === 'svg') {
+        // 检测 svg 代码块是否已闭合，与 Mermaid 保护逻辑一致
+        const isSvgComplete = /```svg[\s\S]*?```/.test(messageContent || '')
+        if (isStreaming && !isSvgComplete) {
+            return (
+                <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
+                    <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">svg</span>
+                    </div>
+                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                        <code>{codeString}</code>
+                        <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 streaming-cursor" />
+                    </pre>
+                </div>
+            )
+        }
         return (
             <Suspense fallback={
                 <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
