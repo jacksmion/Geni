@@ -122,12 +122,14 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
 
     const [mode, setMode] = useState<'preview' | 'code'>('preview')
     const [zoom, setZoom] = useState(1)
+    const [baseZoom, setBaseZoom] = useState(1) // auto-fitted zoom level
     const [svgContent, setSvgContent] = useState<string>('')
     const [error, setError] = useState<string>('')
     const [rendering, setRendering] = useState(true)
     const [copied, setCopied] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+    const previewContainerRef = useRef<HTMLDivElement>(null)
 
     // Pan state
     const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -185,6 +187,23 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
         }
     }, [code, isDark, renderDiagram])
 
+    // Auto-fit SVG to container width
+    useEffect(() => {
+        if (!svgContent || !svgContainerRef.current || !previewContainerRef.current) return
+
+        const svgEl = svgContainerRef.current.querySelector('svg')
+        if (!svgEl) return
+
+        const containerWidth = previewContainerRef.current.clientWidth - 48 // minus padding
+        const svgWidth = svgEl.getBoundingClientRect().width
+
+        if (svgWidth > 0 && containerWidth > 0) {
+            const fitScale = Math.min(1, containerWidth / svgWidth)
+            setBaseZoom(fitScale)
+            setZoom(fitScale)
+        }
+    }, [svgContent])
+
     // Interaction handlers for nodes
     useEffect(() => {
         const container = isExpanded ? overlaySvgRef.current : svgContainerRef.current
@@ -235,7 +254,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
     const handleZoomIn = () => setZoom(z => Math.min(z + ZOOM_STEP, ZOOM_MAX))
     const handleZoomOut = () => setZoom(z => Math.max(z - ZOOM_STEP, ZOOM_MIN))
     const handleReset = () => {
-        setZoom(1)
+        setZoom(baseZoom)
         setOffset({ x: 0, y: 0 })
         setSelectedNodeId(null)
     }
@@ -354,51 +373,41 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
     const zoomPercent = Math.round(zoom * 100)
 
     const toolbar = (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5">
-            <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-white/5 rounded-lg p-0.5">
-                <button
-                    onClick={() => setMode('preview')}
-                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${mode === 'preview' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'}`}
-                >
-                    图表
-                </button>
-                <button
-                    onClick={() => setMode('code')}
-                    className={`px-3 py-1 rounded-md text-[11px] font-medium transition-all ${mode === 'code' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300'}`}
-                >
-                    代码
-                </button>
-            </div>
-
-            <div className="flex items-center gap-1">
-                {mode === 'preview' && (
-                    <div className="flex items-center gap-0.5 mr-1">
-                        <button onClick={handleZoomOut} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="缩小"><ZoomOut size={13} /></button>
-                        <button onClick={handleReset} className="px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-[10px] font-mono text-slate-500 dark:text-zinc-400 min-w-[36px] text-center" title="重置">{zoomPercent}%</button>
-                        <button onClick={handleZoomIn} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="放大"><ZoomIn size={13} /></button>
-                        <div className="w-px h-3 bg-slate-200 dark:bg-white/10 mx-1" />
-                        {!isExpanded && (
-                            <button onClick={() => { setIsExpanded(true); setZoom(1.2); }} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-400" title="扩大显示区域"><Maximize2 size={13} /></button>
-                        )}
-                    </div>
-                )}
-                <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="复制代码">{copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}</button>
-                <button onClick={handleExportSvg} disabled={!svgContent} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 SVG"><Download size={13} /></button>
-                <button onClick={handleExportPng} disabled={!svgContent} className="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 PNG"><ImageIcon size={13} /></button>
-            </div>
+        <div className="flex items-center gap-0.5">
+            {mode === 'preview' && (
+                <>
+                    <button onClick={handleZoomOut} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="缩小"><ZoomOut size={13} /></button>
+                    <button onClick={handleReset} className="px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-[10px] font-mono text-slate-500 dark:text-zinc-400 min-w-[36px] text-center" title="重置">{zoomPercent}%</button>
+                    <button onClick={handleZoomIn} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="放大"><ZoomIn size={13} /></button>
+                    <div className="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5" />
+                    {!isExpanded && (
+                        <button onClick={() => { setIsExpanded(true); setZoom(1.2); }} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-400" title="扩大显示"><Maximize2 size={13} /></button>
+                    )}
+                    <div className="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5" />
+                </>
+            )}
+            <button onClick={() => setMode(mode === 'preview' ? 'code' : 'preview')} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title={mode === 'preview' ? '查看代码' : '查看图表'}>{mode === 'preview' ? <Code2 size={13} /> : <Eye size={13} />}</button>
+            <button onClick={handleCopy} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="复制代码">{copied ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}</button>
+            <button onClick={handleExportSvg} disabled={!svgContent} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 SVG"><Download size={13} /></button>
+            <button onClick={handleExportPng} disabled={!svgContent} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 disabled:opacity-30" title="导出 PNG"><ImageIcon size={13} /></button>
         </div>
     )
 
     return (
-        <div className="not-prose group/mermaid rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-white dark:bg-[#0c0c0e]">
-            {toolbar}
-
+        <div className="not-prose group/mermaid rounded-xl overflow-hidden my-3 border border-transparent bg-white dark:bg-[#0c0c0e]">
             <div className="relative">
+                {/* Floating toolbar - top right, visible on hover */}
+                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/mermaid:pointer-events-auto">
+                    <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm shadow-sm border border-slate-200/50 dark:border-white/[0.06]">
+                        {toolbar}
+                    </div>
+                </div>
+
                 {mode === 'preview' && (
                     <div
-                        className="overflow-auto min-h-[80px]"
+                        ref={previewContainerRef}
+                        className="overflow-hidden min-h-[80px]"
                         onWheel={handleWheel}
-                        style={{ maxHeight: '600px' }}
                     >
                         {rendering && !svgContent && (
                             <div className="flex items-center justify-center py-12 text-xs text-slate-400"><div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mr-2" />渲染中...</div>
@@ -409,8 +418,8 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
                         {svgContent && !error && (
                             <div
                                 ref={svgContainerRef}
-                                className="flex items-center justify-center p-6 transition-transform duration-150"
-                                style={{ transform: `scale(${zoom})`, transformOrigin: 'center top' }}
+                                className="flex items-center justify-center p-6"
+                                style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
                                 dangerouslySetInnerHTML={{ __html: svgContent }}
                             />
                         )}
