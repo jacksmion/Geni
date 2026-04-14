@@ -286,28 +286,32 @@ export class AgentController {
             temperature: providerConfig?.temperature
         };
 
+        // Resolve effective modelId: user selection > staff profile > global default
+        let effectiveModelId = base.modelId;
+
         // Staff profile overrides base agent config
         const staffId = payload.options?.staffId;
         if (staffId) {
             const profile = this.staffManager.get(staffId);
             if (profile) {
                 // Merge: staff fields override base, but fall back to global defaults
-                return {
-                    ...base,
+                Object.assign(base, {
                     ...profile,
                     modelId: profile.modelId || base.modelId,
                     systemPrompt: profile.systemPrompt || base.systemPrompt,
-                };
+                });
+                effectiveModelId = profile.modelId || base.modelId;
             }
         }
 
-        // Model override from payload
+        // User's session-level model selection has highest priority
         if (payload.options?.model) {
-            base.modelId = payload.options.model.includes('/')
+            effectiveModelId = payload.options.model.includes('/')
                 ? payload.options.model
                 : `${this.settings.llm.activeProvider || 'OpenAI'}/${payload.options.model}`;
         }
 
+        base.modelId = effectiveModelId;
         return base;
     }
 

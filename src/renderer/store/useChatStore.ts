@@ -288,15 +288,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     assignStaff: async (id, staffId) => {
+        // Resolve staff profile to get its modelId
+        const { profiles } = await import('./useStaffStore').then(m => m.useStaffStore.getState());
+        const staff = staffId ? profiles.find(p => p.id === staffId) : undefined;
+
         set(state => {
             const session = state.sessions[id];
             if (!session) return state;
 
-            const updated = { ...session, staffId };
+            // If staff has a configured model and user hasn't manually selected one, apply it
+            const updates: Partial<typeof session> = { staffId };
+            if (staff?.modelId) {
+                updates.modelId = staff.modelId;
+            } else if (!staffId) {
+                // Clearing staff — reset model to global default (remove session-level override)
+                updates.modelId = undefined;
+            }
+
+            const updated = { ...session, ...updates };
             return {
                 sessions: { ...state.sessions, [id]: updated },
                 sessionMetas: state.sessionMetas.map(m =>
-                    m.id === id ? { ...m, staffId } : m
+                    m.id === id ? { ...m, ...updates } : m
                 )
             };
         });
@@ -304,7 +317,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         try {
             // Draft 尚无后端记录，跳过保存（转正时统一持久化）
             if (!get().draftSessionId) {
-                await window.electronAPI.session.save({ id, staffId });
+                const session = get().sessions[id];
+                const savePayload: any = { id, staffId };
+                if (session?.modelId) savePayload.modelId = session.modelId;
+                await window.electronAPI.session.save(savePayload);
             }
         } catch (error) {
             console.error('Failed to assign staff to session', id, ':', error);
