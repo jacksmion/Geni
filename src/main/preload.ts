@@ -160,5 +160,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         update: (id: string, updates: any) => ipcRenderer.invoke('staff:update', id, updates),
         delete: (id: string) => ipcRenderer.invoke('staff:delete', id),
         generatePrompt: (name: string, description?: string, modelId?: string) => ipcRenderer.invoke('staff:generate-prompt', { name, description, modelId }),
+        onGeneratePromptChunk: (callback: (delta: string) => void) => {
+            const handler = (_e: any, delta: string) => callback(delta);
+            ipcRenderer.on('staff:generate-prompt-chunk', handler);
+            return () => { ipcRenderer.removeListener('staff:generate-prompt-chunk', handler); };
+        },
     }
 })

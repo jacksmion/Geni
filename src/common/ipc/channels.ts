@@ -119,4 +119,5 @@ export const STAFF_CHANNELS = {
     UPDATE: 'staff:update',
     DELETE: 'staff:delete',
     GENERATE_PROMPT: 'staff:generate-prompt',
+    GENERATE_PROMPT_CHUNK: 'staff:generate-prompt-chunk',
 } as const;

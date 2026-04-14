@@ -93,6 +93,7 @@ export interface IElectronAPI {
         update: (id: string, updates: any) => Promise<any>;
         delete: (id: string) => Promise<boolean>;
         generatePrompt: (name: string, description?: string, modelId?: string) => Promise<string>;
+        onGeneratePromptChunk: (callback: (delta: string) => void) => () => void;
     };
 }
 

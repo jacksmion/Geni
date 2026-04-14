@@ -213,6 +213,10 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     const handleGeneratePrompt = async () => {
         if (!name.trim() || generating) return
         setGenerating(true)
+        setPersona('')
+        const unsub = window.electronAPI.staff.onGeneratePromptChunk((delta) => {
+            setPersona(prev => prev + delta)
+        })
         try {
             const result = await window.electronAPI.staff.generatePrompt(name.trim(), description.trim() || undefined, modelId || undefined)
             setPersona(result)
@@ -220,6 +224,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
             console.error('Failed to generate prompt:', err)
             alert(err.message || '生成失败，请检查 LLM 配置')
         } finally {
+            unsub()
             setGenerating(false)
         }
     }

@@ -44,12 +44,12 @@ export class StaffController {
             return this.staffManager.delete(id);
         });
 
-        ipcMain.handle(STAFF_CHANNELS.GENERATE_PROMPT, async (_e, { name, description, modelId }: { name: string; description?: string; modelId?: string }) => {
-            return this.generatePrompt(name, description, modelId);
+        ipcMain.handle(STAFF_CHANNELS.GENERATE_PROMPT, async (e, { name, description, modelId }: { name: string; description?: string; modelId?: string }) => {
+            return this.generatePrompt(name, description, modelId, e.sender);
         });
     }
 
-    private async generatePrompt(name: string, description?: string, modelId?: string): Promise<string> {
+    private async generatePrompt(name: string, description?: string, modelId?: string, sender?: Electron.WebContents): Promise<string> {
         const model = modelId ? this.getModelById(modelId) : this.getDefaultModel();
         const userMessage = description
             ? `角色名称：${name}\n简要描述：${description}`
@@ -95,6 +95,7 @@ export class StaffController {
         for await (const event of stream) {
             if (event.type === 'content_delta') {
                 result += event.delta;
+                sender?.send(STAFF_CHANNELS.GENERATE_PROMPT_CHUNK, event.delta);
             } else if (event.type === 'error') {
                 throw new Error(event.error.message);
             }
