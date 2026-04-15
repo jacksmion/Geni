@@ -4,6 +4,7 @@ import { FileCode, Terminal as TerminalIcon, X, Copy, Check } from 'lucide-react
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 export const ArtifactPanel: React.FC = () => {
     const activeArtifact = useChatStore(s => s.activeArtifact);
@@ -34,6 +35,7 @@ export const ArtifactPanel: React.FC = () => {
     const isBash = activeArtifact.toolName === 'bash';
     const isEdit = activeArtifact.toolName === 'edit' || activeArtifact.toolName === 'replace_file_content' || activeArtifact.toolName === 'multi_replace_file_content';
     const ext = activeArtifact.path.split('.').pop() || 'text';
+    const isMarkdown = ext === 'md' || ext === 'markdown';
     let language = 'text';
     if (isBash) language = 'bash';
     else if (isEdit) language = 'diff';
@@ -84,29 +86,35 @@ export const ArtifactPanel: React.FC = () => {
 
             {/* Editor Body */}
             <div className="flex-1 overflow-auto relative select-text scrollbar-thin shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-none" ref={scrollRef}>
-                <SyntaxHighlighter
-                    language={language}
-                    style={isDark ? vscDarkPlus : prism}
-                    customStyle={{
-                        margin: 0,
-                        padding: '1.5rem',
-                        background: 'transparent',
-                        fontSize: '13.5px',
-                        lineHeight: '1.7',
-                        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-                    }}
-                    showLineNumbers={true}
-                    lineNumberStyle={{
-                        minWidth: '2.5em',
-                        paddingRight: '1.5em',
-                        color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)',
-                        textAlign: 'right',
-                        userSelect: 'none',
-                    }}
-                    wrapLines={true}
-                >
-                    {activeArtifact.content || ' '}
-                </SyntaxHighlighter>
+                {isMarkdown ? (
+                    <div className="px-6 py-5">
+                        <MarkdownRenderer content={activeArtifact.content || ''} />
+                    </div>
+                ) : (
+                    <SyntaxHighlighter
+                        language={language}
+                        style={isDark ? vscDarkPlus : prism}
+                        customStyle={{
+                            margin: 0,
+                            padding: '1.5rem',
+                            background: 'transparent',
+                            fontSize: '13.5px',
+                            lineHeight: '1.7',
+                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                        }}
+                        showLineNumbers={true}
+                        lineNumberStyle={{
+                            minWidth: '2.5em',
+                            paddingRight: '1.5em',
+                            color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)',
+                            textAlign: 'right',
+                            userSelect: 'none',
+                        }}
+                        wrapLines={true}
+                    >
+                        {activeArtifact.content || ' '}
+                    </SyntaxHighlighter>
+                )}
                 <div className="h-10" />
             </div>
         </div>

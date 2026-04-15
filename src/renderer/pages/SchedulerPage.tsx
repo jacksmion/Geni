@@ -4,10 +4,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { Switch } from '../components/Switch';
 import { ScheduledTaskConfig } from '../../common/types/settings';
 import { clsx } from 'clsx';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { preprocessMarkdown } from '../utils/markdown';
 /** 生成简短 UUID */
 function generateId(): string {
@@ -813,42 +810,6 @@ const SchedulerPage: React.FC = () => {
 
 export default SchedulerPage;
 
-// ============ Helper Components ============
-function MarkdownCode({ node, className, children, ...props }: any) {
-    const match = /language-(\w+)/.exec(className || '')
-    const codeString = String(children).replace(/\n$/, '')
-    const theme = useSettingsStore(s => s.settings.theme);
-    const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
-    const isBlock = !!className || codeString.includes('\n');
-
-    return isBlock && match ? (
-        <div className="not-prose rounded-lg overflow-hidden my-2 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-            <div className="px-3 py-1 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase">{match[1]}</span>
-            </div>
-            <SyntaxHighlighter
-                style={syntaxTheme}
-                language={match[1]}
-                PreTag="div"
-                customStyle={{
-                    margin: 0,
-                    padding: '0.75rem',
-                    background: 'transparent',
-                    fontSize: '12px',
-                    lineHeight: '1.6',
-                }}
-                {...props}
-            >
-                {codeString}
-            </SyntaxHighlighter>
-        </div>
-    ) : (
-        <code className="bg-indigo-50 dark:bg-indigo-500/10 px-1 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-xs" {...props}>
-            {children}
-        </code>
-    )
-}
-
 // ============ LogEntry 子组件 ============
 interface LogEntryProps {
     log: TaskLogEntry;
@@ -914,27 +875,18 @@ function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
                             {log.error}
                         </pre>
                     ) : log.output ? (
-                        <div className="prose prose-slate dark:prose-invert max-w-none
-                            prose-p:text-[13px] prose-p:leading-relaxed prose-p:my-2
-                            prose-headings:font-bold prose-headings:text-slate-950 dark:prose-headings:text-white
-                            prose-h1:text-lg prose-h1:mt-4 prose-h1:mb-2
-                            prose-h2:text-base prose-h2:mt-3 prose-h2:mb-1.5
-                            prose-h3:text-sm prose-h3:mt-2 prose-h3:mb-1
-                            prose-ul:my-2 prose-ul:list-disc prose-ul:pl-5 prose-ul:text-[13px]
-                            prose-ol:my-2 prose-ol:list-decimal prose-ol:pl-5 prose-ol:text-[13px]
-                            prose-li:my-0.5 prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
-                            prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
-                            prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:font-mono prose-code:text-xs
-                            prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    code: MarkdownCode
-                                }}
-                            >
-                                {preprocessMarkdown(log.output)}
-                            </ReactMarkdown>
-                        </div>
+                        <MarkdownRenderer
+                            content={preprocessMarkdown(log.output)}
+                            className="prose-p:text-[13px] prose-p:leading-relaxed prose-p:my-2
+                                prose-headings:text-slate-950 dark:prose-headings:text-white
+                                prose-h1:text-lg prose-h1:mt-4 prose-h1:mb-2
+                                prose-h2:text-base prose-h2:mt-3 prose-h2:mb-1.5
+                                prose-h3:text-sm prose-h3:mt-2 prose-h3:mb-1
+                                prose-ul:my-2 prose-ul:pl-5 prose-ul:text-[13px]
+                                prose-ol:my-2 prose-ol:pl-5 prose-ol:text-[13px]
+                                prose-li:my-0.5
+                                prose-code:text-xs prose-code:font-mono prose-code:px-1"
+                        />
                     ) : null}
                 </div>
             )}

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, Eye } from 'lucide-react';
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { extractPathAndContent } from '../utils/artifact';
 import { preprocessMarkdown } from '../utils/markdown';
 import { useChatStore } from '../store/useChatStore';
@@ -654,20 +653,17 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     if (!cleanThought) return null;
 
     return (
-        <div className="select-text prose prose-slate dark:prose-invert max-w-none 
-            text-[14.5px] text-slate-800 dark:text-zinc-200 leading-relaxed my-1.5 px-0.5 font-medium
-            prose-p:my-1.5 prose-p:last:mb-0
-            prose-headings:font-bold prose-headings:text-[15px] prose-headings:my-2
-            prose-ul:my-1.5 prose-ul:list-disc prose-ul:pl-5
-            prose-ol:my-1.5 prose-ol:list-decimal prose-ol:pl-5
-            prose-li:my-0.5
-            prose-strong:text-slate-900 dark:prose-strong:text-zinc-100
-            prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none"
-        >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {cleanThought}
-            </ReactMarkdown>
-        </div>
+        <MarkdownRenderer
+            content={cleanThought}
+            className="text-[14.5px] text-slate-800 dark:text-zinc-200 leading-relaxed my-1.5 px-0.5 font-medium
+                prose-p:my-1.5 prose-p:last:mb-0
+                prose-headings:font-bold prose-headings:text-[15px] prose-headings:my-2
+                prose-ul:my-1.5 prose-ul:list-disc prose-ul:pl-5
+                prose-ol:my-1.5 prose-ol:list-decimal prose-ol:pl-5
+                prose-li:my-0.5
+                prose-strong:text-slate-900 dark:prose-strong:text-zinc-100
+                prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none"
+        />
     );
 };
 
