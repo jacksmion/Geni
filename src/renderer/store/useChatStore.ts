@@ -11,7 +11,7 @@ interface ActiveArtifact {
 
 interface ChatState {
     sessions: Record<string, ChatSession>
-    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string }[]
+    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[] }[]
     activeSessionId: string
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
@@ -74,11 +74,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             // Convert to Record
             const sessions: Record<string, ChatSession> = {};
-            const sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string }[] = [];
+            const sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[] }[] = [];
             list.forEach((meta: any) => {
                 // Ensure messages is initialized (even if empty) to satisfy type
                 sessions[meta.id] = { ...meta, messages: [] };
-                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt, staffId: meta.staffId, modelId: meta.modelId, workspacePath: meta.workspacePath });
+                sessionMetas.push({ id: meta.id, title: meta.title, updatedAt: meta.updatedAt, staffId: meta.staffId, modelId: meta.modelId, workspacePath: meta.workspacePath, activeSkillIds: meta.activeSkillIds });
             });
 
             if (list.length > 0) {
@@ -88,7 +88,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const messages = await window.electronAPI.session.getHistory(activeId);
                 sessions[activeId].messages = messages;
 
-                set({ sessions, sessionMetas, activeSessionId: activeId });
+                // Restore selectedSkillIds from the active session's persisted data
+                const restoredSkills = list[0]?.activeSkillIds?.length > 0 ? list[0].activeSkillIds : null;
+                set({ sessions, sessionMetas, activeSessionId: activeId, selectedSkillIds: restoredSkills });
             } else {
                 // Init default if empty
                 // Create via backend
@@ -143,7 +145,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             sessions: { ...state.sessions, [tempId]: newSession },
             activeSessionId: tempId,
             draftSessionId: tempId,
-            activeTab: 'chat'
+            activeTab: 'chat',
+            selectedSkillIds: null
         }));
     },
 
@@ -160,6 +163,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { sessions } = get();
         const session = sessions[id];
 
+        // Restore selectedSkillIds from the target session's persisted data
+        const meta = get().sessionMetas.find(m => m.id === id);
+        const restoredSkills = meta?.activeSkillIds?.length ? meta.activeSkillIds : null;
+
         if (session) {
             // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
@@ -171,15 +178,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
                             [id]: { ...state.sessions[id], messages }
                         },
                         activeSessionId: id,
-                        activeTab: 'chat'
+                        activeTab: 'chat',
+                        selectedSkillIds: restoredSkills
                     }));
                 } catch (error) {
                     console.error('Failed to load session history for id', id, ':', error);
                     // Fallback to switching anyway
-                    set({ activeSessionId: id, activeTab: 'chat' });
+                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: restoredSkills });
                 }
             } else {
-                set({ activeSessionId: id, activeTab: 'chat' });
+                set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: restoredSkills });
             }
         }
     },
@@ -772,6 +780,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
             // Start Agent
             const isDraft = get().draftSessionId === activeSessionId;
             const skillIds = get().selectedSkillIds;
+            // Save selected skills to session for display
+            if (skillIds !== null && skillIds.length > 0) {
+                set(state => {
+                    const session = state.sessions[activeSessionId];
+                    if (session) {
+                        return { sessions: { ...state.sessions, [activeSessionId]: { ...session, activeSkillIds: skillIds } }, selectedSkillIds: null };
+                    }
+                    return state;
+                });
+                window.electronAPI.session.save({ id: activeSessionId, activeSkillIds: skillIds }).catch(() => {});
+            } else {
+                set({ selectedSkillIds: null });
+            }
             const options: any = {};
             if (skillIds !== null) options.skills = skillIds;
             if (currentSession.staffId) options.staffId = currentSession.staffId;
@@ -820,6 +841,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     if (realSession.staffId) savePayload.staffId = realSession.staffId;
                     if (realSession.modelId) savePayload.modelId = realSession.modelId;
                     if (realSession.workspacePath) savePayload.workspacePath = realSession.workspacePath;
+                    if (realSession.activeSkillIds?.length) savePayload.activeSkillIds = realSession.activeSkillIds;
                     window.electronAPI.session.save(savePayload);
                     const userMsg = realSession.messages.find(m => m.role === 'user');
                     if (userMsg) {

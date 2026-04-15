@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
-import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight, Brain } from 'lucide-react'
+import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight, Brain, Sparkles } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage } from '../../../common/types/chat'
@@ -25,6 +25,7 @@ export function MessageList() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
     const staffId = sessions[activeSessionId]?.staffId
+    const activeSkillIds = sessions[activeSessionId]?.activeSkillIds
     const endRef = useRef<HTMLDivElement>(null)
     const rafScrollRef = useRef<number | null>(null)
 
@@ -118,6 +119,9 @@ export function MessageList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length]);
 
+    // Find the first user message to show skill tags
+    const firstUserMsgIdx = groupedMessages.findIndex(m => m.role === 'user');
+
     return (
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
             {groupedMessages.map((msg, idx) => (
@@ -126,6 +130,7 @@ export function MessageList() {
                     message={msg}
                     isStreaming={isSending && idx === groupedMessages.length - 1}
                     staffId={staffId}
+                    skillIds={idx === firstUserMsgIdx ? activeSkillIds : undefined}
                 />
             ))}
             <div ref={endRef} className="h-4" />
@@ -326,10 +331,19 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
     )
 }
 
-const MessageItem = React.memo(function MessageItem({ message, isStreaming, staffId }: { message: ChatMessage, isStreaming?: boolean, staffId?: string }) {
+const MessageItem = React.memo(function MessageItem({ message, isStreaming, staffId, skillIds }: { message: ChatMessage, isStreaming?: boolean, staffId?: string, skillIds?: string[] }) {
     const { profiles } = useStaffStore()
+    const [skills, setSkills] = useState<{id: string; name: string}[]>([])
     const staff = staffId ? profiles.find(p => p.id === staffId) : undefined
     const isUser = message.role === 'user';
+
+    useEffect(() => {
+        if (skillIds && skillIds.length > 0 && skills.length === 0) {
+            window.electronAPI.tools.getSkills().then((allSkills: any[]) => {
+                setSkills(allSkills.map((s: any) => ({ id: s.id, name: s.name })));
+            });
+        }
+    }, [skillIds]);
     const isArrayContent = Array.isArray(message.content);
     const contentParts = isArrayContent ? (message.content as import('../../../common/types/chat').ContentPart[]) : [];
     
@@ -368,20 +382,35 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
                 isUser ? "items-end" : "items-start"
             )}>
                 {isUser && (
-                    <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-slate-100 dark:bg-[#1e1e20] text-slate-800 dark:text-zinc-200 text-[14.5px] font-medium leading-relaxed max-w-[85%] flex flex-col gap-3">
-                        {isArrayContent ? (
-                            contentParts.map((part, idx) => {
-                                if (part.type === 'text') {
-                                    return <div key={idx} className="whitespace-pre-wrap">{part.text}</div>;
-                                } else if (part.type === 'image_url') {
-                                    return <img key={idx} src={part.image_url.url} alt="upload" className="max-w-[300px] border border-slate-200 dark:border-white/10 rounded-lg" />;
-                                }
-                                return null;
-                            })
-                        ) : (
-                            textContent
+                    <>
+                        <div className="select-text px-5 py-3 rounded-2xl rounded-tr-sm bg-slate-100 dark:bg-[#1e1e20] text-slate-800 dark:text-zinc-200 text-[14.5px] font-medium leading-relaxed max-w-[85%] flex flex-col gap-3">
+                            {isArrayContent ? (
+                                contentParts.map((part, idx) => {
+                                    if (part.type === 'text') {
+                                        return <div key={idx} className="whitespace-pre-wrap">{part.text}</div>;
+                                    } else if (part.type === 'image_url') {
+                                        return <img key={idx} src={part.image_url.url} alt="upload" className="max-w-[300px] border border-slate-200 dark:border-white/10 rounded-lg" />;
+                                    }
+                                    return null;
+                                })
+                            ) : (
+                                textContent
+                            )}
+                        </div>
+                        {skillIds && skillIds.length > 0 && skills.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-[85%] mt-1">
+                                <Sparkles size={10} className="text-violet-400 dark:text-violet-500 shrink-0" />
+                                {skillIds.map(id => {
+                                    const skill = skills.find(s => s.id === id);
+                                    return skill ? (
+                                        <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400 ring-1 ring-inset ring-violet-200/50 dark:ring-violet-500/20">
+                                            {skill.name}
+                                        </span>
+                                    ) : null;
+                                })}
+                            </div>
                         )}
-                    </div>
+                    </>
                 )}
 
                 {/* Assistant Content - Editorial Style */}

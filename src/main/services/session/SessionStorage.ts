@@ -206,7 +206,8 @@ export class SessionStorage {
             preview: this.extractTextFromContent(session.messages[session.messages.length - 1]?.content).slice(0, 100) || undefined,
             staffId: session.staffId,
             modelId: session.modelId,
-            workspacePath: session.workspacePath
+            workspacePath: session.workspacePath,
+            activeSkillIds: session.activeSkillIds
         };
 
         if (index > -1) {

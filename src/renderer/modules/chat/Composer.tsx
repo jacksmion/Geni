@@ -111,9 +111,11 @@ export function Composer() {
     const isDraft = draftSessionId === activeSessionId
     const { t } = useTranslation()
 
-    const placeholderText = isDraft
-        ? t('chatLayout.placeholderDraft')
-        : t('chatLayout.placeholderContinue')
+    const placeholderText = (currentStaff || (selectedSkillIds && selectedSkillIds.length > 0))
+        ? ''
+        : isDraft
+            ? t('chatLayout.placeholderDraft')
+            : t('chatLayout.placeholderContinue')
 
     const [showSlashMenu, setShowSlashMenu] = useState(false)
     const [slashSearchText, setSlashSearchText] = useState('')

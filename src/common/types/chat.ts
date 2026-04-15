@@ -82,4 +82,5 @@ export interface SessionMeta {
     staffId?: string;
     modelId?: string;
     workspacePath?: string;
+    activeSkillIds?: string[];
 }
