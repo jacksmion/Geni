@@ -104,7 +104,6 @@ export default function Settings() {
                             <p className="text-slate-500 dark:text-gray-400">{t('settings.about.slogan')}</p>
 
                             <div className="pt-8 text-xs text-slate-400">
-                                Version 1.0.0 (Beta) <br />
                                 © 2026 Geni Inc.
                             </div>
                         </div>

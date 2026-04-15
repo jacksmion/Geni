@@ -2,7 +2,7 @@
 
 > **Last Updated**: 2026-04-13  
 > **Architecture Version**: V4.0 - Three-Layer Architecture
-> **Current Version**: 1.0.2
+> **Current Version**: 1.0.3
 
 ## 1. Project Overview
 
