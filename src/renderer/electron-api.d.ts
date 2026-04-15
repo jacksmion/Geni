@@ -42,6 +42,7 @@ export interface IElectronAPI {
         testLark: (config: any) => Promise<{ success: boolean, message: string }>;
         testWechat: () => Promise<{ success: boolean, message: string }>;
         readFileBase64: (path: string) => Promise<string>;
+        readTextFile: (path: string) => Promise<{ content: string; path: string } | null>;
         addAllowedPath: (filePath: string) => Promise<void>;
         getUsageStats: () => Promise<any>;
         readProfileFile: (name: string) => Promise<string>;

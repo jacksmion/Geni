@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useChatStore } from '../store/useChatStore';
-import { FileCode, Terminal as TerminalIcon, X, Copy, Check } from 'lucide-react';
+import { FileCode, Terminal as TerminalIcon, FileText, X, Copy, Check } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -33,6 +33,7 @@ export const ArtifactPanel: React.FC = () => {
     if (!activeArtifact) return null;
 
     const isBash = activeArtifact.toolName === 'bash';
+    const isPreview = activeArtifact.toolName === 'preview';
     const isEdit = activeArtifact.toolName === 'edit' || activeArtifact.toolName === 'replace_file_content' || activeArtifact.toolName === 'multi_replace_file_content';
     const ext = activeArtifact.path.split('.').pop() || 'text';
     const isMarkdown = ext === 'md' || ext === 'markdown';
@@ -53,13 +54,15 @@ export const ArtifactPanel: React.FC = () => {
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 shadow-sm">
                         {isBash ? (
                             <TerminalIcon size={16} className="text-emerald-500" />
+                        ) : isPreview ? (
+                            <FileText size={16} className="text-violet-500" />
                         ) : (
                             <FileCode size={16} className="text-blue-500" />
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-100 uppercase tracking-widest">
-                            {activeArtifact.toolName}
+                            {isPreview ? 'preview' : activeArtifact.toolName}
                         </span>
                         <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono truncate max-w-[320px] lg:max-w-[450px]">
                             {activeArtifact.path || 'Generating...'}

@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         testLark: (config: any) => ipcRenderer.invoke('system:test-lark', config),
         testWechat: () => ipcRenderer.invoke('system:test-wechat'),
         readFileBase64: (path: string) => ipcRenderer.invoke('system:read-file-base64', path),
+        readTextFile: (path: string) => ipcRenderer.invoke('system:read-text-file', path),
         addAllowedPath: (filePath: string) => ipcRenderer.invoke('system:add-allowed-path', filePath),
         getUsageStats: () => ipcRenderer.invoke('system:get-usage-stats'),
         readProfileFile: (name: string) => ipcRenderer.invoke('system:read-profile-file', name),

@@ -55,6 +55,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LARK, (_, config) => this.handleTestLark(config));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_WECHAT, () => this.handleTestWechat());
         ipcMain.handle(SYSTEM_CHANNELS.READ_FILE_BASE64, (_, path) => this.handleReadFileBase64(path));
+        ipcMain.handle(SYSTEM_CHANNELS.READ_TEXT_FILE, (_, path: string) => this.handleReadTextFile(path));
         ipcMain.handle(SYSTEM_CHANNELS.ADD_ALLOWED_PATH, (_, filePath: string) => this.handleAddAllowedPath(filePath));
         ipcMain.handle(SYSTEM_CHANNELS.GET_USAGE_STATS, () => this.usageManager.getStats());
         ipcMain.handle(SYSTEM_CHANNELS.READ_PROFILE_FILE, (_, name: string) => this.handleReadProfileFile(name));
@@ -255,6 +256,17 @@ export class SystemController {
         } catch (error: any) {
             console.error(`[SystemController] Failed to read file ${filePath}:`, error);
             throw error;
+        }
+    }
+
+    private async handleReadTextFile(filePath: string): Promise<{ content: string; path: string } | null> {
+        try {
+            const stat = await fs.promises.stat(filePath);
+            if (stat.size > 5 * 1024 * 1024) return null; // skip files > 5MB
+            const content = await fs.promises.readFile(filePath, 'utf-8');
+            return { content, path: filePath };
+        } catch {
+            return null;
         }
     }
 
