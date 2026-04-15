@@ -108,6 +108,7 @@ export class AppRouter {
             this.toolRegistry,
             this.sessionManager,
             this.skillRegistry,
+            this.configManager,
             memoryStore,
             this.usageManager,
             executor

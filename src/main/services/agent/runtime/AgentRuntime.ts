@@ -21,6 +21,7 @@ import { SessionManager } from '../../session/SessionManager';
 import { SkillRegistry } from '../../skills/core/SkillRegistry';
 import { MemoryStore } from '../../memory/MemoryStore';
 import { UsageManager } from '../../usage/UsageManager';
+import { ConfigManager } from '../../ConfigManager';
 import { PromptBuilder } from '../PromptBuilder';
 import fs from 'fs';
 import path from 'path';
@@ -31,6 +32,7 @@ export class AgentRuntime {
     private toolRegistry: ToolRegistry;
     private sessionManager: SessionManager;
     private skillRegistry: SkillRegistry;
+    private configManager: ConfigManager;
     private memoryStore: MemoryStore;
     private usageManager: UsageManager;
     private executor: AgentExecutor;
@@ -46,6 +48,7 @@ export class AgentRuntime {
         toolRegistry: ToolRegistry,
         sessionManager: SessionManager,
         skillRegistry: SkillRegistry,
+        configManager: ConfigManager,
         memoryStore: MemoryStore,
         usageManager: UsageManager,
         executor: AgentExecutor
@@ -53,6 +56,7 @@ export class AgentRuntime {
         this.toolRegistry = toolRegistry;
         this.sessionManager = sessionManager;
         this.skillRegistry = skillRegistry;
+        this.configManager = configManager;
         this.memoryStore = memoryStore;
         this.usageManager = usageManager;
         this.executor = executor;
@@ -74,7 +78,10 @@ export class AgentRuntime {
         const runId = crypto.randomUUID();
 
         const effectiveSkillIds = request.skillIds ?? agent.skillIds;
-        const skills = this.convertToSkills(effectiveSkillIds);
+        // Fallback: neither request nor agent specified skills → load all enabled skills
+        const skills = effectiveSkillIds
+            ? this.convertToSkills(effectiveSkillIds)
+            : this.convertToAllEnabledSkills();
 
         const effectiveToolNames = request.toolNames ?? agent.allowedTools;
         const baseTools = effectiveToolNames
@@ -239,5 +246,30 @@ export class AgentRuntime {
             trustLevel: 'Auto' as const,
             source: this.skillRegistry.getSource(obj.id) || 'global'
         }));
+    }
+
+    /**
+     * Load all enabled skills (fallback when neither request nor agent specifies skillIds).
+     */
+    private convertToAllEnabledSkills(): Skill[] {
+        const allSkills = this.skillRegistry.getAll();
+        const settings = this.configManager.load();
+        const skillSettings = settings.skillSettings || {};
+
+        return allSkills
+            .filter(s => {
+                const saved = skillSettings[s.id];
+                return saved ? saved.enabled : true; // default enabled
+            })
+            .map(obj => ({
+                id: obj.id,
+                name: obj.name,
+                description: obj.description,
+                content: obj.instruction,
+                path: obj.path || '',
+                enabled: true,
+                trustLevel: 'Auto' as const,
+                source: this.skillRegistry.getSource(obj.id) || 'global'
+            }));
     }
 }

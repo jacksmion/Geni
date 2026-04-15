@@ -44,12 +44,10 @@ export class SkillLoaderTool implements ITool {
         const skill = this.skillRegistry.get(skillId);
 
         if (!skill) {
-            const allSkills = this.skillRegistry.getAll();
-            const ids = allSkills.map(s => s.id).join(', ');
             return {
                 toolName: 'load_skill',
                 isError: true,
-                result: `Skill "${skillId}" not found. Registered skills: ${ids || 'none'}`
+                result: `Skill "${skillId}" not found. Please check the skill ID in your System Prompt.`
             };
         }
 
