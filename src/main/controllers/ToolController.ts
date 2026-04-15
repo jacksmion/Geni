@@ -179,7 +179,11 @@ export class ToolController {
         return allSkills.filter(s => ids.includes(s.id));
     }
 
-    private handleGetSkills(): Skill[] {
+    private async handleGetSkills(): Promise<Skill[]> {
+        // Reload global skills from disk to pick up newly created skills
+        this.skillRegistry.removeBySource('global');
+        await this.skillRegistry.loadFromDirectory(this.globalSkillsDir, 'global');
+
         const skillObjects = this.skillRegistry.getAll();
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
@@ -199,11 +203,11 @@ export class ToolController {
         });
     }
 
-    private handleToggleSkill(id: string): Skill[] {
+    private async handleToggleSkill(id: string): Promise<Skill[]> {
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
 
-        const currentList = this.handleGetSkills();
+        const currentList = await this.handleGetSkills();
         const target = currentList.find(s => s.id === id);
 
         if (target) {
@@ -218,14 +222,14 @@ export class ToolController {
             });
         }
 
-        return this.handleGetSkills();
+        return await this.handleGetSkills();
     }
 
-    private handleSetTrustLevel(id: string, level: 'Ask' | 'Auto'): Skill[] {
+    private async handleSetTrustLevel(id: string, level: 'Ask' | 'Auto'): Promise<Skill[]> {
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
 
-        const currentList = this.handleGetSkills();
+        const currentList = await this.handleGetSkills();
         const target = currentList.find(s => s.id === id);
 
         if (target) {
@@ -240,7 +244,7 @@ export class ToolController {
             });
         }
 
-        return this.handleGetSkills();
+        return await this.handleGetSkills();
     }
 
     private handleListMcpTools() {
