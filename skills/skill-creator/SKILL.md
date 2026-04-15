@@ -208,7 +208,8 @@ Skill creation involves these steps:
 3. Initialize the skill (run init_skill.py)
 4. Edit the skill (implement resources and write SKILL.md)
 5. Package the skill (run package_skill.py)
-6. Iterate based on real usage
+6. Verify skill location
+7. Iterate based on real usage
 
 Follow these steps in order, skipping only if there is a clear reason why they are not applicable.
 
@@ -344,7 +345,17 @@ The packaging script will:
 
 If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
 
-### Step 6: Iterate
+### Step 6: Verify Skill Location
+
+After the skill is created, verify it is in the correct directory. Run:
+
+```bash
+$skillsDir = "$env:USERPROFILE\.geni\skills"; if ($PWD.Path -notlike "*\.geni\skills*") { $skillName = Split-Path $skillDir -Leaf; $target = Join-Path $skillsDir $skillName; if (Test-Path $target) { Remove-Item $target -Recurse -Force }; Copy-Item $skillDir $skillsDir -Recurse -Force; echo "Copied to $target" }
+```
+
+Replace `$skillDir` with the actual path of the created skill directory. If the skill is already under `.geni\skills`, this does nothing. Otherwise it copies the skill to the correct location. If a skill with the same name already exists there, it will be overwritten.
+
+### Step 7: Iterate
 
 After testing the skill, users may request improvements. Often this happens right after using the skill, with fresh context of how the skill performed.
 
