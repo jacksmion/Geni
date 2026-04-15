@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import React, { useEffect, useRef, useState, lazy, Suspense, MutableRefObject } from 'react'
 import { Bot, User, CheckCircle2, Terminal, Copy, Check, ChevronDown, ChevronUp, ChevronRight, Brain, Sparkles } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
 import { StaffAvatar } from '../../components/StaffAvatar'
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -18,39 +19,20 @@ const MermaidBlock = lazy(() => import('../../components/MermaidBlock'))
 const SvgBlock = lazy(() => import('../../components/SvgBlock').then(m => ({ default: m.SvgBlock })))
 
 const EMPTY_ARRAY: ChatMessage[] = []
+const GAP = 32 // space-y-8 = 32px gap between items
 
-export function MessageList() {
+export function MessageList({ scrollContainerRef }: { scrollContainerRef: MutableRefObject<HTMLDivElement | null> }) {
     const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
     const isSending = useChatStore(s => s.runningSessions.has(s.activeSessionId))
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
     const staffId = sessions[activeSessionId]?.staffId
-    const endRef = useRef<HTMLDivElement>(null)
-    const rafScrollRef = useRef<number | null>(null)
 
-    useEffect(() => {
-        // Streaming 时禁用 smooth scroll，避免持续动画挤占主线程。
-        if (rafScrollRef.current !== null) {
-            cancelAnimationFrame(rafScrollRef.current)
-        }
-
-        rafScrollRef.current = requestAnimationFrame(() => {
-            endRef.current?.scrollIntoView({ behavior: isSending ? 'auto' : 'smooth' })
-            rafScrollRef.current = null
-        })
-
-        return () => {
-            if (rafScrollRef.current !== null) {
-                cancelAnimationFrame(rafScrollRef.current)
-                rafScrollRef.current = null
-            }
-        }
-    }, [messages, messages.length, isSending])
+    const isNearBottomRef = useRef(true)
+    const prevSessionIdRef = useRef(activeSessionId)
+    const [containerHeight, setContainerHeight] = useState(0)
 
     // Message Grouping Logic
-    // Merges consecutive ReAct iterations (assistant+tool pairs) into a single visual message.
-    // The final answer (assistant without tool_calls) is merged with preceding tool iterations.
-    // 只有真正影响 grouping 的字段变化时才重新计算，避免 streaming 每帧重算
     const lastMsg = messages[messages.length - 1];
     const groupedMessages = React.useMemo(() => {
         const groups: ChatMessage[] = [];
@@ -60,30 +42,24 @@ export function MessageList() {
             if (skipIndices.has(i)) continue;
             const msg = messages[i];
 
-            // Skip standalone tool messages (handled within steps)
             if (msg.role === 'tool') continue;
 
-            // Detect start of a ReAct chain: assistant with tool_calls
             if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-                // Walk forward, collecting all consecutive (assistant+tool) rounds
                 const chainSteps: any[] = [...(msg.steps || [])];
                 let lastContent = msg.content || '';
                 let j = i + 1;
 
                 while (j < messages.length) {
-                    // Skip tool result messages
                     if (messages[j].role === 'tool') {
                         skipIndices.add(j);
                         j++;
                         continue;
                     }
 
-                    // Next assistant message - part of the chain?
                     if (messages[j].role === 'assistant') {
                         const nextAssistant = messages[j];
 
                         if (nextAssistant.tool_calls && nextAssistant.tool_calls.length > 0) {
-                            // Another tool call round - merge its steps and continue
                             if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
                             if (nextAssistant.content) lastContent = nextAssistant.content;
                             skipIndices.add(j);
@@ -92,7 +68,6 @@ export function MessageList() {
                         }
 
                         if (!nextAssistant.tool_calls && nextAssistant.content) {
-                            // Final answer - merge and stop
                             lastContent = nextAssistant.content;
                             if (nextAssistant.steps) chainSteps.push(...nextAssistant.steps);
                             skipIndices.add(j);
@@ -100,7 +75,6 @@ export function MessageList() {
                         }
                     }
 
-                    // Non-assistant, non-tool message - chain ends
                     break;
                 }
 
@@ -118,18 +92,114 @@ export function MessageList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length]);
 
+    const virtualizer = useVirtualizer({
+        count: groupedMessages.length,
+        getScrollElement: () => scrollContainerRef.current,
+        estimateSize: (index) => {
+            const msg = groupedMessages[index];
+            if (msg.role === 'user') return 80;
+            if (msg.steps && msg.steps.length > 0) return 400;
+            return 200;
+        },
+        overscan: 5,
+        gap: GAP,
+        getItemKey: (index) => groupedMessages[index].id ?? index,
+    });
+
+    // Track scroll position to know if user is near bottom
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+
+        const onScroll = () => {
+            const threshold = 100;
+            isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+        };
+
+        el.addEventListener('scroll', onScroll, { passive: true });
+        return () => el.removeEventListener('scroll', onScroll);
+    }, [scrollContainerRef]);
+
+    // Track container height for bottom-alignment padding
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+
+        const ro = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                setContainerHeight(entry.contentRect.height);
+            }
+        });
+        ro.observe(el);
+        setContainerHeight(el.clientHeight);
+        return () => ro.disconnect();
+    }, [scrollContainerRef]);
+
+    // Auto-scroll: streaming or new messages when near bottom
+    // NOTE: isSending ? totalSize : 0 ensures re-trigger during streaming
+    // (content grows → totalSize changes → scroll follows). Without this,
+    // only groupedMessages.length changes trigger scroll, which misses
+    // in-place content growth on the 2nd+ message.
+    const totalSize = virtualizer.getTotalSize();
+
+    useEffect(() => {
+        if (groupedMessages.length === 0) return;
+        if (!isNearBottomRef.current) return;
+
+        const lastIndex = groupedMessages.length - 1;
+        virtualizer.scrollToIndex(lastIndex, { align: 'end', behavior: isSending ? 'auto' : 'smooth' });
+    }, [groupedMessages.length, isSending, virtualizer, isSending ? totalSize : 0]);
+
+    // Session switch: scroll to bottom
+    useEffect(() => {
+        if (activeSessionId !== prevSessionIdRef.current) {
+            prevSessionIdRef.current = activeSessionId;
+            isNearBottomRef.current = true;
+
+            // Reset virtualizer cached sizes for new session
+            virtualizer.measure();
+
+            requestAnimationFrame(() => {
+                if (groupedMessages.length > 0) {
+                    virtualizer.scrollToIndex(groupedMessages.length - 1, { align: 'end', behavior: 'auto' });
+                }
+            });
+        }
+    }, [activeSessionId, groupedMessages.length, virtualizer]);
+
+    const paddingTop = Math.max(0, containerHeight - totalSize);
+
     return (
-        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
-            {groupedMessages.map((msg, idx) => (
-                <MessageItem
-                    key={msg.id}
-                    message={msg}
-                    isStreaming={isSending && idx === groupedMessages.length - 1}
-                    staffId={staffId}
-                    skillIds={msg.skillIds}
-                />
-            ))}
-            <div ref={endRef} className="h-4" />
+        <div
+            className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4"
+            style={{ height: totalSize + paddingTop, paddingTop }}
+        >
+            <div style={{ height: totalSize, position: 'relative' }}>
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const msg = groupedMessages[virtualItem.index];
+                    return (
+                        <div
+                            key={virtualItem.key}
+                            data-index={virtualItem.index}
+                            ref={virtualizer.measureElement}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                transform: `translateY(${virtualItem.start}px)`,
+                            }}
+                        >
+                            <MessageItem
+                                message={msg}
+                                isStreaming={isSending && virtualItem.index === groupedMessages.length - 1}
+                                staffId={staffId}
+                                skillIds={msg.skillIds}
+                            />
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     )
 }

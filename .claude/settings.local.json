@@ -34,7 +34,12 @@
       "mcp__plugin_context7_context7__query-docs",
       "Bash(git status:*)",
       "Bash(find node_modules/mermaid -name *.json -path */dist/*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__deepwiki__ask_question",
+      "mcp__zread__search_doc",
+      "WebSearch",
+      "mcp__zread__read_file",
+      "mcp__web-reader__webReader"
     ]
   }
 }

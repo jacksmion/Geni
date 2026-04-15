@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Cpu, Bot } from 'lucide-react'
 import { useChatStore } from '../store/useChatStore'
 import { useShallow } from 'zustand/react/shallow'
@@ -172,6 +172,8 @@ export function ChatLayout() {
 
     const hasMessages = currentSessionMeta?.hasMessages || false;
 
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+
     return (
         <div className="flex h-full w-full overflow-hidden">
             {/* Session List Sidebar */}
@@ -235,8 +237,8 @@ export function ChatLayout() {
                     {hasMessages ? (
                         <>
                             {/* Main Content Area */}
-                            <div className="message-scroll flex-1 overflow-auto relative">
-                                <MessageList />
+                            <div className="message-scroll flex-1 overflow-auto relative" ref={scrollContainerRef}>
+                                <MessageList scrollContainerRef={scrollContainerRef} />
                             </div>
 
                             {/* Status Indicator */}

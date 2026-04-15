@@ -27,6 +27,7 @@
     "@grammyjs/runner": "^2.0.3",
     "@larksuiteoapi/node-sdk": "^1.59.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@tanstack/react-virtual": "^3.13.23",
     "@wecom/aibot-node-sdk": "^1.0.1",
     "adm-zip": "^0.5.17",
     "cheerio": "^1.2.0",
