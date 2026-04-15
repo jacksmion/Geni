@@ -3,7 +3,7 @@ import { useStaffStore } from '../store/useStaffStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useModalStore } from '../store/useModalStore'
 import { useTranslation } from 'react-i18next'
-import { Plus, ArrowLeft, Trash2, User, Briefcase, ChevronDown, Check, Search, Sparkles, Loader2 } from 'lucide-react'
+import { Plus, ArrowLeft, Trash2, User, ChevronDown, Check, Search, Sparkles, Loader2 } from 'lucide-react'
 import EmojiPicker, { Categories, Theme, type EmojiClickData } from 'emoji-picker-react'
 import { StaffProfile } from '../../common/types/staff'
 import { StaffAvatar } from '../components/StaffAvatar'
@@ -49,7 +49,7 @@ export default function StaffPage() {
                         <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{t('staffPage.emptyDesc')}</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
                         {profiles.map(p => (
                             <StaffCard key={p.id} profile={p} onClick={() => setEditingId(p.id)} />
                         ))}
@@ -64,7 +64,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
     return (
         <button
             onClick={onClick}
-            className="text-left p-5 rounded-xl border border-slate-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 group"
+            className="w-full h-full text-left p-5 rounded-xl border border-slate-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 group flex flex-col"
         >
             <div className="flex items-start gap-4">
                 {/* Avatar */}
@@ -81,8 +81,8 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                         {profile.name}
                     </h3>
                     {profile.description && (
-                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1">
-                            <Briefcase size={11} /> {profile.description}
+                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                            {profile.description}
                         </p>
                     )}
                 </div>
