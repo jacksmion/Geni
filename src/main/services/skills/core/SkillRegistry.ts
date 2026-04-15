@@ -10,8 +10,8 @@ export class SkillRegistry {
 
     register(skill: SkillObject, source: SkillSource = 'global') {
         const existingSource = this.skillSources.get(skill.id);
-        if (existingSource) {
-            console.log(`[SkillRegistry] Overriding skill ${skill.id} from ${existingSource} with ${source}`);
+        if (existingSource && existingSource !== source) {
+            console.debug(`[SkillRegistry] Overriding skill ${skill.id} from ${existingSource} with ${source}`);
         }
         this.skills.set(skill.id, skill);
         this.skillSources.set(skill.id, source);
@@ -49,12 +49,7 @@ export class SkillRegistry {
     async loadFromDirectory(directoryPath: string, source: SkillSource = 'global') {
         // Check if directory exists first to avoid ENOENT errors
         if (!existsSync(directoryPath)) {
-            if (source === 'project') {
-                // Project skills directory not existing is normal (user may not have created it yet)
-                console.log(`[SkillRegistry] Project skills directory does not exist, skipping: ${directoryPath}`);
-            } else {
-                console.log(`[SkillRegistry] Directory does not exist, skipping: ${directoryPath}`);
-            }
+            console.debug(`[SkillRegistry] Directory does not exist, skipping: ${directoryPath}`);
             return;
         }
 
@@ -80,7 +75,7 @@ export class SkillRegistry {
         } catch (error: any) {
             // Handle ENOENT gracefully (directory may have been deleted between check and read)
             if (error.code === 'ENOENT') {
-                console.log(`[SkillRegistry] Directory no longer exists, skipping: ${directoryPath}`);
+                console.debug(`[SkillRegistry] Directory no longer exists, skipping: ${directoryPath}`);
             } else {
                 console.error(`Error loading skills from ${directoryPath}:`, error);
             }
@@ -121,6 +116,6 @@ export class SkillRegistry {
             this.skills.delete(id);
             this.skillSources.delete(id);
         }
-        console.log(`[SkillRegistry] Removed ${skillsToRemove.length} skills from source: ${source}`);
+        console.debug(`[SkillRegistry] Removed ${skillsToRemove.length} skills from source: ${source}`);
     }
 }

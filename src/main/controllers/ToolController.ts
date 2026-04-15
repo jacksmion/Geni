@@ -179,11 +179,8 @@ export class ToolController {
         return allSkills.filter(s => ids.includes(s.id));
     }
 
-    private async handleGetSkills(): Promise<Skill[]> {
-        // Reload global skills from disk to pick up newly created skills
-        this.skillRegistry.removeBySource('global');
-        await this.skillRegistry.loadFromDirectory(this.globalSkillsDir, 'global');
-
+    /** 从当前内存 registry 构建技能列表（不触发磁盘 reload） */
+    private buildSkillList(): Skill[] {
         const skillObjects = this.skillRegistry.getAll();
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
@@ -196,55 +193,49 @@ export class ToolController {
                 description: obj.description,
                 content: obj.instruction,
                 path: obj.path || '',
-                enabled: saved ? saved.enabled : true, // Default true
+                enabled: saved ? saved.enabled : true,
                 trustLevel: saved ? saved.trustLevel : 'Ask',
                 source: this.skillRegistry.getSource(obj.id) || 'global'
             };
         });
     }
 
+    private async handleGetSkills(): Promise<Skill[]> {
+        // Reload global skills from disk to pick up newly created/deleted skills
+        this.skillRegistry.removeBySource('global');
+        await this.skillRegistry.loadFromDirectory(this.globalSkillsDir, 'global');
+        return this.buildSkillList();
+    }
+
     private async handleToggleSkill(id: string): Promise<Skill[]> {
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
-
-        const currentList = await this.handleGetSkills();
-        const target = currentList.find(s => s.id === id);
+        const target = this.skillRegistry.get(id);
 
         if (target) {
+            const saved = skillSettings[id];
             skillSettings[id] = {
-                enabled: !target.enabled,
-                trustLevel: target.trustLevel
+                enabled: saved ? !saved.enabled : false, // default enabled=true, toggle → false
+                trustLevel: saved?.trustLevel ?? 'Ask'
             };
-
-            this.configManager.save({
-                ...settings,
-                skillSettings
-            });
+            this.configManager.save({ ...settings, skillSettings });
         }
 
-        return await this.handleGetSkills();
+        return this.buildSkillList();
     }
 
     private async handleSetTrustLevel(id: string, level: 'Ask' | 'Auto'): Promise<Skill[]> {
         const settings = this.configManager.load();
         const skillSettings = settings.skillSettings || {};
+        const saved = skillSettings[id];
 
-        const currentList = await this.handleGetSkills();
-        const target = currentList.find(s => s.id === id);
+        skillSettings[id] = {
+            enabled: saved ? saved.enabled : true,
+            trustLevel: level
+        };
+        this.configManager.save({ ...settings, skillSettings });
 
-        if (target) {
-            skillSettings[id] = {
-                enabled: target.enabled,
-                trustLevel: level
-            };
-
-            this.configManager.save({
-                ...settings,
-                skillSettings
-            });
-        }
-
-        return await this.handleGetSkills();
+        return this.buildSkillList();
     }
 
     private handleListMcpTools() {
