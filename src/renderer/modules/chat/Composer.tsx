@@ -121,6 +121,7 @@ export function Composer() {
     const [slashSearchText, setSlashSearchText] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
     const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 })
+    const menuItemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
     // Build unified menu items: staff (only in draft) + skills
     const filteredStaff = isDraft
@@ -136,6 +137,13 @@ export function Composer() {
     ).map(s => ({ type: 'skill' as const, data: s }))
 
     const menuItems = [...filteredStaff, ...filteredSkillItems]
+
+    // Scroll selected menu item into view
+    useEffect(() => {
+        if (showSlashMenu) {
+            menuItemRefs.current[selectedIndex]?.scrollIntoView({ block: 'nearest' })
+        }
+    }, [selectedIndex, showSlashMenu])
 
     // Fetch skills to display their names in badges
     useEffect(() => {
@@ -259,7 +267,7 @@ export function Composer() {
                                 transform: 'translateY(-100%)'
                             }}
                         >
-                            <div className="max-h-[320px] overflow-y-auto scrollbar-hide p-1.5">
+                            <div className="max-h-[320px] overflow-y-auto p-1.5">
                                 {/* Staff Section */}
                                 {filteredStaff.length > 0 && (
                                     <>
@@ -273,6 +281,7 @@ export function Composer() {
                                             return (
                                                 <button
                                                     key={`staff-${staff.id}`}
+                                                    ref={el => { menuItemRefs.current[globalIdx] = el }}
                                                     onClick={(e) => { e.preventDefault(); handleSelectMenuItem(item) }}
                                                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                                                     className={cn(
@@ -322,6 +331,7 @@ export function Composer() {
                                             return (
                                                 <button
                                                     key={`skill-${skill.id}`}
+                                                    ref={el => { menuItemRefs.current[globalIdx] = el }}
                                                     onClick={(e) => { e.preventDefault(); handleSelectMenuItem(item) }}
                                                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                                                     className={cn(
