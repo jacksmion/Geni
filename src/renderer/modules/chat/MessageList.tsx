@@ -187,7 +187,7 @@ function ThinkingBlock({ content, isComplete }: ThinkingBlockProps) {
             </div>
             {isExpanded && (
                 <div className="mt-2 border-l-2 border-slate-200 dark:border-white/10 pl-4 py-1 overflow-hidden">
-                    <div className="text-[14px] leading-relaxed text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
+                    <div className="text-[13.5px] leading-[1.7] text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
                         {content.trimStart()}
                         {!isComplete && (
                             <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 streaming-cursor" />
@@ -234,7 +234,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                         <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">mermaid</span>
                     </div>
-                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[12.5px] leading-[1.65] text-slate-800 dark:text-zinc-300">
                         <code>{codeString}</code>
                         <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 animate-pulse" />
                     </pre>
@@ -264,7 +264,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                     <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                         <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">svg</span>
                     </div>
-                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                    <pre className="m-0 p-5 overflow-x-auto font-mono text-[12.5px] leading-[1.65] text-slate-800 dark:text-zinc-300">
                         <code>{codeString}</code>
                         <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 streaming-cursor" />
                     </pre>
@@ -291,7 +291,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                 <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
                     <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{match?.[1] || 'code'}</span>
                 </div>
-                <pre className="m-0 p-5 overflow-x-auto font-mono text-[13px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+                <pre className="m-0 p-5 overflow-x-auto font-mono text-[12.5px] leading-[1.65] text-slate-800 dark:text-zinc-300">
                     <code>{codeString}</code>
                     {isStreaming && <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50 streaming-cursor" />}
                 </pre>
@@ -315,7 +315,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
                     margin: 0,
                     padding: '1.25rem',
                     background: 'transparent',
-                    fontSize: '13px',
+                    fontSize: '12.5px',
                     lineHeight: '1.65',
                     letterSpacing: '-0.01em'
                 }}
@@ -457,19 +457,19 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
                                 {displayContent && (
                                     <div className="select-text prose prose-slate dark:prose-invert max-w-none
                                         text-slate-900 dark:text-zinc-100
-                                        prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
+                                        prose-p:text-[14px] prose-p:leading-[1.78] prose-p:my-3 prose-p:last:mb-0
                                         prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-                                        prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
-                                        prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
-                                        prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
-                                        prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
-                                        prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
+                                        prose-h1:text-[1.15rem] prose-h1:mt-6 prose-h1:mb-3
+                                        prose-h2:text-[1.02rem] prose-h2:mt-5 prose-h2:mb-2.5
+                                        prose-h3:text-[14px] prose-h3:mt-4 prose-h3:mb-2
+                                        prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14px] prose-ul:leading-[1.78]
+                                        prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14px] prose-ol:leading-[1.78]
                                         prose-li:my-1.5 prose-li:pl-1
                                         prose-li:prose-p:my-0
                                         prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
                                         prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
                                         prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
-                                        prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
+                                        prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-[13.5px] prose-blockquote:leading-[1.75] prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
                                         prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
                                         prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
                                         <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
@@ -494,19 +494,19 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
                             return (
                                 <div className="select-text prose prose-slate dark:prose-invert max-w-none
                                     text-slate-900 dark:text-zinc-100
-                                    prose-p:text-[14.5px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
+                                    prose-p:text-[14px] prose-p:leading-[1.78] prose-p:my-3 prose-p:last:mb-0
                                     prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-                                    prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
-                                    prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2.5
-                                    prose-h3:text-[15px] prose-h3:mt-4 prose-h3:mb-2
-                                    prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14.5px] prose-ul:leading-[1.75]
-                                    prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14.5px] prose-ol:leading-[1.75]
+                                    prose-h1:text-[1.15rem] prose-h1:mt-6 prose-h1:mb-3
+                                    prose-h2:text-[1.02rem] prose-h2:mt-5 prose-h2:mb-2.5
+                                    prose-h3:text-[14px] prose-h3:mt-4 prose-h3:mb-2
+                                    prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14px] prose-ul:leading-[1.78]
+                                    prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14px] prose-ol:leading-[1.78]
                                     prose-li:my-1.5 prose-li:pl-1
                                     prose-li:prose-p:my-0
                                     prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
                                     prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
                                     prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
-                                    prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
+                                    prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-[13.5px] prose-blockquote:leading-[1.75] prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
                                     prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
                                     prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0">
                                     <MessageItemContext.Provider value={{ isStreaming: !!isStreaming, messageContent: textContent }}>
@@ -525,7 +525,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
 
                         {/* Bottom Meta & Actions */}
                         <div className={cn(
-                            "flex items-center gap-3 text-[11px] text-slate-400 dark:text-zinc-500 font-medium mt-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+                            "flex items-center gap-3 text-[10px] text-slate-400 dark:text-zinc-500 font-medium mt-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
                             isUser ? "flex-reverse" : ""
                         )}>
                             {isUser ? (
