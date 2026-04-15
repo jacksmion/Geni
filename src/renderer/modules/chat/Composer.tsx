@@ -267,11 +267,11 @@ export function Composer() {
                                 transform: 'translateY(-100%)'
                             }}
                         >
-                            <div className="max-h-[320px] overflow-y-auto p-1.5">
+                            <div className="max-h-[216px] overflow-y-auto p-1.5">
                                 {/* Staff Section */}
                                 {filteredStaff.length > 0 && (
                                     <>
-                                        <div className="px-2.5 pt-1.5 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none">
+                                        <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none">
                                             数字员工
                                         </div>
                                         {filteredStaff.map((item, idx) => {
@@ -285,7 +285,7 @@ export function Composer() {
                                                     onClick={(e) => { e.preventDefault(); handleSelectMenuItem(item) }}
                                                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                                                     className={cn(
-                                                        "w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors",
+                                                        "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors",
                                                         isActive
                                                             ? "bg-slate-100 dark:bg-white/[0.07]"
                                                             : "hover:bg-slate-50 dark:hover:bg-white/[0.04]"
@@ -294,14 +294,14 @@ export function Composer() {
                                                     <StaffAvatar
                                                         avatar={staff.avatar}
                                                         name={staff.name}
-                                                        size={15}
+                                                        size={13}
                                                         iconClassName="text-slate-400 dark:text-zinc-500 shrink-0"
                                                     />
-                                                    <span className={cn("text-[13px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
+                                                    <span className={cn("text-[12px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
                                                         {staff.name}
                                                     </span>
                                                     {staff.description && (
-                                                        <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
+                                                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
                                                             {staff.description}
                                                         </span>
                                                     )}
@@ -316,8 +316,8 @@ export function Composer() {
                                 {filteredSkillItems.length > 0 && (
                                     <>
                                         <div className={cn(
-                                            "px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
-                                            filteredStaff.length > 0 ? "pt-2.5 mt-1 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1.5"
+                                            "px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
+                                            filteredStaff.length > 0 ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
                                         )}>
                                             技能
                                         </div>
@@ -335,18 +335,18 @@ export function Composer() {
                                                     onClick={(e) => { e.preventDefault(); handleSelectMenuItem(item) }}
                                                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                                                     className={cn(
-                                                        "w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors",
+                                                        "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors",
                                                         isActive
                                                             ? "bg-slate-100 dark:bg-white/[0.07]"
                                                             : "hover:bg-slate-50 dark:hover:bg-white/[0.04]"
                                                     )}
                                                 >
-                                                    <Sparkles size={14} className="shrink-0 text-slate-400 dark:text-zinc-500" />
-                                                    <span className={cn("text-[13px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
+                                                    <Sparkles size={12} className="shrink-0 text-slate-400 dark:text-zinc-500" />
+                                                    <span className={cn("text-[12px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
                                                         {skill.name}
                                                     </span>
                                                     {skill.description && (
-                                                        <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
+                                                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
                                                             {skill.description}
                                                         </span>
                                                     )}
