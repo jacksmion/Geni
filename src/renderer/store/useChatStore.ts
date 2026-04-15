@@ -274,8 +274,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (!session) return state;
 
             const updated = { ...session, title: newTitle };
-            
-            const newMetas = state.sessionMetas.map(m => 
+
+            const newMetas = state.sessionMetas.map(m =>
                 m.id === id ? { ...m, title: newTitle } : m
             );
 
@@ -379,8 +379,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let updatedMetas = state.sessionMetas;
         // Auto-title logic for first user message
         if (session.messages.length <= 1 && msg.role === 'user' && msg.content) {
-            const textContent = typeof msg.content === 'string' 
-                ? msg.content 
+            const textContent = typeof msg.content === 'string'
+                ? msg.content
                 : (Array.isArray(msg.content) ? msg.content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n') : '');
             const potentialTitle = textContent.trim().slice(0, 20);
             if (potentialTitle) {
@@ -388,14 +388,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 if (!get().draftSessionId) {
                     window.electronAPI.session.save({ id: session.id, title: potentialTitle });
                 }
-                
-                updatedMetas = state.sessionMetas.map(m => 
+
+                updatedMetas = state.sessionMetas.map(m =>
                     m.id === session.id ? { ...m, title: potentialTitle, updatedAt: updatedSession.updatedAt } : m
                 );
             }
         } else {
             // Update the timestamp for the active session in metas
-            updatedMetas = state.sessionMetas.map(m => 
+            updatedMetas = state.sessionMetas.map(m =>
                 m.id === session.id ? { ...m, updatedAt: updatedSession.updatedAt } : m
             );
         }
@@ -562,7 +562,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let pendingSteps: any[] | null = null;
         let isFlushing = false;
         let lastStepFlushTime = 0;
-        const STEP_THROTTLE_MS = 250;
+        const STEP_THROTTLE_MS = 16;
 
         const scheduleFlush = () => {
             if (!isFlushing) {
@@ -789,7 +789,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     }
                     return state;
                 });
-                window.electronAPI.session.save({ id: activeSessionId, activeSkillIds: skillIds }).catch(() => {});
+                window.electronAPI.session.save({ id: activeSessionId, activeSkillIds: skillIds }).catch(() => { });
             } else {
                 set({ selectedSkillIds: null });
             }

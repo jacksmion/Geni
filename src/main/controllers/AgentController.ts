@@ -38,7 +38,7 @@ export class AgentController {
     private staffManager: StaffManager;
     private sessionManager: SessionManager;
 
-    private readonly THROTTLE_MS = 120;
+    private readonly THROTTLE_MS = 16;
 
     constructor(
         private runtime: AgentRuntime,
