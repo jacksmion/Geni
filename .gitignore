@@ -6,3 +6,5 @@ dist-electron
 .DS_Store
 out
 release
+.npm-cache
+*.bak

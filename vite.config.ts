@@ -12,14 +12,27 @@ export default defineConfig({
         entry: 'src/main/main.ts',
         vite: {
           build: {
+            outDir: 'dist-electron',
             rollupOptions: {
-              external: ['@wecom/aibot-node-sdk', 'ws', 'bufferutil', 'utf-8-validate', 'silk-wasm', 'weixin-agent-sdk'],
+              external: [
+                '@wecom/aibot-node-sdk',
+                'weixin-agent-sdk',
+                'ws',
+                'bufferutil',
+                'utf-8-validate',
+                'silk-wasm',
+              ],
             },
           },
         },
       },
       {
         entry: 'src/main/preload.ts',
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+          },
+        },
         onstart(options) {
           options.reload()
         },
@@ -31,5 +44,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  // 生产环境构建优化
+  build: {
+    sourcemap: false,
+    target: 'esnext',
+    chunkSizeWarningLimit: 1000,
   },
 })
