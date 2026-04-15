@@ -57,6 +57,7 @@ export interface ChatMessage {
     steps?: AgentStep[];
     isError?: boolean;
     usage?: import('./usage').TokenUsage;
+    skillIds?: string[];              // 该消息发送时选中的技能
 }
 
 export interface ChatSession {

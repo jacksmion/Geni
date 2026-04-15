@@ -88,9 +88,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const messages = await window.electronAPI.session.getHistory(activeId);
                 sessions[activeId].messages = messages;
 
-                // Restore selectedSkillIds from the active session's persisted data
-                const restoredSkills = list[0]?.activeSkillIds?.length > 0 ? list[0].activeSkillIds : null;
-                set({ sessions, sessionMetas, activeSessionId: activeId, selectedSkillIds: restoredSkills });
+                set({ sessions, sessionMetas, activeSessionId: activeId, selectedSkillIds: null });
             } else {
                 // Init default if empty
                 // Create via backend
@@ -163,10 +161,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { sessions } = get();
         const session = sessions[id];
 
-        // Restore selectedSkillIds from the target session's persisted data
-        const meta = get().sessionMetas.find(m => m.id === id);
-        const restoredSkills = meta?.activeSkillIds?.length ? meta.activeSkillIds : null;
-
         if (session) {
             // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
@@ -179,15 +173,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
                         },
                         activeSessionId: id,
                         activeTab: 'chat',
-                        selectedSkillIds: restoredSkills
+                        selectedSkillIds: null
                     }));
                 } catch (error) {
                     console.error('Failed to load session history for id', id, ':', error);
                     // Fallback to switching anyway
-                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: restoredSkills });
+                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null });
                 }
             } else {
-                set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: restoredSkills });
+                set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null });
             }
         }
     },
@@ -515,8 +509,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         const userInput = finalContent.length > 0 ? finalContent : finalPrompt;
 
-        // 1. Add User Message
-        addMessage({ role: 'user', content: userInput as any });
+        // 1. Add User Message (with selected skills)
+        const skillIds = get().selectedSkillIds;
+        addMessage({ role: 'user', content: userInput as any, ...(skillIds && skillIds.length > 0 ? { skillIds } : {}) });
 
         // 2. Add Placeholder for Assistant
         set(state => ({

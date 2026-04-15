@@ -25,7 +25,6 @@ export function MessageList() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
     const staffId = sessions[activeSessionId]?.staffId
-    const activeSkillIds = sessions[activeSessionId]?.activeSkillIds
     const endRef = useRef<HTMLDivElement>(null)
     const rafScrollRef = useRef<number | null>(null)
 
@@ -119,9 +118,6 @@ export function MessageList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length]);
 
-    // Find the first user message to show skill tags
-    const firstUserMsgIdx = groupedMessages.findIndex(m => m.role === 'user');
-
     return (
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pt-6 pb-4 space-y-8 min-h-full flex flex-col justify-end">
             {groupedMessages.map((msg, idx) => (
@@ -130,7 +126,7 @@ export function MessageList() {
                     message={msg}
                     isStreaming={isSending && idx === groupedMessages.length - 1}
                     staffId={staffId}
-                    skillIds={idx === firstUserMsgIdx ? activeSkillIds : undefined}
+                    skillIds={msg.skillIds}
                 />
             ))}
             <div ref={endRef} className="h-4" />
@@ -338,7 +334,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
     const isUser = message.role === 'user';
 
     useEffect(() => {
-        if (skillIds && skillIds.length > 0 && skills.length === 0) {
+        if (skillIds && skillIds.length > 0) {
             window.electronAPI.tools.getSkills().then((allSkills: any[]) => {
                 setSkills(allSkills.map((s: any) => ({ id: s.id, name: s.name })));
             });
