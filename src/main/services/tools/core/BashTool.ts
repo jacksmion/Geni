@@ -118,9 +118,12 @@ export class BashTool implements ITool {
         this.currentCwd = this.allowedRoot;
     }
 
-    public setRoot(newRoot: string, allowedPaths: string[] = []) {
+    public setRoot(newRoot: string) {
+        const oldRoot = this.allowedRoot;
         this.allowedRoot = path.resolve(newRoot);
-        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+        this.allowedPaths = this.allowedPaths.map(p =>
+            p === oldRoot ? this.allowedRoot : p
+        );
         // Reset CWD to new root to ensure safety/consistency
         this.currentCwd = this.allowedRoot;
     }

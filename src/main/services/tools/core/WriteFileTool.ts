@@ -11,9 +11,12 @@ export class WriteFileTool implements ITool {
         this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
-    public setRoot(newRoot: string, allowedPaths: string[] = []) {
+    public setRoot(newRoot: string) {
+        const oldRoot = this.allowedRoot;
         this.allowedRoot = path.resolve(newRoot);
-        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+        this.allowedPaths = this.allowedPaths.map(p =>
+            p === oldRoot ? this.allowedRoot : p
+        );
     }
 
     protected isPathAllowed(targetPath: string): boolean {

@@ -12,9 +12,13 @@ export class ReadFileTool implements ITool {
         this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
     }
 
-    public setRoot(newRoot: string, allowedPaths: string[] = []) {
+    public setRoot(newRoot: string) {
+        const oldRoot = this.allowedRoot;
         this.allowedRoot = path.resolve(newRoot);
-        this.allowedPaths = [this.allowedRoot, ...allowedPaths.map(p => path.resolve(p))];
+        // Replace old root with new root in allowedPaths, keep other entries intact
+        this.allowedPaths = this.allowedPaths.map(p =>
+            p === oldRoot ? this.allowedRoot : p
+        );
     }
 
     /**

@@ -191,10 +191,9 @@ export class CoreToolManager {
      */
     public updateWorkspacePath(newPath: string) {
         this.workspacePath = newPath;
-        const allowedPaths = this.pathManager.getSkillsLoadPaths(newPath);
         for (const tool of this.registry.getTools()) {
             if (typeof (tool as any).setRoot === 'function') {
-                (tool as any).setRoot(newPath, allowedPaths);
+                (tool as any).setRoot(newPath);
             }
         }
     }
