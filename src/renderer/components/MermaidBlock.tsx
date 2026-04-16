@@ -413,7 +413,10 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
                             <div className="flex items-center justify-center py-12 text-xs text-slate-400"><div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mr-2" />渲染中...</div>
                         )}
                         {error && (
-                            <div className="p-4 flex items-start gap-2 bg-red-50 dark:bg-red-500/5 text-red-600 text-xs font-mono"><AlertTriangle size={14} className="mt-0.5" />{error}</div>
+                            <div className="flex items-center justify-center gap-2 py-5 text-center">
+                                <AlertTriangle size={14} className="text-slate-400 dark:text-zinc-500 shrink-0" />
+                                <span className="text-xs text-slate-400 dark:text-zinc-500">图表渲染失败，语法存在错误</span>
+                            </div>
                         )}
                         {svgContent && !error && (
                             <div

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { Eye, Code2, ZoomIn, ZoomOut, Download, Maximize2, X, RotateCcw, ImageIcon } from 'lucide-react'
+import { Eye, Code2, ZoomIn, ZoomOut, Download, Maximize2, X, RotateCcw, ImageIcon, AlertTriangle } from 'lucide-react'
 import DOMPurify from 'dompurify'
 import { createPortal } from 'react-dom'
 
@@ -202,8 +202,9 @@ export function SvgBlock({ code }: SvgBlockProps) {
 
                 {mode === 'preview' ? (
                     error ? (
-                        <div className="flex flex-col items-center gap-2 text-red-500 dark:text-red-400 py-8">
-                            <span className="text-sm">{error}</span>
+                        <div className="flex items-center justify-center gap-2 py-5 text-center">
+                            <AlertTriangle size={14} className="text-slate-400 dark:text-zinc-500 shrink-0" />
+                            <span className="text-xs text-slate-400 dark:text-zinc-500">SVG 内容无效，无法生成图形</span>
                         </div>
                     ) : (
                         <div
