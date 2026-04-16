@@ -388,8 +388,27 @@ export function Composer() {
                         </div>
                     )}
 
-                    {/* Input Area with Inline Skills */}
+                    {/* Input Area with Inline Staff & Skills */}
                     <div className={cn("flex flex-wrap items-start px-5 py-4 gap-2", pendingAttachments.length > 0 ? "pt-2" : "")}>
+                        {/* Staff - avatar only */}
+                        {currentStaff && (
+                            <div
+                                className="mt-[1px] w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/40 transition-all group relative"
+                                title={`与 ${currentStaff.name} 对话 · Backspace 移除`}
+                                onClick={() => {
+                                    assignStaff(activeSessionId, undefined)
+                                    textareaRef.current?.focus()
+                                }}
+                            >
+                                <StaffAvatar
+                                    avatar={currentStaff.avatar}
+                                    name={currentStaff.name}
+                                    size={13}
+                                    iconClassName="text-indigo-600 dark:text-indigo-300"
+                                />
+                            </div>
+                        )}
+
                         {/* Skills */}
                         {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
                             const skill = skills.find(s => s.id === skillId)
@@ -445,6 +464,11 @@ export function Composer() {
 
                                 if (e.key === 'Backspace' && !showSlashMenu) {
                                     if (textareaRef.current?.selectionStart === 0 && textareaRef.current?.selectionEnd === 0) {
+                                        if (currentStaff) {
+                                            e.preventDefault()
+                                            assignStaff(activeSessionId, undefined)
+                                            return
+                                        }
                                         if (selectedSkillIds && selectedSkillIds.length > 0) {
                                             e.preventDefault()
                                             const newIds = [...selectedSkillIds]

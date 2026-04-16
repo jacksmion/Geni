@@ -3,10 +3,11 @@ import { useStaffStore } from '../store/useStaffStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useModalStore } from '../store/useModalStore'
 import { useTranslation } from 'react-i18next'
-import { Plus, ArrowLeft, Trash2, User, ChevronDown, Check, Search, Sparkles, Loader2 } from 'lucide-react'
+import { Plus, ArrowLeft, Trash2, User, ChevronDown, Check, Search, Sparkles, Loader2, MessageSquare } from 'lucide-react'
 import EmojiPicker, { Categories, Theme, type EmojiClickData } from 'emoji-picker-react'
 import { StaffProfile } from '../../common/types/staff'
 import { StaffAvatar } from '../components/StaffAvatar'
+import { useChatStore } from '../store/useChatStore'
 
 export default function StaffPage() {
     const { profiles, loading, editingId, loadProfiles, setEditingId } = useStaffStore()
@@ -61,10 +62,41 @@ export default function StaffPage() {
 }
 
 function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () => void }) {
+    const createSession = useChatStore(s => s.createSession)
+    const assignStaff = useChatStore(s => s.assignStaff)
+
+    const handleUse = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        const state = useChatStore.getState()
+        // 如果当前有空白 draft，直接复用；否则创建新会话
+        if (state.draftSessionId && state.draftSessionId === state.activeSessionId) {
+            // 复用当前 draft，只切换 tab 和绑定员工
+            useChatStore.setState({ activeTab: 'chat' })
+            assignStaff(state.draftSessionId, profile.id)
+            // 更新 draft 标题
+            const session = state.sessions[state.draftSessionId]
+            if (session && (!session.messages || session.messages.length === 0)) {
+                useChatStore.setState(s => ({
+                    sessions: {
+                        ...s.sessions,
+                        [state.draftSessionId!]: { ...s.sessions[state.draftSessionId!], title: profile.name }
+                    }
+                }))
+            }
+        } else {
+            createSession(profile.name)
+            // createSession 是同步的，之后 getState 拿到的就是新的 activeSessionId
+            const sessionId = useChatStore.getState().activeSessionId
+            if (sessionId) {
+                assignStaff(sessionId, profile.id)
+            }
+        }
+    }
+
     return (
         <button
             onClick={onClick}
-            className="w-full h-full text-left p-5 rounded-xl border border-slate-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 group flex flex-col"
+            className="relative w-full h-full text-left p-5 rounded-xl border border-slate-200 dark:border-zinc-700/60 bg-white dark:bg-zinc-800/50 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:shadow-md transition-all duration-200 group flex flex-col"
         >
             <div className="flex items-start gap-4">
                 {/* Avatar */}
@@ -86,6 +118,21 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                         </p>
                     )}
                 </div>
+            </div>
+            {/* Use button */}
+            <div
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+                <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={handleUse}
+                    onKeyDown={e => { if (e.key === 'Enter') handleUse(e as unknown as React.MouseEvent) }}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                >
+                    <MessageSquare size={12} />
+                    {profile.name.length > 8 ? '' : '使用'}
+                </span>
             </div>
         </button>
     )
