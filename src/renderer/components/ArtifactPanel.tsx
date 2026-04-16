@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { SvgBlock } from './SvgBlock';
 
 export const ArtifactPanel: React.FC = () => {
     const activeArtifact = useChatStore(s => s.activeArtifact);
@@ -37,6 +38,7 @@ export const ArtifactPanel: React.FC = () => {
     const isEdit = activeArtifact.toolName === 'edit' || activeArtifact.toolName === 'replace_file_content' || activeArtifact.toolName === 'multi_replace_file_content';
     const ext = activeArtifact.path.split('.').pop() || 'text';
     const isMarkdown = ext === 'md' || ext === 'markdown';
+    const isSvg = ext === 'svg';
     let language = 'text';
     if (isBash) language = 'bash';
     else if (isEdit) language = 'diff';
@@ -89,7 +91,11 @@ export const ArtifactPanel: React.FC = () => {
 
             {/* Editor Body */}
             <div className="flex-1 overflow-auto relative select-text scrollbar-thin shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-none" ref={scrollRef}>
-                {isMarkdown ? (
+                {isSvg ? (
+                    <div className="px-4 py-3">
+                        <SvgBlock code={activeArtifact.content || ''} />
+                    </div>
+                ) : isMarkdown ? (
                     <div className="px-6 py-5">
                         <MarkdownRenderer content={activeArtifact.content || ''} />
                     </div>
