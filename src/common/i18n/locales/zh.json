@@ -84,6 +84,9 @@
         "emptyTitle": "暂无技能",
         "noMatchDesc": "尝试使用其他关键词搜索",
         "emptyDesc": "在项目 .geni/skills 目录下添加技能文件夹即可自动发现",
+        "createSkill": "创建技能",
+        "preview": "预览",
+        "source": "源码",
         "actions": {
             "enable": "点击启用",
             "disable": "点击禁用"

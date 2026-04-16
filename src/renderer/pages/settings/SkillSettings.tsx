@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
 import {
-    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2, ChevronDown, FileArchive, FolderOpen, X
+    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2, ChevronDown, FileArchive, FolderOpen, X, Plus
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Switch } from '../../components/Switch';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
+import { useChatStore } from '../../store/useChatStore';
 
 // 统一的低饱和固态颜色
 const NEUTRAL_PALETTES = [
@@ -122,7 +123,7 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose })
     );
 };
 
-interface SkillRowProps {
+interface SkillCardProps {
     skill: Skill;
     palette: typeof NEUTRAL_PALETTES[0];
     onToggle: (id: string) => void;
@@ -130,7 +131,14 @@ interface SkillRowProps {
     onClick?: (skill: Skill) => void;
 }
 
-const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete, onClick }) => {
+const SOURCE_LABELS: Record<Skill['source'], string> = {
+    builtin: 'Builtin',
+    global: 'User',
+    project: 'Project',
+    dotAgents: '.Agents',
+};
+
+const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onToggle, onDelete, onClick }) => {
     const { t } = useTranslation();
     const icon = getSkillIcon(skill.id);
 
@@ -138,60 +146,79 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete,
         <div
             onClick={() => onClick?.(skill)}
             className={clsx(
-                "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-200 group",
-                "hover:bg-slate-50 dark:hover:bg-white/[0.03]",
+                "relative flex flex-col gap-3 p-4 rounded-xl transition-all duration-200 group",
+                "bg-white dark:bg-white/[0.02] border border-slate-200/70 dark:border-white/[0.06]",
+                "hover:border-slate-300 dark:hover:border-white/[0.12] hover:shadow-sm",
                 "cursor-pointer",
-                !skill.enabled && "opacity-55"
+                !skill.enabled && "opacity-50"
             )}
         >
-            {/* 图标 */}
-            <div className={clsx(
-                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base transition-all",
-                "border border-slate-200/50 dark:border-white/5",
-                palette.bg, palette.text,
-                !skill.enabled && "grayscale opacity-70 bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-zinc-500"
-            )}>
-                <span>{icon}</span>
+            {/* 顶部：图标 + 名称 + 操作按钮 */}
+            <div className="flex items-start gap-3">
+                <div className={clsx(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg transition-all",
+                    "border border-slate-200/50 dark:border-white/5",
+                    palette.bg, palette.text,
+                    !skill.enabled && "grayscale opacity-70 bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-zinc-500"
+                )}>
+                    <span>{icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <h3 className={clsx(
+                            "text-[13px] font-semibold leading-tight truncate",
+                            skill.enabled
+                                ? "text-slate-800 dark:text-gray-100"
+                                : "text-slate-500 dark:text-gray-500"
+                        )}>
+                            {skill.name}
+                        </h3>
+                        <span className={clsx(
+                            "shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none",
+                            skill.source === 'builtin' && "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
+                            skill.source === 'global' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
+                            skill.source === 'project' && "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400",
+                            skill.source === 'dotAgents' && "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
+                        )}>
+                            {SOURCE_LABELS[skill.source]}
+                        </span>
+                    </div>
+                    <p className={clsx(
+                        "text-[11px] leading-relaxed mt-1 line-clamp-2",
+                        skill.enabled
+                            ? "text-slate-400 dark:text-gray-500"
+                            : "text-slate-300 dark:text-gray-600"
+                    )}>
+                        {skill.description || t('skillSettings.noDescription')}
+                    </p>
+                </div>
             </div>
 
-            {/* 名称 + 描述 */}
-            <div className="flex-1 min-w-0">
-                <h3 className={clsx(
-                    "text-[13px] font-semibold leading-tight truncate",
-                    skill.enabled
-                        ? "text-slate-800 dark:text-gray-100"
-                        : "text-slate-500 dark:text-gray-500"
-                )}>
-                    {skill.name}
-                </h3>
-                <p className={clsx(
-                    "text-[11px] leading-snug truncate mt-0.5",
-                    skill.enabled
-                        ? "text-slate-400 dark:text-gray-500"
-                        : "text-slate-300 dark:text-gray-600"
-                )}>
-                    {skill.description || t('skillSettings.noDescription')}
-                </p>
-            </div>
-
-            {/* Delete Button (only for global/deletable skills) */}
-            {onDelete && skill.source === 'global' && (
-                <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(skill); }}
-                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-all"
-                    title={t('skillSettings.delete.button')}
-                >
-                    <Trash2 size={14} />
-                </button>
-            )}
-
-            {/* Toggle Switch */}
-            <div onClick={(e) => e.stopPropagation()}>
-                <Switch
-                    checked={!!skill.enabled}
-                    onChange={() => onToggle(skill.id)}
-                    size="sm"
-                />
+            {/* 底部：来源路径 + 操作 */}
+            <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 dark:border-white/[0.04]">
+                <span className="text-[10px] text-slate-300 dark:text-gray-600 truncate max-w-[60%]" title={skill.path}>
+                    {skill.id}
+                </span>
+                <div className="flex items-center gap-1">
+                    {/* Delete Button */}
+                    {onDelete && skill.source === 'global' && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(skill); }}
+                            className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-all"
+                            title={t('skillSettings.delete.button')}
+                        >
+                            <Trash2 size={13} />
+                        </button>
+                    )}
+                    {/* Toggle Switch */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                            checked={!!skill.enabled}
+                            onChange={() => onToggle(skill.id)}
+                            size="sm"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -490,6 +517,16 @@ const SkillSettings: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        <button
+                            onClick={() => {
+                                useChatStore.getState().createSession();
+                                useChatStore.getState().setSelectedSkillIds(['skill-creator']);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all shrink-0"
+                        >
+                            <Plus size={12} />
+                            {t('skillSettings.createSkill', '创建技能')}
+                        </button>
                     </div>
                 </div>
             </header>
@@ -510,19 +547,17 @@ const SkillSettings: React.FC = () => {
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#09090b]">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     {filteredSkills.length > 0 ? (
-                        <div className="bg-white dark:bg-white/[0.02] rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2">
-                                {filteredSkills.map((skill) => (
-                                    <SkillRow
-                                        key={skill.id}
-                                        skill={skill}
-                                        palette={getPalette(skill.id)}
-                                        onToggle={handleToggle}
-                                        onDelete={(s) => setDeleteTarget(s)}
-                                        onClick={setDetailSkill}
-                                    />
-                                ))}
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {filteredSkills.map((skill) => (
+                                <SkillCard
+                                    key={skill.id}
+                                    skill={skill}
+                                    palette={getPalette(skill.id)}
+                                    onToggle={handleToggle}
+                                    onDelete={(s) => setDeleteTarget(s)}
+                                    onClick={setDetailSkill}
+                                />
+                            ))}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-24 text-slate-400">

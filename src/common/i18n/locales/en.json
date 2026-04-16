@@ -84,6 +84,9 @@
         "emptyTitle": "No skills available",
         "noMatchDesc": "Try using different keywords to search",
         "emptyDesc": "Add a skill folder in your project's .geni/skills directory to be automatically discovered",
+        "createSkill": "Create Skill",
+        "preview": "Preview",
+        "source": "Source",
         "actions": {
             "enable": "Click to enable",
             "disable": "Click to disable"
