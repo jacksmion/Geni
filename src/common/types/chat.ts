@@ -72,6 +72,7 @@ export interface ChatSession {
     // Metadata
     activeSkillIds?: string[];
     variables?: Record<string, any>;
+    pinned?: boolean;              // 置顶
 }
 
 export interface SessionMeta {
@@ -84,4 +85,5 @@ export interface SessionMeta {
     modelId?: string;
     workspacePath?: string;
     activeSkillIds?: string[];
+    pinned?: boolean;
 }

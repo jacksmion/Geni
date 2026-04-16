@@ -4,7 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, CheckSquare, Square } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, CheckSquare, Square, Pin } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
@@ -55,23 +55,6 @@ export function SessionSidebar() {
         return () => clearInterval(interval);
     }, []);
 
-    // Grouping helper
-    const getGroupLabel = React.useCallback((timestamp: number) => {
-        const todayAtMidnight = new Date(now);
-        todayAtMidnight.setHours(0, 0, 0, 0);
-
-        const dateMidnight = new Date(timestamp);
-        dateMidnight.setHours(0, 0, 0, 0);
-
-        const diffDays = Math.round((todayAtMidnight.getTime() - dateMidnight.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return 'today';
-        if (diffDays === 1) return 'yesterday';
-        if (diffDays <= 7) return 'last7Days';
-        if (diffDays <= 30) return 'last30Days';
-        return 'older';
-    }, [now]);
-
     // Relative time for session items
     const getRelativeTime = React.useCallback((timestamp: number) => {
         const diff = now - timestamp;
@@ -84,29 +67,19 @@ export function SessionSidebar() {
         return `${d.getMonth() + 1}/${d.getDate()}`;
     }, [now, t]);
 
-    // Filtered and Grouped sessions
-    const groupedSessions = useMemo(() => {
-        const filtered = Object.values(sessions)
+    // Filtered sessions (flat list, sorted)
+    const filteredSessions = useMemo(() => {
+        return Object.values(sessions)
             .filter(s => (s.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => b.updatedAt - a.updatedAt);
-
-        const groups: Record<string, typeof filtered> = {};
-        filtered.forEach(session => {
-            const label = getGroupLabel(session.updatedAt);
-            if (!groups[label]) groups[label] = [];
-            groups[label].push(session);
-        });
-
-        return groups;
-    }, [sessions, searchTerm, getGroupLabel]);
+            .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
+    }, [sessions, searchTerm]);
 
     // All visible session IDs (for select all)
     const allVisibleIds = useMemo(() => {
-        return Object.values(groupedSessions)
-            .flat()
+        return filteredSessions
             .filter(s => !runningSessions.has(s.id))
             .map(s => s.id);
-    }, [groupedSessions, runningSessions]);
+    }, [filteredSessions, runningSessions]);
 
     const handleStartEdit = (e: React.MouseEvent, id: string, currentTitle: string) => {
         e.stopPropagation();
@@ -128,6 +101,16 @@ export function SessionSidebar() {
             message: t('sessionSidebar.confirmDelete'),
             onConfirm: () => deleteSession(id),
         });
+    };
+
+    const handleTogglePin = (e: React.MouseEvent, id: string, currentPinned: boolean) => {
+        e.stopPropagation();
+        window.electronAPI.session.save({ id, pinned: !currentPinned });
+        // Optimistically update local state
+        const metas = useChatStore.getState().sessionMetas.map(m =>
+            m.id === id ? { ...m, pinned: !currentPinned } : m
+        );
+        useChatStore.setState({ sessionMetas: metas });
     };
 
     const toggleSelect = (id: string) => {
@@ -162,9 +145,6 @@ export function SessionSidebar() {
             },
         });
     };
-
-    // Custom order for groups
-    const groupOrder = ['today', 'yesterday', 'last7Days', 'last30Days', 'older'];
 
     return (
         <>
@@ -224,63 +204,50 @@ export function SessionSidebar() {
 
                 {/* List */}
                 <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin overflow-x-hidden">
-                    {groupOrder.map(group => {
-                        const sessionsInGroup = groupedSessions[group];
-                        if (!sessionsInGroup || sessionsInGroup.length === 0) return null;
+                    <div className="space-y-0.5">
+                        {filteredSessions.map((session) => {
+                            const isActive = session.id === activeSessionId;
+                            const isEditing = editingId === session.id;
+                            const isRunning = runningSessions.has(session.id);
+                            const isSelected = selectedIds.has(session.id);
 
-                        return (
-                            <div key={group} className="mb-4 min-w-[200px]">
-                                <div className="px-3 mb-1.5 flex items-center gap-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-600">
-                                        {t(`sessionSidebar.groups.${group}`)}
-                                    </span>
-                                    <div className="h-[1px] flex-1 bg-slate-200/40 dark:bg-white/[0.03]" />
-                                </div>
+                            return (
+                                <div
+                                    key={session.id}
+                                    onClick={() => {
+                                        if (selectMode) {
+                                            if (!isRunning) toggleSelect(session.id);
+                                        } else {
+                                            switchSession(session.id);
+                                        }
+                                    }}
+                                    className={clsx(
+                                        "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all",
+                                        selectMode && !isRunning ? "cursor-pointer" : selectMode ? "cursor-not-allowed" : "cursor-pointer",
+                                        isSelected
+                                            ? "bg-indigo-50 dark:bg-indigo-500/10"
+                                            : isActive && !selectMode
+                                                ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
+                                                : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
+                                    )}
+                                >
+                                    {/* Checkbox in select mode */}
+                                    {selectMode && (
+                                        <span className="shrink-0 mr-2.5 flex items-center justify-center">
+                                            {isRunning ? (
+                                                <Square size={14} className="text-slate-200 dark:text-zinc-700" />
+                                            ) : isSelected ? (
+                                                <CheckSquare size={14} className="text-indigo-500" />
+                                            ) : (
+                                                <Square size={14} className="text-slate-300 dark:text-zinc-600" />
+                                            )}
+                                        </span>
+                                    )}
 
-                                <div className="space-y-0.5">
-                                    {sessionsInGroup.map((session) => {
-                                        const isActive = session.id === activeSessionId;
-                                        const isEditing = editingId === session.id;
-                                        const isRunning = runningSessions.has(session.id);
-                                        const isSelected = selectedIds.has(session.id);
-
-                                        return (
-                                            <div
-                                                key={session.id}
-                                                onClick={() => {
-                                                    if (selectMode) {
-                                                        if (!isRunning) toggleSelect(session.id);
-                                                    } else {
-                                                        switchSession(session.id);
-                                                    }
-                                                }}
-                                                className={clsx(
-                                                    "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all",
-                                                    selectMode && !isRunning ? "cursor-pointer" : selectMode ? "cursor-not-allowed" : "cursor-pointer",
-                                                    isSelected
-                                                        ? "bg-indigo-50 dark:bg-indigo-500/10"
-                                                        : isActive && !selectMode
-                                                            ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
-                                                            : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
-                                                )}
-                                            >
-                                                {/* Checkbox in select mode */}
-                                                {selectMode && (
-                                                    <span className="shrink-0 mr-2.5 flex items-center justify-center">
-                                                        {isRunning ? (
-                                                            <Square size={14} className="text-slate-200 dark:text-zinc-700" />
-                                                        ) : isSelected ? (
-                                                            <CheckSquare size={14} className="text-indigo-500" />
-                                                        ) : (
-                                                            <Square size={14} className="text-slate-300 dark:text-zinc-600" />
-                                                        )}
-                                                    </span>
-                                                )}
-
-                                                {/* Active accent bar */}
-                                                {isActive && !selectMode && (
-                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
-                                                )}
+                                    {/* Active accent bar */}
+                                    {isActive && !selectMode && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
+                                    )}
 
                                                 {(() => {
                                                     const staff = session.staffId ? profiles.find(p => p.id === session.staffId) : undefined;
@@ -328,6 +295,9 @@ export function SessionSidebar() {
                                                             {isRunning && (
                                                                 <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                                             )}
+                                                            {session.pinned && (
+                                                                <Pin size={10} className="shrink-0 text-indigo-400 dark:text-indigo-500 rotate-45" />
+                                                            )}
                                                             <span className={clsx("truncate select-none text-[13px]", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
                                                                 {session.title || t('sessionSidebar.defaultTitle')}
                                                             </span>
@@ -345,6 +315,18 @@ export function SessionSidebar() {
                                                 {/* Actions (Hover) - hidden in select mode */}
                                                 {!isEditing && !selectMode && (
                                                     <div className="absolute right-2 hidden group-hover:flex items-center gap-0.5">
+                                                        <button
+                                                            onClick={(e) => handleTogglePin(e, session.id, !!session.pinned)}
+                                                            className={clsx(
+                                                                "p-1 rounded transition-colors",
+                                                                session.pinned
+                                                                    ? "text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                                                                    : "text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                                            )}
+                                                            title={session.pinned ? t('sessionSidebar.actions.unpin') : t('sessionSidebar.actions.pin')}
+                                                        >
+                                                            <Pin size={12} />
+                                                        </button>
                                                         <button
                                                             onClick={(e) => handleStartEdit(e, session.id, session.title)}
                                                             className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
@@ -365,11 +347,8 @@ export function SessionSidebar() {
                                         );
                                     })}
                                 </div>
-                            </div>
-                        );
-                    })}
 
-                    {Object.keys(groupedSessions).length === 0 && (
+                    {filteredSessions.length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
                             <span className="text-xs">{t('sessionSidebar.noMatch')}</span>
                         </div>

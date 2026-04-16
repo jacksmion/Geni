@@ -11,7 +11,7 @@ interface ActiveArtifact {
 
 interface ChatState {
     sessions: Record<string, ChatSession>
-    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[] }[]
+    sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[], pinned?: boolean }[]
     activeSessionId: string
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]

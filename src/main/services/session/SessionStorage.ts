@@ -105,8 +105,8 @@ export class SessionStorage {
                 }
             }
 
-            // 按更新时间排序
-            metas.sort((a, b) => b.updatedAt - a.updatedAt);
+            // 置顶优先，再按更新时间排序
+            metas.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
 
             // 将重建的索引写入磁盘
             await atomicWriteFile(this.indexFile, JSON.stringify(metas, null, 2));
@@ -216,8 +216,8 @@ export class SessionStorage {
             list.unshift(meta);
         }
 
-        // 保持按更新时间排序
-        list.sort((a, b) => b.updatedAt - a.updatedAt);
+        // 置顶优先，再按更新时间排序
+        list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
 
         // 更新内存缓存
         this.cachedIndex = list;

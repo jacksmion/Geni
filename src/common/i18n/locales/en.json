@@ -55,7 +55,9 @@
             "new": "New Task",
             "rename": "Rename",
             "delete": "Delete",
-            "manage": "Manage"
+            "manage": "Manage",
+            "pin": "Pin to Top",
+            "unpin": "Unpin"
         },
         "confirmBatchDelete": "Are you sure you want to delete {{count}} selected tasks?",
         "batch": {
