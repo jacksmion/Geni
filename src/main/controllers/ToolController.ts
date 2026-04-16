@@ -29,6 +29,7 @@ export class ToolController {
 
     public registerHandlers() {
         ipcMain.handle(TOOL_CHANNELS.GET_SKILLS, () => this.handleGetSkills());
+        ipcMain.handle(TOOL_CHANNELS.RELOAD_SKILLS, () => this.handleReloadSkills());
         ipcMain.handle(TOOL_CHANNELS.TOGGLE_SKILL, (_, id) => this.handleToggleSkill(id));
         ipcMain.handle(TOOL_CHANNELS.SET_TRUST_LEVEL, (_, id, level) => this.handleSetTrustLevel(id, level));
         ipcMain.handle(TOOL_CHANNELS.MCP_CONNECT, async (_, config) => {
@@ -200,8 +201,11 @@ export class ToolController {
         });
     }
 
-    private async handleGetSkills(): Promise<Skill[]> {
-        // Reload global skills from disk to pick up newly created/deleted skills
+    private handleGetSkills(): Skill[] {
+        return this.buildSkillList();
+    }
+
+    private async handleReloadSkills(): Promise<Skill[]> {
         this.skillRegistry.removeBySource('global');
         await this.skillRegistry.loadFromDirectory(this.globalSkillsDir, 'global');
         return this.buildSkillList();

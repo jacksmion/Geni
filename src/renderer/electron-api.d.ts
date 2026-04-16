@@ -54,6 +54,7 @@ export interface IElectronAPI {
     // Tool Namespace
     tools: {
         getSkills: () => Promise<Skill[]>;
+        reloadSkills: () => Promise<Skill[]>;
         toggleSkill: (id: string) => Promise<Skill[]>;
         setTrustLevel: (id: string, level: 'Ask' | 'Auto') => Promise<Skill[]>;
         mcpConnect: (config: any) => Promise<{ success: boolean, error?: string }>;

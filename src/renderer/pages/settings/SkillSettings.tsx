@@ -215,9 +215,11 @@ const SkillSettings: React.FC = () => {
     const [importMenuOpen, setImportMenuOpen] = useState(false);
     const importMenuRef = useRef<HTMLDivElement>(null);
 
-    const fetchSkills = async () => {
+    const fetchSkills = async (reload = false) => {
         try {
-            const data = await window.electronAPI.tools.getSkills();
+            const data = reload
+                ? await window.electronAPI.tools.reloadSkills()
+                : await window.electronAPI.tools.getSkills();
             setSkills(data);
         } catch (error) {
             console.error('Failed to fetch skills:', error);
@@ -227,7 +229,8 @@ const SkillSettings: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchSkills();
+        // Reload from disk on first open to pick up external changes
+        fetchSkills(true);
     }, []);
 
     // Close import menu on outside click
@@ -259,7 +262,7 @@ const SkillSettings: React.FC = () => {
         try {
             const result = await window.electronAPI.tools.importSkill(selectedPath);
             if (result.status === 'success') {
-                setSkills(await window.electronAPI.tools.getSkills());
+                fetchSkills();
                 showImportMessage('success', t('skillSettings.import.success', { name: result.skillName }));
             } else if (result.status === 'conflict') {
                 setConflict({
@@ -299,7 +302,7 @@ const SkillSettings: React.FC = () => {
                 action
             );
             if (result.status === 'success' && action !== 'skip') {
-                setSkills(await window.electronAPI.tools.getSkills());
+                fetchSkills();
             }
         } catch (error) {
             console.error('Confirm import failed:', error);
@@ -314,7 +317,7 @@ const SkillSettings: React.FC = () => {
         try {
             const result = await window.electronAPI.tools.deleteSkill(deleteTarget.id);
             if (result.success) {
-                setSkills(await window.electronAPI.tools.getSkills());
+                fetchSkills();
                 showImportMessage('success', t('skillSettings.delete.success', { name: deleteTarget.name }));
             } else {
                 showImportMessage('error', result.error || t('skillSettings.delete.error'));
