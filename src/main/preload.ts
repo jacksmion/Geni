@@ -167,5 +167,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('staff:generate-prompt-chunk', handler);
             return () => { ipcRenderer.removeListener('staff:generate-prompt-chunk', handler); };
         },
+        exportProfile: (id: string) => ipcRenderer.invoke('staff:export', id),
+        importProfile: () => ipcRenderer.invoke('staff:import'),
+        confirmImport: (action: 'overwrite' | 'rename' | 'skip', conflictId?: string) => ipcRenderer.invoke('staff:confirm-import', action, conflictId),
     }
 })

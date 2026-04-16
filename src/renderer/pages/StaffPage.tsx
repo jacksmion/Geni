@@ -3,7 +3,7 @@ import { useStaffStore } from '../store/useStaffStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useModalStore } from '../store/useModalStore'
 import { useTranslation } from 'react-i18next'
-import { Plus, ArrowLeft, Trash2, User, ChevronDown, Check, Search, Sparkles, Loader2, MessageSquare } from 'lucide-react'
+import { Plus, ArrowLeft, Trash2, User, ChevronDown, Check, Search, Sparkles, Loader2, MessageSquare, Download, Upload } from 'lucide-react'
 import EmojiPicker, { Categories, Theme, type EmojiClickData } from 'emoji-picker-react'
 import { StaffProfile } from '../../common/types/staff'
 import { StaffAvatar } from '../components/StaffAvatar'
@@ -12,8 +12,39 @@ import { useChatStore } from '../store/useChatStore'
 export default function StaffPage() {
     const { profiles, loading, editingId, loadProfiles, setEditingId } = useStaffStore()
     const { t } = useTranslation()
+    const showConfirm = useModalStore(s => s.showConfirm)
 
     useEffect(() => { loadProfiles() }, [loadProfiles])
+
+    const handleImport = async () => {
+        try {
+            const result = await window.electronAPI.staff.importProfile()
+
+            if (!result || result.status === 'cancel') return
+
+            if (result.status === 'success') {
+                await loadProfiles()
+            } else if (result.status === 'conflict') {
+                showConfirm({
+                    message: `已存在同名员工「${result.conflictName}」，如何处理？`,
+                    confirmText: '覆盖',
+                    cancelText: '跳过',
+                    extraActions: [
+                        { label: '重命名', value: 'rename' },
+                    ],
+                    onConfirm: async (action?: string) => {
+                        const finalAction = action === 'rename' ? 'rename' : 'overwrite'
+                        await window.electronAPI.staff.confirmImport(finalAction, result.conflictId)
+                        await loadProfiles()
+                    },
+                })
+            } else {
+                alert(result.error || '导入失败')
+            }
+        } catch (e: any) {
+            alert(e.message || '导入失败')
+        }
+    }
 
     if (editingId !== null) {
         return <StaffEditor id={editingId} onBack={() => setEditingId(null)} />
@@ -27,7 +58,14 @@ export default function StaffPage() {
                     <h1 className="text-sm font-semibold">{t('staffPage.title')}</h1>
                     <span className="text-xs text-slate-400 dark:text-zinc-500">{t('staffPage.subtitle')}</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleImport}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-medium transition-colors"
+                    >
+                        <Upload size={14} />
+                        导入
+                    </button>
                     <button
                         onClick={() => setEditingId('new')}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors"
@@ -70,10 +108,8 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
         const state = useChatStore.getState()
         // 如果当前有空白 draft，直接复用；否则创建新会话
         if (state.draftSessionId && state.draftSessionId === state.activeSessionId) {
-            // 复用当前 draft，只切换 tab 和绑定员工
             useChatStore.setState({ activeTab: 'chat' })
             assignStaff(state.draftSessionId, profile.id)
-            // 更新 draft 标题
             const session = state.sessions[state.draftSessionId]
             if (session && (!session.messages || session.messages.length === 0)) {
                 useChatStore.setState(s => ({
@@ -85,11 +121,19 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
             }
         } else {
             createSession(profile.name)
-            // createSession 是同步的，之后 getState 拿到的就是新的 activeSessionId
             const sessionId = useChatStore.getState().activeSessionId
             if (sessionId) {
                 assignStaff(sessionId, profile.id)
             }
+        }
+    }
+
+    const handleExport = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        try {
+            await window.electronAPI.staff.exportProfile(profile.id)
+        } catch (err) {
+            console.error('Export failed:', err)
         }
     }
 
@@ -119,10 +163,19 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                     )}
                 </div>
             </div>
-            {/* Use button */}
+            {/* Hover actions */}
             <div
-                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
             >
+                <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={handleExport}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    title="导出"
+                >
+                    <Download size={13} />
+                </span>
                 <span
                     role="button"
                     tabIndex={0}

@@ -96,6 +96,9 @@ export interface IElectronAPI {
         delete: (id: string) => Promise<boolean>;
         generatePrompt: (name: string, description?: string, modelId?: string) => Promise<string>;
         onGeneratePromptChunk: (callback: (delta: string) => void) => () => void;
+        exportProfile: (id: string) => Promise<{ success: boolean; error?: string }>;
+        importProfile: () => Promise<{ status: 'success' | 'conflict' | 'error' | 'cancel'; conflictName?: string; conflictId?: string; error?: string }>;
+        confirmImport: (action: 'overwrite' | 'rename' | 'skip', conflictId?: string) => Promise<{ status: 'success' | 'error'; error?: string }>;
     };
 }
 

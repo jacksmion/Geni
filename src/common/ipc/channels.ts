@@ -122,4 +122,7 @@ export const STAFF_CHANNELS = {
     DELETE: 'staff:delete',
     GENERATE_PROMPT: 'staff:generate-prompt',
     GENERATE_PROMPT_CHUNK: 'staff:generate-prompt-chunk',
+    EXPORT: 'staff:export',
+    IMPORT: 'staff:import',
+    CONFIRM_IMPORT: 'staff:confirm-import',
 } as const;

@@ -9,12 +9,18 @@ export interface AuthorizationRequest {
     runId?: string;
 }
 
+export interface ConfirmAction {
+    label: string;
+    value: string;
+}
+
 export interface ConfirmConfig {
     message: string;
     confirmText?: string;
     cancelText?: string;
-    onConfirm: () => void;
-    onCancel?: () => void;
+    extraActions?: ConfirmAction[];
+    onConfirm: (action?: string) => void;
+    onCancel?: (action?: string) => void;
 }
 
 interface ModalState {

@@ -2,6 +2,38 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { StaffProfile, StaffMeta } from '../../../common/types/staff';
+
+// ---------------------------------------------------------------------------
+// Import/Export types
+// ---------------------------------------------------------------------------
+
+export interface StaffExportPayload {
+    version: 1;
+    type: 'staff-profile';
+    profile: {
+        name: string;
+        modelId?: string;
+        systemPrompt?: string;
+        temperature?: number;
+        skillIds?: string[];
+        allowedTools?: string[];
+        avatar?: string;
+        description?: string;
+    };
+}
+
+export interface StaffImportResult {
+    status: 'success' | 'conflict' | 'error';
+    conflictName?: string;
+    conflictId?: string;
+    warnings?: string[];
+    error?: string;
+}
+
+export interface StaffConfirmResult {
+    status: 'success' | 'error';
+    error?: string;
+}
 import { PathManager } from '../PathManager';
 
 /**
@@ -16,6 +48,7 @@ export class StaffManager {
     private staffDir: string;
     private profiles: Map<string, StaffProfile> = new Map();
     private loaded = false;
+    private pendingImports: Map<string, string> = new Map(); // conflictId → json
 
     constructor(private pathManager: PathManager) {
         this.staffDir = path.join(pathManager.getRootDir(), 'staff');
@@ -162,5 +195,167 @@ export class StaffManager {
         } catch (e) {
             console.error(`[StaffManager] Failed to save profile ${profile.id}:`, e);
         }
+    }
+
+    // -----------------------------------------------------------------------
+    // Import / Export
+    // -----------------------------------------------------------------------
+
+    /** 导出为 JSON（不含 id、status、createdAt、updatedAt） */
+    public exportToJSON(id: string): { fileName: string; json: string } | null {
+        this.ensureLoaded();
+        const profile = this.profiles.get(id);
+        if (!profile) return null;
+
+        const payload: StaffExportPayload = {
+            version: 1,
+            type: 'staff-profile',
+            profile: {
+                name: profile.name,
+                modelId: profile.modelId || undefined,
+                systemPrompt: profile.systemPrompt,
+                temperature: profile.temperature,
+                skillIds: profile.skillIds,
+                allowedTools: profile.allowedTools,
+                avatar: profile.avatar,
+                description: profile.description,
+            },
+        };
+
+        const sanitized = profile.name.replace(/[<>:"/\\|?*\s]/g, '-').replace(/-+/g, '-');
+        return {
+            fileName: `${sanitized}.geni-staff.json`,
+            json: JSON.stringify(payload, null, 2),
+        };
+    }
+
+    /** 导入校验（不直接写入，返回冲突信息等前端确认） */
+    public importFromJSON(jsonStr: string, defaultModelId?: string): StaffImportResult {
+        this.ensureLoaded();
+
+        let parsed: any;
+        try {
+            parsed = JSON.parse(jsonStr);
+        } catch {
+            return { status: 'error', error: '无效的 JSON 格式' };
+        }
+
+        if (parsed.version !== 1 || parsed.type !== 'staff-profile') {
+            return { status: 'error', error: '不支持的文件格式，需要 version:1, type:staff-profile' };
+        }
+
+        const p = parsed.profile;
+        if (!p?.name || typeof p.name !== 'string') {
+            return { status: 'error', error: '缺少必填字段 profile.name' };
+        }
+
+        // modelId 兜底
+        if (!p.modelId && defaultModelId) {
+            p.modelId = defaultModelId;
+        }
+
+        // 按名称匹配检查冲突
+        const existing = Array.from(this.profiles.values())
+            .find(prof => prof.name === p.name);
+
+        if (existing) {
+            // 缓存 JSON 供后续 confirmImport 使用
+            this.pendingImports.set(existing.id, jsonStr);
+            return {
+                status: 'conflict',
+                conflictName: existing.name,
+                conflictId: existing.id,
+            };
+        }
+
+        // 无冲突，直接创建
+        this.create({
+            name: p.name,
+            modelId: p.modelId,
+            systemPrompt: p.systemPrompt,
+            temperature: p.temperature,
+            skillIds: p.skillIds,
+            allowedTools: p.allowedTools,
+            avatar: p.avatar,
+            description: p.description,
+        });
+
+        return { status: 'success' };
+    }
+
+    /** 确认导入（冲突时调用） */
+    public confirmImport(
+        action: 'overwrite' | 'rename' | 'skip',
+        conflictId?: string,
+    ): StaffConfirmResult {
+        this.ensureLoaded();
+
+        const jsonStr = conflictId ? this.pendingImports.get(conflictId) : undefined;
+        if (conflictId) this.pendingImports.delete(conflictId);
+
+        switch (action) {
+            case 'skip':
+                return { status: 'success' };
+        }
+
+        if (!jsonStr) {
+            return { status: 'error', error: '导入数据已过期，请重新导入' };
+        }
+
+        let parsed: any;
+        try {
+            parsed = JSON.parse(jsonStr);
+        } catch {
+            return { status: 'error', error: '无效的 JSON 格式' };
+        }
+
+        const p = parsed.profile;
+        if (!p?.name || typeof p.name !== 'string') {
+            return { status: 'error', error: '无效的导入数据：缺少 profile.name' };
+        }
+
+        switch (action) {
+
+            case 'overwrite': {
+                if (!conflictId) return { status: 'error', error: '缺少 conflictId' };
+                this.update(conflictId, {
+                    name: p.name,
+                    modelId: p.modelId,
+                    systemPrompt: p.systemPrompt,
+                    temperature: p.temperature,
+                    skillIds: p.skillIds,
+                    allowedTools: p.allowedTools,
+                    avatar: p.avatar,
+                    description: p.description,
+                });
+                return { status: 'success' };
+            }
+
+            case 'rename': {
+                const newName = this.findAvailableName(p.name);
+                this.create({
+                    name: newName,
+                    modelId: p.modelId,
+                    systemPrompt: p.systemPrompt,
+                    temperature: p.temperature,
+                    skillIds: p.skillIds,
+                    allowedTools: p.allowedTools,
+                    avatar: p.avatar,
+                    description: p.description,
+                });
+                return { status: 'success' };
+            }
+
+            default:
+                return { status: 'error', error: `未知的操作类型: ${action}` };
+        }
+    }
+
+    private findAvailableName(baseName: string): string {
+        const names = new Set(Array.from(this.profiles.values()).map(p => p.name));
+        if (!names.has(baseName)) return baseName;
+        let i = 1;
+        while (names.has(`${baseName} (${i})`)) i++;
+        return `${baseName} (${i})`;
     }
 }

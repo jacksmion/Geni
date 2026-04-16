@@ -18,8 +18,8 @@ export const ConfirmDialog: React.FC = () => {
 
     if (!confirmConfig) return null;
 
-    const handleConfirm = () => {
-        confirmConfig.onConfirm();
+    const handleConfirm = (action?: string) => {
+        confirmConfig.onConfirm(action);
         dismissConfirm();
     };
 
@@ -49,7 +49,16 @@ export const ConfirmDialog: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="px-5 pb-4 pt-1 flex justify-end gap-2">
+                <div className="px-5 pb-4 pt-1 flex justify-end gap-2 flex-wrap">
+                    {confirmConfig.extraActions?.map(action => (
+                        <button
+                            key={action.value}
+                            onClick={() => handleConfirm(action.value)}
+                            className="px-3.5 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg transition-colors"
+                        >
+                            {action.label}
+                        </button>
+                    ))}
                     <button
                         onClick={handleCancel}
                         className="px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors"
@@ -57,7 +66,7 @@ export const ConfirmDialog: React.FC = () => {
                         {confirmConfig.cancelText ?? '取消'}
                     </button>
                     <button
-                        onClick={handleConfirm}
+                        onClick={() => handleConfirm()}
                         className="px-3.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-sm"
                         autoFocus
                     >

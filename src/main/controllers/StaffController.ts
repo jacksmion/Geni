@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
+import fs from 'fs';
 import { StaffManager } from '../services/staff/StaffManager';
 import { STAFF_CHANNELS } from '../../common/ipc/channels';
 import { createChatModel } from '../services/llm/ChatModelFactory';
@@ -46,6 +47,41 @@ export class StaffController {
 
         ipcMain.handle(STAFF_CHANNELS.GENERATE_PROMPT, async (e, { name, description, modelId }: { name: string; description?: string; modelId?: string }) => {
             return this.generatePrompt(name, description, modelId, e.sender);
+        });
+
+        ipcMain.handle(STAFF_CHANNELS.EXPORT, async (e, id: string) => {
+            const result = this.staffManager.exportToJSON(id);
+            if (!result) return { success: false, error: '员工不存在' };
+
+            const win = BrowserWindow.fromWebContents(e.sender);
+            if (!win) return { success: false, error: '窗口不存在' };
+
+            const { canceled, filePath } = await dialog.showSaveDialog(win, {
+                defaultPath: result.fileName,
+                filters: [{ name: 'Geni Staff', extensions: ['json'] }],
+            });
+            if (canceled || !filePath) return { success: false };
+
+            fs.writeFileSync(filePath, result.json, 'utf-8');
+            return { success: true };
+        });
+
+        ipcMain.handle(STAFF_CHANNELS.IMPORT, async (e) => {
+            const win = BrowserWindow.fromWebContents(e.sender);
+            if (!win) return { status: 'error' as const, error: '窗口不存在' };
+
+            const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+                properties: ['openFile'],
+                filters: [{ name: 'Geni Staff', extensions: ['json'] }],
+            });
+            if (canceled || filePaths.length === 0) return { status: 'cancel' as const };
+
+            const json = fs.readFileSync(filePaths[0], 'utf-8');
+            return this.staffManager.importFromJSON(json, this.getDefaultModelId());
+        });
+
+        ipcMain.handle(STAFF_CHANNELS.CONFIRM_IMPORT, (_e, action: 'overwrite' | 'rename' | 'skip', conflictId?: string) => {
+            return this.staffManager.confirmImport(action, conflictId);
         });
     }
 
@@ -137,5 +173,18 @@ export class StaffController {
             }
         }
         throw new Error('未配置可用的 LLM 模型，请先在设置中配置');
+    }
+
+    /** 获取默认模型 ID（用于导入兜底） */
+    private getDefaultModelId(): string | undefined {
+        const providers = this.settings.llm?.providers || {};
+        for (const [provider, config] of Object.entries(providers)) {
+            if (!config.enabled || !config.apiKey) continue;
+            for (const m of config.models || []) {
+                if (!m.enabled) continue;
+                return `${provider}/${m.model}`;
+            }
+        }
+        return undefined;
     }
 }
