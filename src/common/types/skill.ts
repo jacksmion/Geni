@@ -3,6 +3,7 @@ export interface Skill {
     name: string;
     description: string;
     content: string; // Full markdown content (without frontmatter)
+    rawContent: string; // Full file content (with frontmatter)
     path: string;
     enabled: boolean;
     trustLevel: 'Ask' | 'Auto';

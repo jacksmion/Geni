@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Skill } from '../../../common/types/skill';
 import {
-    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2, ChevronDown, FileArchive, FolderOpen
+    Search, Loader2, Box, Sparkles, ToggleLeft, ToggleRight, Download, Trash2, ChevronDown, FileArchive, FolderOpen, X
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Switch } from '../../components/Switch';
+import { MarkdownRenderer } from '../../components/MarkdownRenderer';
 
 // 统一的低饱和固态颜色
 const NEUTRAL_PALETTES = [
@@ -50,22 +51,96 @@ function getSkillIcon(id: string) {
     return '⚡';
 }
 
+interface SkillDetailDialogProps {
+    skill: Skill;
+    onClose: () => void;
+}
+
+const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose }) => {
+    const { t } = useTranslation();
+    const [mode, setMode] = useState<'preview' | 'source'>('preview');
+
+    return (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+            <div
+                className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-2xl max-h-[80vh] mx-4 flex flex-col animate-in fade-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                        <span className="text-lg">{getSkillIcon(skill.id)}</span>
+                        <div>
+                            <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">{skill.name}</h3>
+                            <p className="text-[11px] text-slate-400 dark:text-gray-500">{skill.source} · {skill.id}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {/* Preview / Source Toggle */}
+                        <div className="flex rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 p-0.5">
+                            <button
+                                onClick={() => setMode('preview')}
+                                className={clsx(
+                                    "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                                    mode === 'preview'
+                                        ? "bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 shadow-sm"
+                                        : "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-400"
+                                )}
+                            >
+                                {t('skillSettings.preview', 'Preview')}
+                            </button>
+                            <button
+                                onClick={() => setMode('source')}
+                                className={clsx(
+                                    "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                                    mode === 'source'
+                                        ? "bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 shadow-sm"
+                                        : "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-400"
+                                )}
+                            >
+                                {t('skillSettings.source', 'Source')}
+                            </button>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-5 py-4">
+                    {mode === 'preview' ? (
+                        <MarkdownRenderer content={skill.content || ''} />
+                    ) : (
+                        <pre className="text-xs leading-relaxed text-slate-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">{skill.rawContent || skill.content || ''}</pre>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface SkillRowProps {
     skill: Skill;
     palette: typeof NEUTRAL_PALETTES[0];
     onToggle: (id: string) => void;
     onDelete?: (skill: Skill) => void;
+    onClick?: (skill: Skill) => void;
 }
 
-const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete }) => {
+const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete, onClick }) => {
     const { t } = useTranslation();
     const icon = getSkillIcon(skill.id);
 
     return (
         <div
+            onClick={() => onClick?.(skill)}
             className={clsx(
                 "flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-200 group",
                 "hover:bg-slate-50 dark:hover:bg-white/[0.03]",
+                "cursor-pointer",
                 !skill.enabled && "opacity-55"
             )}
         >
@@ -111,11 +186,13 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, palette, onToggle, onDelete 
             )}
 
             {/* Toggle Switch */}
-            <Switch
-                checked={!!skill.enabled}
-                onChange={() => onToggle(skill.id)}
-                size="sm"
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+                <Switch
+                    checked={!!skill.enabled}
+                    onChange={() => onToggle(skill.id)}
+                    size="sm"
+                />
+            </div>
         </div>
     );
 };
@@ -213,6 +290,7 @@ const SkillSettings: React.FC = () => {
     const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
     const [importMenuOpen, setImportMenuOpen] = useState(false);
+    const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
     const importMenuRef = useRef<HTMLDivElement>(null);
 
     const fetchSkills = async (reload = false) => {
@@ -441,6 +519,7 @@ const SkillSettings: React.FC = () => {
                                         palette={getPalette(skill.id)}
                                         onToggle={handleToggle}
                                         onDelete={(s) => setDeleteTarget(s)}
+                                        onClick={setDetailSkill}
                                     />
                                 ))}
                             </div>
@@ -474,6 +553,12 @@ const SkillSettings: React.FC = () => {
                     skillName={deleteTarget.name}
                     onConfirm={handleDeleteConfirm}
                     onCancel={() => setDeleteTarget(null)}
+                />
+            )}
+            {detailSkill && (
+                <SkillDetailDialog
+                    skill={detailSkill}
+                    onClose={() => setDetailSkill(null)}
                 />
             )}
         </div>

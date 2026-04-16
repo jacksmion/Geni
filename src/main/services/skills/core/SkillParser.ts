@@ -24,6 +24,7 @@ export type SkillMetadata = z.infer<typeof SkillSchema>;
 
 export interface SkillObject extends SkillMetadata {
     instruction: string;
+    rawContent: string;
     path?: string;
 }
 
@@ -51,6 +52,7 @@ export class SkillParser {
                 ...metadata,
                 id,
                 instruction: body.trim(),
+                rawContent: content,
                 path: filePath
             };
         } catch (error) {

@@ -193,6 +193,7 @@ export class ToolController {
                 name: obj.name,
                 description: obj.description,
                 content: obj.instruction,
+                rawContent: obj.rawContent,
                 path: obj.path || '',
                 enabled: saved ? saved.enabled : true,
                 trustLevel: saved ? saved.trustLevel : 'Ask',
