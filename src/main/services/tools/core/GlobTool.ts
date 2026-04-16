@@ -64,7 +64,7 @@ export class GlobTool implements ITool {
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { pattern, path: relativeSearchPath, exclude, limit = 100 } = args;
         const searchDir = relativeSearchPath
-            ? path.resolve(this.allowedRoot, relativeSearchPath)
+            ? (path.isAbsolute(relativeSearchPath) ? path.normalize(relativeSearchPath) : path.resolve(this.allowedRoot, relativeSearchPath))
             : this.allowedRoot;
 
         // Security Check
