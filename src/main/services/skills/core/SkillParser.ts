@@ -35,8 +35,21 @@ export class SkillParser {
             // Validate frontmatter
             const metadata = SkillSchema.parse(data);
 
+            // Derive id: explicit id > parent directory name > name field
+            let id = metadata.id;
+            if (!id && filePath) {
+                const dirName = filePath.replace(/[/\\]/g, '/').split('/').at(-2); // parent dir of SKILL.md
+                if (dirName) {
+                    id = dirName;
+                }
+            }
+            if (!id) {
+                id = metadata.name;
+            }
+
             return {
                 ...metadata,
+                id,
                 instruction: body.trim(),
                 path: filePath
             };
