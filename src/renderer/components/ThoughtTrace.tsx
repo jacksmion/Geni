@@ -476,6 +476,68 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
     };
     const outStats = getStatusText();
 
+    // Format duration compactly
+    const formatDuration = (ms: number) =>
+        ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+
+    // ─── Compact single-line view for completed steps ───
+    if (step.isComplete && !isExpanded && !isTodoTool) {
+        return (
+            <div className="relative font-mono pl-1.5">
+                {/* Timeline Connecting Line */}
+                {!isLast && (
+                    <div className="absolute left-[5px] top-[16px] bottom-[-4px] w-px bg-slate-200/40 dark:bg-zinc-800/40 z-0" />
+                )}
+                <div
+                    className={cn(
+                        "relative z-10 flex items-center gap-2 py-0.5 cursor-pointer group/compact",
+                        "hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors rounded -mx-2 px-2",
+                        isArtifactTool && "hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5"
+                    )}
+                    onClick={(e) => {
+                        if (isArtifactTool) {
+                            handleOpenArtifact(e);
+                        } else {
+                            setIsExpanded(true);
+                        }
+                    }}
+                >
+                    {/* Status dot */}
+                    {step.isError ? (
+                        <X size={11} className="shrink-0 text-red-400" strokeWidth={2.5} />
+                    ) : (
+                        <CheckCircle2 size={11} className="shrink-0 text-emerald-400" strokeWidth={2.5} />
+                    )}
+
+                    {/* Tool name */}
+                    <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-600 shrink-0 min-w-[36px]">
+                        {displayName}
+                    </span>
+
+                    {/* Key info (path / command) */}
+                    {inlineInput && (
+                        <span className="text-[11px] text-slate-350 dark:text-zinc-600 truncate">
+                            {inlineInput}
+                        </span>
+                    )}
+
+                    {/* Duration */}
+                    {step.duration != null && (
+                        <span className="text-[10px] text-slate-300/70 dark:text-zinc-700 ml-auto shrink-0 tabular-nums">
+                            {formatDuration(step.duration)}
+                        </span>
+                    )}
+
+                    {/* Hover hint */}
+                    <span className="opacity-0 group-hover/compact:opacity-100 text-[10px] text-slate-300 dark:text-zinc-600 transition-opacity shrink-0">
+                        {isArtifactTool ? '↗' : '···'}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
+    // ─── Full card view (running / expanded / todo) ───
     return (
         <div className="relative font-mono my-1 pl-1.5">
             {/* Timeline Connecting Line */}
@@ -593,26 +655,28 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                             </div>
                         )}
 
-                        {/* 3. Terminal/Output View - Dark theme with diff support */}
+                        {/* 3. Terminal/Output View */}
                         {(step.observation || step.streamingObservation) && (
-                            <div className="group/output relative overflow-hidden rounded-lg mt-1 border border-slate-800/10 dark:border-white/10 shadow-sm bg-[#0d1117]">
+                            <div className="group/output relative overflow-hidden rounded-lg mt-1 border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#0d1117]">
                                 <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/output:opacity-100 transition-opacity">
                                     <button
                                         onClick={handleCopy}
-                                        className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-slate-300 transition-colors backdrop-blur-sm shadow-sm"
+                                        className="p-1.5 rounded-md bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm shadow-sm"
                                         title="Copy output"
                                     >
-                                        {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                        {copied ? <Check size={12} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={12} />}
                                     </button>
                                 </div>
-                                <div className="flex items-center px-3 py-1.5 bg-white/5 border-b border-white/5">
-                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 font-sans font-medium">
+                                <div className="flex items-center px-3 py-1.5 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-400 font-sans font-medium">
                                         Output{step.isComplete ? '' : ' (Streaming...)'}
                                     </span>
                                 </div>
                                 <pre className={cn(
                                     "flex flex-col-reverse max-h-[400px] overflow-auto py-3 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all",
-                                    step.isError ? "text-red-400/90" : "text-slate-300"
+                                    step.isError
+                                        ? "text-red-500 dark:text-red-400/90"
+                                        : "text-slate-700 dark:text-slate-300"
                                 )}>
                                     <div className="overflow-visible !flex !flex-col justify-end">
                                         {(() => {
@@ -622,13 +686,13 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                             // Simple diff/error highlighting
                                             return truncatedObs.split('\n').map((line, i) => {
                                                 if (line.startsWith('+')) {
-                                                    return <span key={i} className="text-emerald-400 bg-emerald-500/10 block -mx-3 px-3">{line}</span>;
+                                                    return <span key={i} className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 block -mx-3 px-3">{line}</span>;
                                                 }
                                                 if (line.startsWith('-')) {
-                                                    return <span key={i} className="text-red-400 bg-red-500/10 block -mx-3 px-3">{line}</span>;
+                                                    return <span key={i} className="text-red-500 dark:text-red-400 bg-red-500/10 block -mx-3 px-3">{line}</span>;
                                                 }
                                                 if (line.match(/^Error:/i) || line.match(/failed/i) || line.match(/denied/i)) {
-                                                    return <span key={i} className="text-red-400 font-semibold block">{line}</span>;
+                                                    return <span key={i} className="text-red-500 dark:text-red-400 font-semibold block">{line}</span>;
                                                 }
                                                 return <span key={i} className="block">{line}</span>;
                                             });
@@ -655,14 +719,6 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
     return (
         <MarkdownRenderer
             content={cleanThought}
-            className="text-[14.5px] text-slate-800 dark:text-zinc-200 leading-relaxed my-1.5 px-0.5 font-medium
-                prose-p:my-1.5 prose-p:last:mb-0
-                prose-headings:font-bold prose-headings:text-[15px] prose-headings:my-2
-                prose-ul:my-1.5 prose-ul:list-disc prose-ul:pl-5
-                prose-ol:my-1.5 prose-ol:list-decimal prose-ol:pl-5
-                prose-li:my-0.5
-                prose-strong:text-slate-900 dark:prose-strong:text-zinc-100
-                prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono prose-code:before:content-none prose-code:after:content-none"
         />
     );
 };
