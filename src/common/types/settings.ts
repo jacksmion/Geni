@@ -130,6 +130,7 @@ export interface AppSettings {
     shortcuts?: Record<string, string>; // 快捷键配置 ID -> Key Combination
     autoOpenArtifact: boolean; // 是否自动打开 Artifact 面板
     autoUpdate: boolean; // 是否自动检查更新
+    allowFullDiskAccess: boolean; // 工具是否可以访问工作空间外的任意路径
 }
 
 // 默认的提供商配置
@@ -255,5 +256,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
         'command_palette': 'Ctrl+K'
     },
     autoOpenArtifact: true,
-    autoUpdate: true
+    autoUpdate: true,
+    allowFullDiskAccess: false
 };

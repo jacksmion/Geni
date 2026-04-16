@@ -106,6 +106,11 @@ export class CoreToolManager {
 
             const tool = factory();
 
+            // Apply unrestricted file access if enabled in settings
+            if (settings.allowFullDiskAccess && typeof (tool as any).setUnrestricted === 'function') {
+                (tool as any).setUnrestricted(true);
+            }
+
             // Apply trust level override if specified, otherwise use default
             const trustLevel = setting?.trustLevel || (safeTools.includes(name) ? 'Auto' : 'Ask');
             tool.requireConfirmation = (trustLevel === 'Ask');

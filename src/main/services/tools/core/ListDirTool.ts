@@ -5,6 +5,7 @@ import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/t
 export class ListDirTool implements ITool {
     private allowedRoot: string;
     private allowedPaths: string[];
+    private unrestricted = false;
     private readonly IGNORE_PATTERNS = new Set([
         "node_modules", "__pycache__", ".git", "dist", "build", "target", "vendor",
         "bin", "obj", ".idea", ".vscode", ".zig-cache", "zig-out", ".coverage",
@@ -25,7 +26,12 @@ export class ListDirTool implements ITool {
         );
     }
 
+    public setUnrestricted(value: boolean) {
+        this.unrestricted = value;
+    }
+
     protected isPathAllowed(targetPath: string): boolean {
+        if (this.unrestricted) return true;
         const normalizedTarget = path.resolve(targetPath);
         return this.allowedPaths.some(p => {
             if (process.platform === 'win32') {

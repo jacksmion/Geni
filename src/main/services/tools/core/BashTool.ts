@@ -104,6 +104,7 @@ export class BashTool implements ITool {
     requireConfirmation = true;
     private allowedRoot: string;
     private allowedPaths: string[];
+    private unrestricted = false;
     private currentCwd: string;
 
     // Configuration
@@ -128,7 +129,12 @@ export class BashTool implements ITool {
         this.currentCwd = this.allowedRoot;
     }
 
+    public setUnrestricted(value: boolean) {
+        this.unrestricted = value;
+    }
+
     protected isPathAllowed(targetPath: string): boolean {
+        if (this.unrestricted) return true;
         const normalizedTarget = path.resolve(targetPath);
         return this.allowedPaths.some(p => {
             const normalizedAllowed = path.resolve(p);

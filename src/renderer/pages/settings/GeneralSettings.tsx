@@ -7,6 +7,7 @@ export function GeneralSettings() {
     const language = useSettingsStore(s => s.settings.language);
     const autoStart = useSettingsStore(s => s.settings.autoStart);
     const autoOpenArtifact = useSettingsStore(s => s.settings.autoOpenArtifact);
+    const allowFullDiskAccess = useSettingsStore(s => s.settings.allowFullDiskAccess);
     const updateSettings = useSettingsStore(s => s.updateSettings);
     const { t } = useTranslation();
 
@@ -104,6 +105,18 @@ export function GeneralSettings() {
                         <Switch
                             checked={autoOpenArtifact ?? true}
                             onChange={(checked) => updateSettings({ autoOpenArtifact: checked })}
+                        />
+                    </div>
+                </div>
+
+                {/* Full Disk Access */}
+                <div className="space-y-4">
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.fullDiskAccess')}</h3>
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600 dark:text-gray-400">{t('generalSettings.fullDiskAccessDesc')}</span>
+                        <Switch
+                            checked={allowFullDiskAccess ?? false}
+                            onChange={(checked) => updateSettings({ allowFullDiskAccess: checked })}
                         />
                     </div>
                 </div>

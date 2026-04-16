@@ -122,6 +122,8 @@
         "autoStartDesc": "Run application automatically on system startup",
         "autoOpenArtifact": "Auto-open Artifact Panel",
         "autoOpenArtifactDesc": "Whether to automatically pop up details when a tool generates output",
+        "fullDiskAccess": "Allow Access to All Files",
+        "fullDiskAccessDesc": "When off, tools can only access the workspace and skill directories; when on, tools can read/write any path on your computer",
         "softwareUpdate": "Software Update",
         "currentVersion": "Current Version: v{{version}}",
         "autoCheckUpdate": "Auto-check for Updates",

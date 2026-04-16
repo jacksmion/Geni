@@ -18,6 +18,7 @@ interface FileResult {
 export class GrepTool implements ITool {
     private allowedRoot: string;
     private allowedPaths: string[];
+    private unrestricted = false;
     private readonly MAX_TOTAL_MATCHES = 1000;
     private readonly MAX_LINE_LENGTH = 500;
     private readonly DEFAULT_EXTENSIONS = [
@@ -40,7 +41,12 @@ export class GrepTool implements ITool {
         );
     }
 
+    public setUnrestricted(value: boolean) {
+        this.unrestricted = value;
+    }
+
     protected isPathAllowed(targetPath: string): boolean {
+        if (this.unrestricted) return true;
         const normalizedTarget = path.resolve(targetPath);
         return this.allowedPaths.some(p => {
             if (process.platform === 'win32') {

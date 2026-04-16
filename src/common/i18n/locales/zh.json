@@ -122,6 +122,8 @@
         "autoStartDesc": "系统启动时自动运行应用",
         "autoOpenArtifact": "自动打开 Artifact 面板",
         "autoOpenArtifactDesc": "调用工具产生输出时，是否自动弹窗显示详情",
+        "fullDiskAccess": "允许访问所有文件",
+        "fullDiskAccessDesc": "关闭后工具仅能访问当前工作空间和技能目录，开启后可读写电脑上的任意路径",
         "softwareUpdate": "软件更新",
         "currentVersion": "当前版本: v{{version}}",
         "autoCheckUpdate": "自动检查更新",
