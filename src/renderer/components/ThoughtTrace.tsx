@@ -630,50 +630,51 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             {/* Expanded Content View */}
             {!isTodoTool && isExpanded && (
                 <div className="pl-[29px] mt-1.5 pr-1 pb-3">
-                    <div className="flex flex-col gap-2">
-                        {/* 2. Hide Raw JSON by default, parse it if possible into key-value pills */}
+                    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#0d1117]">
+                        {/* Input parameters */}
                         {step.toolInput && (
-                            <div className="flex flex-wrap items-start gap-1.5 opacity-90">
-                                {(() => {
-                                    try {
-                                        const parsed = JSON.parse(step.toolInput);
-                                        return Object.entries(parsed).map(([key, val], i) => (
-                                            <div key={i} className="flex max-w-full text-[11px] leading-relaxed break-all bg-slate-50 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/5 rounded pl-1.5 pr-2 py-0.5">
-                                                <span className="text-slate-400 dark:text-zinc-500 select-none mr-2 font-medium">{key}:</span>
-                                                <span className="text-slate-600 dark:text-zinc-300 select-text font-mono">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
-                                            </div>
-                                        ));
-                                    } catch {
-                                        // Fallback if not valid JSON
-                                        return (
-                                            <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200/60 rounded px-2 py-0.5 whitespace-pre-wrap break-all">
-                                                {step.toolInput}
-                                            </div>
-                                        );
-                                    }
-                                })()}
-                            </div>
-                        )}
-
-                        {/* 3. Terminal/Output View */}
-                        {(step.observation || step.streamingObservation) && (
-                            <div className="group/output relative overflow-hidden rounded-lg mt-1 border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#0d1117]">
-                                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover/output:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={handleCopy}
-                                        className="p-1.5 rounded-md bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 text-slate-500 dark:text-slate-300 transition-colors backdrop-blur-sm shadow-sm"
-                                        title="Copy output"
-                                    >
-                                        {copied ? <Check size={12} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={12} />}
-                                    </button>
-                                </div>
+                            <>
                                 <div className="flex items-center px-3 py-1.5 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
-                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-slate-400 font-sans font-medium">
-                                        Output{step.isComplete ? '' : ' (Streaming...)'}
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
+                                        Input
                                     </span>
                                 </div>
+                                <pre className="py-2.5 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-white/5 max-h-[200px] overflow-auto">
+                                    {(() => {
+                                        try {
+                                            const parsed = JSON.parse(step.toolInput);
+                                            return Object.entries(parsed).map(([key, val], i) => (
+                                                <div key={i}>
+                                                    <span className="text-slate-400 dark:text-zinc-500">{key}</span>
+                                                    <span className="text-slate-300 dark:text-zinc-600 mx-1">=</span>
+                                                    <span className="text-slate-700 dark:text-zinc-300">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+                                                </div>
+                                            ));
+                                        } catch {
+                                            return step.toolInput;
+                                        }
+                                    })()}
+                                </pre>
+                            </>
+                        )}
+
+                        {/* Output */}
+                        {(step.observation || step.streamingObservation) && (
+                            <>
+                                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
+                                        Output{step.isComplete ? '' : ' (Streaming...)'}
+                                    </span>
+                                    <button
+                                        onClick={handleCopy}
+                                        className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500 transition-colors"
+                                        title="Copy output"
+                                    >
+                                        {copied ? <Check size={11} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={11} />}
+                                    </button>
+                                </div>
                                 <pre className={cn(
-                                    "flex flex-col-reverse max-h-[400px] overflow-auto py-3 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all",
+                                    "flex flex-col-reverse max-h-[400px] overflow-auto py-2.5 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all",
                                     step.isError
                                         ? "text-red-500 dark:text-red-400/90"
                                         : "text-slate-700 dark:text-slate-300"
@@ -683,7 +684,6 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                             const obs = step.observation || step.streamingObservation || '';
                                             const truncatedObs = obs.length > 50000 ? obs.slice(0, 50000) + '\n\n... (truncated for UI performance)' : obs;
 
-                                            // Simple diff/error highlighting
                                             return truncatedObs.split('\n').map((line, i) => {
                                                 if (line.startsWith('+')) {
                                                     return <span key={i} className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 block -mx-3 px-3">{line}</span>;
@@ -699,7 +699,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                         })()}
                                     </div>
                                 </pre>
-                            </div>
+                            </>
                         )}
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 // src/renderer/components/CommandPalette/ResultItem.tsx
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { MessageSquare, Zap, Users, Clock, Settings, Plus, Sun, Moon, Terminal, FileText, type LucideIcon } from 'lucide-react'
 import { SearchItem } from './types'
 
@@ -30,10 +30,18 @@ interface ResultItemProps {
 }
 
 export function ResultItem({ item, isSelected, onClick, onHover }: ResultItemProps) {
+    const ref = useRef<HTMLButtonElement>(null)
     const Icon = iconMap[item.icon || ''] || MessageSquare
+
+    useEffect(() => {
+        if (isSelected && ref.current) {
+            ref.current.scrollIntoView({ block: 'nearest' })
+        }
+    }, [isSelected])
 
     return (
         <button
+            ref={ref}
             onClick={onClick}
             onMouseEnter={onHover}
             className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors duration-75 cursor-pointer ${
