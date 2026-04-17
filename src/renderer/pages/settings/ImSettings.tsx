@@ -140,7 +140,7 @@ export function ImSettings() {
         {
             id: 'telegram',
             label: 'Telegram',
-            icon: '/IM/telegram.svg',
+            icon: './IM/telegram.svg',
             desc: t('imSettings.providerTgDesc'),
             color: '#0088cc',
             enabled: tgDraft.enabled,
@@ -149,7 +149,7 @@ export function ImSettings() {
         {
             id: 'wecom',
             label: t('imSettings.wecomBotTitle'),
-            icon: '/IM/wecom.png',
+            icon: './IM/wecom.png',
             desc: t('imSettings.providerWeComDesc'),
             color: '#1877f2',
             enabled: wecomDraft.enabled,
@@ -158,7 +158,7 @@ export function ImSettings() {
         {
             id: 'lark',
             label: t('imSettings.larkBotTitle'),
-            icon: '/IM/feishu.png',
+            icon: './IM/feishu.png',
             desc: t('imSettings.providerLarkDesc'),
             color: '#3370ff',
             enabled: larkDraft.enabled,
@@ -167,7 +167,7 @@ export function ImSettings() {
         {
             id: 'wechat',
             label: 'WeChat (微信)',
-            icon: '/IM/weixin.png',
+            icon: './IM/weixin.png',
             desc: '扫码登录微信个人号接入 Agent',
             color: '#07c160',
             enabled: wechatDraft.enabled,
@@ -364,7 +364,7 @@ export function ImSettings() {
                                 {wechatConnected && (
                                     <div className="flex flex-col items-center justify-center p-8 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
                                         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
-                                            <img src="/IM/weixin.png" alt="WeChat" className="w-9 h-9 object-contain" />
+                                            <img src="./IM/weixin.png" alt="WeChat" className="w-9 h-9 object-contain" />
                                         </div>
                                         <p className="text-emerald-800 dark:text-emerald-400 font-bold text-lg flex items-center gap-2">
                                             <span className="relative flex h-3 w-3">
@@ -397,7 +397,7 @@ export function ImSettings() {
                                             onClick={handleWechatScan}
                                             className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/10"
                                         >
-                                            <img src="/IM/weixin.png" alt="WeChat" className="w-[18px] h-[18px] object-contain brightness-0 invert" />
+                                            <img src="./IM/weixin.png" alt="WeChat" className="w-[18px] h-[18px] object-contain brightness-0 invert" />
                                             扫码连接微信
                                         </button>
                                         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
