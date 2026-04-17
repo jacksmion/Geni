@@ -18,7 +18,7 @@ export function Sidebar() {
     ] as const
 
     return (
-        <aside className="w-[50px] flex flex-col items-center py-4 bg-white/70 dark:bg-[#111113]/50 backdrop-blur-xl border-r border-slate-200/40 dark:border-white/[0.03] shrink-0 z-[100] h-full transition-all duration-300">
+        <aside className="w-[50px] flex flex-col items-center py-4 bg-[#F7F7F8] dark:bg-[#111113]/50 backdrop-blur-xl border-r border-[#E5E7EB] dark:border-white/[0.03] shrink-0 z-[100] h-full transition-all duration-300">
             {/* Navigation */}
             <nav className="flex-1 flex flex-col gap-1.5 w-full px-2">
                 <NavButton
@@ -36,7 +36,7 @@ export function Sidebar() {
                     label={t('sidebar.search', { defaultValue: '全局搜索' })}
                 />
 
-                <div className="w-6 h-[1px] bg-slate-200/50 dark:bg-white/[0.05] mx-auto my-1" />
+                <div className="w-6 h-[1px] bg-[#E5E7EB] dark:bg-white/[0.05] mx-auto my-1" />
 
                 {navItems.map((item) => (
                     <NavButton
@@ -73,7 +73,7 @@ function ThemeToggle() {
     return (
         <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-400 hover:bg-slate-200/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5 group relative"
+            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5 group relative"
         >
             {isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
             
@@ -93,8 +93,8 @@ function NavButton({ isActive, onClick, icon: Icon, label }: { isActive: boolean
             className={clsx(
                 "w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 group relative",
                 isActive
-                    ? "bg-slate-200/80 text-slate-800 dark:bg-white/10 dark:text-zinc-200"
-                    : "text-slate-400 hover:bg-slate-200/50 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5"
+                    ? "bg-white/80 text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-white/10 dark:text-zinc-200"
+                    : "text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5"
             )}
         >
             <Icon size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-105" />

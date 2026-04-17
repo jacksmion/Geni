@@ -64,7 +64,7 @@ function StaffPicker() {
     const visibleOptions = allOptions.slice(0, MAX_VISIBLE)
 
     return (
-        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/60 dark:bg-white/[0.04]">
+        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#F0F0F2] dark:bg-white/[0.04]">
             {visibleOptions.map(opt => {
                 const isActive = currentStaffId === opt.id
                 return (
@@ -188,12 +188,12 @@ export function ChatLayout() {
                     }}
                 >
                     {/* Header */}
-                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/70 dark:bg-[#141414]/80 backdrop-blur-xl border-b border-slate-100/50 dark:border-white/[0.05]'}`}>
+                    <header className={`h-11 flex items-center justify-between px-4 draggable shrink-0 z-10 pt-2 ${!hasMessages ? 'absolute top-0 w-full bg-transparent' : 'bg-white/80 dark:bg-[#141414]/80 backdrop-blur-md border-b border-[#EDEDF0] dark:border-white/[0.05]'}`}>
                         {/* Left: Toggle + Title */}
                         <div className="flex items-center gap-2.5 overflow-hidden">
                             <button
                                 onClick={toggleSidebar}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors no-drag"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-[#F0F0F2] dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors no-drag"
                                 title={sidebarCollapsed ? "展开侧边栏 (Ctrl+B)" : "折叠侧边栏 (Ctrl+B)"}
                             >
                                 {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}

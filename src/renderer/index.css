@@ -55,12 +55,12 @@
 
   /* ─── Light Mode Backgrounds ─── */
   --bg-color: #ffffff;
-  --bg-elevated: #f8f8fa;       /* 第二层：卡片/面板 */
-  --bg-sunken: #f4f4f5;         /* 第三层：凹陷区域 */
+  --bg-elevated: #f7f7f8;       /* 第二层：侧边栏/面板 */
+  --bg-sunken: #f0f0f2;         /* 第三层：凹陷区域 */
   --text-color: #1a1a1a;
-  --text-secondary: #71717a;    /* Zinc-500 */
-  --sidebar-bg: #f4f4f5;        /* Zinc-100 */
-  --sidebar-border: #e4e4e7;    /* Zinc-200 */
+  --text-secondary: #6b7280;    /* Gray-500 */
+  --sidebar-bg: #f5f5f7;        /* 侧边栏专用 */
+  --sidebar-border: #ededf0;    /* 柔和边框 */
 }
 
 :root.dark {

@@ -358,7 +358,7 @@ export function Composer() {
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-6 relative z-50 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
-                <div className="relative bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-black/10 dark:focus-within:ring-white/20">
+                <div className="relative bg-[#F9FAFB] dark:bg-[#1a1a1a]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-[#E5E7EB] dark:ring-white/10 focus-within:ring-[#D1D5DB] dark:focus-within:ring-white/20">
 
                     {/* Slash Command Menu - Primary */}
                     {showSlashMenu && !slashSubMenu && (

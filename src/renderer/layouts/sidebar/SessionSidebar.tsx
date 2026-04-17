@@ -4,7 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, CheckSquare, Square, Pin } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
@@ -158,7 +158,7 @@ export function SessionSidebar() {
 
             <div
                 className={clsx(
-                    "shrink-0 flex flex-col h-full bg-white/40 dark:bg-transparent backdrop-blur-xl border-r border-slate-200/40 dark:border-white/[0.03] transition-all duration-300 ease-in-out",
+                    "shrink-0 flex flex-col h-full bg-[#F5F5F7] dark:bg-transparent backdrop-blur-xl border-r border-[#EDEDF0] dark:border-white/[0.03] transition-all duration-300 ease-in-out",
                     sidebarCollapsed ? "w-0 opacity-0 -translate-x-full" : "translate-x-0",
                     isMobile && !sidebarCollapsed && "fixed left-[50px] top-0 bottom-0 z-30 shadow-2xl",
                 )}
@@ -167,38 +167,34 @@ export function SessionSidebar() {
                     visibility: sidebarCollapsed ? 'hidden' : 'visible'
                 }}
             >
-                {/* Header: Title + Actions & Search */}
-                <div className="px-4 pt-5 pb-3 space-y-4 overflow-hidden">
-                    {/* Section Header */}
-                    <div className="flex items-center justify-between min-w-[200px]">
-                        <h2 className="text-[11px] font-semibold text-slate-500 dark:text-zinc-500 select-none">
-                            {t('sessionSidebar.title')}
-                        </h2>
-                        <div className="flex items-center gap-1">
-                            {sessionMetas.length > 0 && (
-                                <button
-                                    onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
-                                    className={clsx(
-                                        "p-1.5 rounded-lg transition-colors",
-                                        selectMode
-                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
-                                            : "text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5"
-                                    )}
-                                    title={t('sessionSidebar.actions.manage')}
-                                >
-                                    <CheckSquare size={14} />
-                                </button>
-                            )}
+                {/* Header: Title + Actions — 与 ChatLayout header 对齐 (h-11) */}
+                <div className="h-11 flex items-center justify-between px-4 shrink-0 pt-2 overflow-hidden min-w-[200px]">
+                    <h2 className="text-xs font-semibold text-slate-600 dark:text-zinc-500 select-none">
+                        {t('sessionSidebar.title')}
+                    </h2>
+                    <div className="flex items-center gap-1">
+                        {sessionMetas.length > 0 && (
                             <button
-                                onClick={() => createSession()}
-                                className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-200/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
-                                title={t('sessionSidebar.actions.new')}
+                                onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                                className={clsx(
+                                    "p-1.5 rounded-lg transition-colors",
+                                    selectMode
+                                        ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                        : "text-slate-400 hover:text-indigo-600 hover:bg-white/60 dark:hover:text-indigo-400 dark:hover:bg-white/5"
+                                )}
+                                title={t('sessionSidebar.actions.manage')}
                             >
-                                <Plus size={16} strokeWidth={2.5} />
+                                <ListChecks size={14} />
                             </button>
-                        </div>
+                        )}
+                        <button
+                            onClick={() => createSession()}
+                            className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
+                            title={t('sessionSidebar.actions.new')}
+                        >
+                            <Plus size={16} strokeWidth={2.5} />
+                        </button>
                     </div>
-
                 </div>
 
 
@@ -227,8 +223,8 @@ export function SessionSidebar() {
                                         isSelected
                                             ? "bg-indigo-50 dark:bg-indigo-500/10"
                                             : isActive && !selectMode
-                                                ? "bg-indigo-50/80 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium"
-                                                : "text-slate-600 dark:text-gray-400 hover:bg-slate-100/80 dark:hover:bg-white/5"
+                                                ? "bg-white/70 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                                                : "text-slate-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5"
                                     )}
                                 >
                                     {/* Checkbox in select mode */}
@@ -237,7 +233,7 @@ export function SessionSidebar() {
                                             {isRunning ? (
                                                 <Square size={14} className="text-slate-200 dark:text-zinc-700" />
                                             ) : isSelected ? (
-                                                <CheckSquare size={14} className="text-indigo-500" />
+                                                <ListChecks size={14} className="text-indigo-500" />
                                             ) : (
                                                 <Square size={14} className="text-slate-300 dark:text-zinc-600" />
                                             )}
@@ -321,7 +317,7 @@ export function SessionSidebar() {
                                                                 "p-1 rounded transition-colors",
                                                                 session.pinned
                                                                     ? "text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
-                                                                    : "text-slate-400 hover:text-indigo-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                                                                    : "text-slate-400 hover:text-indigo-500 hover:bg-white/60 dark:hover:bg-white/10"
                                                             )}
                                                             title={session.pinned ? t('sessionSidebar.actions.unpin') : t('sessionSidebar.actions.pin')}
                                                         >
@@ -329,7 +325,7 @@ export function SessionSidebar() {
                                                         </button>
                                                         <button
                                                             onClick={(e) => handleStartEdit(e, session.id, session.title)}
-                                                            className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                                                            className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
                                                             title={t('sessionSidebar.actions.rename')}
                                                         >
                                                             <Edit2 size={12} />
@@ -357,7 +353,7 @@ export function SessionSidebar() {
 
                 {/* Bottom bar: batch actions or session count */}
                 {selectMode ? (
-                    <div className="px-3 py-2.5 border-t border-slate-200/40 dark:border-white/[0.02] flex items-center justify-between min-w-[200px]">
+                    <div className="px-3 py-2.5 border-t border-[#EDEDF0] dark:border-white/[0.02] flex items-center justify-between min-w-[200px]">
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSelectAll}
@@ -372,7 +368,7 @@ export function SessionSidebar() {
                         <div className="flex items-center gap-1.5">
                             <button
                                 onClick={exitSelectMode}
-                                className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
                             >
                                 {t('sessionSidebar.batch.cancel')}
                             </button>
@@ -391,7 +387,7 @@ export function SessionSidebar() {
                         </div>
                     </div>
                 ) : (
-                    <div className="px-4 py-3 border-t border-slate-200/40 dark:border-white/[0.02] text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
+                    <div className="px-4 py-3 border-t border-[#EDEDF0] dark:border-white/[0.02] text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
                         {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
                     </div>
                 )}

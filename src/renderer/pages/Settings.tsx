@@ -31,9 +31,9 @@ export default function Settings() {
     ] as const;
 
     return (
-        <div className="flex h-full bg-slate-50 dark:bg-black/20">
+        <div className="flex h-full bg-[#F7F7F8] dark:bg-black/20">
             {/* Settings Sidebar */}
-            <div className="w-56 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#18181b]/50 p-4 flex flex-col gap-1">
+            <div className="w-56 shrink-0 border-r border-[#EDEDF0] dark:border-white/5 bg-white dark:bg-[#18181b]/50 p-4 flex flex-col gap-1">
                 <div className="px-3 py-4 mb-2">
                     <h2 className="text-sm font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
                         <SettingsIcon size={14} />
