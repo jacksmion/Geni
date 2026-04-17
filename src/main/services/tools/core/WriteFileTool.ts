@@ -2,6 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 
+interface ChunkSessionState {
+    nextChunkIndex: number;
+    relPath: string;
+}
+
 export class WriteFileTool implements ITool {
     private allowedRoot: string;
     private allowedPaths: string[];
@@ -51,7 +56,8 @@ export class WriteFileTool implements ITool {
                     append: { type: 'boolean', description: 'True to append instead of overwrite' },
                     ignoreIfExists: { type: 'boolean', description: 'True to skip if file exists' },
                     chunk_index: { type: 'number', description: 'Zero-based index of the current chunk. When provided, enables chunked writing mode using a temp file.' },
-                    is_last_chunk: { type: 'boolean', description: 'Set to true on the final chunk to commit the temp file to the target path atomically. Required when chunk_index is set.' }
+                    is_last_chunk: { type: 'boolean', description: 'Set to true on the final chunk to commit the temp file to the target path atomically. Required when chunk_index is set.' },
+                    chunk_id: { type: 'string', description: 'Chunked write session ID. Optional on chunk_index=0 and generated automatically; required for subsequent chunks.' }
                 },
                 required: ['path', 'content']
             }
@@ -59,7 +65,7 @@ export class WriteFileTool implements ITool {
     }
 
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
-        const { path: relPath, content, append = false, ignoreIfExists = false, chunk_index, is_last_chunk } = args;
+        const { path: relPath, content, append = false, ignoreIfExists = false, chunk_index, is_last_chunk, chunk_id } = args;
 
         // Defensive Check: Ensure required arguments are present and valid
         if (typeof relPath !== 'string' || relPath.trim() === '') {
@@ -107,7 +113,7 @@ export class WriteFileTool implements ITool {
 
             // --- Chunked Writing Mode ---
             if (chunk_index !== undefined) {
-                return await this.executeChunk(fullPath, relPath, content, chunk_index, is_last_chunk === true);
+                return await this.executeChunk(fullPath, relPath, content, chunk_index, is_last_chunk === true, chunk_id);
             }
 
             // --- Normal Writing Mode ---
@@ -175,41 +181,142 @@ export class WriteFileTool implements ITool {
         relPath: string,
         content: string,
         chunkIndex: number,
-        isLastChunk: boolean
+        isLastChunk: boolean,
+        chunkId?: string
     ): Promise<ToolExecutionResult> {
-        const tempPath = `${fullPath}.writing`;
+        if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
+            return {
+                toolName: 'write',
+                isError: true,
+                result: `Chunk Error: chunk_index must be a non-negative integer. Received: ${chunkIndex}`
+            };
+        }
+
+        const effectiveChunkId = this.resolveChunkId(chunkIndex, chunkId);
+        if (!effectiveChunkId) {
+            return {
+                toolName: 'write',
+                isError: true,
+                result: 'Chunk Error: chunk_id is required for chunk_index > 0. Reuse the chunk_id returned from the first chunk.'
+            };
+        }
+
+        if (!this.isValidChunkId(effectiveChunkId)) {
+            return {
+                toolName: 'write',
+                isError: true,
+                result: `Chunk Error: Invalid chunk_id '${effectiveChunkId}'. Use the exact chunk_id returned by the tool.`
+            };
+        }
+
+        const tempPath = `${fullPath}.writing.${effectiveChunkId}`;
+        const metaPath = `${tempPath}.meta.json`;
 
         if (chunkIndex === 0) {
             // 第一块：创建/覆盖临时文件
             await fs.writeFile(tempPath, content, 'utf-8');
+            await this.writeChunkState(metaPath, {
+                nextChunkIndex: 1,
+                relPath
+            });
         } else {
             // 后续块：追加到临时文件
+            const state = await this.readChunkState(metaPath);
+            if (!state) {
+                return {
+                    toolName: 'write',
+                    isError: true,
+                    result: `Chunk Error: Chunk session '${effectiveChunkId}' not found for '${relPath}'. Did you start from chunk_index=0?`
+                };
+            }
+
+            if (state.relPath !== relPath) {
+                return {
+                    toolName: 'write',
+                    isError: true,
+                    result: `Chunk Error: chunk_id '${effectiveChunkId}' belongs to '${state.relPath}', not '${relPath}'.`
+                };
+            }
+
+            if (state.nextChunkIndex !== chunkIndex) {
+                return {
+                    toolName: 'write',
+                    isError: true,
+                    result: `Chunk Error: Expected chunk_index=${state.nextChunkIndex} for chunk_id='${effectiveChunkId}', received ${chunkIndex}.`
+                };
+            }
+
             try {
                 await fs.access(tempPath);
             } catch {
                 return {
                     toolName: 'write',
                     isError: true,
-                    result: `Chunk Error: Temp file '${relPath}.writing' not found. Did you start from chunk_index=0?`
+                    result: `Chunk Error: Temp file for chunk_id='${effectiveChunkId}' is missing. Restart from chunk_index=0.`
                 };
             }
+
             await fs.appendFile(tempPath, content, 'utf-8');
         }
 
         if (!isLastChunk) {
+            if (chunkIndex > 0) {
+                await this.writeChunkState(metaPath, {
+                    nextChunkIndex: chunkIndex + 1,
+                    relPath
+                });
+            }
+
             return {
                 toolName: 'write',
                 isError: false,
-                result: `Chunk ${chunkIndex} written to temp file. Continue with chunk_index=${chunkIndex + 1}.`
+                result: `Chunk ${chunkIndex} written to temp file for '${relPath}'. Continue with chunk_index=${chunkIndex + 1} and chunk_id='${effectiveChunkId}'.`
             };
         }
 
         // 最后一块：原子 rename temp -> target
         await fs.rename(tempPath, fullPath);
+        await fs.rm(metaPath, { force: true });
         return {
             toolName: 'write',
             isError: false,
-            result: `Success: File '${relPath}' committed from ${chunkIndex + 1} chunk(s).`
+            result: `Success: File '${relPath}' committed from ${chunkIndex + 1} chunk(s) with chunk_id='${effectiveChunkId}'.`
         };
+    }
+
+    private resolveChunkId(chunkIndex: number, chunkId?: string): string | undefined {
+        if (chunkIndex === 0) {
+            return typeof chunkId === 'string' && chunkId.trim() !== ''
+                ? chunkId.trim()
+                : crypto.randomUUID();
+        }
+
+        return typeof chunkId === 'string' && chunkId.trim() !== ''
+            ? chunkId.trim()
+            : undefined;
+    }
+
+    private isValidChunkId(chunkId: string): boolean {
+        return /^[A-Za-z0-9_-]+$/.test(chunkId);
+    }
+
+    private async readChunkState(metaPath: string): Promise<ChunkSessionState | null> {
+        try {
+            const raw = await fs.readFile(metaPath, 'utf-8');
+            const parsed = JSON.parse(raw) as Partial<ChunkSessionState>;
+            if (!Number.isInteger(parsed.nextChunkIndex) || typeof parsed.relPath !== 'string') {
+                return null;
+            }
+            return {
+                nextChunkIndex: parsed.nextChunkIndex,
+                relPath: parsed.relPath
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    private async writeChunkState(metaPath: string, state: ChunkSessionState): Promise<void> {
+        await fs.writeFile(metaPath, JSON.stringify(state), 'utf-8');
     }
 }

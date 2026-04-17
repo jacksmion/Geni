@@ -106,7 +106,8 @@ function createCoreToolManager(registry: ToolRegistry): CoreToolManager {
     const mockSkillRegistry = {};
 
     const mockPathManager = {
-        getSkillsLoadPaths: vi.fn().mockReturnValue(['/skills'])
+        getSkillsLoadPaths: vi.fn().mockReturnValue(['/skills']),
+        getTodosFile: vi.fn().mockReturnValue('/mock/workspace/.geni/todos.json')
     };
 
     const mockMemoryStore = {
