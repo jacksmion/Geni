@@ -1,9 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { CheckCircle2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X } from 'lucide-react';
+import { CheckCircle2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
 
-import { MarkdownRenderer } from './MarkdownRenderer';
 import { extractPathAndContent } from '../utils/artifact';
-import { preprocessMarkdown } from '../utils/markdown';
 import { useChatStore } from '../store/useChatStore';
 import { cn } from '../utils/cn';
 
@@ -436,15 +434,15 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
     // ─── Compact single-line view for completed steps ───
     if (step.isComplete && !isExpanded && !isTodoTool) {
         return (
-            <div className="relative font-mono pl-1.5">
+            <div className="relative font-mono pl-4">
                 {/* Timeline Connecting Line */}
                 {!isLast && (
-                    <div className="absolute left-[5px] top-[16px] bottom-[-4px] w-px bg-slate-200/40 dark:bg-zinc-800/40 z-0" />
+                    <div className="absolute left-[12px] top-[16px] bottom-[-4px] w-px bg-slate-200/50 dark:bg-zinc-800/50 z-0" />
                 )}
                 <div
                     className={cn(
                         "relative z-10 flex items-center gap-2 py-0.5 cursor-pointer group/compact",
-                        "hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors rounded -mx-2 px-2",
+                        "hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors rounded-md -mx-2 px-2",
                         isArtifactTool && "hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5"
                     )}
                     onClick={(e) => {
@@ -462,21 +460,26 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                         <CheckCircle2 size={11} className="shrink-0 text-emerald-400" strokeWidth={2.5} />
                     )}
 
-                    {/* Tool name */}
-                    <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-600 shrink-0 min-w-[36px]">
-                        {displayName}
-                    </span>
-
                     {/* Key info (path / command) */}
                     {inlineInput && (
-                        <span className="text-[11px] text-slate-350 dark:text-zinc-600 truncate">
+                        <span className="min-w-0 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
                             {inlineInput}
                         </span>
                     )}
+                    {!inlineInput && (
+                        <span className="min-w-0 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
+                            {displayName}
+                        </span>
+                    )}
+
+                    {/* Tool name */}
+                    <span className="shrink-0 rounded-sm bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-zinc-500">
+                        {displayName}
+                    </span>
 
                     {/* Duration */}
                     {formattedDuration && (
-                        <span className="text-[10px] text-slate-300/70 dark:text-zinc-700 ml-auto shrink-0 tabular-nums">
+                        <span className="ml-auto shrink-0 text-[10px] text-slate-300/80 dark:text-zinc-700 tabular-nums">
                             {formattedDuration}
                         </span>
                     )}
@@ -632,20 +635,44 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
     );
 }, (prevProps, nextProps) => prevProps.step === nextProps.step && prevProps.isLast === nextProps.isLast);
 
-// Thought Text Component (AI's internal monologue)
-const ThoughtText = React.memo(function ThoughtText({ thought }: { thought: string }) {
-    const cleanThought = useMemo(() => preprocessMarkdown(thought.trim()), [thought]);
-    if (!thought) return null;
+function classifyTool(toolName?: string): 'read' | 'search' | 'create' | 'edit' | 'command' | 'other' {
+    const lower = toolName?.toLowerCase() || '';
+    if (['read', 'list', 'load_skill'].some(keyword => lower.includes(keyword))) return 'read';
+    if (['grep', 'glob', 'search'].some(keyword => lower.includes(keyword))) return 'search';
+    if (lower.includes('write')) return 'create';
+    if (lower.includes('edit')) return 'edit';
+    if (['bash', 'command', 'terminal'].some(keyword => lower.includes(keyword))) return 'command';
+    return 'other';
+}
 
-    // 清理首尾空白并预处理 Markdown
-    if (!cleanThought) return null;
+function buildTraceSummary(steps: ThoughtStep[]) {
+    const counts = { read: 0, search: 0, create: 0, edit: 0, command: 0, other: 0 };
+    let waiting = 0;
 
-    return (
-        <MarkdownRenderer
-            content={cleanThought}
-        />
-    );
-});
+    for (const step of steps) {
+        if (!step.tool) continue;
+        if (step.isWaitingAuthorization) {
+            waiting++;
+            continue;
+        }
+        counts[classifyTool(step.tool)]++;
+    }
+
+    const labels: string[] = [];
+    if (counts.read > 0) labels.push(`查看 ${counts.read} 项`);
+    if (counts.search > 0) labels.push(`搜索 ${counts.search} 项`);
+    if (counts.create > 0) labels.push(`创建 ${counts.create} 项`);
+    if (counts.edit > 0) labels.push(`修改 ${counts.edit} 项`);
+    if (counts.command > 0) labels.push(`执行 ${counts.command} 个命令`);
+    if (counts.other > 0) labels.push(`处理 ${counts.other} 项`);
+    if (waiting > 0) labels.push(`待确认 ${waiting} 项`);
+
+    return labels.join(' · ') || `已执行 ${steps.length} 个操作`;
+}
+
+function getSummaryActionLabel(isCollapsed: boolean) {
+    return isCollapsed ? '展开' : '收起';
+}
 
 const HIDDEN_TOOLS = new Set(['memorize']);
 
@@ -653,16 +680,43 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
     const visibleSteps = useMemo(() => steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool)), [steps]);
     if (visibleSteps.length === 0) return null;
 
-    return (
-        <div className="flex flex-col mb-2">
-            {visibleSteps.map((step, idx) => {
-                // 同一轮并行工具调用共享相同 thought，只在首个 step 显示
-                const prevStep = idx > 0 ? visibleSteps[idx - 1] : null;
-                const shouldShowThought = step.thought && step.thought !== prevStep?.thought;
+    const summary = useMemo(() => buildTraceSummary(visibleSteps), [visibleSteps]);
+    const hasActiveSteps = useMemo(
+        () => visibleSteps.some(step => step.isWaitingAuthorization || !step.isComplete),
+        [visibleSteps]
+    );
+    const [isCollapsed, setIsCollapsed] = useState(() => !hasActiveSteps);
 
+    React.useEffect(() => {
+        if (hasActiveSteps) {
+            setIsCollapsed(false);
+        }
+    }, [hasActiveSteps]);
+
+    const canCollapse = visibleSteps.length > 0;
+
+    return (
+        <div className="flex flex-col mb-0.5">
+            <button
+                type="button"
+                className="mb-0.5 ml-[2px] inline-flex w-full items-center gap-1.5 rounded-md border-l border-slate-200/80 px-2 py-1 text-[10.5px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/8 dark:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-zinc-300"
+                onClick={() => {
+                    if (!canCollapse) return;
+                    setIsCollapsed(value => !value);
+                }}
+            >
+                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                <span className="text-slate-500 dark:text-zinc-400">
+                    {summary}
+                </span>
+                <span className="ml-auto text-[10px] text-slate-400 dark:text-zinc-600">
+                    {getSummaryActionLabel(isCollapsed)}
+                </span>
+            </button>
+
+            {!isCollapsed && visibleSteps.map((step, idx) => {
                 return (
                     <div key={idx} className="flex flex-col w-full">
-                        {shouldShowThought && <ThoughtText thought={step.thought!} />}
                         {step.tool && <ToolCallCard step={step} isLast={idx === visibleSteps.length - 1} />}
                     </div>
                 );

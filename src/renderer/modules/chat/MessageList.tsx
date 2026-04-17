@@ -4,7 +4,7 @@ import { useChatStore } from '../../store/useChatStore'
 import { useStaffStore } from '../../store/useStaffStore'
 import { ChatMessage, ContentPart } from '../../../common/types/chat'
 import ThoughtTrace from '../../components/ThoughtTrace'
-import { MarkdownRenderer, CopyButton, ThinkingBlock } from '../../components/MarkdownRenderer'
+import { MarkdownRenderer, CopyButton } from '../../components/MarkdownRenderer'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { preprocessMarkdown } from '../../utils/markdown'
 import { cn } from '../../utils/cn'
@@ -397,10 +397,6 @@ const MessageItem = React.memo(function MessageItem({
         return cleanContent.substring(firstThought.length).trim()
     }, [isUser, message.steps, processedContent])
 
-    const reasoningParts = React.useMemo(
-        () => message.reasoning_parts || (message.reasoning_content ? [message.reasoning_content] : []),
-        [message.reasoning_content, message.reasoning_parts]
-    )
     const steps = React.useMemo(() => message.steps || [], [message.steps])
 
     const stepGroups = React.useMemo(() => {
@@ -475,22 +471,16 @@ const MessageItem = React.memo(function MessageItem({
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
-                        {/* Interleave per turn: ThinkingBlock → Text → Tool Calls */}
+                        {/* Interleave per turn: Tool Calls → Text */}
                         {(() => {
-                            const totalTurns = Math.max(reasoningParts.length, stepGroups.length)
+                            const totalTurns = stepGroups.length
                             if (totalTurns === 0) return null
 
                             return (<>
                                 {Array.from({ length: totalTurns }, (_, i) => (
                                     <React.Fragment key={i}>
-                                        {reasoningParts[i] && (
-                                            <ThinkingBlock
-                                                content={reasoningParts[i]}
-                                                isComplete={!isStreaming || i < reasoningParts.length - 1}
-                                            />
-                                        )}
                                         {stepGroups[i] && stepGroups[i].length > 0 && (
-                                            <div className="mb-4 w-full">
+                                            <div className="mb-1.5 w-full">
                                                 <ThoughtTrace steps={stepGroups[i]} contextContent={textContent} />
                                             </div>
                                         )}
@@ -509,7 +499,7 @@ const MessageItem = React.memo(function MessageItem({
 
                         {/* TextBody：无推理/工具时单独渲染 */}
                         {(() => {
-                            const hasTurns = Math.max(reasoningParts.length, stepGroups.length) > 0
+                            const hasTurns = stepGroups.length > 0
                             if (hasTurns || !displayContent) return null
                             return (
                                 <MarkdownRenderer

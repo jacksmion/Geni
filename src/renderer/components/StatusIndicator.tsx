@@ -1,8 +1,25 @@
 import React from 'react';
-import { Sparkles, Loader2, Wrench, AlertTriangle, XCircle, Search, FileText, Terminal } from 'lucide-react';
+import { Sparkles, Loader2, Wrench, AlertTriangle, XCircle } from 'lucide-react';
 import { useChatStore } from '../store/useChatStore';
 import { cn } from '../utils/cn';
 
+function getToolPhase(toolName?: string) {
+    const lower = toolName?.toLowerCase() || '';
+    if (!lower) return '正在处理';
+    if (['read', 'list', 'glob', 'grep', 'search', 'load_skill'].some(keyword => lower.includes(keyword))) {
+        return '正在查看信息';
+    }
+    if (lower.includes('write')) {
+        return '正在创建内容';
+    }
+    if (lower.includes('edit')) {
+        return '正在修改内容';
+    }
+    if (['bash', 'command', 'terminal'].some(keyword => lower.includes(keyword))) {
+        return '正在执行命令';
+    }
+    return '正在处理';
+}
 
 export function StatusIndicator() {
     const event = useChatStore(s => {
@@ -60,7 +77,24 @@ export function StatusIndicator() {
 
     const meta = stateMeta[event.currentState] || { label: event.currentState, icon: Sparkles, color: 'text-indigo-500', bgColor: 'bg-indigo-50', pulse: true };
     const Icon = meta.icon;
-    const statusText = event.message || meta.label;
+    const statusText = (() => {
+        if (event.currentState === 'ExecutingTool') {
+            if (Array.isArray(event.metadata?.tools) && event.metadata.tools.length > 1) {
+                return `正在处理 ${event.metadata.tools.length} 个操作`;
+            }
+            return getToolPhase(event.metadata?.tool);
+        }
+
+        if (event.currentState === 'AwaitingInput') {
+            return '等待你确认';
+        }
+
+        if (event.currentState === 'Thinking' || event.currentState === 'ExecutingHelper') {
+            return '正在思考';
+        }
+
+        return event.message || meta.label;
+    })();
 
     return (
         <div className="w-full flex justify-center px-4 py-2 shrink-0">
@@ -73,7 +107,7 @@ export function StatusIndicator() {
 
                 <span>{statusText}</span>
 
-                {event.metadata?.tool && (
+                {event.currentState === 'ExecutingTool' && event.metadata?.tool && (
                     <span className="text-[10px] font-mono opacity-70">
                         {event.metadata.tool}
                     </span>
