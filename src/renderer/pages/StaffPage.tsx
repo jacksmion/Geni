@@ -10,11 +10,32 @@ import { StaffAvatar } from '../components/StaffAvatar'
 import { useChatStore } from '../store/useChatStore'
 import { clsx } from 'clsx'
 
+function InlineToast({ message, type }: { message: string; type: 'error' | 'success' | 'info' }) {
+    return (
+        <div
+            className={clsx(
+                "fixed top-4 right-4 z-[120] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200",
+                type === 'error' && "bg-red-500 text-white",
+                type === 'success' && "bg-emerald-500 text-white",
+                type === 'info' && "bg-slate-800 text-white dark:bg-white dark:text-slate-800",
+            )}
+        >
+            {message}
+        </div>
+    )
+}
+
 export default function StaffPage() {
     const { profiles, loading, editingId, loadProfiles, setEditingId } = useStaffStore()
     const { t } = useTranslation()
     const showConfirm = useModalStore(s => s.showConfirm)
     const [searchTerm, setSearchTerm] = useState('')
+    const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null)
+
+    const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+        setToast({ message, type })
+        window.setTimeout(() => setToast(null), 3000)
+    }
 
     useEffect(() => { loadProfiles() }, [loadProfiles])
 
@@ -50,10 +71,10 @@ export default function StaffPage() {
                     },
                 })
             } else {
-                alert(result.error || '导入失败')
+                showToast(result.error || '导入失败', 'error')
             }
         } catch (e: any) {
-            alert(e.message || '导入失败')
+            showToast(e.message || '导入失败', 'error')
         }
     }
 
@@ -63,6 +84,7 @@ export default function StaffPage() {
 
     return (
         <div className="flex h-full flex-col">
+            {toast && <InlineToast message={toast.message} type={toast.type} />}
             {/* Draggable Header */}
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
@@ -276,6 +298,12 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
     const [generating, setGenerating] = useState(false)
     const [skillDropdownOpen, setSkillDropdownOpen] = useState(false)
     const [skillSearch, setSkillSearch] = useState('')
+    const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null)
+
+    const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+        setToast({ message, type })
+        window.setTimeout(() => setToast(null), 3000)
+    }
 
     // Build available model options from settings
     const modelOptions = useMemo(() => {
@@ -343,7 +371,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
             setPersona(result)
         } catch (err: any) {
             console.error('Failed to generate prompt:', err)
-            alert(err.message || '生成失败，请检查 LLM 配置')
+            showToast(err.message || '生成失败，请检查 LLM 配置', 'error')
         } finally {
             unsub()
             setGenerating(false)
@@ -391,6 +419,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
     return (
         <div className="flex h-full flex-col">
+            {toast && <InlineToast message={toast.message} type={toast.type} />}
             {/* Draggable Header */}
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] draggable">
                 <div className="flex items-center justify-between px-4 h-12">
