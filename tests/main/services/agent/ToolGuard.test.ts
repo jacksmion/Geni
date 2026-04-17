@@ -112,6 +112,30 @@ describe('ToolGuard', () => {
             expect(secondDecision.reason).toBe('Previously approved by user');
         });
 
+        it('should require confirmation again when the same dangerous tool is called with different args', () => {
+            const guard = new ToolGuard();
+            const approvedRequest = { ...requestTemplate, toolName: 'bash', args: { command: 'echo ok' } };
+            const differentRequest = { ...requestTemplate, toolName: 'bash', args: { command: 'rm -rf /tmp/demo' } };
+
+            guard.markApproved(approvedRequest);
+
+            const decision = guard.evaluateRequest(differentRequest);
+            expect(decision.allowed).toBe(false);
+            expect(decision.requiresUserConfirmation).toBe(true);
+        });
+
+        it('should match approvals by normalized argument shape instead of object key order', () => {
+            const guard = new ToolGuard();
+            const firstRequest = { ...requestTemplate, toolName: 'bash', args: { command: 'echo ok', env: { B: '2', A: '1' } } };
+            const sameRequestDifferentOrder = { ...requestTemplate, toolName: 'bash', args: { env: { A: '1', B: '2' }, command: 'echo ok' } };
+
+            guard.markApproved(firstRequest);
+
+            const decision = guard.evaluateRequest(sameRequestDifferentOrder);
+            expect(decision.allowed).toBe(true);
+            expect(decision.requiresUserConfirmation).toBe(false);
+        });
+
         it('should forget approvals after clearApprovedPatterns', () => {
             const guard = new ToolGuard();
             const request = { ...requestTemplate, toolName: 'bash' };

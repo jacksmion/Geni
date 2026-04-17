@@ -168,7 +168,11 @@ export class PromptBuilder {
             ? "English (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in English."
             : "Chinese (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in Chinese.";
 
-        return base.replace('{{LANGUAGE_INFO}}', langInfo);
+        if (base.includes('{{LANGUAGE_INFO}}')) {
+            return base.replace('{{LANGUAGE_INFO}}', langInfo);
+        }
+
+        return `${base}\n\n[Language Instruction]\n${langInfo}`;
     }
 
     /**

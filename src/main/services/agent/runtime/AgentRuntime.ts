@@ -29,6 +29,7 @@ import os from 'os';
 
 
 export class AgentRuntime {
+    private static readonly AUTH_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
     private toolRegistry: ToolRegistry;
     private sessionManager: SessionManager;
     private skillRegistry: SkillRegistry;
@@ -154,7 +155,7 @@ export class AgentRuntime {
                     this.pendingAuthResolvers.set(requestId, resolve);
                 });
 
-                const approved = await authPromise;
+                const approved = await this.waitForAuthorization(requestId, authPromise, request.signal);
                 iteration = await iterator.next(approved);
             } else {
                 // Forward other events via emit
@@ -209,6 +210,48 @@ export class AgentRuntime {
         }
 
         return result!;
+    }
+
+    private async waitForAuthorization(
+        requestId: string,
+        authPromise: Promise<boolean>,
+        signal?: AbortSignal
+    ): Promise<boolean> {
+        let timeoutId: NodeJS.Timeout | undefined;
+        let abortHandler: (() => void) | undefined;
+
+        try {
+            return await new Promise<boolean>((resolve) => {
+                const finish = (approved: boolean) => {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    if (abortHandler) signal?.removeEventListener('abort', abortHandler);
+                    this.pendingAuthResolvers.delete(requestId);
+                    resolve(approved);
+                };
+
+                timeoutId = setTimeout(() => {
+                    console.warn(`[AgentRuntime] Authorization request timed out: ${requestId}`);
+                    finish(false);
+                }, AgentRuntime.AUTH_WAIT_TIMEOUT_MS);
+
+                abortHandler = () => {
+                    console.warn(`[AgentRuntime] Authorization wait aborted: ${requestId}`);
+                    finish(false);
+                };
+
+                if (signal?.aborted) {
+                    abortHandler();
+                    return;
+                }
+
+                signal?.addEventListener('abort', abortHandler, { once: true });
+                authPromise.then(finish).catch(() => finish(false));
+            });
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (abortHandler) signal?.removeEventListener('abort', abortHandler);
+            this.pendingAuthResolvers.delete(requestId);
+        }
     }
 
     private getSkillObjects(skillIds: string[] | undefined): SkillObject[] {

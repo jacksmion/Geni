@@ -63,10 +63,10 @@ describe('ContextManager', () => {
 
             const pruned = cm.prune(messages);
 
-            // Should keep exactly the system message (immutable) and the recent message (preserved)
-            // Wait, actually, prune tries to remove until budget is reached.
-            // But if everything is protected (system is immutable, user is recent), it can't remove them.
             expect(pruned).toHaveLength(2);
+            expect(pruned[0].role).toBe('system');
+            expect(pruned[1].role).toBe('system');
+            expect(pruned[1].content).toContain('[Earlier Context]');
         });
 
         it('should remove oldest messages to fit budget', () => {
@@ -110,9 +110,11 @@ describe('ContextManager', () => {
             // Budget 20. Must remove middle group.
 
             const pruned = cm.prune(messages);
-            expect(pruned).toHaveLength(2);
+            expect(pruned).toHaveLength(3);
             expect(pruned[0].role).toBe('system');
-            expect(pruned[1].role).toBe('user');
+            expect(pruned[1].role).toBe('system');
+            expect(pruned[1].content).toContain('[Earlier Context]');
+            expect(pruned[2].role).toBe('user');
         });
 
         it('ensureToolCallAtomicity modifies preserveRecentMessages to include assistant', () => {
@@ -140,9 +142,9 @@ describe('ContextManager', () => {
 
             const pruned = cm.prune(messages);
 
-            // Original index 1 should be gone.
-            expect(pruned).toHaveLength(4);
-            expect(pruned.map(m => m.role)).toEqual(['system', 'assistant', 'tool', 'user']);
+            expect(pruned).toHaveLength(2);
+            expect(pruned.map(m => m.role)).toEqual(['system', 'system']);
+            expect(pruned[1].content).toContain('[Earlier Context]');
         });
     });
 });

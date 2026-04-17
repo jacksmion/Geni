@@ -79,6 +79,17 @@ describe('PromptBuilder', () => {
         expect(prompt).toContain('[System Environment]');
     });
 
+    it('should append language instructions when the default prompt has no placeholder', () => {
+        const builder = new PromptBuilder();
+
+        const zhPrompt = builder.buildSystemPrompt({ language: 'zh' });
+        expect(zhPrompt).toContain('[Language Instruction]');
+        expect(zhPrompt).toContain('MUST be in Chinese');
+
+        const enPrompt = builder.buildSystemPrompt({ language: 'en' });
+        expect(enPrompt).toContain('MUST be in English');
+    });
+
     describe('tiered memory injection', () => {
         let tempDir: string;
         let filePath: string;

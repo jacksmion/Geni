@@ -228,7 +228,7 @@ export class ContextManager {
      * Ensure the split point doesn't break assistant/tool pairs
      */
     private ensureToolCallAtomicity(messages: ChatMessage[], startIdx: number): number {
-        while (startIdx > 0) {
+        while (startIdx > 0 && startIdx < messages.length) {
             const currentMsg = messages[startIdx];
             const prevMsg = messages[startIdx - 1];
 

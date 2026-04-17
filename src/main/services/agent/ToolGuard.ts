@@ -213,7 +213,7 @@ export class ToolGuard {
 
         // 查找匹配的批准记录
         return this.approvedPatterns.some(
-            p => p.toolName === request.toolName
+            p => p.toolName === request.toolName && p.argsPattern === this.serializeArgs(request.args)
         );
     }
 
@@ -223,9 +223,39 @@ export class ToolGuard {
     private addApprovedPattern(request: ToolExecutionRequest, ttl?: number): void {
         this.approvedPatterns.push({
             toolName: request.toolName,
+            argsPattern: this.serializeArgs(request.args),
             timestamp: Date.now(),
             expiresAt: ttl ? Date.now() + ttl : undefined
         });
+    }
+
+    /**
+     * Serialize args into a stable JSON string for approval matching.
+     * Exact argument matching avoids one approval unlocking unrelated dangerous calls.
+     */
+    private serializeArgs(args: Record<string, any>): string {
+        try {
+            return JSON.stringify(this.sortValue(args));
+        } catch {
+            return String(args);
+        }
+    }
+
+    private sortValue(value: any): any {
+        if (Array.isArray(value)) {
+            return value.map(item => this.sortValue(item));
+        }
+
+        if (value && typeof value === 'object') {
+            return Object.keys(value)
+                .sort()
+                .reduce<Record<string, any>>((acc, key) => {
+                    acc[key] = this.sortValue(value[key]);
+                    return acc;
+                }, {});
+        }
+
+        return value;
     }
 
     /**
