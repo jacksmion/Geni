@@ -15,7 +15,7 @@ export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
         if (isAbsolute) return filePath;
 
         const sessionId = useChatStore.getState().activeSessionId;
-        const workspace = useChatStore.getState().sessions[sessionId]?.workspacePath;
+        const workspace = sessionId ? useChatStore.getState().sessions[sessionId]?.workspacePath : useChatStore.getState().newTaskConfig.workspacePath;
         if (!workspace) return filePath;
 
         const base = workspace.replace(/\\/g, '/').replace(/\/+$/, '');

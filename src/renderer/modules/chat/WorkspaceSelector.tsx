@@ -11,12 +11,13 @@ export function WorkspaceSelector() {
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
-    const currentSession = sessions[activeSessionId]
+    const newTaskConfig = useChatStore(s => s.newTaskConfig)
+    const currentSession = activeSessionId ? sessions[activeSessionId] : undefined
     const hasMessages = (currentSession?.messages?.length ?? 0) > 0
     const [isOpen, setIsOpen] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const workspacePath = currentSession?.workspacePath || globalWorkspacePath
+    const workspacePath = currentSession?.workspacePath || (!activeSessionId ? newTaskConfig.workspacePath : undefined) || globalWorkspacePath
 
     useClickOutside(dropdownRef, () => setIsOpen(false), isOpen)
 

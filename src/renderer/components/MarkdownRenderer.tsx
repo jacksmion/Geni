@@ -249,7 +249,7 @@ function MarkdownLink({ href, children, ...props }: any) {
             const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(resolvedPath)
             if (!isAbsolute) {
                 const sessionId = useChatStore.getState().activeSessionId
-                const workspace = useChatStore.getState().sessions[sessionId]?.workspacePath
+                const workspace = sessionId ? useChatStore.getState().sessions[sessionId]?.workspacePath : useChatStore.getState().newTaskConfig.workspacePath
                 if (workspace) {
                     // Normalize to forward slashes and join
                     const base = workspace.replace(/\\/g, '/').replace(/\/+$/, '')

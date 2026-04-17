@@ -92,13 +92,14 @@ function AccessIndicator() {
 
 export function Composer() {
     const [input, setInput] = useState('')
-    const isSending = useChatStore(s => s.runningSessions.has(s.activeSessionId))
+    const isSending = useChatStore(s => s.activeSessionId ? s.runningSessions.has(s.activeSessionId) : false)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
+    const newTaskConfig = useChatStore(s => s.newTaskConfig)
     const sendMessage = useChatStore(s => s.sendMessage)
     
     // Resolve current staff for dynamic placeholder
-    const currentStaffId = sessions[activeSessionId]?.staffId
+    const currentStaffId = activeSessionId ? sessions[activeSessionId]?.staffId : newTaskConfig.staffId
     const { profiles } = useStaffStore()
     const currentStaff = currentStaffId ? profiles.find(p => p.id === currentStaffId) : null
     const pendingAttachments = useChatStore(s => s.pendingAttachments)
@@ -108,14 +109,12 @@ export function Composer() {
     const setSelectedSkillIds = useChatStore(s => s.setSelectedSkillIds)
 
     const [skills, setSkills] = useState<Skill[]>([])
-    const draftSessionId = useChatStore(s => s.draftSessionId)
     const assignStaff = useChatStore(s => s.assignStaff)
-    const isDraft = draftSessionId === activeSessionId
     const { t } = useTranslation()
 
     const placeholderText = (currentStaff || (selectedSkillIds && selectedSkillIds.length > 0))
         ? ''
-        : isDraft
+        : !activeSessionId
             ? t('chatLayout.placeholderDraft')
             : t('chatLayout.placeholderContinue')
 
@@ -142,8 +141,8 @@ export function Composer() {
         if (!config) return false
         return config.enabled === true
     })
-    const currentSession = sessions[activeSessionId]
-    const sessionModelId = currentSession?.modelId
+    const currentSession = activeSessionId ? sessions[activeSessionId] : undefined
+    const sessionModelId = currentSession?.modelId || (!activeSessionId ? newTaskConfig.modelId : undefined)
     let activeProvider = llm.activeProvider || 'OpenAI'
     let activeModelName: string | undefined
     if (sessionModelId) {
@@ -175,7 +174,7 @@ export function Composer() {
     const modelKeyword = slashSearchText.toLowerCase()
     const showModelItem = !modelKeyword || ['model', '模型', '切换'].some(kw => kw.includes(modelKeyword) || modelKeyword.includes(kw))
 
-    const filteredStaff = isDraft
+    const filteredStaff = !activeSessionId
         ? profiles.filter(p =>
             p.name.toLowerCase().includes(slashSearchText.toLowerCase()) ||
             (p.description && p.description.toLowerCase().includes(slashSearchText.toLowerCase()))
@@ -770,7 +769,7 @@ export function Composer() {
 
                         {/* Right: Send Button */}
                         <button
-                            onClick={() => isSending ? window.electronAPI.agent.stop(activeSessionId) : handleSend()}
+                            onClick={() => isSending ? window.electronAPI.agent.stop(activeSessionId ?? undefined) : handleSend()}
                             disabled={!isSending && !input.trim()}
                             className={cn(
                                 "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200",

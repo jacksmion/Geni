@@ -14,11 +14,11 @@ const EMPTY_ARRAY: ChatMessage[] = []
 const GAP = 32 // space-y-8 = 32px gap between items
 
 export function MessageList({ scrollContainerRef }: { scrollContainerRef: MutableRefObject<HTMLDivElement | null> }) {
-    const messages = useChatStore(s => s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY)
-    const isSending = useChatStore(s => s.runningSessions.has(s.activeSessionId))
+    const messages = useChatStore(s => s.activeSessionId ? (s.sessions[s.activeSessionId]?.messages || EMPTY_ARRAY) : EMPTY_ARRAY)
+    const isSending = useChatStore(s => s.activeSessionId ? s.runningSessions.has(s.activeSessionId) : false)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
-    const staffId = sessions[activeSessionId]?.staffId
+    const staffId = activeSessionId ? sessions[activeSessionId]?.staffId : undefined
 
     const isNearBottomRef = useRef(true)
     const prevSessionIdRef = useRef(activeSessionId)

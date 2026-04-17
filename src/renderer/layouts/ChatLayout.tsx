@@ -23,9 +23,10 @@ function StaffPicker() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
     const assignStaff = useChatStore(s => s.assignStaff)
+    const newTaskConfig = useChatStore(s => s.newTaskConfig)
     const { profiles, loadProfiles } = useStaffStore()
 
-    const currentStaffId = sessions[activeSessionId]?.staffId
+    const currentStaffId = activeSessionId ? sessions[activeSessionId]?.staffId : newTaskConfig.staffId
 
     React.useEffect(() => {
         if (profiles.length === 0) loadProfiles()
@@ -102,7 +103,8 @@ export function ChatLayout() {
     const hasActiveArtifact = useChatStore(s => !!s.activeArtifact)
     const { shouldRender: showPanel, isExiting: panelExiting } = useDelayedUnmount(hasActiveArtifact, 250)
     const currentSessionMeta = useChatStore(useShallow(s => {
-        const session = s.sessions[activeSessionId];
+        if (!s.activeSessionId) return null;
+        const session = s.sessions[s.activeSessionId];
         if (!session) return null;
         return {
             id: session.id,
@@ -226,7 +228,7 @@ export function ChatLayout() {
                                     </span>
                                 </div>
                             ) : (
-                                <div className="text-xs text-slate-400 dark:text-zinc-600">选择一个任务...</div>
+                                <div className="text-xs text-slate-400 dark:text-zinc-600">新任务</div>
                             )}
                         </div>
 

@@ -13,11 +13,12 @@ export function ModelSelector() {
     const setActiveTab = useChatStore(s => s.setActiveTab)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
+    const newTaskConfig = useChatStore(s => s.newTaskConfig)
     const [isOpen, setIsOpen] = useState(false)
     const [search, setSearch] = useState('')
     const dropdownRef = useRef<HTMLDivElement>(null)
 
-    const currentSession = sessions[activeSessionId]
+    const currentSession = activeSessionId ? sessions[activeSessionId] : undefined
 
     useClickOutside(dropdownRef, () => setIsOpen(false), isOpen)
 
@@ -32,7 +33,7 @@ export function ModelSelector() {
         return config.enabled === true
     })
 
-    const sessionModelId = currentSession?.modelId
+    const sessionModelId = currentSession?.modelId || (!activeSessionId ? newTaskConfig.modelId : undefined)
     let activeProvider = llm.activeProvider || 'OpenAI'
     let activeModelName: string | undefined
 

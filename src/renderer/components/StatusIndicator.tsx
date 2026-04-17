@@ -6,6 +6,7 @@ import { cn } from '../utils/cn';
 
 export function StatusIndicator() {
     const event = useChatStore(s => {
+        if (!s.activeSessionId) return null;
         const runState = s.runningSessions.get(s.activeSessionId);
         return runState?.agentState ?? null;
     });

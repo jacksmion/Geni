@@ -133,25 +133,19 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
     const handleUse = (e: React.MouseEvent) => {
         e.stopPropagation()
         const state = useChatStore.getState()
-        // 如果当前有空白 draft，直接复用；否则创建新会话
-        if (state.draftSessionId && state.draftSessionId === state.activeSessionId) {
-            useChatStore.setState({ activeTab: 'chat' })
-            assignStaff(state.draftSessionId, profile.id)
-            const session = state.sessions[state.draftSessionId]
-            if (session && (!session.messages || session.messages.length === 0)) {
-                useChatStore.setState(s => ({
-                    sessions: {
-                        ...s.sessions,
-                        [state.draftSessionId!]: { ...s.sessions[state.draftSessionId!], title: profile.name }
-                    }
-                }))
-            }
+        if (state.activeSessionId === null) {
+            useChatStore.setState({
+                activeTab: 'chat',
+                newTaskConfig: {
+                    ...state.newTaskConfig,
+                    title: profile.name,
+                }
+            })
+            assignStaff(null, profile.id)
         } else {
             createSession(profile.name)
             const sessionId = useChatStore.getState().activeSessionId
-            if (sessionId) {
-                assignStaff(sessionId, profile.id)
-            }
+            assignStaff(sessionId, profile.id)
         }
     }
 

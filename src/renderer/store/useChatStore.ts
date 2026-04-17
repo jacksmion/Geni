@@ -17,15 +17,22 @@ interface HtmlArtifact extends ArtifactPreviewResult {
 
 export type ActiveArtifact = TextArtifact | HtmlArtifact;
 
+interface NewTaskConfig {
+    title: string;
+    staffId?: string;
+    modelId?: string;
+    workspacePath?: string;
+}
+
 interface ChatState {
     sessions: Record<string, ChatSession>
     sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[], pinned?: boolean }[]
-    activeSessionId: string
+    activeSessionId: string | null
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
     activeArtifact: ActiveArtifact | null
-    draftSessionId: string | null
+    newTaskConfig: NewTaskConfig
     pendingArtifactsBySession: Map<string, MessageArtifact[]>
     runningSessions: Map<string, {
         runId: string | null;
@@ -48,32 +55,29 @@ interface ChatState {
     setActiveArtifact: (artifact: ActiveArtifact | null) => void
     startNewChat: () => void
     sendMessage: (input: string, attachments: string[]) => Promise<void>
-    assignStaff: (sessionId: string, staffId: string | undefined) => void
-    setSessionConfig: (sessionId: string, config: { modelId?: string, workspacePath?: string }) => void
+    assignStaff: (sessionId: string | null, staffId: string | undefined) => void
+    setSessionConfig: (sessionId: string | null, config: { modelId?: string, workspacePath?: string }) => void
     batchDeleteSessions: (ids: string[]) => Promise<void>
 }
 
-// Helper: initial default session
-const createDefaultSession = (): ChatSession => {
-    const id = crypto.randomUUID();
-    return {
-        id,
-        title: '新任务',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        messages: []
-    };
-}
+const DEFAULT_NEW_TASK_TITLE = '新任务';
+
+const buildNewTaskConfig = (session?: Pick<ChatSession, 'workspacePath' | 'modelId'>, title = DEFAULT_NEW_TASK_TITLE): NewTaskConfig => ({
+    title,
+    workspacePath: session?.workspacePath,
+    modelId: session?.modelId,
+    staffId: undefined,
+});
 
 export const useChatStore = create<ChatState>((set, get) => ({
     sessions: {},
     sessionMetas: [],
-    activeSessionId: '',
+    activeSessionId: null,
     activeTab: 'chat',
     pendingAttachments: [],
     selectedSkillIds: null,
     activeArtifact: null,
-    draftSessionId: null,
+    newTaskConfig: buildNewTaskConfig(),
     pendingArtifactsBySession: new Map(),
     runningSessions: new Map(),
 
@@ -98,27 +102,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 const messages = await window.electronAPI.session.getHistory(activeId);
                 sessions[activeId].messages = messages;
 
-                set({ sessions, sessionMetas, activeSessionId: activeId, selectedSkillIds: null });
-            } else {
-                // Init default if empty
-                // Create via backend
-                const newSes = await window.electronAPI.session.create();
-
-                const defaultSes: ChatSession = {
-                    id: newSes.id,
-                    title: '新任务',
-                    createdAt: newSes.createdAt,
-                    updatedAt: newSes.createdAt,
-                    messages: []
-                };
-
-                // 保存标题到后端
-                await window.electronAPI.session.save({ id: defaultSes.id, title: defaultSes.title });
-
                 set({
-                    sessions: { [defaultSes.id]: defaultSes },
-                    sessionMetas: [{ id: defaultSes.id, title: defaultSes.title, updatedAt: defaultSes.updatedAt }],
-                    activeSessionId: defaultSes.id
+                    sessions,
+                    sessionMetas,
+                    activeSessionId: activeId,
+                    selectedSkillIds: null,
+                    newTaskConfig: buildNewTaskConfig(sessions[activeId]),
+                });
+            } else {
+                set({
+                    sessions,
+                    sessionMetas,
+                    activeSessionId: null,
+                    newTaskConfig: buildNewTaskConfig(),
                 });
             }
         } catch (e) {
@@ -127,47 +123,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     createSession: (title) => {
-        // 如果当前已经是 draft 空白页，不重复创建
-        const { draftSessionId, activeSessionId } = get();
-        if (draftSessionId && draftSessionId === activeSessionId) return;
-
-        // 继承最近任务的工作路径和大模型，仅仅将数字员工重置为通用助手
         const { sessionMetas, sessions: allSessions } = get();
         const latestMeta = sessionMetas[0]; // sessionMetas 按 updatedAt 降序
         const prevSession = latestMeta ? allSessions[latestMeta.id] : undefined;
-
-        const tempId = crypto.randomUUID();
-        const newSession: ChatSession = {
-            id: tempId,
-            title: title || '新任务',
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            messages: [],
-            workspacePath: prevSession?.workspacePath,
-            staffId: undefined,
-            modelId: prevSession?.modelId,
-        };
-
-        // 只建本地 state，不加入 sessionMetas（侧边栏不显示）
-        set(state => ({
-            sessions: { ...state.sessions, [tempId]: newSession },
-            activeSessionId: tempId,
-            draftSessionId: tempId,
+        set({
+            activeSessionId: null,
             activeTab: 'chat',
-            selectedSkillIds: null
-        }));
+            selectedSkillIds: null,
+            activeArtifact: null,
+            pendingAttachments: [],
+            newTaskConfig: buildNewTaskConfig(prevSession, title || DEFAULT_NEW_TASK_TITLE),
+        });
     },
 
     switchSession: async (id) => {
-        // 切走时静默丢弃 draft（draft 不在 sessionMetas 中，无需过滤）
-        const { draftSessionId } = get();
-        if (draftSessionId && draftSessionId !== id) {
-            set(state => {
-                const { [draftSessionId]: _, ...rest } = state.sessions;
-                return { sessions: rest, draftSessionId: null };
-            });
-        }
-
         const { sessions } = get();
         const session = sessions[id];
 
@@ -183,30 +152,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
                         },
                         activeSessionId: id,
                         activeTab: 'chat',
-                        selectedSkillIds: null
+                        selectedSkillIds: null,
+                        newTaskConfig: buildNewTaskConfig({ workspacePath: state.sessions[id].workspacePath, modelId: state.sessions[id].modelId }),
                     }));
                 } catch (error) {
                     console.error('Failed to load session history for id', id, ':', error);
                     // Fallback to switching anyway
-                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null });
+                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null, newTaskConfig: buildNewTaskConfig(session) });
                 }
             } else {
-                set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null });
+                set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null, newTaskConfig: buildNewTaskConfig(session) });
             }
         }
     },
 
     deleteSession: async (id) => {
-        const isDraft = get().draftSessionId === id;
-
-        // Draft 只存在于本地，不需要调后端删除
-        if (!isDraft) {
-            try {
-                await window.electronAPI.session.delete(id);
-            } catch (error) {
-                console.error('Failed to delete session', id, ':', error);
-                return;
-            }
+        try {
+            await window.electronAPI.session.delete(id);
+        } catch (error) {
+            console.error('Failed to delete session', id, ':', error);
+            return;
         }
 
         set(state => {
@@ -219,28 +184,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     nextActiveId = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt)[0].id;
                     get().switchSession(nextActiveId);
                 } else {
-                    setTimeout(() => get().createSession(), 0);
-                    nextActiveId = '';
+                    nextActiveId = null;
                 }
             }
             return {
                 sessions: rest,
                 sessionMetas: state.sessionMetas.filter(m => m.id !== id),
                 activeSessionId: nextActiveId,
-                draftSessionId: isDraft ? null : state.draftSessionId,
+                newTaskConfig: nextActiveId ? state.newTaskConfig : buildNewTaskConfig(),
             };
         });
     },
 
     batchDeleteSessions: async (ids) => {
-        // 并行删除后端数据（忽略 draft，因为 draft 不在后端）
-        const { draftSessionId } = get();
         await Promise.all(
-            ids
-                .filter(id => id !== draftSessionId)
-                .map(id => window.electronAPI.session.delete(id).catch(err =>
-                    console.error('Failed to delete session', id, ':', err)
-                ))
+            ids.map(id => window.electronAPI.session.delete(id).catch(err =>
+                console.error('Failed to delete session', id, ':', err)
+            ))
         );
 
         set(state => {
@@ -251,15 +211,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const newMetas = state.sessionMetas.filter(m => !idSet.has(m.id));
 
             let nextActiveId = state.activeSessionId;
-            if (idSet.has(state.activeSessionId)) {
+            if (state.activeSessionId && idSet.has(state.activeSessionId)) {
                 const remaining = Object.values(rest).sort((a, b) => b.updatedAt - a.updatedAt);
                 if (remaining.length > 0) {
                     nextActiveId = remaining[0].id;
                     // defer switch to avoid calling get() inside set
-                    setTimeout(() => get().switchSession(nextActiveId), 0);
+                    setTimeout(() => get().switchSession(nextActiveId!), 0);
                 } else {
-                    setTimeout(() => get().createSession(), 0);
-                    nextActiveId = '';
+                    nextActiveId = null;
                 }
             }
 
@@ -267,7 +226,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 sessions: rest,
                 sessionMetas: newMetas,
                 activeSessionId: nextActiveId,
-                draftSessionId: ids.includes(state.draftSessionId || '') ? null : state.draftSessionId,
+                newTaskConfig: nextActiveId ? state.newTaskConfig : buildNewTaskConfig(),
             };
         });
     },
@@ -290,10 +249,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
-            if (!get().draftSessionId) {
-                await window.electronAPI.session.save({ id, title: newTitle }); // Async save
-            }
+            await window.electronAPI.session.save({ id, title: newTitle }); // Async save
         } catch (error) {
             console.error('Failed to rename session', id, ':', error);
         }
@@ -305,6 +261,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const staff = staffId ? profiles.find(p => p.id === staffId) : undefined;
 
         set(state => {
+            if (!id) {
+                const updates: Partial<NewTaskConfig> = { staffId };
+                if (staff?.modelId) {
+                    updates.modelId = staff.modelId;
+                } else if (!staffId) {
+                    updates.modelId = undefined;
+                }
+                return {
+                    newTaskConfig: { ...state.newTaskConfig, ...updates }
+                };
+            }
+
             const session = state.sessions[id];
             if (!session) return state;
 
@@ -327,13 +295,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
-            if (!get().draftSessionId) {
-                const session = get().sessions[id];
-                const savePayload: any = { id, staffId };
-                if (session?.modelId) savePayload.modelId = session.modelId;
-                await window.electronAPI.session.save(savePayload);
-            }
+            if (!id) return;
+            const session = get().sessions[id];
+            const savePayload: any = { id, staffId };
+            if (session?.modelId) savePayload.modelId = session.modelId;
+            await window.electronAPI.session.save(savePayload);
         } catch (error) {
             console.error('Failed to assign staff to session', id, ':', error);
         }
@@ -341,6 +307,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     setSessionConfig: async (id, config) => {
         set(state => {
+            if (!id) {
+                return {
+                    newTaskConfig: { ...state.newTaskConfig, ...config }
+                };
+            }
+
             const session = state.sessions[id];
             if (!session) return state;
 
@@ -354,10 +326,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
 
         try {
-            // Draft 尚无后端记录，跳过保存（转正时统一持久化）
-            if (!get().draftSessionId) {
-                await window.electronAPI.session.save({ id, ...config });
-            }
+            if (!id) return;
+            await window.electronAPI.session.save({ id, ...config });
         } catch (error) {
             console.error('Failed to save session config', id, ':', error);
         }
@@ -365,7 +335,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     addMessage: (msg) => {
         const state = get();
-        const session = state.sessions[state.activeSessionId];
+        const activeSessionId = state.activeSessionId;
+        if (!activeSessionId) return;
+
+        const session = state.sessions[activeSessionId];
         if (!session) return;
 
         const newMsg: ChatMessage = {
@@ -389,9 +362,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const potentialTitle = textContent.trim().slice(0, 20);
             if (potentialTitle) {
                 updatedSession.title = potentialTitle;
-                if (!get().draftSessionId) {
-                    window.electronAPI.session.save({ id: session.id, title: potentialTitle });
-                }
+                window.electronAPI.session.save({ id: session.id, title: potentialTitle });
 
                 updatedMetas = state.sessionMetas.map(m =>
                     m.id === session.id ? { ...m, title: potentialTitle, updatedAt: updatedSession.updatedAt } : m
@@ -406,18 +377,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         // 立即更新本地状态
         set({
-            sessions: { ...state.sessions, [state.activeSessionId]: updatedSession },
+            sessions: { ...state.sessions, [activeSessionId]: updatedSession },
             sessionMetas: updatedMetas
         });
 
-        // 用户消息保存到后端持久化（draft 尚无后端记录，跳过，由 sendMessage 统一处理）
-        if (msg.role === 'user' && !get().draftSessionId) {
+        if (msg.role === 'user') {
             window.electronAPI.session.addMessage(session.id, newMsg);
         }
     },
 
     updateLastMessage: (updater) => {
         set(state => {
+            if (!state.activeSessionId) return state;
+
             const session = state.sessions[state.activeSessionId];
             if (!session || session.messages.length === 0) return state;
 
@@ -459,15 +431,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     sendMessage: async (input: string, attachments: string[]) => {
-        const state = get();
-        const { sessions, addMessage, clearPendingAttachments } = state;
+        let state = get();
+        const { addMessage, clearPendingAttachments } = state;
 
         let activeSessionId = state.activeSessionId;
 
-        if (!input.trim() || get().runningSessions.has(activeSessionId)) return;
+        if (!input.trim() || (activeSessionId ? get().runningSessions.has(activeSessionId) : false)) return;
 
-        const currentSession = sessions[activeSessionId];
-        if (!currentSession) return;
+        let currentSession = activeSessionId ? state.sessions[activeSessionId] : undefined;
+        if (!currentSession) {
+            const sessionConfig = state.newTaskConfig;
+            const created = await window.electronAPI.session.create();
+            const createdSession: ChatSession = {
+                id: created.id,
+                title: sessionConfig.title || DEFAULT_NEW_TASK_TITLE,
+                createdAt: created.createdAt,
+                updatedAt: created.createdAt,
+                messages: [],
+                staffId: sessionConfig.staffId,
+                modelId: sessionConfig.modelId,
+                workspacePath: sessionConfig.workspacePath,
+                activeSkillIds: [],
+            };
+
+            set(store => ({
+                sessions: { ...store.sessions, [created.id]: createdSession },
+                sessionMetas: [{ id: created.id, title: createdSession.title, updatedAt: createdSession.updatedAt, staffId: createdSession.staffId, modelId: createdSession.modelId, workspacePath: createdSession.workspacePath, activeSkillIds: createdSession.activeSkillIds }, ...store.sessionMetas],
+                activeSessionId: created.id,
+            }));
+
+            activeSessionId = created.id;
+            currentSession = createdSession;
+            state = get();
+
+            const savePayload: any = { id: created.id, title: createdSession.title };
+            if (createdSession.staffId) savePayload.staffId = createdSession.staffId;
+            if (createdSession.modelId) savePayload.modelId = createdSession.modelId;
+            if (createdSession.workspacePath) savePayload.workspacePath = createdSession.workspacePath;
+            await window.electronAPI.session.save(savePayload);
+        }
+
+        if (!currentSession || !activeSessionId) return;
 
         let finalPrompt = input;
         const finalContent: any[] = [];
@@ -535,15 +539,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
         get().setActiveArtifact(null); // Clear previous artifact on new message
-
-        // 3. Draft 立即加入侧边栏显示（不等后端返回）
-        const isDraft = get().draftSessionId === activeSessionId;
-        if (isDraft) {
-            const session = get().sessions[activeSessionId];
-            set(state => ({
-                sessionMetas: [{ id: activeSessionId, title: session.title, updatedAt: session.updatedAt, staffId: session.staffId, modelId: session.modelId }, ...state.sessionMetas],
-            }));
-        }
 
         // Track the target session ID for streaming updates (fixed, won't change when user switches sessions)
         let targetSessionId = activeSessionId;
@@ -888,7 +883,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         try {
             // Start Agent
-            const isDraft = get().draftSessionId === activeSessionId;
             const skillIds = get().selectedSkillIds;
             // Save selected skills to session for display
             if (skillIds !== null && skillIds.length > 0) {
@@ -910,64 +904,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (currentSession.workspacePath) options.workspacePath = currentSession.workspacePath;
 
             const result = await window.electronAPI.agent.start({
-                sessionId: isDraft ? undefined : activeSessionId,
+                sessionId: activeSessionId,
                 prompt: userInput,
                 options: Object.keys(options).length > 0 ? options : undefined
             });
-
-            // Draft → 真实 session：替换临时 ID
-            if (isDraft && result?.sessionId) {
-                const realId = result.sessionId;
-                const tempId = activeSessionId;
-                set(state => {
-                    const session = state.sessions[tempId];
-                    const { [tempId]: _, ...rest } = state.sessions;
-
-                    // Migrate runningSessions key from tempId to realId
-                    const nextRunning = new Map(state.runningSessions);
-                    const runState = nextRunning.get(tempId);
-                    if (runState) {
-                        nextRunning.delete(tempId);
-                        nextRunning.set(realId, runState);
-                    }
-
-                    return {
-                        sessions: { ...rest, [realId]: { ...session, id: realId } },
-                        sessionMetas: state.sessionMetas.map(m =>
-                            m.id === tempId ? { ...m, id: realId } : m
-                        ),
-                        pendingArtifactsBySession: (() => {
-                            const nextPending = new Map(state.pendingArtifactsBySession);
-                            const pending = nextPending.get(tempId);
-                            if (pending) {
-                                nextPending.delete(tempId);
-                                nextPending.set(realId, pending);
-                            }
-                            return nextPending;
-                        })(),
-                        runningSessions: nextRunning,
-                        activeSessionId: realId,
-                        draftSessionId: null,
-                    };
-                });
-                activeSessionId = realId;
-                targetSessionId = realId;
-
-                // 持久化标题、模型和工作目录到后端
-                const realSession = get().sessions[realId];
-                if (realSession) {
-                    const savePayload: any = { id: realId, title: realSession.title };
-                    if (realSession.staffId) savePayload.staffId = realSession.staffId;
-                    if (realSession.modelId) savePayload.modelId = realSession.modelId;
-                    if (realSession.workspacePath) savePayload.workspacePath = realSession.workspacePath;
-                    if (realSession.activeSkillIds?.length) savePayload.activeSkillIds = realSession.activeSkillIds;
-                    window.electronAPI.session.save(savePayload);
-                    const userMsg = realSession.messages.find(m => m.role === 'user');
-                    if (userMsg) {
-                        window.electronAPI.session.addMessage(realId, userMsg);
-                    }
-                }
-            }
+            void result;
         } catch (err: any) {
             // 用户主动终止不是错误，静默处理
             if (!isAbortError(err)) {
