@@ -91,19 +91,34 @@ const extractKeyInfo = (tool: string, input?: string): string => {
             return truncatePath(filePath);
         }
 
-        // Glob / pattern matching
-        if (lower.includes('glob') || lower.includes('find') || lower.includes('list_dir')) {
-            const pattern = parsed.pattern || parsed.glob || parsed.include;
+        // List directory — show path only
+        if (lower === 'list') {
+            const dir = parsed.path || parsed.directory;
+            if (dir) return truncatePath(dir);
+        }
+
+        // Load skill — show skill name only
+        if (lower === 'load_skill') {
+            const skillId = parsed.skill_id || parsed.skillId;
+            if (skillId) return skillId;
+        }
+
+        // Glob — pattern + optional path
+        if (lower === 'glob') {
+            const pattern = parsed.pattern || parsed.glob || '';
             const dir = parsed.path || parsed.directory || parsed.root_dir;
-            if (pattern && dir) return `${truncatePath(dir, 30)}  ${pattern}`;
+            if (pattern && dir) return `${pattern}  ${truncatePath(dir, 30)}`;
             if (pattern) return pattern;
             if (dir) return truncatePath(dir);
         }
 
-        // Search / grep
-        if (lower.includes('search') || lower.includes('grep') || lower.includes('ripgrep')) {
-            const query = parsed.query || parsed.pattern || parsed.regex || parsed.search_term;
-            if (query) return truncateStr(query, 50);
+        // Grep — query + optional include filter
+        if (lower === 'grep') {
+            const query = parsed.pattern || parsed.query || parsed.regex || '';
+            const include = parsed.include || parsed.glob || '';
+            if (query && include) return `"${truncateStr(query, 30)}" in ${include}`;
+            if (query) return `"${truncateStr(query, 40)}"`;
+            if (include) return `in ${include}`;
         }
 
         // Code interpreter / python
@@ -429,6 +444,29 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             if (lower.includes('bash') || lower.includes('command')) {
                 const cmd = parsed.command || parsed.cmd || '';
                 return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
+            }
+            // List directory — show path only
+            if (lower === 'list') {
+                return parsed.path || '';
+            }
+            // Load skill — show skill name only
+            if (lower === 'load_skill') {
+                return parsed.skill_id || parsed.skillId || '';
+            }
+            // Glob — pattern + optional path
+            if (lower === 'glob') {
+                const pattern = parsed.pattern || parsed.glob || '';
+                const dir = parsed.path || '';
+                if (pattern && dir) return `${pattern}  ${truncatePath(dir, 30)}`;
+                return pattern || dir;
+            }
+            // Grep — query + optional include filter
+            if (lower === 'grep') {
+                const query = parsed.pattern || parsed.query || '';
+                const include = parsed.include || '';
+                if (query && include) return `"${truncateStr(query, 30)}" in ${include}`;
+                if (query) return `"${truncateStr(query, 40)}"`;
+                return include ? `in ${include}` : '';
             }
             if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
                 return parsed.path || parsed.file_path || parsed.target_file || '';
