@@ -7,6 +7,8 @@ import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useChatStore } from '../store/useChatStore'
 import { cn } from '../utils/cn'
+import type { ArtifactPreviewResult } from '../electron-api.d'
+import { getArtifactOpenMode, getFileExtension as getArtifactFileExtension } from '../utils/artifact'
 
 const MermaidBlock = lazy(() => import('./MermaidBlock'))
 const SvgBlock = lazy(() => import('./SvgBlock').then(m => ({ default: m.SvgBlock })))
@@ -184,18 +186,6 @@ function LoadingFallback({ label }: { label: string }) {
 
 // ── Link handler ────────────────────────────────────────────────────
 
-const TEXT_EXTENSIONS = new Set([
-    'md', 'markdown', 'txt', 'log',
-    'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
-    'py', 'rb', 'go', 'rs', 'java', 'kt', 'swift', 'c', 'cpp', 'h', 'hpp',
-    'html', 'htm', 'css', 'scss', 'less', 'vue', 'svelte',
-    'json', 'yaml', 'yml', 'toml', 'xml', 'ini', 'conf', 'env',
-    'sh', 'bash', 'zsh', 'fish', 'bat', 'ps1',
-    'sql', 'graphql', 'proto',
-    'dockerfile', 'gitignore', 'editorconfig', 'prettierrc', 'eslintrc',
-    'lua', 'r', 'pl', 'ex', 'exs', 'erl', 'clj', 'hs', 'ml', 'fs',
-])
-
 function isLocalFilePath(href: string): boolean {
     if (!href) return false
     // file:// protocol
@@ -205,16 +195,31 @@ function isLocalFilePath(href: string): boolean {
     if (/^[A-Za-z]:[\\\/]/.test(href)) return true
     // Relative paths with extension (./foo.ts, ../bar.md, src/baz.js)
     if (/^\.{0,2}[\/\\][^\s]+\.\w+$/.test(href)) return true
-    // Bare filename with known text extension
+    // Bare filename with known supported extension
     const ext = href.split('.').pop()?.toLowerCase()
-    if (ext && TEXT_EXTENSIONS.has(ext) && !href.includes('://')) return true
+    if (ext && getArtifactOpenMode(ext) && !href.includes('://')) return true
     return false
 }
 
 function getFileExtension(href: string): string {
-    const cleaned = href.replace(/^file:\/\/\//, '').replace(/^file:\/\//, '')
-    const ext = cleaned.split('.').pop()?.toLowerCase() || ''
-    return ext
+    return getArtifactFileExtension(href)
+}
+
+function resolveLocalHrefToPath(href: string): string {
+    if (!href.startsWith('file://')) {
+        return href
+    }
+
+    try {
+        const url = new URL(href)
+        const decodedPath = decodeURIComponent(url.pathname)
+        if (/^\/[A-Za-z]:/.test(decodedPath)) {
+            return decodedPath.slice(1)
+        }
+        return decodedPath
+    } catch {
+        return decodeURIComponent(href.replace(/^file:\/\/\//, '').replace(/^file:\/\//, ''))
+    }
 }
 
 function MarkdownLink({ href, children, ...props }: any) {
@@ -236,9 +241,9 @@ function MarkdownLink({ href, children, ...props }: any) {
 
     // Local file paths → ArtifactPanel (text) or system app (other)
     if (href && isLocalFilePath(href)) {
-        const handleClick = (e: React.MouseEvent) => {
+        const handleClick = async (e: React.MouseEvent) => {
             e.preventDefault()
-            let resolvedPath = href.startsWith('file:///') ? decodeURIComponent(href.replace(/^file:\/\/\//, '/')) : href
+            let resolvedPath = resolveLocalHrefToPath(href)
 
             // Resolve relative paths against the current session's workspace
             const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(resolvedPath)
@@ -252,19 +257,43 @@ function MarkdownLink({ href, children, ...props }: any) {
                 }
             }
 
+            if (/^(?:[A-Za-z]:[\\/]|\/)/.test(resolvedPath)) {
+                try {
+                    await window.electronAPI.system.addAllowedPath(resolvedPath)
+                } catch {
+                    // Ignore allow-list failures here and let the preview/open flow handle fallback behavior.
+                }
+            }
+
             const ext = getFileExtension(resolvedPath)
 
-            if (TEXT_EXTENSIONS.has(ext)) {
-                // Read file and show in ArtifactPanel
-                window.electronAPI.system.readTextFile(resolvedPath).then((result: { content: string; path: string } | null) => {
-                    if (result) {
-                        useChatStore.getState().setActiveArtifact({
-                            toolName: 'preview',
-                            path: result.path,
-                            content: result.content,
-                        })
-                    }
-                })
+            const openMode = getArtifactOpenMode(ext)
+
+            if (openMode === 'panel') {
+                if (ext === 'html' || ext === 'htm' || ext === 'pdf') {
+                    window.electronAPI.system.createArtifactPreview(resolvedPath).then((result: ArtifactPreviewResult | null) => {
+                        if (result) {
+                            useChatStore.getState().setActiveArtifact({
+                                ...result,
+                                toolName: 'preview',
+                            })
+                        }
+                    })
+                } else {
+                    // Read file and show in ArtifactPanel
+                    window.electronAPI.system.readTextFile(resolvedPath).then((result: { content: string; path: string } | null) => {
+                        if (result) {
+                            useChatStore.getState().setActiveArtifact({
+                                toolName: 'preview',
+                                path: result.path,
+                                kind: 'text',
+                                content: result.content,
+                            })
+                        }
+                    })
+                }
+            } else if (openMode === 'external') {
+                window.electronAPI.system.openExplorer(resolvedPath)
             } else {
                 // Open with system default app
                 window.electronAPI.system.openExplorer(resolvedPath)

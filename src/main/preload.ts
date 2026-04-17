@@ -50,7 +50,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         delete: (id: string) => ipcRenderer.invoke('session:delete', id),
         save: (session: any) => ipcRenderer.invoke('session:save', session),
         get: (id: string) => ipcRenderer.invoke('session:get', id),
-        addMessage: (sessionId: string, message: any) => ipcRenderer.invoke('session:add-message', { sessionId, message })
+        addMessage: (sessionId: string, message: any) => ipcRenderer.invoke('session:add-message', { sessionId, message }),
+        updateMessage: (sessionId: string, messageId: string, message: any) => ipcRenderer.invoke('session:update-message', { sessionId, messageId, message })
     },
     system: {
         getSettings: () => ipcRenderer.invoke('system:get-settings'),
@@ -58,6 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         selectFile: (forAttachment?: boolean) => ipcRenderer.invoke('system:select-file', forAttachment),
         selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
         openExplorer: (path: string) => ipcRenderer.invoke('system:open-explorer', path),
+        createArtifactPreview: (path: string) => ipcRenderer.invoke('system:create-artifact-preview', path),
         testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
         fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload),
         testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config),

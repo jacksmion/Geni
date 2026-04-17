@@ -1,5 +1,6 @@
-import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow, WebContents, IpcMainInvokeEvent } from 'electron';
+import { ipcMain, dialog, shell, app, nativeTheme, BrowserWindow, WebContents } from 'electron';
 import fs from 'fs';
+import path from 'path';
 import { SYSTEM_CHANNELS, SYSTEM_EVENTS } from '../../common/ipc/channels';
 import { ConfigManager } from '../services/ConfigManager';
 import { PathManager } from '../services/PathManager';
@@ -7,12 +8,24 @@ import { UsageManager } from '../services/usage/UsageManager';
 import { AppSettings } from '../../common/types/settings';
 import { OpenAI } from 'openai';
 
+const HTML_EXTENSIONS = new Set(['.html', '.htm']);
+const PDF_EXTENSIONS = new Set(['.pdf']);
+const PREVIEW_PROTOCOL_SCHEME = 'geni-preview';
+
+interface ArtifactPreviewResult {
+    kind: 'html' | 'pdf';
+    path: string;
+    previewUrl: string;
+    content?: string;
+}
+
 export class SystemController {
     private pathManager: PathManager;
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
     private onSettingsChanged?: (settings: AppSettings) => Promise<void> | void;
     private activeWebContents: WebContents | null = null;
     private coreToolManager?: any;
+    private previewAllowedDirectories = new Set<string>();
 
     constructor(
         private configManager: ConfigManager,
@@ -46,6 +59,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_DIRECTORY, () => this.handleSelectDirectory());
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, (_, forAttachment?: boolean) => this.handleSelectFile(forAttachment));
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
+        ipcMain.handle(SYSTEM_CHANNELS.CREATE_ARTIFACT_PREVIEW, (_, filePath: string) => this.handleCreateArtifactPreview(filePath));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LLM, (_, config) => this.handleTestLLM(config));
         ipcMain.handle(SYSTEM_CHANNELS.FETCH_PROVIDER_MODELS, (_, payload) => this.handleFetchProviderModels(payload));
         ipcMain.handle(SYSTEM_CHANNELS.GET_PATH_INFO, () => this.handleGetPathInfo());
@@ -175,6 +189,35 @@ export class SystemController {
         }
     }
 
+    public getPreviewProtocolScheme(): string {
+        return PREVIEW_PROTOCOL_SCHEME;
+    }
+
+    public async resolvePreviewResource(urlString: string): Promise<{ status: number; body?: Buffer; mimeType?: string }> {
+        try {
+            const url = new URL(urlString);
+            const filePath = this.decodePreviewUrlPath(url);
+            if (!filePath || !this.isPathPreviewAllowed(filePath)) {
+                return { status: 403 };
+            }
+
+            const stat = await fs.promises.stat(filePath);
+            if (!stat.isFile()) {
+                return { status: 404 };
+            }
+
+            const body = await fs.promises.readFile(filePath);
+            return {
+                status: 200,
+                body,
+                mimeType: this.getMimeType(filePath)
+            };
+        } catch (error) {
+            console.error('[SystemController] Failed to resolve preview resource:', error);
+            return { status: 404 };
+        }
+    }
+
     private async handleTestLLM(config: { apiKey: string, baseUrl: string, model: string }) {
         try {
             console.log('[SystemController] Testing LLM Connection:', { ...config, apiKey: '***' });
@@ -270,9 +313,119 @@ export class SystemController {
         }
     }
 
+    private async handleCreateArtifactPreview(filePath: string): Promise<ArtifactPreviewResult | null> {
+        const normalizedPath = path.resolve(filePath);
+        const ext = path.extname(normalizedPath).toLowerCase();
+        const isHtml = HTML_EXTENSIONS.has(ext);
+        const isPdf = PDF_EXTENSIONS.has(ext);
+
+        if (!isHtml && !isPdf) {
+            return null;
+        }
+        if (!this.isPathPreviewAllowed(normalizedPath)) {
+            return null;
+        }
+
+        if (isPdf) {
+            try {
+                const stat = await fs.promises.stat(normalizedPath);
+                if (!stat.isFile()) return null;
+            } catch {
+                return null;
+            }
+
+            return {
+                kind: 'pdf',
+                path: normalizedPath,
+                previewUrl: this.buildPreviewUrl(normalizedPath)
+            };
+        }
+
+        return {
+            kind: 'html',
+            path: normalizedPath,
+            content: (await this.handleReadTextFile(normalizedPath))?.content,
+            previewUrl: this.buildPreviewUrl(normalizedPath)
+        };
+    }
+
     private handleAddAllowedPath(filePath: string): void {
+        this.previewAllowedDirectories.add(path.dirname(path.resolve(filePath)));
         if (this.coreToolManager) {
             this.coreToolManager.addAllowedPath(filePath);
+        }
+    }
+
+    private buildPreviewUrl(filePath: string): string {
+        const normalizedPath = path.resolve(filePath).replace(/\\/g, '/');
+        const encodedPath = normalizedPath
+            .split('/')
+            .filter(Boolean)
+            .map(segment => encodeURIComponent(segment))
+            .join('/');
+        return `${PREVIEW_PROTOCOL_SCHEME}://file/${encodedPath}`;
+    }
+
+    private decodePreviewUrlPath(url: URL): string | null {
+        if (url.protocol !== `${PREVIEW_PROTOCOL_SCHEME}:`) {
+            return null;
+        }
+        const decodedPath = decodeURIComponent(url.pathname);
+        if (!decodedPath) {
+            return null;
+        }
+        const normalized = /^\/[A-Za-z]:/.test(decodedPath)
+            ? decodedPath.slice(1)
+            : decodedPath;
+        return path.normalize(normalized);
+    }
+
+    private isPathPreviewAllowed(targetPath: string): boolean {
+        const resolvedTarget = path.resolve(targetPath);
+        const settings = this.configManager.load();
+        const workspacePath = path.resolve(settings.workspacePath || process.cwd());
+        const allowedRoots = [
+            workspacePath,
+            ...this.pathManager.getSkillsLoadPaths(workspacePath).map(p => path.resolve(p)),
+            ...Array.from(this.previewAllowedDirectories),
+        ];
+
+        return allowedRoots.some(root => this.isWithinRoot(resolvedTarget, root));
+    }
+
+    private isWithinRoot(targetPath: string, rootPath: string): boolean {
+        const resolvedRoot = path.resolve(rootPath);
+        const relative = path.relative(resolvedRoot, targetPath);
+        return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    }
+
+    private getMimeType(filePath: string): string {
+        switch (path.extname(filePath).toLowerCase()) {
+            case '.html':
+            case '.htm':
+                return 'text/html; charset=utf-8';
+            case '.css':
+                return 'text/css; charset=utf-8';
+            case '.js':
+            case '.mjs':
+                return 'text/javascript; charset=utf-8';
+            case '.json':
+                return 'application/json; charset=utf-8';
+            case '.svg':
+                return 'image/svg+xml';
+            case '.pdf':
+                return 'application/pdf';
+            case '.png':
+                return 'image/png';
+            case '.jpg':
+            case '.jpeg':
+                return 'image/jpeg';
+            case '.gif':
+                return 'image/gif';
+            case '.webp':
+                return 'image/webp';
+            default:
+                return 'application/octet-stream';
         }
     }
 

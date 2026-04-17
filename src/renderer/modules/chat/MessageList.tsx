@@ -8,6 +8,7 @@ import { MarkdownRenderer, CopyButton, ThinkingBlock } from '../../components/Ma
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { preprocessMarkdown } from '../../utils/markdown'
 import { cn } from '../../utils/cn'
+import { MessageArtifacts } from '../../components/MessageArtifacts'
 
 const EMPTY_ARRAY: ChatMessage[] = []
 const GAP = 32 // space-y-8 = 32px gap between items
@@ -69,10 +70,16 @@ export function MessageList({ scrollContainerRef }: { scrollContainerRef: Mutabl
                     break;
                 }
 
+                const groupedTailEnd = skipIndices.has(j) ? j + 1 : j;
+
                 groups.push({
                     ...msg,
                     content: lastContent,
                     steps: chainSteps.length > 0 ? chainSteps : msg.steps,
+                    artifacts: [
+                        ...(msg.artifacts || []),
+                        ...messages.slice(i + 1, groupedTailEnd).flatMap(m => m.artifacts || [])
+                    ].filter((artifact, index, arr) => arr.findIndex(a => a.path === artifact.path) === index),
                 });
                 continue;
             }
@@ -81,7 +88,7 @@ export function MessageList({ scrollContainerRef }: { scrollContainerRef: Mutabl
         }
         return groups;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length]);
+    }, [messages.length, lastMsg?.content, lastMsg?.steps?.length, lastMsg?.reasoning_parts?.length, lastMsg?.artifacts?.length]);
 
     const virtualizer = useVirtualizer({
         count: groupedMessages.length,
@@ -343,6 +350,9 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
                             );
                         })()}
 
+                        {message.artifacts && message.artifacts.length > 0 && (
+                            <MessageArtifacts artifacts={message.artifacts} />
+                        )}
 
 
                         {/* Bottom Meta & Actions */}
@@ -385,6 +395,7 @@ const MessageItem = React.memo(function MessageItem({ message, isStreaming, staf
     if (prevProps.message.role !== nextProps.message.role) return false;
     if (prevProps.message.reasoning_content !== nextProps.message.reasoning_content) return false;
     if (prevProps.message.reasoning_parts !== nextProps.message.reasoning_parts) return false;
+    if (prevProps.message.artifacts !== nextProps.message.artifacts) return false;
 
     const prevStepsLen = prevProps.message.steps?.length || 0;
     const nextStepsLen = nextProps.message.steps?.length || 0;

@@ -1,13 +1,21 @@
 import { create } from 'zustand'
-import { ChatMessage, ChatSession } from '../../common/types/chat'
-import { extractPathAndContent } from '../utils/artifact'
+import { ChatMessage, ChatSession, MessageArtifact } from '../../common/types/chat'
+import { extractPathAndContent, getArtifactName, getArtifactOpenMode, getFileExtension } from '../utils/artifact'
 import { useSettingsStore } from './useSettingsStore'
+import type { ArtifactPreviewResult } from '../electron-api.d'
 
-interface ActiveArtifact {
+interface TextArtifact {
     toolName: string;
     path: string;
+    kind: 'text';
     content: string;
 }
+
+interface HtmlArtifact extends ArtifactPreviewResult {
+    toolName: string;
+}
+
+export type ActiveArtifact = TextArtifact | HtmlArtifact;
 
 interface ChatState {
     sessions: Record<string, ChatSession>
@@ -18,6 +26,7 @@ interface ChatState {
     selectedSkillIds: string[] | null
     activeArtifact: ActiveArtifact | null
     draftSessionId: string | null
+    pendingArtifactsBySession: Map<string, MessageArtifact[]>
     runningSessions: Map<string, {
         runId: string | null;
         agentState: any | null;
@@ -65,6 +74,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     selectedSkillIds: null,
     activeArtifact: null,
     draftSessionId: null,
+    pendingArtifactsBySession: new Map(),
     runningSessions: new Map(),
 
     loadHistory: async () => {
@@ -515,7 +525,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         // 2. Add Placeholder for Assistant
         set(state => ({
-            runningSessions: new Map(state.runningSessions).set(activeSessionId, { runId: null, agentState: null })
+            runningSessions: new Map(state.runningSessions).set(activeSessionId, { runId: null, agentState: null }),
+            pendingArtifactsBySession: (() => {
+                const next = new Map(state.pendingArtifactsBySession);
+                next.delete(activeSessionId);
+                return next;
+            })(),
         }));
         addMessage({ role: 'assistant', content: '' });
         clearPendingAttachments();
@@ -547,6 +562,93 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     sessions: { ...state.sessions, [targetSessionId]: { ...session, messages: msgs } }
                 };
             });
+        };
+
+        const mergeArtifacts = (existing: MessageArtifact[] | undefined, incoming: MessageArtifact[]): MessageArtifact[] => {
+            const merged = [...(existing || [])];
+            for (const artifact of incoming) {
+                if (!merged.some(item => item.path === artifact.path)) {
+                    merged.push(artifact);
+                }
+            }
+            return merged;
+        };
+
+        const appendPendingArtifacts = (sessionId: string, incoming: MessageArtifact[]) => {
+            if (incoming.length === 0) return;
+            set(state => {
+                const next = new Map(state.pendingArtifactsBySession);
+                const current = next.get(sessionId) || [];
+                next.set(sessionId, mergeArtifacts(current, incoming));
+                return { pendingArtifactsBySession: next };
+            });
+        };
+
+        const flushPendingArtifactsToMessage = (sessionId: string) => {
+            set(state => {
+                const pending = state.pendingArtifactsBySession.get(sessionId) || [];
+                if (pending.length === 0) return state;
+
+                const session = state.sessions[sessionId];
+                if (!session || session.messages.length === 0) {
+                    const nextPending = new Map(state.pendingArtifactsBySession);
+                    nextPending.delete(sessionId);
+                    return { pendingArtifactsBySession: nextPending };
+                }
+
+                const msgs = [...session.messages];
+                const lastIdx = msgs.length - 1;
+                msgs[lastIdx] = {
+                    ...msgs[lastIdx],
+                    artifacts: mergeArtifacts(msgs[lastIdx].artifacts, pending),
+                };
+
+                const nextPending = new Map(state.pendingArtifactsBySession);
+                nextPending.delete(sessionId);
+
+                return {
+                    sessions: { ...state.sessions, [sessionId]: { ...session, messages: msgs } },
+                    pendingArtifactsBySession: nextPending,
+                };
+            });
+        };
+
+        const persistLastAssistantArtifacts = async (sessionId: string) => {
+            const session = get().sessions[sessionId];
+            const lastLocalMessage = session?.messages[session.messages.length - 1];
+            if (lastLocalMessage?.role !== 'assistant' || !lastLocalMessage.artifacts?.length) return;
+
+            try {
+                const history = await window.electronAPI.session.getHistory(sessionId);
+                const lastPersistedAssistant = [...history].reverse().find(message => message.role === 'assistant' && message.id);
+                if (!lastPersistedAssistant?.id) return;
+
+                await window.electronAPI.session.updateMessage(sessionId, lastPersistedAssistant.id, {
+                    artifacts: lastLocalMessage.artifacts,
+                });
+            } catch (error) {
+                console.error('Failed to persist assistant artifacts', error);
+            }
+        };
+
+        const collectArtifactsFromSteps = (steps: any[]): MessageArtifact[] => {
+            const artifacts: MessageArtifact[] = [];
+            for (const step of steps) {
+                if (step.tool !== 'write') continue;
+                const { path } = extractPathAndContent(step.toolInput || '{}', step.tool);
+                if (!path) continue;
+                const ext = getFileExtension(path);
+                const openMode = getArtifactOpenMode(ext);
+                if (!openMode) continue;
+                artifacts.push({
+                    path,
+                    name: getArtifactName(path),
+                    ext,
+                    openMode,
+                    sourceTool: step.tool,
+                });
+            }
+            return artifacts;
         };
 
         // --- Unified Stream Mechanism ---
@@ -608,6 +710,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 };
             });
 
+            if (shouldFlushSteps && stepsToFlush) {
+                appendPendingArtifacts(targetSessionId, collectArtifactsFromSteps(stepsToFlush));
+            }
+
             // Artifact logic (only when steps are flushed)
             if (stepsToFlush) {
                 let latestArtifact: ActiveArtifact | null = get().activeArtifact;
@@ -619,6 +725,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                                 latestArtifact = {
                                     toolName: step.tool,
                                     path: path || '...',
+                                    kind: 'text',
                                     content: content
                                 };
                             }
@@ -637,6 +744,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                             latestArtifact = {
                                 toolName: step.tool,
                                 path: cmd,
+                                kind: 'text',
                                 content: step.observation || step.streamingObservation || 'Running...'
                             };
                         }
@@ -646,6 +754,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                             latestArtifact = {
                                 toolName: step.tool,
                                 path: path || '...',
+                                kind: 'text',
                                 content: step.observation
                             };
                         }
@@ -735,7 +844,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
             set(state => {
                 const next = new Map(state.runningSessions);
                 next.delete(targetSessionId);
-                return { runningSessions: next };
+                const nextPending = new Map(state.pendingArtifactsBySession);
+                nextPending.delete(targetSessionId);
+                return { runningSessions: next, pendingArtifactsBySession: nextPending };
             });
         };
 
@@ -752,6 +863,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
             });
             // Agent finished — clean up listeners and running state
             if (event.currentState === 'Idle') {
+                flushPendingArtifactsToMessage(targetSessionId);
+                setTimeout(() => {
+                    persistLastAssistantArtifacts(targetSessionId);
+                }, 0);
                 cleanupAll();
             }
         });
@@ -821,6 +936,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
                         sessionMetas: state.sessionMetas.map(m =>
                             m.id === tempId ? { ...m, id: realId } : m
                         ),
+                        pendingArtifactsBySession: (() => {
+                            const nextPending = new Map(state.pendingArtifactsBySession);
+                            const pending = nextPending.get(tempId);
+                            if (pending) {
+                                nextPending.delete(tempId);
+                                nextPending.set(realId, pending);
+                            }
+                            return nextPending;
+                        })(),
                         runningSessions: nextRunning,
                         activeSessionId: realId,
                         draftSessionId: null,

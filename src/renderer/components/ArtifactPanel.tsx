@@ -13,13 +13,19 @@ export const ArtifactPanel: React.FC = () => {
     const isDark = useSettingsStore(s => s.settings.theme === 'dark');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isCopied, setIsCopied] = useState(false);
+    const [htmlViewMode, setHtmlViewMode] = useState<'preview' | 'source'>('preview');
 
     // Auto-scroll to bottom as content streams in
     useEffect(() => {
+        if (activeArtifact?.kind !== 'text') return;
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [activeArtifact?.content]);
+    }, [activeArtifact?.content, activeArtifact?.kind]);
+
+    useEffect(() => {
+        setHtmlViewMode('preview');
+    }, [activeArtifact?.path]);
 
     const handleCopy = () => {
         if (!activeArtifact?.content) return;
@@ -37,6 +43,8 @@ export const ArtifactPanel: React.FC = () => {
     const isPreview = activeArtifact.toolName === 'preview';
     const isEdit = activeArtifact.toolName === 'edit' || activeArtifact.toolName === 'replace_file_content' || activeArtifact.toolName === 'multi_replace_file_content';
     const ext = activeArtifact.path.split('.').pop() || 'text';
+    const isHtmlPreview = activeArtifact.kind === 'html';
+    const isPdfPreview = activeArtifact.kind === 'pdf';
     const isMarkdown = ext === 'md' || ext === 'markdown';
     const isSvg = ext === 'svg';
     let language = 'text';
@@ -72,6 +80,26 @@ export const ArtifactPanel: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
+                    {isHtmlPreview && (
+                        <div className="mr-2 flex items-center rounded-lg border border-black/5 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-0.5">
+                            <button
+                                onClick={() => setHtmlViewMode('preview')}
+                                className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${htmlViewMode === 'preview'
+                                    ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
+                                    : 'text-slate-500 dark:text-zinc-400'}`}
+                            >
+                                Preview
+                            </button>
+                            <button
+                                onClick={() => setHtmlViewMode('source')}
+                                className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${htmlViewMode === 'source'
+                                    ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
+                                    : 'text-slate-500 dark:text-zinc-400'}`}
+                            >
+                                Source
+                            </button>
+                        </div>
+                    )}
                     <button
                         onClick={handleCopy}
                         className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 dark:text-zinc-400 transition-all active:scale-90"
@@ -91,7 +119,17 @@ export const ArtifactPanel: React.FC = () => {
 
             {/* Editor Body */}
             <div className="flex-1 overflow-auto relative select-text scrollbar-thin shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-none" ref={scrollRef}>
-                {isSvg ? (
+                {((isHtmlPreview && htmlViewMode === 'preview') || isPdfPreview) ? (
+                    <div className="h-full min-h-full bg-white">
+                        <iframe
+                            src={activeArtifact.previewUrl}
+                            title={activeArtifact.path}
+                            sandbox={isHtmlPreview ? 'allow-scripts allow-forms' : undefined}
+                            referrerPolicy="no-referrer"
+                            className="h-full w-full border-0 bg-white"
+                        />
+                    </div>
+                ) : isSvg ? (
                     <div className="px-4 py-3">
                         <SvgBlock code={activeArtifact.content || ''} />
                     </div>

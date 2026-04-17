@@ -1,5 +1,5 @@
 
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, nativeTheme, protocol } from 'electron';
 import path from 'path'
 import { fileURLToPath } from 'url'
 import log from 'electron-log/main';
@@ -18,6 +18,17 @@ import { CoreToolManager } from './services/tools/core/CoreToolManager.js'
 import { MemoryStore } from './services/memory/MemoryStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PREVIEW_PROTOCOL_SCHEME = 'geni-preview';
+
+protocol.registerSchemesAsPrivileged([{
+    scheme: PREVIEW_PROTOCOL_SCHEME,
+    privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+    }
+}]);
 
 let isQuitting = false;
 
@@ -172,6 +183,15 @@ app.whenReady().then(async () => {
     // 6. Initialize AppRouter (DI Container & IPC, with PathManager)
     const appRouter = new AppRouter(configManager, toolRegistry, skillRegistry, mcpManager, coreToolManager, pathManager, memoryStore);
     appRouter.initialize();
+
+    protocol.handle(PREVIEW_PROTOCOL_SCHEME, async (request) => {
+        const previewResource = await appRouter.getSystemController().resolvePreviewResource(request.url);
+        const responseBody = previewResource.body ? new Uint8Array(previewResource.body) : undefined;
+        return new Response(responseBody, {
+            status: previewResource.status,
+            headers: previewResource.mimeType ? { 'content-type': previewResource.mimeType } : undefined
+        });
+    });
 
     const win = createWindow(isDark);
 

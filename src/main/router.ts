@@ -213,6 +213,10 @@ export class AppRouter {
         this.trayManager = trayManager;
     }
 
+    public getSystemController(): SystemController {
+        return this.systemController;
+    }
+
     /**
      * Initialize all IPC routes
      */

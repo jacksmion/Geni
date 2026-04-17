@@ -120,6 +120,26 @@ export class SessionManager {
     }
 
     /**
+     * 更新会话中的单条消息并持久化
+     */
+    public async updateMessage(sessionId: string, messageId: string, updates: Partial<ChatMessage>): Promise<boolean> {
+        const session = await this.getSession(sessionId);
+        if (!session) return false;
+
+        const index = session.messages.findIndex(message => message.id === messageId);
+        if (index === -1) return false;
+
+        session.messages[index] = {
+            ...session.messages[index],
+            ...updates,
+            id: session.messages[index].id || messageId,
+        };
+        session.updatedAt = Date.now();
+        await this.storage.saveSession(session);
+        return true;
+    }
+
+    /**
      * 获取会话历史记录
      */
     public async getHistory(id: string): Promise<ChatMessage[]> {

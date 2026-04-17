@@ -27,6 +27,7 @@ export class SessionController {
         ipcMain.handle(SESSION_CHANNELS.SAVE, this.handleSave.bind(this));
         ipcMain.handle(SESSION_CHANNELS.GET, this.handleGetSession.bind(this));
         ipcMain.handle(SESSION_CHANNELS.ADD_MESSAGE, this.handleAddMessage.bind(this));
+        ipcMain.handle(SESSION_CHANNELS.UPDATE_MESSAGE, this.handleUpdateMessage.bind(this));
     }
 
     private async handleGetSession(event: IpcMainInvokeEvent, sessionId: string) {
@@ -90,6 +91,20 @@ export class SessionController {
             return true;
         } catch (error) {
             console.error('[SessionController] Failed to add message:', error);
+            return false;
+        }
+    }
+
+    private async handleUpdateMessage(event: IpcMainInvokeEvent, payload: { sessionId: string; messageId: string; message: any }) {
+        if (!payload.sessionId || !payload.messageId || !payload.message) {
+            console.error('[SessionController] handleUpdateMessage called with invalid payload');
+            return false;
+        }
+
+        try {
+            return await this.sessionManager.updateMessage(payload.sessionId, payload.messageId, payload.message);
+        } catch (error) {
+            console.error('[SessionController] Failed to update message:', error);
             return false;
         }
     }

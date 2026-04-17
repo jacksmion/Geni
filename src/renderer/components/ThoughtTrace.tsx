@@ -400,6 +400,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
         useChatStore.getState().setActiveArtifact({
             toolName: step.tool!,
             path: path || '...',
+            kind: 'text',
             content: content
         });
     };

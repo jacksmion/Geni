@@ -34,6 +34,14 @@ export type ContentPart =
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string; detail?: 'low' | 'high' | 'auto' } };
 
+export interface MessageArtifact {
+    path: string;
+    name: string;
+    ext: string;
+    openMode: 'panel' | 'external';
+    sourceTool?: string;
+}
+
 /**
  * Unified ChatMessage format
  *
@@ -58,6 +66,7 @@ export interface ChatMessage {
     isError?: boolean;
     usage?: import('./usage').TokenUsage;
     skillIds?: string[];              // 该消息发送时选中的技能
+    artifacts?: MessageArtifact[];
 }
 
 export interface ChatSession {

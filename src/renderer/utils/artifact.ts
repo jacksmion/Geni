@@ -70,3 +70,32 @@ export function extractPathAndContent(jsonStr: string, toolName?: string): { pat
 
     return { path: pathResult, content: contentResult };
 }
+
+const PANEL_EXTENSIONS = new Set([
+    'md', 'markdown', 'txt', 'log',
+    'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',
+    'py', 'rb', 'go', 'rs', 'java', 'kt', 'swift', 'c', 'cpp', 'h', 'hpp',
+    'html', 'htm', 'css', 'scss', 'less', 'vue', 'svelte',
+    'json', 'yaml', 'yml', 'toml', 'xml', 'ini', 'conf', 'env',
+    'sh', 'bash', 'zsh', 'fish', 'bat', 'ps1',
+    'sql', 'graphql', 'proto', 'svg', 'pdf'
+]);
+
+const EXTERNAL_EXTENSIONS = new Set(['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx']);
+
+export function getFileExtension(path: string): string {
+    const cleaned = path.replace(/^file:\/\/\//, '').replace(/^file:\/\//, '');
+    return cleaned.split('.').pop()?.toLowerCase() || '';
+}
+
+export function getArtifactOpenMode(ext: string): 'panel' | 'external' | null {
+    if (PANEL_EXTENSIONS.has(ext)) return 'panel';
+    if (EXTERNAL_EXTENSIONS.has(ext)) return 'external';
+    return null;
+}
+
+export function getArtifactName(path: string): string {
+    const normalized = path.replace(/\\/g, '/');
+    const segments = normalized.split('/');
+    return segments[segments.length - 1] || path;
+}

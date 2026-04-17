@@ -20,6 +20,7 @@ export const SESSION_CHANNELS = {
     GET_HISTORY: 'session:get-history',
     SAVE: 'session:save',
     ADD_MESSAGE: 'session:add-message',
+    UPDATE_MESSAGE: 'session:update-message',
 } as const;
 
 // Agent Events (Server -> Client)
@@ -37,6 +38,7 @@ export const SYSTEM_CHANNELS = {
     SELECT_FILE: 'system:select-file',
     SELECT_DIRECTORY: 'system:select-directory',
     OPEN_EXPLORER: 'system:open-explorer',
+    CREATE_ARTIFACT_PREVIEW: 'system:create-artifact-preview',
     GET_SETTINGS: 'system:get-settings',
     SAVE_SETTINGS: 'system:save-settings',
     TEST_LLM: 'system:test-llm',

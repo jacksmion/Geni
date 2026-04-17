@@ -1,6 +1,13 @@
 
 import { Skill } from '../common/types/skill';
 
+export interface ArtifactPreviewResult {
+    kind: 'html' | 'pdf';
+    path: string;
+    previewUrl: string;
+    content?: string;
+}
+
 export interface IElectronAPI {
     // Agent Namespace
     agent: {
@@ -26,6 +33,7 @@ export interface IElectronAPI {
         save: (session: any) => Promise<boolean>;
         get: (id: string) => Promise<any>;
         addMessage: (sessionId: string, message: any) => Promise<boolean>;
+        updateMessage: (sessionId: string, messageId: string, message: any) => Promise<boolean>;
     };
 
     // System Namespace
@@ -35,6 +43,7 @@ export interface IElectronAPI {
         selectFile: (forAttachment?: boolean) => Promise<string | null>;
         selectDirectory: () => Promise<string | null>;
         openExplorer: (path: string) => Promise<void>;
+        createArtifactPreview: (path: string) => Promise<ArtifactPreviewResult | null>;
         testLLM: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
         fetchProviderModels: (payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) => Promise<string[]>;
         testTelegram: (config: any) => Promise<{ success: boolean, message: string }>;
