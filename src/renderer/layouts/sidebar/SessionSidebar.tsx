@@ -12,13 +12,10 @@ import { StaffAvatar } from '../../components/StaffAvatar';
 export function SessionSidebar() {
     const sessionMetas = useChatStore(s => s.sessionMetas);
     const { profiles, loadProfiles } = useStaffStore();
-    const sessions = useMemo(() => {
-        // Reconstruct a Record-like object for groupedSessions
-        return sessionMetas.reduce((acc, current) => {
-            acc[current.id] = current as any;
-            return acc;
-        }, {} as Record<string, any>);
-    }, [sessionMetas]);
+    const profileMap = useMemo(
+        () => new Map(profiles.map(profile => [profile.id, profile])),
+        [profiles]
+    );
 
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const switchSession = useChatStore(s => s.switchSession)
@@ -33,7 +30,7 @@ export function SessionSidebar() {
     const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
     const { isMobile } = useBreakpoint();
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [now, setNow] = useState(0);
@@ -69,10 +66,11 @@ export function SessionSidebar() {
 
     // Filtered sessions (flat list, sorted)
     const filteredSessions = useMemo(() => {
-        return Object.values(sessions)
-            .filter(s => (s.title || '').toLowerCase().includes(searchTerm.toLowerCase()))
+        const normalizedSearch = searchTerm.toLowerCase();
+        return sessionMetas
+            .filter(s => (s.title || '').toLowerCase().includes(normalizedSearch))
             .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
-    }, [sessions, searchTerm]);
+    }, [searchTerm, sessionMetas]);
 
     // All visible session IDs (for select all)
     const allVisibleIds = useMemo(() => {
@@ -246,7 +244,7 @@ export function SessionSidebar() {
                                     )}
 
                                                 {(() => {
-                                                    const staff = session.staffId ? profiles.find(p => p.id === session.staffId) : undefined;
+                                                    const staff = session.staffId ? profileMap.get(session.staffId) : undefined;
                                                     return staff ? (
                                                         <span className="shrink-0 mr-2.5 flex items-center justify-center w-[14px]">
                                                             <StaffAvatar
@@ -388,7 +386,7 @@ export function SessionSidebar() {
                     </div>
                 ) : (
                     <div className="px-4 py-3 border-t border-[#EDEDF0] dark:border-white/[0.02] text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
-                        {t('sessionSidebar.activeSessions', { count: Object.values(sessions).length })}
+                        {t('sessionSidebar.activeSessions', { count: sessionMetas.length })}
                     </div>
                 )}
             </div>

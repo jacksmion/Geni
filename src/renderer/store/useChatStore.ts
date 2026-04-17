@@ -28,6 +28,7 @@ interface ChatState {
     sessions: Record<string, ChatSession>
     sessionMetas: { id: string, title?: string, updatedAt: number, staffId?: string, modelId?: string, workspacePath?: string, activeSkillIds?: string[], pinned?: boolean }[]
     activeSessionId: string | null
+    loadingSessionIds: Set<string>
     activeTab: 'chat' | 'skills' | 'staff' | 'scheduler' | 'settings'
     pendingAttachments: string[]
     selectedSkillIds: string[] | null
@@ -73,6 +74,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     sessions: {},
     sessionMetas: [],
     activeSessionId: null,
+    loadingSessionIds: new Set(),
     activeTab: 'chat',
     pendingAttachments: [],
     selectedSkillIds: null,
@@ -137,12 +139,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     switchSession: async (id) => {
-        const { sessions } = get();
+        const { sessions, activeSessionId } = get();
+        if (activeSessionId === id) return;
         const session = sessions[id];
 
         if (session) {
             // Lazy load if messages empty or partial
             if (!session.messages || session.messages.length === 0) {
+                set(state => ({
+                    activeSessionId: id,
+                    activeTab: 'chat',
+                    selectedSkillIds: null,
+                    newTaskConfig: buildNewTaskConfig({ workspacePath: state.sessions[id].workspacePath, modelId: state.sessions[id].modelId }),
+                    loadingSessionIds: new Set(state.loadingSessionIds).add(id),
+                }));
+
                 try {
                     const messages = await window.electronAPI.session.getHistory(id);
                     set(state => ({
@@ -150,15 +161,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
                             ...state.sessions,
                             [id]: { ...state.sessions[id], messages }
                         },
-                        activeSessionId: id,
-                        activeTab: 'chat',
-                        selectedSkillIds: null,
-                        newTaskConfig: buildNewTaskConfig({ workspacePath: state.sessions[id].workspacePath, modelId: state.sessions[id].modelId }),
+                        loadingSessionIds: (() => {
+                            const next = new Set(state.loadingSessionIds);
+                            next.delete(id);
+                            return next;
+                        })(),
                     }));
                 } catch (error) {
                     console.error('Failed to load session history for id', id, ':', error);
-                    // Fallback to switching anyway
-                    set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null, newTaskConfig: buildNewTaskConfig(session) });
+                    set(state => ({
+                        loadingSessionIds: (() => {
+                            const next = new Set(state.loadingSessionIds);
+                            next.delete(id);
+                            return next;
+                        })(),
+                    }));
                 }
             } else {
                 set({ activeSessionId: id, activeTab: 'chat', selectedSkillIds: null, newTaskConfig: buildNewTaskConfig(session) });
@@ -541,7 +558,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         get().setActiveArtifact(null); // Clear previous artifact on new message
 
         // Track the target session ID for streaming updates (fixed, won't change when user switches sessions)
-        let targetSessionId = activeSessionId;
+        const targetSessionId = activeSessionId;
 
         // Helper: update last message of the TARGET session (not activeSessionId)
         const updateTargetMessage = (updater: (msg: ChatMessage) => ChatMessage) => {

@@ -26,6 +26,31 @@ type GroupedMessageMeta = {
     sourceEnd: number
 }
 
+let cachedSkillNameMap: SkillNameMap | null = null
+let skillNameMapPromise: Promise<SkillNameMap> | null = null
+
+function loadSkillNameMap() {
+    if (cachedSkillNameMap) {
+        return Promise.resolve(cachedSkillNameMap)
+    }
+
+    if (!skillNameMapPromise) {
+        skillNameMapPromise = window.electronAPI.tools.getSkills()
+            .then((allSkills: Array<{ id: string; name: string }>) => {
+                cachedSkillNameMap = allSkills.reduce<SkillNameMap>((acc, skill) => {
+                    acc[skill.id] = skill.name
+                    return acc
+                }, {})
+                return cachedSkillNameMap
+            })
+            .finally(() => {
+                skillNameMapPromise = null
+            })
+    }
+
+    return skillNameMapPromise
+}
+
 function buildGroupedMessages(messages: ChatMessage[], startIndex = 0) {
     const groups: ChatMessage[] = []
     const metas: GroupedMessageMeta[] = []
@@ -196,13 +221,8 @@ export function MessageList({ scrollContainerRef }: { scrollContainerRef: Mutabl
 
         let cancelled = false
 
-        window.electronAPI.tools.getSkills().then((allSkills: Array<{ id: string; name: string }>) => {
+        loadSkillNameMap().then((nextSkillNameMap) => {
             if (cancelled) return
-
-            const nextSkillNameMap = allSkills.reduce<SkillNameMap>((acc, skill) => {
-                acc[skill.id] = skill.name
-                return acc
-            }, {})
 
             setSkillNameMap(prev => {
                 const prevKeys = Object.keys(prev)

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Cpu, Bot } from 'lucide-react'
+import { ChevronRight, Plus, PanelLeftClose, PanelLeftOpen, Star, Presentation, BarChart3, GraduationCap, Globe, Cpu, Bot, Loader2 } from 'lucide-react'
 import { useChatStore } from '../store/useChatStore'
 import { useShallow } from 'zustand/react/shallow'
 import { useLayoutStore } from '../store/useLayoutStore'
@@ -100,6 +100,7 @@ function StaffPicker() {
 
 export function ChatLayout() {
     const activeSessionId = useChatStore(s => s.activeSessionId)
+    const isActiveSessionLoading = useChatStore(s => s.activeSessionId ? s.loadingSessionIds.has(s.activeSessionId) : false)
     const hasActiveArtifact = useChatStore(s => !!s.activeArtifact)
     const { shouldRender: showPanel, isExiting: panelExiting } = useDelayedUnmount(hasActiveArtifact, 250)
     const currentSessionMeta = useChatStore(useShallow(s => {
@@ -236,7 +237,12 @@ export function ChatLayout() {
                         <div className="flex items-center gap-2 no-drag pr-[140px]" />
                     </header>
 
-                    {hasMessages ? (
+                    {isActiveSessionLoading ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-zinc-500">
+                            <Loader2 size={18} className="animate-spin" />
+                            <div className="text-[13px]">正在加载任务内容...</div>
+                        </div>
+                    ) : hasMessages ? (
                         <>
                             {/* Main Content Area */}
                             <div className="message-scroll flex-1 overflow-auto relative" ref={scrollContainerRef}>
