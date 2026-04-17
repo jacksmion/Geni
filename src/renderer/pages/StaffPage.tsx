@@ -63,7 +63,7 @@ export default function StaffPage() {
                         onClick={handleImport}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-medium transition-colors"
                     >
-                        <Upload size={14} />
+                        <Download size={14} />
                         导入
                     </button>
                     <button
@@ -174,7 +174,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                     className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
                     title="导出"
                 >
-                    <Download size={13} />
+                    <Upload size={13} />
                 </span>
                 <span
                     role="button"
