@@ -22,10 +22,13 @@ export class GrepTool implements ITool {
     private readonly MAX_TOTAL_MATCHES = 1000;
     private readonly MAX_LINE_LENGTH = 500;
     private readonly DEFAULT_EXTENSIONS = [
-        '.ts', '.js', '.jsx', '.tsx', '.json', '.md', '.txt',
-        '.html', '.css', '.scss', '.less', '.xml', '.yml', '.yaml',
+        '.ts', '.js', '.jsx', '.tsx', '.mjs', '.cjs',
+        '.json', '.md', '.txt', '.html', '.css', '.scss', '.less',
+        '.xml', '.yml', '.yaml', '.toml', '.ini',
         '.sql', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.go',
-        '.rs', '.php', '.rb', '.sh', '.bat', '.cmd', '.ps1'
+        '.rs', '.php', '.rb', '.sh', '.bat', '.cmd', '.ps1',
+        '.vue', '.svelte', '.astro', '.proto', '.graphql',
+        '.cfg', '.conf', '.log', '.csv'
     ];
 
     constructor(rootPath: string, allowedPaths: string[] = []) {
@@ -75,7 +78,7 @@ export class GrepTool implements ITool {
                     },
                     path: {
                         type: 'string',
-                        description: 'Directory to search in (relative to root)'
+                        description: 'File or directory to search in (relative to root)'
                     },
                     include: {
                         type: 'string',
@@ -98,11 +101,11 @@ export class GrepTool implements ITool {
     async execute(args: any, _signal?: AbortSignal): Promise<ToolExecutionResult> {
         const { pattern, path: searchPath, include, caseInsensitive = false, isRegex = true } = args;
 
-        const startDir = searchPath
+        const targetPath = searchPath
             ? (path.isAbsolute(searchPath) ? path.normalize(searchPath) : path.resolve(this.allowedRoot, searchPath))
             : this.allowedRoot;
-        // Ensure startDir is within allowedRoot
-        if (!this.isPathAllowed(startDir)) {
+        // Ensure targetPath is within allowedRoot
+        if (!this.isPathAllowed(targetPath)) {
             return {
                 toolName: 'grep',
                 isError: true,
@@ -135,8 +138,33 @@ export class GrepTool implements ITool {
                 ? include.split(',').map((s: string) => s.trim())
                 : null;
 
-            // 3. Find files & Grep (Concurrent buffered)
-            const results = await this.searchDirectory(startDir, regex, includePatterns);
+            // 3. Determine if target is a file or directory
+            let results: FileResult[];
+            let stat: fs.Stats;
+            try {
+                stat = await fsPromises.stat(targetPath);
+            } catch (e) {
+                return {
+                    toolName: 'grep',
+                    isError: true,
+                    result: `Path not found: '${searchPath}'`
+                };
+            }
+
+            if (stat.isFile()) {
+                // Search a single file directly
+                const fileResult = await this.grepFile(targetPath, regex);
+                results = fileResult ? [fileResult] : [];
+            } else if (stat.isDirectory()) {
+                // Search directory recursively
+                results = await this.searchDirectory(targetPath, regex, includePatterns);
+            } else {
+                return {
+                    toolName: 'grep',
+                    isError: true,
+                    result: `Path is neither a file nor a directory: '${searchPath}'`
+                };
+            }
 
             // 4. Sort by mtime (descending)
             results.sort((a, b) => b.mtime - a.mtime);
@@ -239,25 +267,29 @@ export class GrepTool implements ITool {
 
             const matches: Match[] = [];
             const fileStream = fs.createReadStream(filePath, { encoding: 'utf8' });
-
             const rl = readline.createInterface({
                 input: fileStream,
                 crlfDelay: Infinity
             });
 
-            let lineNum = 0;
-            for await (const line of rl) {
-                lineNum++;
-                if (regex.test(line)) {
-                    // Truncate overly long lines
-                    let content = line.trim();
-                    if (content.length > this.MAX_LINE_LENGTH) {
-                        content = content.substring(0, this.MAX_LINE_LENGTH) + '...';
-                    }
-                    matches.push({ lineNum, content });
+            try {
+                let lineNum = 0;
+                for await (const line of rl) {
+                    lineNum++;
+                    if (regex.test(line)) {
+                        // Truncate overly long lines
+                        let content = line.trim();
+                        if (content.length > this.MAX_LINE_LENGTH) {
+                            content = content.substring(0, this.MAX_LINE_LENGTH) + '...';
+                        }
+                        matches.push({ lineNum, content });
 
-                    if (matches.length >= 100) break; // Limit per file
+                        if (matches.length >= 100) break; // Limit per file
+                    }
                 }
+            } finally {
+                rl.close();
+                fileStream.destroy();
             }
 
             if (matches.length > 0) {
@@ -267,8 +299,8 @@ export class GrepTool implements ITool {
                     matches
                 };
             }
-        } catch (e) {
-            // Ignore read errors
+        } catch (e: any) {
+            console.warn(`[GrepTool] Failed to read file ${filePath}: ${e.message}`);
         }
         return null;
     }
