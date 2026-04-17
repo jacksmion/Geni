@@ -77,7 +77,9 @@ export function CommandPalette() {
                     selectedIndex={selectedIndex}
                     setSelectedIndex={setSelectedIndex}
                     onSelect={(item) => {
-                        setPaletteOpen(false)
+                        if (item.closeOnSelect !== false) {
+                            setPaletteOpen(false)
+                        }
                         item.action()
                     }}
                 />

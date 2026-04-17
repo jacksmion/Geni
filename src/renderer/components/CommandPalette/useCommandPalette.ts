@@ -4,14 +4,20 @@ import { useSearchIndex } from './useSearchIndex'
 import { SearchItem, SearchItemType } from './types'
 import { useLayoutStore } from '../../store/useLayoutStore'
 
+const DEFAULT_SESSION_VISIBLE_COUNT = 6
+const SESSION_LOAD_MORE_COUNT = 10
+const SEARCH_RESULT_LIMIT = 10
+
 export function useCommandPalette() {
     const [query, setQuery] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [sessionVisibleCount, setSessionVisibleCount] = useState(DEFAULT_SESSION_VISIBLE_COUNT)
     const inputRef = useRef<HTMLInputElement>(null)
     const paletteOpen = useLayoutStore(s => s.paletteOpen)
     const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
 
     const { fuse, allItems } = useSearchIndex()
+    const sessionItems = useMemo(() => allItems.filter(i => i.type === 'session'), [allItems])
 
     // 解析前缀，提取过滤类型和实际搜索词
     const { filterType, searchTerm } = useMemo(() => {
@@ -25,6 +31,34 @@ export function useCommandPalette() {
         return { filterType: null, searchTerm: trimmed }
     }, [query])
 
+    const hasMoreSessions = useMemo(() => {
+        if (searchTerm) return false
+        if (filterType && filterType !== 'session') return false
+        return sessionItems.length > sessionVisibleCount
+    }, [filterType, searchTerm, sessionItems.length, sessionVisibleCount])
+
+    const hiddenSessionCount = useMemo(() => {
+        if (!hasMoreSessions) return 0
+        return Math.max(0, sessionItems.length - sessionVisibleCount)
+    }, [hasMoreSessions, sessionItems.length, sessionVisibleCount])
+
+    const showMoreItem = useMemo<SearchItem | null>(() => {
+        if (!hasMoreSessions) return null
+        const isSessionMode = filterType === 'session'
+        return {
+            id: 'session-show-more',
+            type: 'session',
+            label: isSessionMode ? '查看更多' : '查看更多最近任务',
+            description: hiddenSessionCount > 0 ? `还有 ${hiddenSessionCount} 条任务` : undefined,
+            icon: 'Plus',
+            keywords: ['more', '更多', '展开', 'show more', 'recent sessions'],
+            closeOnSelect: false,
+            action: () => {
+                setSessionVisibleCount(count => count + SESSION_LOAD_MORE_COUNT)
+            },
+        }
+    }, [filterType, hasMoreSessions, hiddenSessionCount])
+
     // 执行搜索
     const results = useMemo(() => {
         let items: SearchItem[]
@@ -32,12 +66,16 @@ export function useCommandPalette() {
         if (!searchTerm) {
             if (filterType) {
                 items = allItems.filter(i => i.type === filterType)
+                if (filterType === 'session') {
+                    const visibleItems = items.slice(0, sessionVisibleCount)
+                    return showMoreItem ? [...visibleItems, showMoreItem] : visibleItems
+                }
             } else {
-                // 无搜索词：先展示最近6条会话，再展示命令和页面
-                const sessions = allItems.filter(i => i.type === 'session').slice(0, 6)
+                // 无搜索词：先展示最近任务，再展示命令和页面
+                const sessions = sessionItems.slice(0, sessionVisibleCount)
                 const commands = allItems.filter(i => i.type === 'command')
                 const pages = allItems.filter(i => i.type === 'page')
-                items = [...sessions, ...commands, ...pages]
+                return [...sessions, ...(showMoreItem ? [showMoreItem] : []), ...commands, ...pages]
             }
         } else if (filterType) {
             // 有前缀过滤：先搜索再过滤类型
@@ -47,8 +85,8 @@ export function useCommandPalette() {
             items = fuse.search(searchTerm).map(r => r.item)
         }
 
-        return items.slice(0, 10)
-    }, [searchTerm, filterType, fuse, allItems])
+        return items.slice(0, SEARCH_RESULT_LIMIT)
+    }, [searchTerm, filterType, fuse, allItems, sessionItems, sessionVisibleCount, showMoreItem])
 
     // 搜索结果变化时重置选中索引
     useEffect(() => {
@@ -60,6 +98,7 @@ export function useCommandPalette() {
         if (paletteOpen) {
             setQuery('')
             setSelectedIndex(0)
+            setSessionVisibleCount(DEFAULT_SESSION_VISIBLE_COUNT)
             // 延迟聚焦，等待 DOM 渲染
             requestAnimationFrame(() => inputRef.current?.focus())
         }
@@ -73,7 +112,9 @@ export function useCommandPalette() {
     const executeSelected = useCallback(() => {
         const item = results[selectedIndex]
         if (item) {
-            close()
+            if (item.closeOnSelect !== false) {
+                close()
+            }
             item.action()
         }
     }, [results, selectedIndex, close])

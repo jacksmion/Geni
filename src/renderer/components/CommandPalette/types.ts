@@ -10,4 +10,5 @@ export interface SearchItem {
     icon?: string        // lucide icon component name (for display)
     keywords?: string[]  // 额外搜索关键词
     action: () => void
+    closeOnSelect?: boolean
 }

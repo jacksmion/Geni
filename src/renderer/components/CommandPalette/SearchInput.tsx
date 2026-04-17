@@ -11,6 +11,12 @@ interface SearchInputProps {
 }
 
 export function SearchInput({ query, onQueryChange, onKeyDown, inputRef, filterType }: SearchInputProps) {
+    const placeholder = filterType === 'session'
+        ? '搜索任务...'
+        : filterType === 'command'
+            ? '搜索命令...'
+            : '搜索页面、任务、命令...'
+
     return (
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-white/10">
             <Search size={16} className="text-slate-400 dark:text-zinc-500 shrink-0" />
@@ -20,7 +26,7 @@ export function SearchInput({ query, onQueryChange, onKeyDown, inputRef, filterT
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="搜索页面、任务、命令..."
+                placeholder={placeholder}
                 className="flex-1 bg-transparent text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none border-none"
                 style={{ boxShadow: 'none' }}
                 spellCheck={false}

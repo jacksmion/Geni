@@ -17,7 +17,12 @@ interface ResultListProps {
     onSelect: (item: SearchItem) => void
 }
 
-export function ResultList({ results, selectedIndex, setSelectedIndex, onSelect }: ResultListProps) {
+export function ResultList({
+    results,
+    selectedIndex,
+    setSelectedIndex,
+    onSelect,
+}: ResultListProps) {
     if (results.length === 0) {
         return (
             <div className="px-4 py-8 text-center text-sm text-slate-400 dark:text-zinc-500">
@@ -41,8 +46,6 @@ export function ResultList({ results, selectedIndex, setSelectedIndex, onSelect 
     return (
         <div className="max-h-80 overflow-y-auto py-2">
             {grouped.map((group, gi) => {
-                // 记录当前分组的起始索引
-                const startIdx = flatIndex
                 return (
                     <div key={group.type}>
                         {gi > 0 && (
