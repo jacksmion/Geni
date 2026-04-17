@@ -36,6 +36,19 @@ interface ToolCallAccumulator {
     type: string;
 }
 
+interface PreparedToolCall {
+    tc: any;
+    fnName: string;
+    args: any;
+    tool: any;
+}
+
+interface ExecutedToolCall {
+    tc: any;
+    observation: string;
+    step: AgentStep;
+}
+
 /** LLM turn result with real token usage */
 interface LlmTurnResult {
     content: string;
@@ -429,6 +442,8 @@ export class ReActExecutor implements AgentExecutor {
     ): AsyncGenerator<AgentEvent, void> {
         yield* this.transitionState(pendingStateEvents, stateManager, AgentState.ExecutingTool, `Executing ${toolCalls.length} tools`);
 
+        const preparedCalls: PreparedToolCall[] = [];
+
         for (const tc of toolCalls) {
             if (signal?.aborted) break;
 
@@ -459,71 +474,149 @@ export class ReActExecutor implements AgentExecutor {
                 continue;
             }
 
-            const authorized = yield* this.checkAuth(tc, tool, args, thought, steps, toolGuard, stateManager, runId, pendingStateEvents, signal);
+            preparedCalls.push({ tc, fnName, args, tool });
+        }
+
+        for (let i = 0; i < preparedCalls.length;) {
             if (signal?.aborted) break;
-            if (!authorized) {
-                const denial = `[Authorization Denied] User declined tool "${fnName}".`;
-                this.recordToolResult(tc.id, denial, messages, newMessages);
+
+            const current = preparedCalls[i];
+            if (!this.isParallelSafeTool(current.tool)) {
+                const authorized = yield* this.checkAuth(current.tc, current.tool, current.args, thought, steps, toolGuard, stateManager, runId, pendingStateEvents, signal);
+                if (signal?.aborted) break;
+                if (!authorized) {
+                    const denial = `[Authorization Denied] User declined tool "${current.fnName}".`;
+                    this.recordToolResult(current.tc.id, denial, messages, newMessages);
+                    i++;
+                    continue;
+                }
+
+                yield* this.transitionState(pendingStateEvents, stateManager, AgentState.ExecutingTool, `Executing: ${current.fnName}`, { tool: current.fnName });
+
+                const startStep: AgentStep = { thought, tool: current.fnName, toolInput: JSON.stringify(current.args), isComplete: false };
+                yield { type: 'tool_start', payload: startStep };
+
+                const executed = await this.executePreparedToolCall(current, tools, thought, stateManager, signal);
+                yield* this.flushStateEvents(pendingStateEvents);
+                yield { type: 'tool_end', payload: executed.step };
+                this.recordToolResult(current.tc.id, executed.observation, messages, newMessages);
+                steps.push(executed.step);
+                i++;
                 continue;
             }
 
-            const startTime = Date.now();
-            yield* this.transitionState(pendingStateEvents, stateManager, AgentState.ExecutingTool, `Executing: ${fnName}`, { tool: fnName });
-
-            const startStep: AgentStep = { thought, tool: fnName, toolInput: JSON.stringify(args), isComplete: false };
-            yield { type: 'tool_start', payload: startStep };
-
-            let step = steps.find(s => s.tool === fnName && !s.isComplete);
-            if (!step) {
-                step = startStep;
-                steps.push(step);
+            const batch: PreparedToolCall[] = [];
+            while (i < preparedCalls.length && this.isParallelSafeTool(preparedCalls[i].tool)) {
+                batch.push(preparedCalls[i]);
+                i++;
             }
 
-            let result;
-            try {
-                result = await withRetry(
-                    async () => {
-                        if (signal) {
-                            const executePromise = tools.executeTool(fnName, args, signal);
-                            return await new Promise<any>((resolve, reject) => {
-                                const onAbort = () => reject(new Error('Agent execution aborted by user.'));
-                                if (signal.aborted) return onAbort();
-                                signal.addEventListener('abort', onAbort);
-                                executePromise.then(resolve).catch(reject).finally(() => {
-                                    signal.removeEventListener('abort', onAbort);
-                                });
-                            });
-                        } else {
-                            return await tools.executeTool(fnName, args);
-                        }
-                    },
-                    DEFAULT_TOOL_RETRY,
-                    (attempt, error) => {
-                        console.log(`[ReActExecutor] Tool ${fnName} failed, retry ${attempt}:`, error.message);
-                        stateManager.transition(AgentState.ExecutingTool, `Executing: ${fnName} (Retry ${attempt})`, { tool: fnName });
-                    },
-                    signal
-                );
-                yield* this.flushStateEvents(pendingStateEvents);
-            } catch (err: any) {
-                result = { isError: true, result: String(err) };
+            const authorizedBatch: PreparedToolCall[] = [];
+            for (const prepared of batch) {
+                const authorized = yield* this.checkAuth(prepared.tc, prepared.tool, prepared.args, thought, steps, toolGuard, stateManager, runId, pendingStateEvents, signal);
+                if (signal?.aborted) break;
+                if (!authorized) {
+                    const denial = `[Authorization Denied] User declined tool "${prepared.fnName}".`;
+                    this.recordToolResult(prepared.tc.id, denial, messages, newMessages);
+                    continue;
+                }
+                authorizedBatch.push(prepared);
+            }
+            if (signal?.aborted) break;
+            if (authorizedBatch.length === 0) {
+                continue;
             }
 
-            const duration = Date.now() - startTime;
-            console.log(`[AgentPerf] Tool [${fnName}] Execution Time: ${duration}ms`);
+            yield* this.transitionState(
+                pendingStateEvents,
+                stateManager,
+                AgentState.ExecutingTool,
+                `Executing ${authorizedBatch.length} tools in parallel`,
+                { tools: authorizedBatch.map(prepared => prepared.fnName) }
+            );
 
-            let obs = result.result;
-            obs = ContextManager.truncateToolOutput(fnName, obs);
-            if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
+            for (const prepared of authorizedBatch) {
+                yield {
+                    type: 'tool_start',
+                    payload: { thought, tool: prepared.fnName, toolInput: JSON.stringify(prepared.args), isComplete: false }
+                };
+            }
 
-            const endStep: AgentStep = { ...step, observation: obs, isComplete: true, duration, isError: !!result.isError };
-            yield { type: 'tool_end', payload: endStep };
-            this.recordToolResult(tc.id, obs, messages, newMessages);
-            step.observation = obs;
-            step.isComplete = true;
-            step.duration = duration;
-            step.isError = !!result.isError;
+            const results = await Promise.all(
+                authorizedBatch.map(prepared => this.executePreparedToolCall(prepared, tools, thought, stateManager, signal))
+            );
+            yield* this.flushStateEvents(pendingStateEvents);
+
+            for (const executed of results) {
+                yield { type: 'tool_end', payload: executed.step };
+                this.recordToolResult(executed.tc.id, executed.observation, messages, newMessages);
+                steps.push(executed.step);
+            }
         }
+    }
+
+    private isParallelSafeTool(tool: any): boolean {
+        return tool?.parallelSafe === true;
+    }
+
+    private async executePreparedToolCall(
+        prepared: PreparedToolCall,
+        tools: any,
+        thought: string,
+        stateManager: AgentStateManager,
+        signal?: AbortSignal
+    ): Promise<ExecutedToolCall> {
+        const startTime = Date.now();
+        let result;
+
+        try {
+            result = await withRetry(
+                async () => {
+                    if (signal) {
+                        const executePromise = tools.executeTool(prepared.fnName, prepared.args, signal);
+                        return await new Promise<any>((resolve, reject) => {
+                            const onAbort = () => reject(new Error('Agent execution aborted by user.'));
+                            if (signal.aborted) return onAbort();
+                            signal.addEventListener('abort', onAbort);
+                            executePromise.then(resolve).catch(reject).finally(() => {
+                                signal.removeEventListener('abort', onAbort);
+                            });
+                        });
+                    }
+
+                    return await tools.executeTool(prepared.fnName, prepared.args);
+                },
+                DEFAULT_TOOL_RETRY,
+                (attempt, error) => {
+                    console.log(`[ReActExecutor] Tool ${prepared.fnName} failed, retry ${attempt}:`, error.message);
+                    stateManager.transition(AgentState.ExecutingTool, `Executing: ${prepared.fnName} (Retry ${attempt})`, { tool: prepared.fnName });
+                },
+                signal
+            );
+        } catch (err: any) {
+            result = { isError: true, result: String(err) };
+        }
+
+        const duration = Date.now() - startTime;
+        console.log(`[AgentPerf] Tool [${prepared.fnName}] Execution Time: ${duration}ms`);
+
+        let obs = result.result;
+        obs = ContextManager.truncateToolOutput(prepared.fnName, obs);
+        if (result.isError) obs += `\n\n[System Note]: Execution failed.`;
+
+        return {
+            tc: prepared.tc,
+            observation: obs,
+            step: {
+                thought,
+                tool: prepared.fnName,
+                toolInput: JSON.stringify(prepared.args),
+                observation: obs,
+                isComplete: true,
+                duration,
+                isError: !!result.isError
+            }
+        };
     }
 
     /**

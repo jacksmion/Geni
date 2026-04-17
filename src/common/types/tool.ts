@@ -33,4 +33,10 @@ export interface ITool {
      * default: false
      */
     requireConfirmation?: boolean;
+
+    /**
+     * Whether this tool is safe to run in parallel with other tool calls.
+     * Leave false/undefined for tools with mutable shared state or side effects.
+     */
+    parallelSafe?: boolean;
 }

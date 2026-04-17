@@ -4,6 +4,7 @@ import path from 'path';
 import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/types/tool';
 
 export class ReadFileTool implements ITool {
+    parallelSafe = true;
     private allowedRoot: string;
     private allowedPaths: string[];
     private unrestricted = false;

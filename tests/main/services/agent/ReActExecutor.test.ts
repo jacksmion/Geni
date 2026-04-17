@@ -42,6 +42,15 @@ function createMockContext(mockTools: any): AgentContext {
     };
 }
 
+function createDeferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        void rej;
+    });
+    return { promise, resolve };
+}
+
 describe('ReActExecutor', () => {
     describe('unknown tool handling', () => {
         it('should return error result for unknown tool instead of skipping', async () => {
@@ -168,6 +177,63 @@ describe('ReActExecutor', () => {
 
             // Should stop at 6 steps (alternating pattern detected)
             expect(result.steps.length).toBe(6);
+        });
+    });
+
+    describe('parallel-safe tool execution', () => {
+        it('should execute parallel-safe read tools concurrently within the same turn', async () => {
+            let turn = 0;
+            const mockStream = async function* () {
+                turn++;
+                if (turn === 1) {
+                    yield { type: 'tool_call_delta', index: 0, id: 'call_read', name: 'read', arguments_delta: '{"path":"a.txt"}' };
+                    yield { type: 'tool_call_delta', index: 1, id: 'call_glob', name: 'glob', arguments_delta: '{"pattern":"**/*.ts"}' };
+                    yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 10 } };
+                } else {
+                    yield { type: 'content_delta', delta: 'done' };
+                    yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 5 } };
+                }
+            };
+
+            const mockChatModel = { stream: mockStream };
+            const llmFactory = vi.fn().mockReturnValue(mockChatModel);
+            const settings = { llm: { providers: {} } } as any;
+            const executor = new ReActExecutor(llmFactory, settings);
+
+            const readDeferred = createDeferred<any>();
+            const globDeferred = createDeferred<any>();
+            const executeTool = vi.fn().mockImplementation((name: string) => {
+                if (name === 'read') return readDeferred.promise;
+                if (name === 'glob') return globDeferred.promise;
+                return Promise.resolve({ toolName: name, result: 'ok' });
+            });
+
+            const mockTools = {
+                getTools: vi.fn().mockReturnValue([
+                    { parallelSafe: true, getDefinition: vi.fn().mockReturnValue({ name: 'read', description: 'read', input_schema: {} }) },
+                    { parallelSafe: true, getDefinition: vi.fn().mockReturnValue({ name: 'glob', description: 'glob', input_schema: {} }) },
+                ]),
+                getDefinitions: vi.fn().mockReturnValue([]),
+                executeTool,
+            };
+
+            const context = createMockContext(mockTools);
+            const request: AgentRunRequest = { prompt: 'Test message' };
+
+            const runPromise = collectGenerator(executor.execute(context, request));
+
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            expect(executeTool).toHaveBeenCalledTimes(2);
+            expect(executeTool.mock.calls.map(call => call[0])).toEqual(['read', 'glob']);
+
+            readDeferred.resolve({ toolName: 'read', isError: false, result: 'read ok' });
+            globDeferred.resolve({ toolName: 'glob', isError: false, result: 'glob ok' });
+
+            const { result } = await runPromise;
+
+            expect(result.finalAnswer).toBe('done');
+            expect(result.steps.map(step => step.tool)).toEqual(['read', 'glob']);
         });
     });
 });

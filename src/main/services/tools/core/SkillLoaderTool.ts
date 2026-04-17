@@ -9,6 +9,7 @@ import { ConfigManager } from '../../ConfigManager';
  * Allows the Agent to lazily load full skill content and discover associated resources.
  */
 export class SkillLoaderTool implements ITool {
+    parallelSafe = true;
     requireConfirmation = false;
 
     constructor(

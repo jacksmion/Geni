@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { NodeHtmlMarkdown } from 'node-html-markdown';
 
 export class WebFetchTool implements ITool {
+    parallelSafe = true;
     getDefinition(): ToolDefinition {
         return {
             name: 'web_fetch',

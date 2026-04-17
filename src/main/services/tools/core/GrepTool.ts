@@ -16,6 +16,7 @@ interface FileResult {
 }
 
 export class GrepTool implements ITool {
+    parallelSafe = true;
     private allowedRoot: string;
     private allowedPaths: string[];
     private unrestricted = false;

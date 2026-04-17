@@ -2,6 +2,7 @@ import { ITool, ToolDefinition, ToolExecutionResult } from '../../../../common/t
 import os from 'os';
 
 export class EnvironmentInfoTool implements ITool {
+    parallelSafe = true;
     private cwd: string;
 
     constructor(cwd: string) {
