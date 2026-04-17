@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronRight, CheckCircle2, Loader2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, Eye } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { CheckCircle2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X } from 'lucide-react';
 
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { extractPathAndContent } from '../utils/artifact';
@@ -37,30 +37,6 @@ const getToolIcon = (toolName: string) => {
     return Wrench;
 };
 
-// Format tool display name
-const formatToolName = (tool: string): string => {
-    // Check for MCP signature (double underscore)
-    if (tool.includes('__')) {
-        const parts = tool.split('__');
-        if (parts.length >= 3 && parts[0] === 'mcp') {
-            const serverId = parts[1];
-            const actualToolName = parts.slice(2).join('__'); // Handle cases if tool name has __
-            return `@${serverId}/${actualToolName}`;
-        }
-    }
-
-    // Check for "old" style MCP (single underscore prefix from previous step)
-    // We can't perfectly distinguish without the explicit 'mcp__' prefix, 
-    // but we can try to handle the previous safePrefix format if needed. 
-    // For now, let's assume 'tool' names with no slashes are built-in or legacy.
-
-    // If it already has a slash (unlikely from OpenAI, but maybe from internal mapping), return as is
-    if (tool.includes('/')) return tool;
-
-    // Default: Assume built-in if no special prefix found
-    return `@builtin/${tool}`;
-};
-
 // Truncate path: keep tail for long paths
 const truncatePath = (p: string, max = 50): string =>
     p.length > max ? '...' + p.slice(-max) : p;
@@ -68,87 +44,6 @@ const truncatePath = (p: string, max = 50): string =>
 // Truncate generic string
 const truncateStr = (s: string, max = 50): string =>
     s.length > max ? s.slice(0, max) + '...' : s;
-
-// Extract key info from tool input
-const extractKeyInfo = (tool: string, input?: string): string => {
-    if (!input) return '';
-    try {
-        const parsed = JSON.parse(input);
-        const lower = tool.toLowerCase();
-
-        // Bash / command execution
-        if (lower.includes('bash') || lower.includes('command')) {
-            const cmd = parsed.command || parsed.cmd;
-            if (cmd) return truncateStr(cmd, 60);
-        }
-
-        // File write / read / edit — extract path
-        const filePath = parsed.path || parsed.file_path || parsed.filepath
-            || parsed.target_file || parsed.filename;
-        if (filePath && (lower.includes('file') || lower.includes('write')
-            || lower.includes('read') || lower.includes('edit')
-            || lower.includes('fs') || lower.includes('patch'))) {
-            return truncatePath(filePath);
-        }
-
-        // List directory — show path only
-        if (lower === 'list') {
-            const dir = parsed.path || parsed.directory;
-            if (dir) return truncatePath(dir);
-        }
-
-        // Load skill — show skill name only
-        if (lower === 'load_skill') {
-            const skillId = parsed.skill_id || parsed.skillId;
-            if (skillId) return skillId;
-        }
-
-        // Glob — pattern + optional path
-        if (lower === 'glob') {
-            const pattern = parsed.pattern || parsed.glob || '';
-            const dir = parsed.path || parsed.directory || parsed.root_dir;
-            if (pattern && dir) return `${pattern}  ${truncatePath(dir, 30)}`;
-            if (pattern) return pattern;
-            if (dir) return truncatePath(dir);
-        }
-
-        // Grep — query + optional include filter
-        if (lower === 'grep') {
-            const query = parsed.pattern || parsed.query || parsed.regex || '';
-            const include = parsed.include || parsed.glob || '';
-            if (query && include) return `"${truncateStr(query, 30)}" in ${include}`;
-            if (query) return `"${truncateStr(query, 40)}"`;
-            if (include) return `in ${include}`;
-        }
-
-        // Code interpreter / python
-        if (lower.includes('python') || lower.includes('code')) {
-            const code = parsed.code || parsed.script;
-            if (code) return truncateStr(code.split('\n')[0], 50);
-        }
-
-        // Todo
-        if (lower.includes('todo')) {
-            const todos = parsed.todos;
-            if (Array.isArray(todos) && todos.length > 0) {
-                return `${todos.length} item(s)`;
-            }
-        }
-
-        // Generic: if there is a recognizable path-like field, show it
-        if (filePath) return truncatePath(filePath);
-
-        // Fallback: show the first key-value
-        const firstKey = Object.keys(parsed)[0];
-        if (firstKey) {
-            const val = String(parsed[firstKey]);
-            return truncateStr(val, 40);
-        }
-        return '';
-    } catch {
-        return truncateStr(input, 50);
-    }
-};
 
 // ─── Todo Card Component ────────────────────────────────────────────
 
@@ -194,8 +89,8 @@ function parseTodoOutput(text: string): { items: TodoItem[]; completed: number; 
     return { items, completed, total, pct };
 }
 
-const TodoCard: React.FC<{ observation: string }> = ({ observation }) => {
-    const parsed = parseTodoOutput(observation);
+const TodoCard = React.memo(function TodoCard({ observation }: { observation: string }) {
+    const parsed = useMemo(() => parseTodoOutput(observation), [observation]);
     if (!parsed) return null;
 
     const { items, completed, total, pct } = parsed;
@@ -266,7 +161,7 @@ const TodoCard: React.FC<{ observation: string }> = ({ observation }) => {
             </div>
         </div>
     );
-};
+});
 
 // ─── Inline Authorization UI Component ──────────────────────────────
 
@@ -276,7 +171,7 @@ interface InlineAuthorizationUIProps {
     onAuthorize: (approved: boolean, remember?: boolean) => void;
 }
 
-const InlineAuthorizationUI: React.FC<InlineAuthorizationUIProps> = ({ reason, onAuthorize }) => {
+const InlineAuthorizationUI = React.memo(function InlineAuthorizationUI({ reason, onAuthorize }: InlineAuthorizationUIProps) {
     // Keyboard shortcuts: Enter to approve, Esc to deny
     React.useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -333,24 +228,159 @@ const InlineAuthorizationUI: React.FC<InlineAuthorizationUIProps> = ({ reason, o
             </div>
         </div>
     );
-};
+});
+
+function getCleanToolName(tool: string) {
+    if (!tool) return 'Unknown';
+    let name = tool;
+    if (name.includes('__')) name = name.split('__').pop() || name;
+    if (name.includes('/')) name = name.split('/').pop() || name;
+    return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function formatInputInline(tool: string, input: string | undefined, parsedInput: Record<string, unknown> | null) {
+    if (!input) return '';
+
+    const lower = tool.toLowerCase();
+    if (parsedInput) {
+        if (lower.includes('bash') || lower.includes('command')) {
+            const cmd = parsedInput.command || parsedInput.cmd || '';
+            return typeof cmd === 'string' && cmd.length > 80 ? cmd.slice(0, 80) + '...' : String(cmd);
+        }
+        if (lower === 'list') {
+            return String(parsedInput.path || '');
+        }
+        if (lower === 'load_skill') {
+            return String(parsedInput.skill_id || parsedInput.skillId || '');
+        }
+        if (lower === 'glob') {
+            const pattern = String(parsedInput.pattern || parsedInput.glob || '');
+            const dir = String(parsedInput.path || '');
+            if (pattern && dir) return `${pattern}  ${truncatePath(dir, 30)}`;
+            return pattern || dir;
+        }
+        if (lower === 'grep') {
+            const query = String(parsedInput.pattern || parsedInput.query || '');
+            const include = String(parsedInput.include || '');
+            if (query && include) return `"${truncateStr(query, 30)}" in ${include}`;
+            if (query) return `"${truncateStr(query, 40)}"`;
+            return include ? `in ${include}` : '';
+        }
+        if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
+            return String(parsedInput.path || parsedInput.file_path || parsedInput.target_file || '');
+        }
+        const str = JSON.stringify(parsedInput);
+        return str.length > 50 ? str.slice(0, 50) + '...' : str;
+    }
+
+    if (lower.includes('bash') || lower.includes('command')) {
+        const cmdMatch = input.match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
+        if (cmdMatch) {
+            const cmd = cmdMatch[1];
+            return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
+        }
+    }
+    if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
+        const pathMatch = input.match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
+        if (pathMatch) return pathMatch[1];
+    }
+    const clean = input.replace(/\\n/g, ' ').replace(/\\"/g, '"');
+    return clean.length > 50 ? clean.slice(0, 50) + '...' : clean;
+}
+
+function formatOutputLines(output: string) {
+    const truncatedOutput = output.length > 50000
+        ? output.slice(0, 50000) + '\n\n... (truncated for UI performance)'
+        : output;
+
+    return truncatedOutput.split('\n').map((line, i) => {
+        if (line.startsWith('+')) {
+            return <span key={i} className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 block -mx-3 px-3">{line}</span>;
+        }
+        if (line.startsWith('-')) {
+            return <span key={i} className="text-red-500 dark:text-red-400 bg-red-500/10 block -mx-3 px-3">{line}</span>;
+        }
+        if (line.match(/^Error:/i) || line.match(/failed/i) || line.match(/denied/i)) {
+            return <span key={i} className="text-red-500 dark:text-red-400 font-semibold block">{line}</span>;
+        }
+        return <span key={i} className="block">{line}</span>;
+    });
+}
 
 // Tool Call Card Component
-const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step, isLast }) => {
+const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: ThoughtStep; isLast?: boolean }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const isTodoTool = step.tool === 'todowrite' || step.tool === 'todoread';
+    const parsedToolInput = useMemo<Record<string, unknown> | null>(() => {
+        if (!step.toolInput) return null;
+        try {
+            return JSON.parse(step.toolInput) as Record<string, unknown>;
+        } catch {
+            return null;
+        }
+    }, [step.toolInput]);
 
-    const handleCopy = (e: React.MouseEvent) => {
+    const isTodoTool = step.tool === 'todowrite' || step.tool === 'todoread';
+    const isArtifactTool = step.tool === 'write' || step.tool === 'edit' || step.tool === 'read' || step.tool === 'bash';
+    const outputText = step.observation || step.streamingObservation || '';
+    const displayName = useMemo(() => getCleanToolName(step.tool || ''), [step.tool]);
+    const inlineInput = useMemo(
+        () => formatInputInline(step.tool || '', step.toolInput, parsedToolInput),
+        [parsedToolInput, step.tool, step.toolInput]
+    );
+    const outLines = useMemo(() => (outputText ? outputText.split('\n').length : 0), [outputText]);
+    const outStats = useMemo(() => {
+        if (step.isWaitingAuthorization) return '等待授权...';
+
+        const lowerTool = step.tool?.toLowerCase() || '';
+        const isWrite = lowerTool.includes('write') || lowerTool.includes('edit');
+        const isBash = lowerTool.includes('bash') || lowerTool.includes('command');
+        const isRead = lowerTool.includes('read');
+
+        if (step.isComplete) {
+            if (step.isError) return '执行失败 (格式错误/被截断)';
+            if (isWrite) return '写入 / 修改完成';
+            if (isBash) return '执行结束';
+            if (isRead) return `读取完成 (${outLines} 行)`;
+            return `输出 ${outLines} 行`;
+        }
+
+        if (step.streamingObservation || step.toolInput) {
+            if (isWrite) return '写入中...';
+            if (isBash) return '执行中...';
+            if (isRead) return '读取中...';
+            return `运行中... (${outLines > 0 ? outLines + '行' : ''})`;
+        }
+
+        return '准备运行...';
+    }, [outLines, step.isComplete, step.isError, step.isWaitingAuthorization, step.streamingObservation, step.tool, step.toolInput]);
+    const formattedDuration = useMemo(() => (
+        step.duration == null ? null : (step.duration >= 1000 ? `${(step.duration / 1000).toFixed(1)}s` : `${step.duration}ms`)
+    ), [step.duration]);
+    const formattedToolInput = useMemo(() => {
+        if (!step.toolInput) return null;
+        if (!parsedToolInput) return step.toolInput;
+
+        return Object.entries(parsedToolInput).map(([key, val], i) => (
+            <div key={i}>
+                <span className="text-slate-400 dark:text-zinc-500">{key}</span>
+                <span className="text-slate-300 dark:text-zinc-600 mx-1">=</span>
+                <span className="text-slate-700 dark:text-zinc-300">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+            </div>
+        ));
+    }, [parsedToolInput, step.toolInput]);
+    const renderedOutputLines = useMemo(() => formatOutputLines(outputText), [outputText]);
+
+    const handleCopy = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const textToCopy = step.observation || step.toolInput || '';
         navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-    };
+    }, [step.observation, step.toolInput]);
 
-    const handleAuthorization = (approved: boolean, remember: boolean = false) => {
+    const handleAuthorization = useCallback((approved: boolean, remember: boolean = false) => {
         if (step.authRequestId) {
             const activeSessionId = useChatStore.getState().activeSessionId;
             const runState = activeSessionId ? useChatStore.getState().runningSessions.get(activeSessionId) : undefined;
@@ -362,11 +392,9 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                 remember
             });
         }
-    };
+    }, [step.authRequestId]);
 
-    const isArtifactTool = step.tool === 'write' || step.tool === 'edit' || step.tool === 'read' || step.tool === 'bash';
-
-    const handleOpenArtifact = (e: React.MouseEvent) => {
+    const handleOpenArtifact = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         if (!step.toolInput && !step.observation) return;
 
@@ -403,121 +431,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             kind: 'text',
             content: content
         });
-    };
-
-    // Clean tool name
-    const getCleanName = (tool: string) => {
-        if (!tool) return 'Unknown';
-        let n = tool;
-        if (n.includes('__')) n = n.split('__').pop() || n;
-        if (n.includes('/')) n = n.split('/').pop() || n;
-        return n.charAt(0).toUpperCase() + n.slice(1);
-    };
-
-    const displayName = getCleanName(step.tool || '');
-
-    // Format input inline
-    const formatInputInline = (tool: string, input?: string) => {
-        if (!input) return '';
-
-        const extractByRegex = () => {
-            const lower = tool.toLowerCase();
-            if (lower.includes('bash') || lower.includes('command')) {
-                const cmdMatch = input.match(/"(?:command|cmd)"\s*:\s*"([^"]*)/);
-                if (cmdMatch) {
-                    const cmd = cmdMatch[1];
-                    return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
-                }
-            }
-            if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
-                const pathMatch = input.match(/"(?:path|file_path|target_file)"\s*:\s*"([^"]*)/);
-                if (pathMatch) return pathMatch[1];
-            }
-            // Add a small cleanup just in case
-            const clean = input.replace(/\\n/g, ' ').replace(/\\"/g, '"');
-            return clean.length > 50 ? clean.slice(0, 50) + '...' : clean;
-        };
-
-        try {
-            const parsed = JSON.parse(input);
-            const lower = tool.toLowerCase();
-
-            if (lower.includes('bash') || lower.includes('command')) {
-                const cmd = parsed.command || parsed.cmd || '';
-                return cmd.length > 80 ? cmd.slice(0, 80) + '...' : cmd;
-            }
-            // List directory — show path only
-            if (lower === 'list') {
-                return parsed.path || '';
-            }
-            // Load skill — show skill name only
-            if (lower === 'load_skill') {
-                return parsed.skill_id || parsed.skillId || '';
-            }
-            // Glob — pattern + optional path
-            if (lower === 'glob') {
-                const pattern = parsed.pattern || parsed.glob || '';
-                const dir = parsed.path || '';
-                if (pattern && dir) return `${pattern}  ${truncatePath(dir, 30)}`;
-                return pattern || dir;
-            }
-            // Grep — query + optional include filter
-            if (lower === 'grep') {
-                const query = parsed.pattern || parsed.query || '';
-                const include = parsed.include || '';
-                if (query && include) return `"${truncateStr(query, 30)}" in ${include}`;
-                if (query) return `"${truncateStr(query, 40)}"`;
-                return include ? `in ${include}` : '';
-            }
-            if (lower.includes('file') || lower.includes('write') || lower.includes('read') || lower.includes('edit')) {
-                return parsed.path || parsed.file_path || parsed.target_file || '';
-            }
-            // Format single line JSON
-            const str = JSON.stringify(parsed);
-            return str.length > 50 ? str.slice(0, 50) + '...' : str;
-        } catch {
-            return extractByRegex();
-        }
-    };
-
-    const inlineInput = formatInputInline(step.tool || '', step.toolInput);
-
-    // Output stats
-    const getOutputLines = (obs?: string) => {
-        if (!obs) return 0;
-        return obs.split('\n').length;
-    };
-    const outLines = getOutputLines(step.observation || step.streamingObservation);
-
-    const getStatusText = () => {
-        if (step.isWaitingAuthorization) return '等待授权...';
-
-        const isWrite = step.tool?.toLowerCase().includes('write') || step.tool?.toLowerCase().includes('edit');
-        const isBash = step.tool?.toLowerCase().includes('bash') || step.tool?.toLowerCase().includes('command');
-        const isRead = step.tool?.toLowerCase().includes('read');
-
-        if (step.isComplete) {
-            if (step.isError) return '执行失败 (格式错误/被截断)';
-            if (isWrite) return '写入 / 修改完成';
-            if (isBash) return '执行结束';
-            if (isRead) return `读取完成 (${outLines} 行)`;
-            return `输出 ${outLines} 行`;
-        }
-
-        if (step.streamingObservation || step.toolInput) {
-            if (isWrite) return '写入中...';
-            if (isBash) return '执行中...';
-            if (isRead) return '读取中...';
-            return `运行中... (${outLines > 0 ? outLines + '行' : ''})`;
-        }
-
-        return '准备运行...';
-    };
-    const outStats = getStatusText();
-
-    // Format duration compactly
-    const formatDuration = (ms: number) =>
-        ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+    }, [step.observation, step.streamingObservation, step.tool, step.toolInput]);
 
     // ─── Compact single-line view for completed steps ───
     if (step.isComplete && !isExpanded && !isTodoTool) {
@@ -561,9 +475,9 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                     )}
 
                     {/* Duration */}
-                    {step.duration != null && (
+                    {formattedDuration && (
                         <span className="text-[10px] text-slate-300/70 dark:text-zinc-700 ml-auto shrink-0 tabular-nums">
-                            {formatDuration(step.duration)}
+                            {formattedDuration}
                         </span>
                     )}
 
@@ -679,20 +593,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                     </span>
                                 </div>
                                 <pre className="py-2.5 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-white/5 max-h-[200px] overflow-auto">
-                                    {(() => {
-                                        try {
-                                            const parsed = JSON.parse(step.toolInput);
-                                            return Object.entries(parsed).map(([key, val], i) => (
-                                                <div key={i}>
-                                                    <span className="text-slate-400 dark:text-zinc-500">{key}</span>
-                                                    <span className="text-slate-300 dark:text-zinc-600 mx-1">=</span>
-                                                    <span className="text-slate-700 dark:text-zinc-300">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
-                                                </div>
-                                            ));
-                                        } catch {
-                                            return step.toolInput;
-                                        }
-                                    })()}
+                                    {formattedToolInput}
                                 </pre>
                             </>
                         )}
@@ -719,23 +620,7 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
                                         : "text-slate-700 dark:text-slate-300"
                                 )}>
                                     <div className="overflow-visible !flex !flex-col justify-end">
-                                        {(() => {
-                                            const obs = step.observation || step.streamingObservation || '';
-                                            const truncatedObs = obs.length > 50000 ? obs.slice(0, 50000) + '\n\n... (truncated for UI performance)' : obs;
-
-                                            return truncatedObs.split('\n').map((line, i) => {
-                                                if (line.startsWith('+')) {
-                                                    return <span key={i} className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 block -mx-3 px-3">{line}</span>;
-                                                }
-                                                if (line.startsWith('-')) {
-                                                    return <span key={i} className="text-red-500 dark:text-red-400 bg-red-500/10 block -mx-3 px-3">{line}</span>;
-                                                }
-                                                if (line.match(/^Error:/i) || line.match(/failed/i) || line.match(/denied/i)) {
-                                                    return <span key={i} className="text-red-500 dark:text-red-400 font-semibold block">{line}</span>;
-                                                }
-                                                return <span key={i} className="block">{line}</span>;
-                                            });
-                                        })()}
+                                        {renderedOutputLines}
                                     </div>
                                 </pre>
                             </>
@@ -745,14 +630,14 @@ const ToolCallCard: React.FC<{ step: ThoughtStep; isLast?: boolean }> = ({ step,
             )}
         </div>
     );
-};
+}, (prevProps, nextProps) => prevProps.step === nextProps.step && prevProps.isLast === nextProps.isLast);
 
 // Thought Text Component (AI's internal monologue)
-const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
+const ThoughtText = React.memo(function ThoughtText({ thought }: { thought: string }) {
+    const cleanThought = useMemo(() => preprocessMarkdown(thought.trim()), [thought]);
     if (!thought) return null;
 
     // 清理首尾空白并预处理 Markdown
-    const cleanThought = preprocessMarkdown(thought.trim());
     if (!cleanThought) return null;
 
     return (
@@ -760,12 +645,12 @@ const ThoughtText: React.FC<{ thought: string }> = ({ thought }) => {
             content={cleanThought}
         />
     );
-};
+});
 
 const HIDDEN_TOOLS = new Set(['memorize']);
 
-const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) => {
-    const visibleSteps = steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool));
+const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _contextContent }: ThoughtTraceProps) {
+    const visibleSteps = useMemo(() => steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool)), [steps]);
     if (visibleSteps.length === 0) return null;
 
     return (
@@ -784,7 +669,7 @@ const ThoughtTrace: React.FC<ThoughtTraceProps> = ({ steps, contextContent }) =>
             })}
         </div>
     );
-};
+}, (prevProps, nextProps) => prevProps.steps === nextProps.steps);
 
 export default ThoughtTrace;
 

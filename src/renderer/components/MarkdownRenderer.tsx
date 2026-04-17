@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useCallback, useMemo, useState, lazy, Suspense } from 'react'
 import { Copy, Check, ChevronDown, ChevronRight, Brain, ExternalLink, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -15,14 +15,14 @@ const SvgBlock = lazy(() => import('./SvgBlock').then(m => ({ default: m.SvgBloc
 
 // ── Sub-components ──────────────────────────────────────────────────
 
-export function CopyButton({ text, className }: { text: string, className?: string }) {
+export const CopyButton = React.memo(function CopyButton({ text, className }: { text: string, className?: string }) {
     const [copied, setCopied] = useState(false)
 
-    const handleCopy = () => {
+    const handleCopy = useCallback(() => {
         navigator.clipboard.writeText(text)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-    }
+    }, [text])
 
     return (
         <button
@@ -36,16 +36,18 @@ export function CopyButton({ text, className }: { text: string, className?: stri
             {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
         </button>
     )
-}
+})
 
-export function ThinkingBlock({ content, isComplete }: { content: string; isComplete: boolean }) {
+export const ThinkingBlock = React.memo(function ThinkingBlock({ content, isComplete }: { content: string; isComplete: boolean }) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const trimmedContent = useMemo(() => content.trimStart(), [content])
+    const handleToggle = useCallback(() => setIsExpanded(prev => !prev), [])
 
     return (
         <div className="not-prose my-3">
             <div
                 className="inline-flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity select-none"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={handleToggle}
             >
                 <Brain size={14} className={cn("text-slate-500 dark:text-zinc-500", !isComplete && "animate-pulse")} />
                 <span className="text-[13px] text-slate-500 dark:text-zinc-500 font-medium">
@@ -60,7 +62,7 @@ export function ThinkingBlock({ content, isComplete }: { content: string; isComp
             {isExpanded && (
                 <div className="mt-2 border-l-2 border-slate-200 dark:border-white/10 pl-4 py-1 overflow-hidden">
                     <div className="text-[13.5px] leading-[1.7] text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
-                        {content.trimStart()}
+                        {trimmedContent}
                         {!isComplete && (
                             <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 streaming-cursor" />
                         )}
@@ -69,7 +71,7 @@ export function ThinkingBlock({ content, isComplete }: { content: string; isComp
             )}
         </div>
     )
-}
+})
 
 // ── Streaming code placeholder (shared by mermaid/svg/generic streaming) ──
 
@@ -98,23 +100,32 @@ const MarkdownContext = React.createContext<{ isStreaming: boolean; rawContent: 
     rawContent: '',
 })
 
-function MarkdownCodeBlock({ node, className, children, ...props }: any) {
+const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, className, children, ...props }: any) {
     const { isStreaming, rawContent } = React.useContext(MarkdownContext);
     const theme = useSettingsStore(s => s.settings.theme);
-    const syntaxTheme = theme === 'dark' ? vscDarkPlus : oneLight;
-
-    const match = /language-(\w+)/.exec(className || '');
-    const codeString = String(children).replace(/\n$/, '');
-    const isBlock = !!className || codeString.includes('\n');
-    const lang = match?.[1] || '';
+    const syntaxTheme = useMemo(() => (theme === 'dark' ? vscDarkPlus : oneLight), [theme]);
+    const codeString = useMemo(() => String(children).replace(/\n$/, ''), [children]);
+    const isBlock = useMemo(() => !!className || codeString.includes('\n'), [className, codeString]);
+    const lang = useMemo(() => (/language-(\w+)/.exec(className || '')?.[1] || ''), [className]);
+    const effectiveRawContent = rawContent || ''
+    const isThinkingComplete = useMemo(
+        () => /```thinking[\s\S]*?```/.test(effectiveRawContent),
+        [effectiveRawContent]
+    )
+    const isMermaidComplete = useMemo(
+        () => /```mermaid[\s\S]*?```/.test(effectiveRawContent),
+        [effectiveRawContent]
+    )
+    const isSvgComplete = useMemo(
+        () => /```svg[\s\S]*?```/.test(effectiveRawContent),
+        [effectiveRawContent]
+    )
 
     if (isBlock && lang === 'thinking') {
-        const isThinkingComplete = /```thinking[\s\S]*?```/.test(rawContent || '');
         return <ThinkingBlock content={codeString} isComplete={isThinkingComplete} />
     }
 
     if (isBlock && lang === 'mermaid') {
-        const isMermaidComplete = /```mermaid[\s\S]*?```/.test(rawContent || '');
         if (isStreaming && !isMermaidComplete) {
             return <StreamingCodePlaceholder label="mermaid" code={codeString} animated />
         }
@@ -126,7 +137,6 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
     }
 
     if (isBlock && lang === 'svg') {
-        const isSvgComplete = /```svg[\s\S]*?```/.test(rawContent || '')
         if (isStreaming && !isSvgComplete) {
             return <StreamingCodePlaceholder label="svg" code={codeString} />
         }
@@ -171,7 +181,7 @@ function MarkdownCodeBlock({ node, className, children, ...props }: any) {
             {children}
         </code>
     )
-}
+})
 
 function LoadingFallback({ label }: { label: string }) {
     return (
@@ -192,9 +202,9 @@ function isLocalFilePath(href: string): boolean {
     if (href.startsWith('file:///')) return true
     // Absolute paths (Unix / or Windows drive letter)
     if (/^\/[a-zA-Z]/.test(href)) return true
-    if (/^[A-Za-z]:[\\\/]/.test(href)) return true
+    if (/^[A-Za-z]:[\\/]/.test(href)) return true
     // Relative paths with extension (./foo.ts, ../bar.md, src/baz.js)
-    if (/^\.{0,2}[\/\\][^\s]+\.\w+$/.test(href)) return true
+    if (/^\.{0,2}[\\/][^\s]+\.\w+$/.test(href)) return true
     // Bare filename with known supported extension
     const ext = href.split('.').pop()?.toLowerCase()
     if (ext && getArtifactOpenMode(ext) && !href.includes('://')) return true
@@ -398,8 +408,8 @@ interface MarkdownRendererProps {
  * - External links open in system browser
  * - Responsive images with rounded corners
  */
-export function MarkdownRenderer({ content, isStreaming = false, rawContent, className }: MarkdownRendererProps) {
-    const ctxValue = React.useMemo(
+export const MarkdownRenderer = React.memo(function MarkdownRenderer({ content, isStreaming = false, rawContent, className }: MarkdownRendererProps) {
+    const ctxValue = useMemo(
         () => ({ isStreaming, rawContent: rawContent ?? content }),
         [isStreaming, rawContent, content]
     )
@@ -416,4 +426,4 @@ export function MarkdownRenderer({ content, isStreaming = false, rawContent, cla
             </MarkdownContext.Provider>
         </div>
     )
-}
+})
