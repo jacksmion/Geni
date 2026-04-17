@@ -105,24 +105,12 @@ h1, h2, h3 {
   user-select: text;
 }
 
-/* 统一 focus-visible 样式：键盘焦点时显示 ring，鼠标点击不触发 */
+/* focus-visible：仅重置 outline，不加 ring */
 *:focus-visible {
-  outline: 1.5px solid transparent;
-  outline-offset: 1px;
-  box-shadow:
-    0 0 0 1px var(--bg-color, #ffffff),
-    0 0 0 2.5px rgba(99, 102, 241, 0.5);
-  border-radius: 6px;
+  outline: none;
 }
 
-/* 输入框：单层 ring，更紧凑 */
-input:focus-visible,
-select:focus-visible {
-  box-shadow: 0 0 0 1.5px rgba(99, 102, 241, 0.45);
-  border-radius: 6px;
-}
-
-/* Composer textarea：父容器已通过 focus-within 提供焦点环，自身不叠加  */
+/* Composer textarea：父容器已通过 focus-within 提供焦点反馈，自身不叠加 */
 textarea:focus-visible,
 .composer-textarea:focus-visible {
   outline: none;

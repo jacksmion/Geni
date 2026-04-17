@@ -40,7 +40,8 @@
       "WebSearch",
       "mcp__zread__read_file",
       "mcp__web-reader__webReader",
-      "Bash(cd D:/workspace/Geni && npm run build 2>&1 | tail -10)"
+      "Bash(cd D:/workspace/Geni && npm run build 2>&1 | tail -10)",
+      "Bash(git show:*)"
     ]
   }
 }
