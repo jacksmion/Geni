@@ -54,10 +54,12 @@ function getSkillIcon(id: string) {
 
 interface SkillDetailDialogProps {
     skill: Skill;
+    onToggle: (id: string) => void;
+    onDelete?: (skill: Skill) => void;
     onClose: () => void;
 }
 
-const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose }) => {
+const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, onDelete, onClose }) => {
     const { t } = useTranslation();
     const [mode, setMode] = useState<'preview' | 'source'>('preview');
 
@@ -73,7 +75,7 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose })
                         <span className="text-lg">{getSkillIcon(skill.id)}</span>
                         <div>
                             <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">{skill.name}</h3>
-                            <p className="text-[11px] text-slate-400 dark:text-gray-500">{skill.source} · {skill.id}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-gray-500">{skill.source}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -118,6 +120,26 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose })
                         <pre className="text-xs leading-relaxed text-slate-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">{skill.rawContent || skill.content || ''}</pre>
                     )}
                 </div>
+                {/* Footer: Enable/Disable + Delete */}
+                <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 dark:border-white/[0.06] shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-gray-400">{skill.enabled ? t('skillSettings.enabled', '已启用') : t('skillSettings.disabled', '已禁用')}</span>
+                        <Switch
+                            checked={!!skill.enabled}
+                            onChange={() => onToggle(skill.id)}
+                            size="sm"
+                        />
+                    </div>
+                    {onDelete && skill.source === 'global' && (
+                        <button
+                            onClick={() => onDelete(skill)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                        >
+                            <Trash2 size={13} />
+                            {t('skillSettings.delete.button')}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -126,8 +148,6 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onClose })
 interface SkillCardProps {
     skill: Skill;
     palette: typeof NEUTRAL_PALETTES[0];
-    onToggle: (id: string) => void;
-    onDelete?: (skill: Skill) => void;
     onClick?: (skill: Skill) => void;
 }
 
@@ -138,7 +158,7 @@ const SOURCE_LABELS: Record<Skill['source'], string> = {
     dotAgents: '.Agents',
 };
 
-const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onToggle, onDelete, onClick }) => {
+const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onClick }) => {
     const { t } = useTranslation();
     const icon = getSkillIcon(skill.id);
 
@@ -147,13 +167,13 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onToggle, onDelet
             onClick={() => onClick?.(skill)}
             className={clsx(
                 "relative flex flex-col gap-3 p-4 rounded-xl transition-all duration-200 group",
-                "bg-white dark:bg-white/[0.02] border border-slate-200/70 dark:border-white/[0.06]",
-                "hover:border-slate-300 dark:hover:border-white/[0.12] hover:shadow-sm",
+                "bg-white dark:bg-white/[0.02]",
+                "hover:bg-[#F5F5F7] dark:hover:bg-white/[0.04]",
                 "cursor-pointer",
                 !skill.enabled && "opacity-50"
             )}
         >
-            {/* 顶部：图标 + 名称 + 操作按钮 */}
+            {/* 顶部：图标 + 名称 */}
             <div className="flex items-start gap-3">
                 <div className={clsx(
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg transition-all",
@@ -191,33 +211,6 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onToggle, onDelet
                     )}>
                         {skill.description || t('skillSettings.noDescription')}
                     </p>
-                </div>
-            </div>
-
-            {/* 底部：来源路径 + 操作 */}
-            <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 dark:border-white/[0.04]">
-                <span className="text-[10px] text-slate-300 dark:text-gray-600 truncate max-w-[60%]" title={skill.path}>
-                    {skill.id}
-                </span>
-                <div className="flex items-center gap-1">
-                    {/* Delete Button */}
-                    {onDelete && skill.source === 'global' && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(skill); }}
-                            className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-all"
-                            title={t('skillSettings.delete.button')}
-                        >
-                            <Trash2 size={13} />
-                        </button>
-                    )}
-                    {/* Toggle Switch */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                        <Switch
-                            checked={!!skill.enabled}
-                            onChange={() => onToggle(skill.id)}
-                            size="sm"
-                        />
-                    </div>
                 </div>
             </div>
         </div>
@@ -455,25 +448,15 @@ const SkillSettings: React.FC = () => {
         <div className="flex flex-col h-full w-full bg-white dark:bg-[#141414] overflow-hidden">
             {/* 顶部 Header */}
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
-                <div className="px-6 py-4">
+                <div className="px-4 py-4 max-w-5xl mx-auto">
                     <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-slate-100 dark:bg-[#1e1e20] rounded-xl border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-zinc-400">
-                                <Sparkles size={16} />
-                            </div>
-                            <div>
-                                <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
-                                    {t('skillSettings.title')}
-                                </h1>
-                                <p className="text-[11px] text-slate-400 dark:text-gray-500">
-                                    {t('skillSettings.subtitle')} <span className="text-emerald-500 font-bold">{enabledCount}</span> / {skills.length}
-                                </p>
-                            </div>
-                        </div>
+                        <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
+                            {t('skillSettings.title')}
+                        </h1>
                     </div>
 
                     {/* 搜索栏 + 导入按钮 */}
-                    <div className="flex items-center gap-2 max-w-xl">
+                    <div className="flex items-center gap-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                             <input
@@ -481,7 +464,7 @@ const SkillSettings: React.FC = () => {
                                 placeholder={t('skillSettings.search')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
                             />
                         </div>
                         <div className="relative" ref={importMenuRef}>
@@ -544,7 +527,7 @@ const SkillSettings: React.FC = () => {
             )}
 
             {/* 技能列表 */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#09090b]">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     {filteredSkills.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -553,8 +536,6 @@ const SkillSettings: React.FC = () => {
                                     key={skill.id}
                                     skill={skill}
                                     palette={getPalette(skill.id)}
-                                    onToggle={handleToggle}
-                                    onDelete={(s) => setDeleteTarget(s)}
                                     onClick={setDetailSkill}
                                 />
                             ))}
@@ -593,6 +574,8 @@ const SkillSettings: React.FC = () => {
             {detailSkill && (
                 <SkillDetailDialog
                     skill={detailSkill}
+                    onToggle={(id) => { handleToggle(id); setDetailSkill(null); }}
+                    onDelete={(s) => setDeleteTarget(s)}
                     onClose={() => setDetailSkill(null)}
                 />
             )}
