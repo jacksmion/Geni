@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X, Bell, MessageSquare, CheckSquare, Square } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, Search, Bell, CheckSquare, Square, ArrowLeft, ChevronDown } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useLayoutStore } from '../store/useLayoutStore';
+import { useModalStore } from '../store/useModalStore';
 import { Switch } from '../components/Switch';
 import { ScheduledTaskConfig } from '../../common/types/settings';
 import { clsx } from 'clsx';
@@ -88,27 +89,24 @@ const SchedulerPage: React.FC = () => {
     const tasks = settings.scheduledTasks || [];
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<ScheduledTaskConfig | null>(null);
     const [isCreating, setIsCreating] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     const [cronValidation, setCronValidation] = useState<{ valid: boolean; error?: string; nextRuns?: string[] } | null>(null);
     const [statuses, setStatuses] = useState<TaskStatusInfo[]>([]);
     const [triggerResult, setTriggerResult] = useState<{ taskId: string; message: string; success: boolean } | null>(null);
     const [taskLogs, setTaskLogs] = useState<Map<string, TaskLogEntry[]>>(new Map());
     const [loadingLogs, setLoadingLogs] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'config' | 'logs'>('config');
+    const [editorTab, setEditorTab] = useState<'config' | 'logs'>('config');
     const [selectedLogIds, setSelectedLogIds] = useState<Set<string>>(new Set());
+    const showConfirm = useModalStore(s => s.showConfirm);
 
-    const filteredTasks = tasks.filter(t =>
-        t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const selectedTask = (selectedIdx !== null && filteredTasks[selectedIdx]) ? filteredTasks[selectedIdx] : null;
+    const filteredTasks = useMemo(() =>
+        tasks.filter(t =>
+            t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.id.toLowerCase().includes(searchTerm.toLowerCase())
+        ), [tasks, searchTerm]);
 
     // 响应 CommandPalette 的"新建计划"命令
     const pendingCreatePlan = useLayoutStore(s => s.pendingCreatePlan);
@@ -120,18 +118,29 @@ const SchedulerPage: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pendingCreatePlan]);
 
-    useEffect(() => {
-        if (tasks.length > 0 && selectedIdx === null && !isCreating) {
-            setSelectedIdx(0);
+    const validateCron = useCallback(async (expression: string) => {
+        if (!expression.trim()) {
+            setCronValidation(null);
+            return;
         }
-    }, [tasks]);
+        try {
+            const result = await window.electronAPI.scheduler.validateCron(expression);
+            setCronValidation(result);
+        } catch (e) {
+            setCronValidation({ valid: false, error: 'Validation failed' });
+        }
+    }, []);
 
+    // When editingTaskId changes (user clicks a card), load that task
     useEffect(() => {
-        if (selectedTask && !isCreating) {
-            setEditingTask({ ...selectedTask });
-            validateCron(selectedTask.cronExpression);
+        if (editingTaskId && !isCreating) {
+            const task = tasks.find(t => t.id === editingTaskId);
+            if (task) {
+                setEditingTask({ ...task });
+                validateCron(task.cronExpression);
+            }
         }
-    }, [selectedTask, isCreating]);
+    }, [editingTaskId, isCreating, tasks, validateCron]);
 
     const refreshStatuses = useCallback(async () => {
         try {
@@ -147,19 +156,6 @@ const SchedulerPage: React.FC = () => {
         const interval = setInterval(refreshStatuses, 10000);
         return () => clearInterval(interval);
     }, [refreshStatuses]);
-
-    const validateCron = useCallback(async (expression: string) => {
-        if (!expression.trim()) {
-            setCronValidation(null);
-            return;
-        }
-        try {
-            const result = await window.electronAPI.scheduler.validateCron(expression);
-            setCronValidation(result);
-        } catch (e) {
-            setCronValidation({ valid: false, error: 'Validation failed' });
-        }
-    }, []);
 
     const loadTaskLogs = useCallback(async (taskId: string) => {
         setLoadingLogs(taskId);
@@ -179,51 +175,41 @@ const SchedulerPage: React.FC = () => {
 
     // 定期刷新日志（仅在 logs 标签激活时）
     useEffect(() => {
-        if (activeTab === 'logs' && selectedTask) {
-            loadTaskLogs(selectedTask.id);
+        if (editorTab === 'logs' && editingTaskId) {
+            loadTaskLogs(editingTaskId);
             // 设置定期刷新
-            const interval = setInterval(() => loadTaskLogs(selectedTask.id), 10000);
+            const interval = setInterval(() => loadTaskLogs(editingTaskId), 10000);
             return () => clearInterval(interval);
         }
         // 切换tab时清空选中状态
-        if (activeTab === 'config') {
+        if (editorTab === 'config') {
             setSelectedLogIds(new Set());
         }
-    }, [activeTab, selectedTask?.id]);
+    }, [editorTab, editingTaskId]);
 
     // 切换任务时清空选中状态
     useEffect(() => {
         setSelectedLogIds(new Set());
-    }, [selectedTask?.id]);
+    }, [editingTaskId]);
 
     const saveTasks = async (updatedTasks: ScheduledTaskConfig[]) => {
-        setIsSaving(true);
-        try {
-            await updateSettings({ scheduledTasks: updatedTasks });
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-        } finally {
-            setIsSaving(false);
-        }
+        await updateSettings({ scheduledTasks: updatedTasks });
     };
 
     const handleAddTask = () => {
-        setSelectedIdx(null);
+        setEditingTaskId(null);
         setIsCreating(true);
         const newTask = createEmptyTask();
         setEditingTask(newTask);
         setCronValidation(null);
         validateCron(newTask.cronExpression);
-        setActiveTab('config');
+        setEditorTab('config');
     };
 
     const handleCancelCreating = () => {
         setIsCreating(false);
-        if (tasks.length > 0) {
-            setSelectedIdx(0);
-        } else {
-            setEditingTask(null);
-        }
+        setEditingTask(null);
+        setEditingTaskId(null);
     };
 
     const handleSaveTask = async () => {
@@ -232,40 +218,38 @@ const SchedulerPage: React.FC = () => {
 
         let updatedTasks: ScheduledTaskConfig[];
         if (isCreating) {
-            const updatedTasks = [...tasks, editingTask];
-            
-            // 计算新任务在全量列表中的索引（由于清空了搜索，新任务必在末尾）
-            const newIndex = updatedTasks.length - 1;
-            
-            // 同步切换 UI 状态，确保选中逻辑的一致性
-            setIsCreating(false);
-            setSearchTerm('');
-            if (newIndex >= 0) setSelectedIdx(newIndex);
-            
-            await saveTasks(updatedTasks);
+            updatedTasks = [...tasks, editingTask];
         } else {
             const existingIndex = tasks.findIndex(t => t.id === editingTask.id);
-            if (existingIndex >= 0) {
-                const updatedTasks = [...tasks];
-                updatedTasks[existingIndex] = editingTask;
-                await saveTasks(updatedTasks);
-            }
+            if (existingIndex < 0) return;
+            updatedTasks = [...tasks];
+            updatedTasks[existingIndex] = editingTask;
+        }
+
+        // Return to list first, then persist in background
+        handleBackToList();
+        try {
+            await saveTasks(updatedTasks);
+        } catch (e) {
+            console.error('Failed to save task:', e);
         }
     };
 
-    const confirmDeleteTask = async (taskId: string) => {
-        setDeleteConfirmId(null);
-        try {
-            const updatedTasks = tasks.filter(t => t.id !== taskId);
-            await saveTasks(updatedTasks);
-            
-            if (selectedTask?.id === taskId) {
-                setSelectedIdx(null);
-                setEditingTask(null);
+    const confirmDeleteTask = (taskId: string) => {
+        showConfirm({
+            message: '确定要删除这个定时计划吗？此操作无法撤销。',
+            confirmText: '确认删除',
+            cancelText: '取消',
+            onConfirm: async () => {
+                try {
+                    const updatedTasks = tasks.filter(t => t.id !== taskId);
+                    await saveTasks(updatedTasks);
+                    handleBackToList();
+                } catch (e) {
+                    console.error('Failed to delete task:', e);
+                }
             }
-        } catch (e) {
-            console.error('Failed to delete task:', e);
-        }
+        });
     };
 
     const handleDeleteLog = async (logId: string) => {
@@ -333,7 +317,7 @@ const SchedulerPage: React.FC = () => {
         }
 
         setTriggerResult({ taskId, message: '正在执行...', success: true });
-        setActiveTab('logs');
+        setEditorTab('logs');
         try {
             const result = await window.electronAPI.scheduler.triggerTask(taskId);
             if (result.success) {
@@ -351,473 +335,384 @@ const SchedulerPage: React.FC = () => {
 
     const getStatus = (taskId: string) => statuses.find(s => s.taskId === taskId);
 
-    return (
-        <div className="flex h-full w-full bg-slate-50 dark:bg-[#09090b] overflow-hidden animate-in fade-in duration-500">
-            {/* Left Sidebar */}
-            <div className="w-72 shrink-0 border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#141414] flex flex-col">
-                <header className="h-12 flex items-center px-4 draggable shrink-0">
-                    <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-slate-800 dark:text-gray-100" />
-                        <h1 className="text-sm font-bold text-slate-800 dark:text-gray-100 tracking-tight">
-                            自动化
-                        </h1>
+    const handleBackToList = () => {
+        setEditingTaskId(null);
+        setEditingTask(null);
+        setIsCreating(false);
+        setEditorTab('config');
+    };
+
+    // ─── Editor view (editing an existing task or creating a new one) ───
+    if (editingTask && (editingTaskId || isCreating)) {
+        return (
+            <div className="flex h-full flex-col">
+                {/* Draggable Header */}
+                <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] draggable">
+                    <div className="flex items-center justify-between px-4 h-12">
+                        <button onClick={handleBackToList} className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+                            <ArrowLeft size={16} /> 返回
+                        </button>
+                        <div className="w-32" />
                     </div>
+                    {/* Tab Bar */}
+                    {!isCreating && (
+                        <div className="flex px-4 gap-1 border-b border-slate-100 dark:border-white/5">
+                            {(['config', 'logs'] as const).map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setEditorTab(tab);
+                                        if (tab === 'logs' && editingTask) loadTaskLogs(editingTask.id);
+                                    }}
+                                    className={clsx(
+                                        "px-4 py-2 text-xs font-medium transition-colors relative",
+                                        editorTab === tab
+                                            ? "text-indigo-600 dark:text-indigo-400"
+                                            : "text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
+                                    )}
+                                >
+                                    {tab === 'config' ? '配置' : '历史记录'}
+                                    {editorTab === tab && (
+                                        <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-indigo-500 dark:bg-indigo-400 rounded-full" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </header>
 
-                <div className="p-3 flex flex-col gap-3 flex-1 overflow-hidden">
-                    <div className="relative flex items-center gap-2 w-full">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                            <input
-                                type="text"
-                                placeholder="搜索..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-white/5 border-none rounded-lg py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-white/20 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-                            />
-                        </div>
-                        <button
-                            onClick={handleAddTask}
-                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white transition-colors shrink-0"
-                            title="新建计划"
-                        >
-                            <Plus size={16} />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-0.5 custom-scrollbar pr-1">
-                        {isCreating && editingTask && (
-                            <div className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white flex items-center gap-2.5">
-                                <Plus size={14} className="text-slate-500" />
-                                <span className="font-medium text-sm truncate">
-                                    {editingTask.name || '新计划...'}
-                                </span>
-                            </div>
-                        )}
-
-                        {filteredTasks.map((task, idx) => {
-                            const isSelected = !isCreating && selectedIdx === idx;
-                            const isActive = task.enabled;
-                            const status = getStatus(task.id);
-
-                            return (
-                                <div
-                                    key={task.id}
-                                    className={clsx(
-                                        "w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 group flex items-center justify-between cursor-pointer",
-                                        isSelected
-                                            ? "bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white"
-                                            : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-600 dark:text-gray-400"
+                <div className="flex-1 overflow-y-auto px-8 py-6 max-w-2xl mx-auto w-full">
+                    {editorTab === 'config' || isCreating ? (
+                        /* ─── Tab: 配置 ─── */
+                        <div className="space-y-6">
+                            {/* Name + Enable */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="block text-sm font-medium">计划名称</label>
+                                    {!isCreating && (
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <span className="text-xs text-slate-500 dark:text-zinc-400">{editingTask.enabled ? '已启用' : '已停用'}</span>
+                                            <Switch
+                                                size="sm"
+                                                checked={editingTask.enabled}
+                                                onChange={val => setEditingTask({ ...editingTask, enabled: val })}
+                                            />
+                                        </label>
                                     )}
-                                    onClick={() => {
-                                        setIsCreating(false);
-                                        setSelectedIdx(idx);
-                                    }}
-                                >
-                                    <div className="flex flex-col gap-0.5 overflow-hidden w-full">
-                                        <div className="flex items-center gap-2">
-                                            <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", isActive ? "bg-green-500" : "bg-slate-300 dark:bg-gray-600")} />
-                                            <span className="font-medium text-sm truncate group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                                                {task.name || '未命名'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 pl-3.5">
-                                            <span className="text-[11px] text-slate-400 dark:text-gray-500 font-medium truncate">
-                                                {getCronHumanSummary(task.cronExpression)}
-                                            </span>
-                                            {status?.isRunning && (
-                                                <div className="flex items-center gap-1 overflow-hidden shrink-0">
-                                                    <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
-                                                    <span className="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">Running</span>
-                                                </div>
-                                            )}
-                                            {!status?.isRunning && status?.lastRunStatus === 'error' && <span className="text-[10px] text-red-500">✕</span>}
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all ml-2 shrink-0">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleTriggerTask(task.id);
-                                            }}
-                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
-                                            title="立即运行"
-                                        >
-                                            <Play size={14} className="fill-current" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDeleteConfirmId(task.id);
-                                            }}
-                                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
-                                            title="删除计划"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
                                 </div>
-                            );
-                        })}
-
-                        {!isCreating && filteredTasks.length === 0 && (
-                            <div className="text-center py-8 text-slate-400">
-                                <p className="text-sm">暂无计划</p>
+                                <input
+                                    value={editingTask.name}
+                                    onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
+                                    placeholder="输入计划名称..."
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                />
                             </div>
+
+                            {/* Prompt */}
+                            <div>
+                                <label className="block text-sm font-medium mb-1.5">任务指令</label>
+                                <textarea
+                                    value={editingTask.prompt}
+                                    onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
+                                    placeholder="明确告诉 AI 需要完成什么任务..."
+                                    rows={5}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none font-mono"
+                                />
+                            </div>
+
+                            {/* Cron */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <Clock size={16} className="text-indigo-500" />
+                                    <label className="text-sm font-medium">调度规则</label>
+                                </div>
+                                <CronGenerator
+                                    value={editingTask.cronExpression}
+                                    onChange={(val) => {
+                                        setEditingTask({ ...editingTask, cronExpression: val });
+                                        validateCron(val);
+                                    }}
+                                    validation={cronValidation}
+                                />
+                            </div>
+
+                            {/* Notification */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Bell size={16} className="text-indigo-500" />
+                                        <label className="text-sm font-medium">结果通知 (IM)</label>
+                                    </div>
+                                    <Switch
+                                        size="sm"
+                                        checked={editingTask.notification?.enabled || false}
+                                        onChange={val => setEditingTask({
+                                            ...editingTask,
+                                            notification: {
+                                                ...(editingTask.notification || { imSessionId: '' }),
+                                                enabled: val
+                                            }
+                                        })}
+                                    />
+                                </div>
+                                {editingTask.notification?.enabled && (
+                                    <input
+                                        type="text"
+                                        value={editingTask.notification.imSessionId}
+                                        onChange={e => setEditingTask({
+                                            ...editingTask,
+                                            notification: { ...editingTask.notification!, imSessionId: e.target.value }
+                                        })}
+                                        placeholder="Session ID (例如: tg_12345678)..."
+                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        /* ─── Tab: 历史记录 ─── */
+                        <div className="space-y-4">
+                            {/* 执行历史 */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
+                                    {selectedLogIds.size > 0 && (
+                                        <span className="text-xs text-slate-500 dark:text-gray-400">
+                                            已选 {selectedLogIds.size} 条
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {selectedLogIds.size > 0 && (
+                                        <button
+                                            onClick={handleDeleteSelectedLogs}
+                                            className="px-3 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-red-600 dark:text-red-400 flex items-center gap-1.5"
+                                        >
+                                            <Trash2 size={12} /> 删除选中
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => loadTaskLogs(editingTask.id)}
+                                        className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
+                                    >
+                                        <History size={12} /> 刷新
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteAllLogs}
+                                        className="px-3 py-1 bg-slate-50 hover:bg-red-100 dark:bg-white/5 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-slate-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 flex items-center gap-1.5"
+                                    >
+                                        <Trash2 size={12} /> 清空
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {triggerResult && triggerResult.taskId === editingTask.id && (
+                                    <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
+                                        ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
+                                        : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
+                                        }`}>
+                                        {triggerResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                                        {triggerResult.message}
+                                    </div>
+                                )}
+
+                                {loadingLogs === editingTask.id ? (
+                                    <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
+                                ) : (() => {
+                                    const logs = taskLogs.get(editingTask.id);
+                                    if (!logs || logs.length === 0) {
+                                        return (
+                                            <div className="text-center py-16 text-slate-400">
+                                                <History size={24} className="mx-auto opacity-30 mb-3" />
+                                                <p className="text-sm">暂无记录</p>
+                                            </div>
+                                        );
+                                    }
+                                    const allSelected = selectedLogIds.size === logs.length && logs.length > 0;
+                                    return (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 px-1">
+                                                <button
+                                                    onClick={toggleAllLogs}
+                                                    className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+                                                    title={allSelected ? "取消全选" : "全选"}
+                                                >
+                                                    {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                                                </button>
+                                                <span className="text-xs text-slate-400 dark:text-gray-500">
+                                                    {allSelected ? "取消全选" : "全选"}
+                                                </span>
+                                            </div>
+                                            {logs.map(log => (
+                                                <LogEntry
+                                                    key={log.id}
+                                                    log={log}
+                                                    selected={selectedLogIds.has(log.id)}
+                                                    onToggleSelect={() => toggleLogSelection(log.id)}
+                                                    onDelete={() => handleDeleteLog(log.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Fixed Bottom Bar */}
+                <div className="shrink-0 px-8 py-3 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#141414]">
+                    <div className="flex items-center gap-3 max-w-2xl mx-auto">
+                        <button
+                            onClick={handleSaveTask}
+                            disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
+                            className="px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <Save size={16} />
+                            {isCreating ? '创建计划' : '保存'}
+                        </button>
+                        <button onClick={handleBackToList} className="px-5 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-sm hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                            取消
+                        </button>
+                        {!isCreating && (
+                            <button onClick={() => confirmDeleteTask(editingTask.id)} className="ml-auto p-2 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                                <Trash2 size={16} />
+                            </button>
                         )}
                     </div>
                 </div>
             </div>
+        );
+    }
 
-            {/* Right: Detailed View */}
-            <main className="flex-1 flex flex-col overflow-hidden relative h-full bg-white dark:bg-[#141414]">
-                {(editingTask) ? (
-                    <>
-                        <header className="px-6 h-12 flex items-center justify-between draggable shrink-0 bg-white dark:bg-[#141414]">
-                        </header>
-
-                        <div className="flex-1 overflow-y-auto px-8 py-4 custom-scrollbar">
+    // ─── List view (card grid) ───
+    return (
+        <div className="flex h-full flex-col">
+            {/* Draggable Header */}
+            <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
+                <div className="px-4 py-4 max-w-5xl mx-auto">
+                    <div className="flex items-center justify-between mb-3">
+                        <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
+                            自动化
+                        </h1>
+                        <div className="w-32" />
+                    </div>
+                    {/* 搜索栏 + 操作按钮 */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                             <input
                                 type="text"
-                                value={editingTask.name}
-                                onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
-                                placeholder="计划名称..."
-                                className="w-full max-w-2xl mx-auto block bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors mb-3 px-0"
+                                placeholder="搜索计划..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
                             />
-                            <div className="max-w-2xl mx-auto">
-                                {!isCreating && (
-                                    <div className="flex p-1 bg-slate-100 dark:bg-white/5 rounded-xl w-fit mb-3">
-                                        <button
-                                            onClick={() => setActiveTab('config')}
-                                            className={clsx(
-                                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                                activeTab === 'config'
-                                                    ? "bg-white dark:bg-[#18181b] text-slate-900 dark:text-white shadow-sm"
-                                                    : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
-                                            )}
-                                        >
-                                            配置
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setActiveTab('logs');
-                                                if (editingTask) loadTaskLogs(editingTask.id);
-                                            }}
-                                            className={clsx(
-                                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                                activeTab === 'logs'
-                                                    ? "bg-white dark:bg-[#18181b] text-slate-900 dark:text-white shadow-sm"
-                                                    : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-300"
-                                            )}
-                                        >
-                                            历史
-                                        </button>
-                                    </div>
-                                )}
-                                {activeTab === 'config' ? (
-                                    <div className="animate-in fade-in duration-300 pt-1 pb-16">
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden">
-                                            {/* 区域一：基本信息与指令 */}
-                                            <div className="p-4 space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <FileText size={18} className="text-indigo-500" />
-                                                        <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">基本信息与指令</h3>
-                                                    </div>
-                                                    {!isCreating && (
-                                                        <div className="flex items-center gap-4">
-                                                            <label className="flex items-center gap-2 cursor-pointer group">
-                                                                <span className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                                                                    {editingTask.enabled ? 'ACTIVE' : 'DISABLED'}
-                                                                </span>
-                                                                <Switch 
-                                                                    size="sm"
-                                                                    checked={editingTask.enabled}
-                                                                    onChange={val => setEditingTask({ ...editingTask, enabled: val })}
-                                                                />
-                                                            </label>
-                                                            <div className="w-px h-3 bg-slate-200 dark:bg-white/10" />
-                                                            <button
-                                                                onClick={() => handleTriggerTask(editingTask.id)}
-                                                                className="px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors text-[11px] font-bold flex items-center gap-1.5"
-                                                            >
-                                                                <Play size={14} className="fill-current" /> 立即运行
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    <textarea
-                                                        value={editingTask.prompt}
-                                                        onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
-                                                        placeholder="明确告诉 AI 需要完成什么任务..."
-                                                        rows={4}
-                                                        className="w-full p-4 bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 focus:border-indigo-400 dark:focus:border-indigo-500/50 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-500/10 text-slate-800 dark:text-gray-100 placeholder:text-slate-400 transition-all resize-none"
-                                                    />
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div className="p-3 bg-slate-50/80 dark:bg-white/[0.02] rounded-xl border border-slate-100 dark:border-white/5">
-                                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={editingTask.enableTools !== false}
-                                                                    onChange={e => setEditingTask({ ...editingTask, enableTools: e.target.checked })}
-                                                                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent"
-                                                                />
-                                                                <span className="text-xs font-medium text-slate-700 dark:text-gray-200">允许调用所有工具</span>
-                                                            </label>
-                                                        </div>
-
-                                                        <div className="p-3 bg-slate-50/80 dark:bg-white/[0.02] rounded-xl border border-slate-100 dark:border-white/5">
-                                                            <div className="flex flex-col gap-3">
-                                                                <label className="flex items-center gap-3 cursor-pointer group">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={editingTask.keepHistory || false}
-                                                                        onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
-                                                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent"
-                                                                    />
-                                                                    <span className="text-xs font-medium text-slate-700 dark:text-gray-200">保留计划对话历史</span>
-                                                                </label>
-                                                                {editingTask.keepHistory && (
-                                                                    <div className="pl-7 flex items-center gap-2">
-                                                                        <span className="text-[10px] text-slate-500">轮次上限:</span>
-                                                                        <input
-                                                                            type="number"
-                                                                            min={1}
-                                                                            max={100}
-                                                                            value={editingTask.maxHistoryTurns || 10}
-                                                                            onChange={e => setEditingTask({ ...editingTask, maxHistoryTurns: parseInt(e.target.value) || 10 })}
-                                                                            className="w-12 px-1.5 py-0.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded text-[10px] focus:outline-none"
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* 区域二：调度规则 */}
-                                            <div className="p-4 border-t border-slate-100 dark:border-white/5 space-y-4">
-                                                <div className="flex items-center gap-2.5">
-                                                    <Clock size={18} className="text-indigo-500" />
-                                                    <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">调度规则</h3>
-                                                </div>
-                                                <CronGenerator
-                                                    value={editingTask.cronExpression}
-                                                    onChange={(val) => {
-                                                        setEditingTask({ ...editingTask, cronExpression: val });
-                                                        validateCron(val);
-                                                    }}
-                                                    validation={cronValidation}
-                                                />
-                                            </div>
-                                            
-                                            {/* 区域三：通知配置 */}
-                                            <div className="p-4 border-t border-slate-100 dark:border-white/5 space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <Bell size={18} className="text-indigo-500" />
-                                                        <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100">结果通知 (IM)</h3>
-                                                    </div>
-                                                    <Switch 
-                                                        size="sm"
-                                                        checked={editingTask.notification?.enabled || false}
-                                                        onChange={val => setEditingTask({
-                                                            ...editingTask,
-                                                            notification: {
-                                                                ...(editingTask.notification || { imSessionId: '' }),
-                                                                enabled: val
-                                                            }
-                                                        })}
-                                                    />
-                                                </div>
-
-                                                {editingTask.notification?.enabled && (
-                                                    <div className="animate-in slide-in-from-top-1 duration-200">
-                                                        <input 
-                                                            type="text" 
-                                                            value={editingTask.notification.imSessionId}
-                                                            onChange={e => setEditingTask({
-                                                                ...editingTask,
-                                                                notification: { ...editingTask.notification!, imSessionId: e.target.value }
-                                                            })}
-                                                            placeholder="Session ID (例如: tg_12345678)..."
-                                                            className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all text-slate-700 dark:text-gray-200"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-6 flex justify-end gap-3">
-                                            {isCreating && (
-                                                <button
-                                                    onClick={handleCancelCreating}
-                                                    className="px-5 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
-                                                >
-                                                    取消
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={handleSaveTask}
-                                                disabled={isSaving || !editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
-                                                className={clsx(
-                                                    "px-6 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm min-w-[120px] justify-center",
-                                                    saved 
-                                                        ? "bg-green-500 text-white" 
-                                                        : "bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black",
-                                                    "disabled:bg-slate-200 dark:disabled:bg-white/10"
-                                                )}
-                                            >
-                                                {isSaving ? (
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                ) : saved ? (
-                                                    <CheckCircle2 size={16} />
-                                                ) : (
-                                                    <Save size={16} />
-                                                )}
-                                                {isSaving ? '保存中...' : saved ? '已保存' : (isCreating ? '创建计划' : '保存修改')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4 animate-in fade-in duration-300 pt-1">
-                                        {/* 执行历史卡片 */}
-                                        <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
-                                                    {selectedLogIds.size > 0 && (
-                                                        <span className="text-xs text-slate-500 dark:text-gray-400">
-                                                            已选 {selectedLogIds.size} 条
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {selectedLogIds.size > 0 && (
-                                                        <button
-                                                            onClick={handleDeleteSelectedLogs}
-                                                            className="px-3 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-red-600 dark:text-red-400 flex items-center gap-1.5"
-                                                        >
-                                                            <Trash2 size={12} /> 删除选中
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => loadTaskLogs(editingTask.id)}
-                                                        className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
-                                                    >
-                                                        <History size={12} /> 刷新
-                                                    </button>
-                                                    <button
-                                                        onClick={handleDeleteAllLogs}
-                                                        className="px-3 py-1 bg-slate-50 hover:bg-red-100 dark:bg-white/5 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-slate-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 flex items-center gap-1.5"
-                                                    >
-                                                        <Trash2 size={12} /> 清空
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                {triggerResult && triggerResult.taskId === editingTask.id && (
-                                                    <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
-                                                        ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
-                                                        : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
-                                                        }`}>
-                                                        {triggerResult.success ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                                                        {triggerResult.message}
-                                                    </div>
-                                                )}
-
-                                                {loadingLogs === editingTask.id ? (
-                                                    <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
-                                                ) : (() => {
-                                                    const logs = taskLogs.get(editingTask.id);
-                                                    if (!logs || logs.length === 0) {
-                                                        return (
-                                                            <div className="text-center py-16 text-slate-400">
-                                                                <History size={24} className="mx-auto opacity-30 mb-3" />
-                                                                <p className="text-sm">暂无记录</p>
-                                                            </div>
-                                                        );
-                                                    }
-                                                    const allSelected = selectedLogIds.size === logs.length && logs.length > 0;
-                                                    return (
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center gap-2 px-1">
-                                                                <button
-                                                                    onClick={toggleAllLogs}
-                                                                    className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
-                                                                    title={allSelected ? "取消全选" : "全选"}
-                                                                >
-                                                                    {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                                                                </button>
-                                                                <span className="text-xs text-slate-400 dark:text-gray-500">
-                                                                    {allSelected ? "取消全选" : "全选"}
-                                                                </span>
-                                                            </div>
-                                                            {logs.map(log => (
-                                                                <LogEntry
-                                                                    key={log.id}
-                                                                    log={log}
-                                                                    selected={selectedLogIds.has(log.id)}
-                                                                    onToggleSelect={() => toggleLogSelection(log.id)}
-                                                                    onDelete={() => handleDeleteLog(log.id)}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </div>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                        <Clock size={32} className="opacity-20 mb-4" />
-                        <p className="text-sm">选择或新建一个定时计划</p>
-                    </div>
-                )}
-            </main>
-
-            {/* Delete Confirmation Modal */}
-            {deleteConfirmId && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/10 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center gap-3 text-red-600 dark:text-red-500 mb-2">
-                            <AlertCircle size={20} />
-                            <h3 className="text-lg font-bold">删除确认</h3>
-                        </div>
-                        <p className="text-sm text-slate-600 dark:text-gray-300 mt-2 mb-6">
-                            确定要删除这个定时计划吗？此操作无法撤销。
-                        </p>
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={() => confirmDeleteTask(deleteConfirmId)}
-                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors"
-                            >
-                                确认删除
-                            </button>
-                        </div>
+                        <button
+                            onClick={handleAddTask}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all shrink-0"
+                        >
+                            <Plus size={12} />
+                            新建计划
+                        </button>
                     </div>
                 </div>
-            )}
+            </header>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="px-4 py-4 max-w-5xl mx-auto">
+                    {filteredTasks.length === 0 ? (
+                        <div className="text-center py-20">
+                            <Clock size={48} className="mx-auto mb-4 text-slate-300 dark:text-zinc-600" />
+                            <h3 className="text-lg font-medium mb-2">{searchTerm ? '无匹配结果' : '暂无计划'}</h3>
+                            <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{searchTerm ? '尝试其他关键词' : '点击右上角"新建计划"创建你的第一个定时任务'}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
+                            {filteredTasks.map(task => {
+                                const status = getStatus(task.id);
+                                return (
+                                    <TaskCard
+                                        key={task.id}
+                                        task={task}
+                                        status={status}
+                                        onClick={() => {
+                                            setIsCreating(false);
+                                            setEditingTaskId(task.id);
+                                        }}
+                                        onTrigger={() => handleTriggerTask(task.id)}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
+
+// ============ TaskCard 子组件 ============
+function TaskCard({ task, status, onClick, onTrigger }: {
+    task: ScheduledTaskConfig;
+    status: TaskStatusInfo | undefined;
+    onClick: () => void;
+    onTrigger: () => void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className="relative w-full h-full text-left p-5 rounded-xl bg-white dark:bg-white/[0.02] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.04] transition-all duration-200 group flex flex-col"
+        >
+            <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-700/60 flex items-center justify-center shrink-0">
+                    <Clock size={18} className="text-slate-500 dark:text-zinc-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {task.name || '未命名'}
+                    </h3>
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
+                        {getCronHumanSummary(task.cronExpression)}
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-3">
+                <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", task.enabled ? "bg-green-500" : "bg-slate-300 dark:bg-gray-600")} />
+                <span className="text-[11px] text-slate-400 dark:text-gray-500 font-medium">
+                    {task.enabled ? '已启用' : '已停用'}
+                </span>
+                {status?.isRunning && (
+                    <div className="flex items-center gap-1 shrink-0">
+                        <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
+                        <span className="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">Running</span>
+                    </div>
+                )}
+                {!status?.isRunning && status?.lastRunStatus === 'error' && (
+                    <span className="text-[10px] text-red-500">Error</span>
+                )}
+            </div>
+
+            {/* Hover action: trigger */}
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); onTrigger(); }}
+                    onKeyDown={e => { if (e.key === 'Enter') onTrigger(); }}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    title="立即运行"
+                >
+                    <Play size={13} className="fill-current" />
+                </span>
+            </div>
+        </button>
+    );
+}
 
 export default SchedulerPage;
 
@@ -875,7 +770,7 @@ function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
                     <Trash2 size={14} />
                 </button>
                 <div className={clsx("text-slate-400 transition-transform duration-200", expanded ? "rotate-180" : "")}>
-                    <ChevronDownIcon size={16} />
+                    <ChevronDown size={16} />
                 </div>
             </div>
 
@@ -903,14 +798,6 @@ function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
             )}
         </div>
     );
-}
-
-function ChevronDownIcon(props: any) {
-    return (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-    )
 }
 
 // ============ Cron 可视化生成器组件 ============
