@@ -348,7 +348,7 @@ const SchedulerPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                         <Clock size={16} className="text-slate-800 dark:text-gray-100" />
                         <h1 className="text-sm font-bold text-slate-800 dark:text-gray-100 tracking-tight">
-                            定时任务
+                            自动化
                         </h1>
                     </div>
                 </header>
@@ -368,7 +368,7 @@ const SchedulerPage: React.FC = () => {
                         <button
                             onClick={handleAddTask}
                             className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white transition-colors shrink-0"
-                            title="新建任务"
+                            title="新建计划"
                         >
                             <Plus size={16} />
                         </button>
@@ -379,7 +379,7 @@ const SchedulerPage: React.FC = () => {
                             <div className="w-full text-left px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white flex items-center gap-2.5">
                                 <Plus size={14} className="text-slate-500" />
                                 <span className="font-medium text-sm truncate">
-                                    {editingTask.name || '新任务...'}
+                                    {editingTask.name || '新计划...'}
                                 </span>
                             </div>
                         )}
@@ -442,7 +442,7 @@ const SchedulerPage: React.FC = () => {
                                                 setDeleteConfirmId(task.id);
                                             }}
                                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all"
-                                            title="删除任务"
+                                            title="删除计划"
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -453,7 +453,7 @@ const SchedulerPage: React.FC = () => {
 
                         {!isCreating && filteredTasks.length === 0 && (
                             <div className="text-center py-8 text-slate-400">
-                                <p className="text-sm">暂无任务</p>
+                                <p className="text-sm">暂无计划</p>
                             </div>
                         )}
                     </div>
@@ -472,7 +472,7 @@ const SchedulerPage: React.FC = () => {
                                 type="text"
                                 value={editingTask.name}
                                 onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
-                                placeholder="任务名称..."
+                                placeholder="计划名称..."
                                 className="w-full max-w-2xl mx-auto block bg-transparent border-none text-base font-bold focus:outline-none text-slate-800 dark:text-gray-100 placeholder:text-slate-300 dark:placeholder:text-gray-600 transition-colors mb-3 px-0"
                             />
                             <div className="max-w-2xl mx-auto">
@@ -569,7 +569,7 @@ const SchedulerPage: React.FC = () => {
                                                                         onChange={e => setEditingTask({ ...editingTask, keepHistory: e.target.checked })}
                                                                         className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-white/20 dark:bg-transparent"
                                                                     />
-                                                                    <span className="text-xs font-medium text-slate-700 dark:text-gray-200">保留任务对话历史</span>
+                                                                    <span className="text-xs font-medium text-slate-700 dark:text-gray-200">保留计划对话历史</span>
                                                                 </label>
                                                                 {editingTask.keepHistory && (
                                                                     <div className="pl-7 flex items-center gap-2">
@@ -670,7 +670,7 @@ const SchedulerPage: React.FC = () => {
                                                 ) : (
                                                     <Save size={16} />
                                                 )}
-                                                {isSaving ? '保存中...' : saved ? '已保存' : (isCreating ? '创建任务' : '保存修改')}
+                                                {isSaving ? '保存中...' : saved ? '已保存' : (isCreating ? '创建计划' : '保存修改')}
                                             </button>
                                         </div>
                                     </div>
@@ -771,7 +771,7 @@ const SchedulerPage: React.FC = () => {
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-slate-400">
                         <Clock size={32} className="opacity-20 mb-4" />
-                        <p className="text-sm">选择或新建一个定时任务</p>
+                        <p className="text-sm">选择或新建一个定时计划</p>
                     </div>
                 )}
             </main>
@@ -785,7 +785,7 @@ const SchedulerPage: React.FC = () => {
                             <h3 className="text-lg font-bold">删除确认</h3>
                         </div>
                         <p className="text-sm text-slate-600 dark:text-gray-300 mt-2 mb-6">
-                            确定要删除这个定时任务吗？此操作无法撤销。
+                            确定要删除这个定时计划吗？此操作无法撤销。
                         </p>
                         <div className="flex items-center justify-end gap-3">
                             <button
