@@ -2,6 +2,8 @@
 import { SearchItem } from './types'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { useStaffStore } from '../../store/useStaffStore'
+import { useLayoutStore } from '../../store/useLayoutStore'
 
 /**
  * 获取页面导航搜索项（静态）
@@ -64,6 +66,7 @@ export function getPageItems(): SearchItem[] {
 export function getCommandItems(): SearchItem[] {
     const setActiveTab = useChatStore.getState().setActiveTab
     const createSession = useChatStore.getState().createSession
+    const setSelectedSkillIds = useChatStore.getState().setSelectedSkillIds
     const setTheme = useSettingsStore.getState().setTheme
     const theme = useSettingsStore.getState().settings.theme
 
@@ -81,6 +84,43 @@ export function getCommandItems(): SearchItem[] {
             },
         },
         {
+            id: 'cmd-new-staff',
+            type: 'command',
+            label: '新建员工',
+            description: '创建一个新的数字员工',
+            icon: 'UserPlus',
+            keywords: ['new', '新建', '创建', '员工', 'staff', 'agent', '数字员工'],
+            action: () => {
+                useStaffStore.getState().setEditingId('new')
+                setActiveTab('staff')
+            },
+        },
+        {
+            id: 'cmd-new-skill',
+            type: 'command',
+            label: '新建技能',
+            description: '通过 AI 对话创建新技能',
+            icon: 'Sparkles',
+            keywords: ['new', '新建', '创建', '技能', 'skill'],
+            action: () => {
+                createSession()
+                setSelectedSkillIds(['skill-creator'])
+                setActiveTab('chat')
+            },
+        },
+        {
+            id: 'cmd-new-plan',
+            type: 'command',
+            label: '新建计划',
+            description: '创建一个新的定时计划',
+            icon: 'CalendarPlus',
+            keywords: ['new', '新建', '创建', '计划', '定时', 'plan', 'schedule', 'cron'],
+            action: () => {
+                useLayoutStore.getState().setPendingCreatePlan(true)
+                setActiveTab('scheduler')
+            },
+        },
+        {
             id: 'cmd-toggle-theme',
             type: 'command',
             label: theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式',
@@ -88,6 +128,24 @@ export function getCommandItems(): SearchItem[] {
             icon: theme === 'dark' ? 'Sun' : 'Moon',
             keywords: ['theme', '主题', 'dark', 'light', '暗色', '亮色'],
             action: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
+        },
+        {
+            id: 'cmd-theme-light',
+            type: 'command',
+            label: '浅色模式',
+            description: '切换到浅色模式',
+            icon: 'Sun',
+            keywords: ['theme', '主题', 'light', '亮色', '浅色'],
+            action: () => setTheme('light'),
+        },
+        {
+            id: 'cmd-theme-dark',
+            type: 'command',
+            label: '深色模式',
+            description: '切换到深色模式',
+            icon: 'Moon',
+            keywords: ['theme', '主题', 'dark', '暗色', '深色'],
+            action: () => setTheme('dark'),
         },
     ]
 }

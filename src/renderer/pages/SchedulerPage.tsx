@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, Plus, Trash2, Play, Save, CheckCircle2, AlertCircle, History, FileText, Search, Box, X, Bell, MessageSquare, CheckSquare, Square } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useLayoutStore } from '../store/useLayoutStore';
 import { Switch } from '../components/Switch';
 import { ScheduledTaskConfig } from '../../common/types/settings';
 import { clsx } from 'clsx';
@@ -108,6 +109,16 @@ const SchedulerPage: React.FC = () => {
     );
 
     const selectedTask = (selectedIdx !== null && filteredTasks[selectedIdx]) ? filteredTasks[selectedIdx] : null;
+
+    // 响应 CommandPalette 的"新建计划"命令
+    const pendingCreatePlan = useLayoutStore(s => s.pendingCreatePlan);
+    useEffect(() => {
+        if (pendingCreatePlan) {
+            useLayoutStore.getState().setPendingCreatePlan(false);
+            handleAddTask();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingCreatePlan]);
 
     useEffect(() => {
         if (tasks.length > 0 && selectedIdx === null && !isCreating) {
