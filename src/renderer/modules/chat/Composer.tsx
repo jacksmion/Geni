@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Square, Plus, X, FileText, ArrowUp, Shield, ShieldCheck } from 'lucide-react'
+import { Send, Sparkles, Square, Plus, X, FileText, ArrowUp, Shield, ShieldCheck, Zap, ChevronRight, Check, Search } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
 import { useStaffStore } from '../../store/useStaffStore'
 import { Skill } from '../../../common/types/skill'
 import { StaffProfile } from '../../../common/types/staff'
+import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { cn } from '../../utils/cn'
+import { PROVIDER_DISPLAY } from '../../utils/providers'
 import { useTranslation } from 'react-i18next'
 import { StaffAvatar } from '../../components/StaffAvatar'
 import { ModelSelector } from './ModelSelector'
@@ -123,7 +125,56 @@ export function Composer() {
     const [slashMenuPos, setSlashMenuPos] = useState({ top: 0, left: 0 })
     const menuItemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
+    // Sub-menu state for model switching
+    const [slashSubMenu, setSlashSubMenu] = useState<string | null>(null)
+    const [modelSearchText, setModelSearchText] = useState('')
+    const [modelSelectedIndex, setModelSelectedIndex] = useState(0)
+    const modelItemRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+    // Build model list (same logic as ModelSelector)
+    const llm = useSettingsStore(s => s.settings.llm)
+    const allProviderKeys = Array.from(new Set([
+        ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
+        ...Object.keys(llm.providers || {})
+    ]))
+    const availableProviders = allProviderKeys.filter(key => {
+        const config = llm.providers?.[key] || DEFAULT_PROVIDER_CONFIGS[key]
+        if (!config) return false
+        return config.enabled === true
+    })
+    const currentSession = sessions[activeSessionId]
+    const sessionModelId = currentSession?.modelId
+    let activeProvider = llm.activeProvider || 'OpenAI'
+    let activeModelName: string | undefined
+    if (sessionModelId) {
+        const slashIdx = sessionModelId.indexOf('/')
+        if (slashIdx >= 0) {
+            activeProvider = sessionModelId.slice(0, slashIdx)
+            activeModelName = sessionModelId.slice(slashIdx + 1)
+        } else {
+            activeModelName = sessionModelId
+        }
+    }
+    const allModels = availableProviders.flatMap(providerKey => {
+        const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+        return (config?.models || []).filter(m => m.enabled).map(model => ({
+            providerKey,
+            model,
+            isActive: providerKey === activeProvider && (
+                activeModelName ? model.model === activeModelName : model.id === config?.activeModelId
+            )
+        }))
+    })
+    const filteredModels = allModels.filter(m =>
+        m.model.label.toLowerCase().includes(modelSearchText.toLowerCase()) ||
+        m.model.model.toLowerCase().includes(modelSearchText.toLowerCase()) ||
+        (PROVIDER_DISPLAY[m.providerKey]?.label || m.providerKey).toLowerCase().includes(modelSearchText.toLowerCase())
+    )
+
     // Build unified menu items: staff (only in draft) + skills
+    const modelKeyword = slashSearchText.toLowerCase()
+    const showModelItem = !modelKeyword || ['model', '模型', '切换'].some(kw => kw.includes(modelKeyword) || modelKeyword.includes(kw))
+
     const filteredStaff = isDraft
         ? profiles.filter(p =>
             p.name.toLowerCase().includes(slashSearchText.toLowerCase()) ||
@@ -136,7 +187,8 @@ export function Composer() {
         s.id.toLowerCase().includes(slashSearchText.toLowerCase())
     ).map(s => ({ type: 'skill' as const, data: s }))
 
-    const menuItems = [...filteredStaff, ...filteredSkillItems]
+    const modelMenuItem = showModelItem ? [{ type: 'model' as const }] : []
+    const menuItems = [...modelMenuItem, ...filteredStaff, ...filteredSkillItems]
 
     // Scroll selected menu item into view
     useEffect(() => {
@@ -144,6 +196,18 @@ export function Composer() {
             menuItemRefs.current[selectedIndex]?.scrollIntoView({ block: 'nearest' })
         }
     }, [selectedIndex, showSlashMenu])
+
+    // Scroll selected model item into view
+    useEffect(() => {
+        if (slashSubMenu === 'model') {
+            modelItemRefs.current[modelSelectedIndex]?.scrollIntoView({ block: 'nearest' })
+        }
+    }, [modelSelectedIndex, slashSubMenu])
+
+    // Reset model index when filter changes
+    useEffect(() => {
+        setModelSelectedIndex(0)
+    }, [modelSearchText])
 
     // Fetch skills to display their names in badges
     useEffect(() => {
@@ -167,6 +231,18 @@ export function Composer() {
         setInput('')
 
         await sendMessage(userInput, attachments)
+    }
+
+    // Select a model and close the sub-menu
+    const selectModel = (providerKey: string, modelId: string) => {
+        const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+        const modelInstance = config?.models?.find(m => m.id === modelId)
+        const fullModelId = modelInstance ? `${providerKey}/${modelInstance.model}` : `${providerKey}/${modelId}`
+        useChatStore.getState().setSessionConfig(activeSessionId, { modelId: fullModelId })
+        setSlashSubMenu(null)
+        setModelSearchText('')
+        setShowSlashMenu(false)
+        textareaRef.current?.focus()
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -199,7 +275,34 @@ export function Composer() {
         }
     }
 
-    const handleSelectMenuItem = (item: { type: 'staff', data: StaffProfile } | { type: 'skill', data: Skill }) => {
+    const handleSelectMenuItem = (item: { type: 'staff', data: StaffProfile } | { type: 'skill', data: Skill } | { type: 'model' }) => {
+        if (item.type === 'model') {
+            // Enter model sub-menu: clear the /xxx text from input
+            if (textareaRef.current) {
+                const cursorPosition = textareaRef.current.selectionStart || input.length
+                const textBeforeCursor = input.slice(0, cursorPosition)
+                const textAfterCursor = input.slice(cursorPosition)
+                const match = textBeforeCursor.match(/(^|\s)\/([^\s]*)$/)
+                if (match) {
+                    const prefix = match[1]
+                    const newTextBefore = textBeforeCursor.slice(0, match.index) + prefix
+                    const newValue = newTextBefore + textAfterCursor
+                    setInput(newValue)
+                    setTimeout(() => {
+                        if (textareaRef.current) {
+                            textareaRef.current.focus()
+                            const newPos = newTextBefore.length
+                            textareaRef.current.setSelectionRange(newPos, newPos)
+                        }
+                    }, 0)
+                }
+            }
+            setSlashSubMenu('model')
+            setModelSearchText('')
+            setModelSelectedIndex(0)
+            return
+        }
+
         if (item.type === 'staff') {
             assignStaff(activeSessionId, item.data.id)
         } else {
@@ -257,8 +360,8 @@ export function Composer() {
                 {/* Main Composer Box */}
                 <div className="relative bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-1.5 focus-within:ring-indigo-500/40 dark:focus-within:ring-white/20">
 
-                    {/* Slash Command Menu */}
-                    {showSlashMenu && (
+                    {/* Slash Command Menu - Primary */}
+                    {showSlashMenu && !slashSubMenu && (
                         <div
                             className="absolute w-[80vw] max-w-[520px] bg-white dark:bg-[#1c1c1f] rounded-xl shadow-2xl border border-slate-200/80 dark:border-white/[0.08] overflow-hidden z-50 animate-in fade-in duration-150"
                             style={{
@@ -268,15 +371,45 @@ export function Composer() {
                             }}
                         >
                             <div className="max-h-[216px] overflow-y-auto p-1.5">
+                                {/* Model Switch Item */}
+                                {showModelItem && (() => {
+                                    const isActive = 0 === selectedIndex
+                                    return (
+                                        <button
+                                            ref={el => { menuItemRefs.current[0] = el }}
+                                            onClick={(e) => { e.preventDefault(); handleSelectMenuItem({ type: 'model' }) }}
+                                            onMouseEnter={() => setSelectedIndex(0)}
+                                            className={cn(
+                                                "w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors",
+                                                isActive
+                                                    ? "bg-slate-100 dark:bg-white/[0.07]"
+                                                    : "hover:bg-slate-50 dark:hover:bg-white/[0.04]"
+                                            )}
+                                        >
+                                            <Zap size={12} className="shrink-0 text-indigo-500 dark:text-indigo-400" />
+                                            <span className={cn("text-[12px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
+                                                切换模型
+                                            </span>
+                                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
+                                                Switch model for this session
+                                            </span>
+                                            <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-zinc-600" />
+                                        </button>
+                                    )
+                                })()}
+
                                 {/* Staff Section */}
                                 {filteredStaff.length > 0 && (
                                     <>
-                                        <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none">
+                                        <div className={cn(
+                                            "px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
+                                            showModelItem ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
+                                        )}>
                                             数字员工
                                         </div>
                                         {filteredStaff.map((item, idx) => {
                                             const staff = item.data
-                                            const globalIdx = idx
+                                            const globalIdx = (showModelItem ? 1 : 0) + idx
                                             const isActive = globalIdx === selectedIndex
                                             return (
                                                 <button
@@ -317,13 +450,13 @@ export function Composer() {
                                     <>
                                         <div className={cn(
                                             "px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
-                                            filteredStaff.length > 0 ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
+                                            (showModelItem || filteredStaff.length > 0) ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
                                         )}>
                                             技能
                                         </div>
                                         {filteredSkillItems.map((item, idx) => {
                                             const skill = item.data
-                                            const globalIdx = filteredStaff.length + idx
+                                            const globalIdx = (showModelItem ? 1 : 0) + filteredStaff.length + idx
                                             const isActive = globalIdx === selectedIndex
                                             const sourceLabel = (skill as any).source === 'builtin' ? '内置'
                                                 : (skill as any).source === 'project' ? '项目'
@@ -361,6 +494,110 @@ export function Composer() {
                                     <div className="px-3 py-6 text-center text-[13px] text-slate-400 dark:text-zinc-500">
                                         没有匹配的结果
                                     </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Slash Command Menu - Model Sub-menu */}
+                    {slashSubMenu === 'model' && (
+                        <div
+                            className="absolute w-[80vw] max-w-[520px] bg-white dark:bg-[#1c1c1f] rounded-xl shadow-2xl border border-slate-200/80 dark:border-white/[0.08] overflow-hidden z-50 animate-in fade-in slide-in-from-left-1 duration-150 flex flex-col"
+                            style={{
+                                top: `${slashMenuPos.top}px`,
+                                left: `${slashMenuPos.left}px`,
+                                transform: 'translateY(-100%)'
+                            }}
+                        >
+                            {/* Search bar */}
+                            <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-black/10">
+                                <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-[#121214] border border-slate-200/50 dark:border-white/5 rounded-lg">
+                                    <Search size={12} className="text-slate-400 dark:text-zinc-500 shrink-0" />
+                                    <input
+                                        ref={(el) => {
+                                            if (el) setTimeout(() => el.focus(), 0)
+                                        }}
+                                        type="text"
+                                        placeholder="搜索模型..."
+                                        value={modelSearchText}
+                                        onChange={e => setModelSearchText(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'ArrowDown') {
+                                                e.preventDefault()
+                                                setModelSelectedIndex((prev) => Math.min(prev + 1, filteredModels.length - 1))
+                                            } else if (e.key === 'ArrowUp') {
+                                                e.preventDefault()
+                                                setModelSelectedIndex((prev) => Math.max(prev - 1, 0))
+                                            } else if (e.key === 'Enter') {
+                                                e.preventDefault()
+                                                const selected = filteredModels[modelSelectedIndex]
+                                                if (selected) selectModel(selected.providerKey, selected.model.id)
+                                            } else if (e.key === 'Escape') {
+                                                e.preventDefault()
+                                                setSlashSubMenu(null)
+                                                setModelSearchText('')
+                                                setShowSlashMenu(false)
+                                                textareaRef.current?.focus()
+                                            } else if (e.key === 'Backspace' && !modelSearchText) {
+                                                e.preventDefault()
+                                                setSlashSubMenu(null)
+                                                setModelSearchText('')
+                                                textareaRef.current?.focus()
+                                            }
+                                        }}
+                                        className="flex-1 bg-transparent text-xs text-slate-700 dark:text-zinc-200 placeholder:text-slate-400 dark:placeholder:text-zinc-600 focus:outline-none"
+                                    />
+                                    {modelSearchText && (
+                                        <button onClick={() => setModelSearchText('')}>
+                                            <X size={12} className="text-slate-300 hover:text-slate-500" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Model list */}
+                            <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
+                                {filteredModels.length === 0 ? (
+                                    <div className="px-4 py-8 text-center">
+                                        <p className="text-xs text-slate-400 dark:text-zinc-500">未找到匹配模型</p>
+                                    </div>
+                                ) : (
+                                    filteredModels.map(({ providerKey, model, isActive }, index) => {
+                                        const meta = PROVIDER_DISPLAY[providerKey] || { label: providerKey }
+                                        const isHighlighted = index === modelSelectedIndex
+                                        return (
+                                            <button
+                                                key={`${providerKey}-${model.id}`}
+                                                ref={el => { modelItemRefs.current[index] = el }}
+                                                onClick={() => selectModel(providerKey, model.id)}
+                                                onMouseEnter={() => setModelSelectedIndex(index)}
+                                                className={cn(
+                                                    "w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors",
+                                                    isHighlighted
+                                                        ? "bg-slate-100 dark:bg-white/[0.07]"
+                                                        : isActive
+                                                            ? "bg-indigo-50/50 dark:bg-indigo-500/5"
+                                                            : "hover:bg-slate-50 dark:hover:bg-white/[0.04]"
+                                                )}
+                                            >
+                                                <span className={cn(
+                                                    "text-[12px] font-semibold shrink-0",
+                                                    isActive
+                                                        ? "text-indigo-600 dark:text-indigo-400"
+                                                        : isHighlighted
+                                                            ? "text-slate-900 dark:text-white"
+                                                            : "text-slate-800 dark:text-zinc-100"
+                                                )}>
+                                                    {model.label}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-tight">
+                                                    {meta.label}
+                                                </span>
+                                                <span className="flex-1" />
+                                                {isActive && <Check size={14} className="text-indigo-500 shrink-0" />}
+                                            </button>
+                                        )
+                                    })
                                 )}
                             </div>
                         </div>
@@ -436,6 +673,31 @@ export function Composer() {
                             value={input}
                             onChange={handleInputChange}
                             onKeyDown={(e) => {
+                                // Model sub-menu keyboard handling (fallback when textarea has focus)
+                                if (slashSubMenu === 'model') {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        const selected = filteredModels[modelSelectedIndex]
+                                        if (selected) selectModel(selected.providerKey, selected.model.id)
+                                        return
+                                    }
+                                    if (e.key === 'Escape') {
+                                        e.preventDefault()
+                                        setSlashSubMenu(null)
+                                        setModelSearchText('')
+                                        setShowSlashMenu(false)
+                                        return
+                                    }
+                                    if (e.key === 'Backspace' && !modelSearchText) {
+                                        e.preventDefault()
+                                        setSlashSubMenu(null)
+                                        setModelSearchText('')
+                                        return
+                                    }
+                                    return
+                                }
+
+                                // Primary slash menu keyboard handling
                                 if (showSlashMenu) {
                                     if (e.key === 'ArrowDown') {
                                         e.preventDefault()
@@ -451,7 +713,7 @@ export function Composer() {
                                         e.preventDefault()
                                         const selected = menuItems[selectedIndex]
                                         if (selected) {
-                                            handleSelectMenuItem(selected)
+                                            handleSelectMenuItem(selected as any)
                                         }
                                         return
                                     }

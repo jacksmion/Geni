@@ -10,7 +10,6 @@ import { ModelListSkeleton } from '../../components/ui/Skeleton'
 
 export function ModelSelector() {
     const llm = useSettingsStore(s => s.settings.llm)
-    const updateSettings = useSettingsStore(s => s.updateSettings)
     const setActiveTab = useChatStore(s => s.setActiveTab)
     const activeSessionId = useChatStore(s => s.activeSessionId)
     const sessions = useChatStore(s => s.sessions)
@@ -136,24 +135,23 @@ export function ModelSelector() {
                                         key={`${providerKey}-${model.id}`}
                                         onClick={() => handleSelectModel(providerKey, model.id)}
                                         className={cn(
-                                            "w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors",
+                                            "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors",
                                             isActive
                                                 ? "bg-indigo-50/50 dark:bg-indigo-500/5"
                                                 : "hover:bg-slate-50 dark:hover:bg-white/5"
                                         )}
                                     >
-                                        <div className="flex-1 min-w-0 flex flex-col">
-                                            <span className={cn(
-                                                "text-[13px] truncate",
-                                                isActive ? "text-indigo-600 dark:text-indigo-400 font-medium" : "text-slate-700 dark:text-slate-200"
-                                            )}>
-                                                {model.label}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-tight">
-                                                {meta.label}
-                                            </span>
-                                        </div>
-                                        {isActive && <Check size={14} className="text-indigo-500 shrink-0 ml-2" />}
+                                        <span className={cn(
+                                            "text-[12px] font-semibold shrink-0",
+                                            isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-800 dark:text-zinc-100"
+                                        )}>
+                                            {model.label}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-tight">
+                                            {meta.label}
+                                        </span>
+                                        <span className="flex-1" />
+                                        {isActive && <Check size={14} className="text-indigo-500 shrink-0" />}
                                     </button>
                                 )
                             })
