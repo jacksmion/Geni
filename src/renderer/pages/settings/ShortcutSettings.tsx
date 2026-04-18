@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
-import { Command, X, RotateCcw } from 'lucide-react';
+import { Command, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function ShortcutSettings() {
@@ -136,18 +136,6 @@ export function ShortcutSettings() {
                         </div>
                     </div>
                 ))}
-            </div>
-
-            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 flex gap-4">
-               <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg shrink-0 h-fit">
-                 <Command className="text-amber-600 dark:text-amber-500" size={18} />
-               </div>
-               <div className="space-y-1">
-                 <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400">设置提示</h4>
-                 <p className="text-xs text-amber-700/80 dark:text-amber-500/70 leading-relaxed">
-                   快捷键目前仅在应用窗口聚焦时生效。建议使用熟悉的组合（如 Ctrl+Shift+N），避免与浏览器或系统默认快捷键冲突。
-                 </p>
-               </div>
             </div>
         </div>
     );

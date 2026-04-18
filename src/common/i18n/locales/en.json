@@ -146,7 +146,7 @@
         "search": "Search...",
         "import": "Import",
         "export": "Export",
-        "addProvider": "Add Custom Provider",
+        "addProvider": "Add",
         "namePlaceholder": "Provider Name (e.g. My-LLM)",
         "add": "Add",
         "cancel": "Cancel",

@@ -3,13 +3,12 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } 
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import {
-    Check, Key, Cpu, Zap, Search, Loader2, Plus, X, Globe,
-    Download, Upload, RefreshCw, Star, Trash2, Edit2, ChevronDown, ShieldCheck,
+    Cpu, Zap, Search, Loader2, Plus, X, Globe,
+    Download, Upload, RefreshCw, Trash2, Edit2, ShieldCheck,
     Eye, EyeOff
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SaveStatusBar } from '../../components/SaveStatusBar';
-import { Switch } from '../../components/Switch';
 import { useModalStore } from '../../store/useModalStore';
 import {
     OpenAIIcon, AnthropicIcon, DeepSeekIcon, ZhipuIcon,
@@ -30,6 +29,7 @@ const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, co
     'LM Studio': { icon: CustomProviderIcon, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
 };
 
+const PROVIDER_ORDER = ['OpenAI', 'Anthropic', 'DeepSeek', 'ZhipuAI', 'Volcengine', 'Qwen', 'MiniMax', 'Ollama', 'LM Studio'];
 
 export function ModelSettings() {
     const llm = useSettingsStore(s => s.settings.llm);
@@ -319,15 +319,25 @@ export function ModelSettings() {
 
     // --- 渲染逻辑 ---
     const filteredProviders = Array.from(new Set([
+        ...PROVIDER_ORDER,
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
         ...Object.keys(llmDraft.providers)
-    ])).filter(key => key.toLowerCase().includes(searchTerm.toLowerCase()));
+    ])).filter(key => {
+        const meta = PROVIDER_META[key];
+        const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
+        const keyword = searchTerm.toLowerCase();
+        return (
+            key.toLowerCase().includes(keyword) ||
+            (meta?.label || '').toLowerCase().includes(keyword) ||
+            (config?.label || '').toLowerCase().includes(keyword)
+        );
+    });
 
     return (
-        <div className="flex h-full gap-6 animate-in fade-in duration-500 relative">
+        <div className="flex h-full gap-5 animate-in fade-in duration-500 relative">
             {/* Left Box: Provider List */}
-            <div className="w-64 shrink-0 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
+            <div className="w-72 shrink-0 flex flex-col gap-3 pt-1">
+                <div className="flex min-h-[76px] items-center gap-2 rounded-[24px] border border-slate-200/80 bg-white/80 px-3 py-3 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.16)] dark:border-white/[0.06] dark:bg-[#18181b] dark:shadow-none">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
                         <input
@@ -335,66 +345,84 @@ export function ModelSettings() {
                             placeholder={t('modelSettings.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100"
+                            className="w-full bg-transparent py-2 pl-9 pr-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-zinc-500"
                         />
                     </div>
-                    <div className="flex items-center bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shrink-0">
-                        <button onClick={handleImportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.import')}>
-                            <Upload size={15} />
-                        </button>
-                        <button onClick={handleExportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-100 dark:border-white/5" title={t('modelSettings.export')}>
-                            <Download size={15} />
-                        </button>
-                        <button onClick={handleAddProvider} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-indigo-500 transition-colors" title={t('modelSettings.addProvider')}>
-                            <Plus size={15} />
+                    <div className="flex items-center justify-end gap-2 shrink-0">
+                        <div className="flex items-center rounded-xl overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/[0.06]">
+                            <button onClick={handleImportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-200/80 dark:border-white/[0.06]" title={t('modelSettings.import')}>
+                                <Upload size={15} />
+                            </button>
+                            <button onClick={handleExportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors" title={t('modelSettings.export')}>
+                                <Download size={15} />
+                            </button>
+                        </div>
+                        <button onClick={handleAddProvider} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20" title={t('modelSettings.addProvider')}>
+                            <Plus size={14} />
+                            {t('modelSettings.addProvider')}
                         </button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+                <div className="flex-1 overflow-y-auto rounded-[24px] border border-slate-200/80 bg-white/70 p-2 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.18)] custom-scrollbar dark:border-white/[0.06] dark:bg-[#18181b] dark:shadow-none">
+                    <div className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-zinc-500">
+                        {filteredProviders.length} Providers
+                    </div>
+                    <div className="space-y-1.5 pr-1">
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: CustomProviderIcon, label: key, desc: t('modelSettings.custom') };
                         const isSelected = selectedProvider === key;
                         const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
-                        const isCustom = !DEFAULT_PROVIDER_CONFIGS[key];
                         
                         return (
                             <div key={key} className="relative group/item">
                                 <div className={clsx(
-                                    "w-full text-left p-3 rounded-xl border transition-all relative flex items-center justify-between group",
-                                    isSelected ? "bg-white dark:bg-[#18181b] border-indigo-500/30 shadow-sm" : "bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/5"
+                                    "w-full text-left px-3.5 py-2.5 rounded-2xl border transition-all relative flex items-center justify-between group",
+                                    isSelected
+                                        ? "bg-[#F8FAFF] border-indigo-200 shadow-[0_14px_28px_-24px_rgba(99,102,241,0.45)] dark:bg-white/[0.05] dark:border-indigo-500/20 dark:shadow-none"
+                                        : "bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-white/5"
                                 )} onClick={() => setSelectedProvider(key)}>
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                        <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                                            <meta.icon className="w-6 h-6" />
+                                        <div className="w-8 h-8 flex items-center justify-center shrink-0 rounded-xl bg-slate-50 dark:bg-white/[0.04]">
+                                            <meta.icon className="w-5 h-5" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <span className={clsx("text-sm font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                            <span className={clsx("text-[14px] font-semibold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                                 {config.label || meta.label}
+                                            </span>
+                                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
+                                                {meta.desc}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                        <Switch 
-                                            size="sm"
-                                            checked={!!config?.enabled}
-                                            onChange={() => handleToggleProvider(key)}
-                                        />
+                                        <span
+                                            className={clsx(
+                                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold",
+                                                config?.enabled
+                                                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                                    : "bg-slate-100 text-slate-400 dark:bg-white/[0.05] dark:text-zinc-500"
+                                            )}
+                                        >
+                                            <span className={clsx("h-1.5 w-1.5 rounded-full", config?.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-zinc-600")} />
+                                            {config?.enabled ? '启用' : '关闭'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             </div>
 
             {/* Right Box: Detailed Configuration */}
             <div className="flex-1 flex flex-col min-w-0">
-                <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl flex-1 flex flex-col shadow-sm overflow-hidden">
+                <div className="bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06] rounded-[28px] flex-1 flex flex-col shadow-[0_18px_48px_-36px_rgba(15,23,42,0.22)] overflow-hidden dark:shadow-none">
                     {/* Detail Header */}
-                    <div className="px-6 py-5 border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] flex items-center justify-between">
+                    <div className="px-7 py-5 border-b border-slate-100 dark:border-white/[0.05] bg-white dark:bg-[#18181b] flex min-h-[76px] items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/[0.04] flex items-center justify-center shrink-0">
                                 {(() => {
                                     const Icon = PROVIDER_META[selectedProvider]?.icon || CustomProviderIcon;
                                     return <Icon className="w-7 h-7" />;
@@ -402,34 +430,45 @@ export function ModelSettings() {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2.5">
-                                    <h2 className="text-xl font-bold text-slate-800 dark:text-white leading-none">{currentProviderConfig.label || PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
+                                    <h2 className="text-[20px] font-bold text-slate-800 dark:text-white leading-none">{currentProviderConfig.label || PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
                                     {currentProviderConfig.enabled && (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] animate-pulse" />
-                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">已启用</span>
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">已启用</span>
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-xs text-slate-400 dark:text-gray-500 mt-1.5 font-medium uppercase tracking-widest">{selectedProvider.startsWith('custom-') ? 'Custom Provider' : 'Standard Provider'}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => handleToggleProvider(selectedProvider)}
+                                className={clsx(
+                                    "rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors",
+                                    currentProviderConfig.enabled
+                                        ? "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/[0.05] dark:text-zinc-300 dark:hover:bg-white/[0.08]"
+                                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+                                )}
+                            >
+                                {currentProviderConfig.enabled ? '停用' : '启用'}
+                            </button>
                             {!DEFAULT_PROVIDER_CONFIGS[selectedProvider] && (
                                 <button 
                                     onClick={() => handleDeleteProvider(selectedProvider)} 
                                     className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
                                     title={t('modelSettings.deleteProvider')}
                                 >
-                                    <Trash2 size={20} />
+                                    <Trash2 size={18} />
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    <div className="p-6 space-y-8 overflow-y-auto custom-scrollbar">
+                    <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-[#FCFCFD] dark:bg-[#18181b]">
                         {/* Provider Info (For Custom) */}
                         {selectedProvider.startsWith('custom-') && (
-                            <div className="space-y-4">
+                            <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                                <div className="space-y-4">
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Edit2 size={12} /> {t('modelSettings.providerName', 'Provider Name')}
                                 </label>
@@ -438,12 +477,14 @@ export function ModelSettings() {
                                     value={currentProviderConfig.label || ''} 
                                     onChange={(e) => updateProviderDraft({ label: e.target.value })} 
                                     placeholder="e.g. My Private GPT..." 
-                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" 
+                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" 
                                 />
-                            </div>
+                                </div>
+                            </section>
                         )}
 
                         {/* API Config Section */}
+                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -454,7 +495,7 @@ export function ModelSettings() {
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiKey')}</label>
                                     <div className="relative">
-                                        <input type={showApiKey ? "text" : "password"} value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                        <input type={showApiKey ? "text" : "password"} value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                         <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                                             {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                                         </button>
@@ -462,23 +503,25 @@ export function ModelSettings() {
                                 </div>
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiUrl')}</label>
-                                    <input type="text" value={baseUrlInput} onChange={(e) => handleConfigChange('baseUrl', e.target.value)} placeholder="https://api..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                    <input type="text" value={baseUrlInput} onChange={(e) => handleConfigChange('baseUrl', e.target.value)} placeholder="https://api..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                 </div>
                             </div>
                         </div>
+                        </section>
 
                         {/* Model Management Section */}
+                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Cpu size={12} /> {t('modelSettings.models')}
                                 </label>
                                 <div className="flex gap-2">
-                                    <button onClick={handleFetchModels} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
+                                    <button onClick={handleFetchModels} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
                                         <RefreshCw size={12} className={clsx(isFetchingModels && "animate-spin")} />
                                         {t('modelSettings.autoDiscover')}
                                     </button>
-                                    <button onClick={() => openModelEditor()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
+                                    <button onClick={() => openModelEditor()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
                                         <Plus size={12} />
                                         {t('modelSettings.addModel')}
                                     </button>
@@ -487,14 +530,14 @@ export function ModelSettings() {
 
                             {/* Model Pick List */}
                             {showModelPicker && (
-                                <div className="p-4 bg-slate-50 dark:bg-black/20 border border-dashed border-slate-300 dark:border-white/10 rounded-xl space-y-3 animate-in fade-in slide-in-from-top-2">
+                                <div className="p-4 bg-slate-50 dark:bg-black/20 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="text-xs font-medium text-slate-500">{isFetchingModels ? t('loading') : t('availableModels')}</span>
                                         <button onClick={() => setShowModelPicker(false)} className="text-slate-400 hover:text-slate-600"><X size={14}/></button>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto grid grid-cols-2 gap-2 pr-1 custom-scrollbar">
                                         {availableModels.map(name => (
-                                            <button key={name} onClick={() => { openModelEditor(null, name); setShowModelPicker(false); }} className="text-left px-3 py-2 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 text-xs hover:border-indigo-500/50 hover:text-indigo-500 transition-all truncate">
+                                            <button key={name} onClick={() => { openModelEditor(null, name); setShowModelPicker(false); }} className="text-left px-3 py-2 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 text-xs hover:border-indigo-500/50 hover:text-indigo-500 transition-all truncate">
                                                 {name}
                                             </button>
                                         ))}
@@ -505,23 +548,23 @@ export function ModelSettings() {
                             {/* Configured Models List */}
                             <div className="grid grid-cols-1 gap-3">
                                 {currentProviderConfig.models?.map((model, idx) => (
-                                    <div key={model.id} className="group p-4 rounded-2xl border transition-all duration-300 bg-white dark:bg-white/[0.02] border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10">
+                                    <div key={model.id} className="group rounded-3xl border border-slate-200/80 bg-[#FCFCFD] px-4 py-3.5 transition-all duration-300 dark:border-white/[0.06] dark:bg-[#1A1A1C] hover:border-slate-300 dark:hover:border-white/10">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex-1 min-w-0 space-y-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-bold text-slate-800 dark:text-white">{model.label}</span>
+                                                    <span className="text-[15px] font-semibold text-slate-800 dark:text-white">{model.label}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 truncate max-w-[140px] border border-slate-200/50 dark:border-white/5">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-[10px] font-mono px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[180px] border border-slate-200/60 dark:border-white/5">
                                                         {model.model}
                                                     </span>
                                                     <div className="flex items-center gap-1.5">
-                                                        <div className="px-2 py-0.5 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/5 text-indigo-500 text-[10px] font-bold border border-indigo-100 dark:border-indigo-500/10">
-                                                            TEMP: {model.temperature}
+                                                        <div className="px-2 py-0.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-medium border border-indigo-100 dark:border-indigo-500/10">
+                                                            Temp {model.temperature}
                                                         </div>
                                                         {model.supportVision && (
-                                                            <div className="px-2 py-0.5 rounded-lg bg-amber-50/50 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-100 dark:border-amber-500/10">
-                                                                VISION
+                                                            <div className="px-2 py-0.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-medium border border-amber-100 dark:border-amber-500/10">
+                                                                Vision
                                                             </div>
                                                         )}
                                                     </div>
@@ -541,23 +584,24 @@ export function ModelSettings() {
                             </div>
 
                             {(!currentProviderConfig.models || currentProviderConfig.models.length === 0) && (
-                                <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 dark:border-white/5 rounded-3xl text-slate-400">
+                                <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-white/5 rounded-3xl text-slate-400">
                                     <Cpu size={48} className="mb-3 opacity-20" />
                                     <p className="text-xs">{t('modelSettings.noModels', 'No models configured yet.')}</p>
                                     <button onClick={handleFetchModels} className="mt-4 text-indigo-500 text-xs font-bold hover:underline">{t('modelSettings.startDiscover', 'Start Discovering')}</button>
                                 </div>
                             )}
                         </div>
+                        </section>
 
                         {/* Connection Test Footer */}
-                        <div className="pt-8 mt-4 border-t border-slate-100 dark:border-white/5">
-                            <div className="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl group">
+                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                            <div className="flex items-center justify-between p-4 bg-slate-50/60 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl group">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 text-indigo-500">
-                                        <ShieldCheck size={20} />
+                                    <div className="w-9 h-9 rounded-full bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 text-slate-500 dark:text-zinc-300">
+                                        <ShieldCheck size={18} />
                                     </div>
                                     <div className="space-y-0.5">
-                                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('modelSettings.connectivity', 'Connectivity Status')}</h4>
+                                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('modelSettings.connectivity', 'Connectivity Status')}</h4>
                                         <p className="text-xs text-slate-400 dark:text-gray-500">{t('modelSettings.connectivityDesc', 'Verify your API keys and endpoint settings.')}</p>
                                     </div>
                                 </div>
@@ -576,14 +620,14 @@ export function ModelSettings() {
                                     <button 
                                         onClick={handleTestConnection} 
                                         disabled={isTesting} 
-                                        className="px-6 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2.5 whitespace-nowrap"
+                                        className="px-5 py-2.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
                                     >
                                         {isTesting ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
                                         <span>{t('imSettings.testConnection')}</span>
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -591,16 +635,16 @@ export function ModelSettings() {
             {/* Model Editor Modal */}
             {showModelEditor && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModelEditor(false)} />
-                    <div className="relative w-full max-w-md bg-white dark:bg-[#1c1c1f] rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 animate-in zoom-in-95 duration-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                            <h3 className="text-md font-bold text-slate-800 dark:text-white">{editingModelIndex !== null ? t('modelSettings.editModel') : t('modelSettings.addNewModel')}</h3>
+                    <div className="absolute inset-0 bg-slate-900/15 dark:bg-black/30" onClick={() => setShowModelEditor(false)} />
+                    <div className="relative w-full max-w-md bg-white dark:bg-[#1c1c1f] rounded-[28px] shadow-[0_30px_80px_-44px_rgba(15,23,42,0.3)] dark:shadow-[0_30px_80px_-44px_rgba(0,0,0,0.7)] border border-slate-200 dark:border-white/10 animate-in zoom-in-95 duration-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white dark:bg-[#1c1c1f]">
+                            <h3 className="text-[15px] font-semibold text-slate-800 dark:text-white">{editingModelIndex !== null ? t('modelSettings.editModel') : t('modelSettings.addNewModel')}</h3>
                             <button onClick={() => setShowModelEditor(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
                         
-                        <div className="p-6 space-y-5">
+                        <div className="p-6 space-y-5 bg-[#FCFCFD] dark:bg-[#1c1c1f]">
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('modelSettings.modelLabel')}</label>
                                 <input 
@@ -608,7 +652,7 @@ export function ModelSettings() {
                                     placeholder="GPT-4"
                                     value={modelForm.label}
                                     onChange={e => setModelForm({...modelForm, label: e.target.value})}
-                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-slate-700 dark:text-gray-200"
+                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all text-slate-700 dark:text-gray-200"
                                 />
                             </div>
 
@@ -619,19 +663,28 @@ export function ModelSettings() {
                                     placeholder="gpt-4"
                                     value={modelForm.model}
                                     onChange={e => setModelForm({...modelForm, model: e.target.value})}
-                                    className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-slate-700 dark:text-gray-200"
+                                    className="w-full bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all text-slate-700 dark:text-gray-200"
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2 py-2">
-                                <input 
-                                    type="checkbox" 
-                                    id="vision-support"
-                                    checked={modelForm.supportVision}
-                                    onChange={e => setModelForm({...modelForm, supportVision: e.target.checked})}
-                                    className="w-4 h-4 rounded border-slate-300 dark:border-white/10 text-indigo-500 focus:ring-indigo-500/50 transition-all"
-                                />
+                            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-black/20">
                                 <label htmlFor="vision-support" className="text-sm text-slate-600 dark:text-slate-300 font-medium cursor-pointer">{t('modelSettings.visionSupport')}</label>
+                                <button
+                                    id="vision-support"
+                                    type="button"
+                                    onClick={() => setModelForm({ ...modelForm, supportVision: !modelForm.supportVision })}
+                                    className={clsx(
+                                        "inline-flex h-7 w-12 items-center rounded-full p-1 transition-colors",
+                                        modelForm.supportVision ? "bg-indigo-500" : "bg-slate-200 dark:bg-zinc-700"
+                                    )}
+                                >
+                                    <span
+                                        className={clsx(
+                                            "h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
+                                            modelForm.supportVision ? "translate-x-5" : "translate-x-0"
+                                        )}
+                                    />
+                                </button>
                             </div>
 
                             <div className="space-y-2">
@@ -646,16 +699,16 @@ export function ModelSettings() {
                             </div>
                         </div>
 
-                        <div className="px-6 py-5 bg-slate-50/50 dark:bg-white/[0.02] flex justify-end gap-3">
+                        <div className="px-6 py-5 bg-white dark:bg-[#1c1c1f] border-t border-slate-100 dark:border-white/5 flex justify-end gap-3">
                             <button 
                                 onClick={() => setShowModelEditor(false)}
-                                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
                             >
                                 {t('modelSettings.cancel')}
                             </button>
                             <button 
                                 onClick={saveModel}
-                                className="px-8 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all"
+                                className="px-8 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 shadow-lg shadow-indigo-500/20 transition-all"
                             >
                                 {t('save')}
                             </button>

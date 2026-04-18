@@ -146,7 +146,7 @@
         "search": "搜索...",
         "import": "导入",
         "export": "导出",
-        "addProvider": "添加自定义提供商",
+        "addProvider": "添加",
         "namePlaceholder": "提供商名称 (如 My-LLM)",
         "add": "添加",
         "cancel": "取消",

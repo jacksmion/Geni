@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { UserCircle, Sparkles, RotateCcw, Fingerprint, Heart, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, RotateCcw, Fingerprint, Heart, User } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
@@ -214,19 +214,6 @@ export function PersonaSettings() {
                     className="flex-1 w-full p-4 bg-transparent text-sm text-slate-700 dark:text-gray-300 font-mono leading-relaxed focus:outline-none resize-none min-h-0"
                     spellCheck={false}
                 />
-            </div>
-
-            {/* Tip */}
-            <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-500/20 rounded-xl p-4 flex items-start gap-3 shrink-0">
-                <div className="mt-0.5 text-amber-500">
-                    <UserCircle size={18} />
-                </div>
-                <div>
-                    <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-400">{t('personaSettings.expertTip')}</h4>
-                    <p className="text-xs text-amber-700/80 dark:text-amber-400/60 leading-normal mt-1">
-                        {t('personaSettings.expertDesc')}
-                    </p>
-                </div>
             </div>
         </div>
     );

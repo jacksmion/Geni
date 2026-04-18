@@ -4,10 +4,11 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin, Search, Sparkles, Clock3, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin, Search, Sparkles, Clock3, Settings, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
+import { SETTINGS_SECTIONS } from '../../pages/settings/settingsSections';
 
 export function SessionSidebar() {
     const sessionMetas = useChatStore(s => s.sessionMetas);
@@ -32,6 +33,8 @@ export function SessionSidebar() {
     const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
     const setSidebarWidth = useLayoutStore(s => s.setSidebarWidth)
     const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
+    const activeSettingsSection = useLayoutStore(s => s.activeSettingsSection)
+    const setActiveSettingsSection = useLayoutStore(s => s.setActiveSettingsSection)
     const { isMobile } = useBreakpoint();
     const isResizing = React.useRef(false);
 
@@ -45,6 +48,7 @@ export function SessionSidebar() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     const { t } = useTranslation();
+    const isSettingsTab = activeTab === 'settings';
 
     React.useEffect(() => {
         if (profiles.length === 0) loadProfiles()
@@ -209,39 +213,56 @@ export function SessionSidebar() {
                 )}
 
                 <div className="flex flex-col gap-0 px-3 pt-2.5 pb-2 shrink-0">
-                    <ActionRow
-                        icon={Plus}
-                        label="新建任务"
-                        active={false}
-                        onClick={() => createSession()}
-                    />
-                    <ActionRow
-                        icon={Search}
-                        label={t('sidebar.search', { defaultValue: '搜索' })}
-                        active={false}
-                        onClick={() => setPaletteOpen(true)}
-                    />
-                    <ActionRow
-                        icon={Sparkles}
-                        label={t('sidebar.skills')}
-                        active={activeTab === 'skills'}
-                        onClick={() => setActiveTab('skills')}
-                    />
-                    <ActionRow
-                        icon={Clock3}
-                        label="自动化"
-                        active={activeTab === 'scheduler'}
-                        onClick={() => setActiveTab('scheduler')}
-                    />
+                    {isSettingsTab ? (
+                        <ActionRow
+                            icon={ArrowLeft}
+                            label="返回"
+                            active={false}
+                            onClick={() => setActiveTab('chat')}
+                        />
+                    ) : (
+                        <>
+                            <ActionRow
+                                icon={Plus}
+                                label="新建任务"
+                                active={false}
+                                onClick={() => createSession()}
+                            />
+                            <ActionRow
+                                icon={Search}
+                                label={t('sidebar.search', { defaultValue: '搜索' })}
+                                active={false}
+                                onClick={() => setPaletteOpen(true)}
+                            />
+                            <ActionRow
+                                icon={Sparkles}
+                                label={t('sidebar.skills')}
+                                active={activeTab === 'skills'}
+                                onClick={() => setActiveTab('skills')}
+                            />
+                            <ActionRow
+                                icon={Clock3}
+                                label="自动化"
+                                active={activeTab === 'scheduler'}
+                                onClick={() => setActiveTab('scheduler')}
+                            />
+                            <ActionRow
+                                icon={Users}
+                                label={t('sidebar.staff')}
+                                active={activeTab === 'staff'}
+                                onClick={() => setActiveTab('staff')}
+                            />
+                        </>
+                    )}
                 </div>
 
-                <div className="px-4 pt-2.5 pb-2 shrink-0">
+                <div className={clsx("px-4 pb-2 shrink-0", isSettingsTab ? "pt-1" : "pt-2.5")}>
                     <div className="flex items-center justify-between">
                         <div className="text-[13px] font-medium text-slate-400 dark:text-zinc-500 select-none">
-                            任务
+                            {isSettingsTab ? '' : '任务'}
                         </div>
                         <div className="flex items-center gap-1">
-                            {sessionMetas.length > 0 && (
+                            {!isSettingsTab && sessionMetas.length > 0 && (
                                 <button
                                     onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
                                     className={clsx(
@@ -255,21 +276,36 @@ export function SessionSidebar() {
                                     <ListChecks size={14} />
                                 </button>
                             )}
-                            <button
-                                onClick={() => createSession()}
-                                className="p-1.5 -mr-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors"
-                                title="新建任务"
-                            >
-                                <Plus size={16} strokeWidth={2.5} />
-                            </button>
+                            {!isSettingsTab && (
+                                <button
+                                    onClick={() => createSession()}
+                                    className="p-1.5 -mr-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors"
+                                    title="新建任务"
+                                >
+                                    <Plus size={16} strokeWidth={2.5} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* List */}
                 <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin overflow-x-hidden">
-                    <div className="space-y-0.5">
-                        {filteredSessions.map((session) => {
+                    {isSettingsTab ? (
+                        <div className="space-y-1 px-1">
+                            {SETTINGS_SECTIONS.map((section) => (
+                                <ActionRow
+                                    key={section.id}
+                                    icon={section.icon}
+                                    label={t(section.labelKey)}
+                                    active={activeSettingsSection === section.id}
+                                    onClick={() => setActiveSettingsSection(section.id)}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-0.5">
+                            {filteredSessions.map((session) => {
                             const isActive = session.id === activeSessionId;
                             const isEditing = editingId === session.id;
                             const isRunning = runningSessions.has(session.id);
@@ -411,8 +447,9 @@ export function SessionSidebar() {
                                         );
                                     })}
                                 </div>
+                    )}
 
-                    {filteredSessions.length === 0 && (
+                    {!isSettingsTab && filteredSessions.length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
                             <span className="text-xs">{t('sessionSidebar.noMatch')}</span>
                         </div>
@@ -420,7 +457,7 @@ export function SessionSidebar() {
                 </div>
 
                 {/* Bottom bar: batch actions or session count */}
-                {selectMode ? (
+                {!isSettingsTab && selectMode ? (
                     <div className="px-3 py-2.5 border-t border-[#EDEDF0] dark:border-white/[0.02] flex items-center justify-between min-w-[200px]">
                         <div className="flex items-center gap-2">
                             <button
@@ -454,17 +491,18 @@ export function SessionSidebar() {
                             </button>
                         </div>
                     </div>
-                ) : (
+                ) : !isSettingsTab ? (
                     <div className="mt-auto px-3 py-3 min-w-[200px]">
                         <ActionRow
                             icon={Settings}
                             label={t('sidebar.settings')}
-                            active={activeTab === 'settings'}
+                            active={false}
                             compact
                             onClick={() => setActiveTab('settings')}
                         />
                     </div>
-                )}
+                ) : null
+                }
             </div>
         </>
     );
