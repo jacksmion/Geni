@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } from '../../../common/types/settings';
+import { DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } from '../../../common/types/settings';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import {
-    Cpu, Zap, Loader2, Plus, X, Globe,
+    Cpu, Zap, Loader2, Plus, X,
     Download, Upload, RefreshCw, Trash2, Edit2, ShieldCheck,
     Eye, EyeOff
 } from 'lucide-react';
@@ -13,20 +13,20 @@ import { useModalStore } from '../../store/useModalStore';
 import {
     OpenAIIcon, AnthropicIcon, DeepSeekIcon, ZhipuIcon,
     MiniMaxIcon, QwenIcon, OllamaIcon, VolcengineIcon,
-    OpenRouterIcon, CustomProviderIcon
+    CustomProviderIcon
 } from '../../components/icons/providers';
 
 
-const PROVIDER_META: Record<string, { icon: any, label: string, desc: string, color?: string }> = {
-    'OpenAI': { icon: OpenAIIcon, label: 'OpenAI', desc: 'GPT-5.2, GPT-4o', color: '#10a37f' },
-    'Anthropic': { icon: AnthropicIcon, label: 'Anthropic', desc: 'Claude 4.6 Opus/Sonnet', color: '#d97757' },
-    'DeepSeek': { icon: DeepSeekIcon, label: 'DeepSeek', desc: 'DeepSeek-V3.2', color: '#4d6df1' },
-    'ZhipuAI': { icon: ZhipuIcon, label: '智谱 AI', desc: 'GLM-4, GLM-3', color: '#343b4d' },
-    'Volcengine': { icon: VolcengineIcon, label: '火山引擎', desc: 'Doubao 豆包模型', color: '#ff4d4f' },
-    'Qwen': { icon: QwenIcon, label: '通义千问', desc: 'Qwen 3.5, Qwen 3', color: '#6340ff' },
-    'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax', desc: 'MiniMax M2.5', color: '#ff7a00' },
-    'Ollama': { icon: OllamaIcon, label: 'Ollama', desc: 'Llama 3, Mistral (Local)', color: '#444' },
-    'LM Studio': { icon: CustomProviderIcon, label: 'LM Studio', desc: 'Local OpenAI Server', color: '#6366f1' },
+const PROVIDER_META: Record<string, { icon: any, label: string }> = {
+    'OpenAI': { icon: OpenAIIcon, label: 'OpenAI' },
+    'Anthropic': { icon: AnthropicIcon, label: 'Anthropic' },
+    'DeepSeek': { icon: DeepSeekIcon, label: 'DeepSeek' },
+    'ZhipuAI': { icon: ZhipuIcon, label: '智谱 AI' },
+    'Volcengine': { icon: VolcengineIcon, label: '火山引擎' },
+    'Qwen': { icon: QwenIcon, label: '通义千问' },
+    'MiniMax': { icon: MiniMaxIcon, label: 'MiniMax' },
+    'Ollama': { icon: OllamaIcon, label: 'Ollama' },
+    'LM Studio': { icon: CustomProviderIcon, label: 'LM Studio' },
 };
 
 const PROVIDER_ORDER = ['OpenAI', 'Anthropic', 'DeepSeek', 'ZhipuAI', 'Volcengine', 'Qwen', 'MiniMax', 'Ollama', 'LM Studio'];
@@ -55,7 +55,6 @@ export function ModelSettings() {
     const isDirty = JSON.stringify(llmDraft) !== JSON.stringify(llm);
 
     const [selectedProvider, setSelectedProvider] = useState<string>(llmDraft.activeProvider || 'OpenAI');
-    const [searchTerm, setSearchTerm] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean, message: string } | null>(null);
     const [isFetchingModels, setIsFetchingModels] = useState(false);
@@ -322,43 +321,28 @@ export function ModelSettings() {
         ...PROVIDER_ORDER,
         ...Object.keys(DEFAULT_PROVIDER_CONFIGS),
         ...Object.keys(llmDraft.providers)
-    ])).filter(key => {
-        const meta = PROVIDER_META[key];
-        const config = llmDraft.providers[key] || DEFAULT_PROVIDER_CONFIGS[key];
-        const keyword = searchTerm.toLowerCase();
-        return (
-            key.toLowerCase().includes(keyword) ||
-            (meta?.label || '').toLowerCase().includes(keyword) ||
-            (config?.label || '').toLowerCase().includes(keyword)
-        );
-    });
+    ]));
 
     return (
         <div className="flex h-full flex-col gap-5 animate-in fade-in duration-500 relative">
-            <div className="flex items-center justify-between gap-4">
-                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    提供商
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    <button onClick={handleImportPreset} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-white/[0.06] dark:bg-[#18181b] dark:text-slate-400 dark:hover:bg-white/5" title={t('modelSettings.import')}>
-                        <Upload size={14} />
-                        {t('modelSettings.import')}
-                    </button>
-                    <button onClick={handleExportPreset} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-white/[0.06] dark:bg-[#18181b] dark:text-slate-400 dark:hover:bg-white/5" title={t('modelSettings.export')}>
-                        <Download size={14} />
-                        {t('modelSettings.export')}
-                    </button>
-                    <button onClick={handleAddProvider} className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20" title={t('modelSettings.addProvider')}>
-                        <Plus size={14} />
-                        {t('modelSettings.addProvider')}
-                    </button>
-                </div>
-            </div>
-
             <div className="flex min-h-0 flex-1 gap-5">
             {/* Left Box: Provider List */}
-            <div className="w-72 shrink-0 flex flex-col gap-3">
-                <div className="flex-1 overflow-y-auto rounded-[24px] bg-white/70 p-2 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.18)] custom-scrollbar dark:bg-[#18181b] dark:shadow-none">
+            <div className="w-60 shrink-0 flex flex-col gap-3">
+                <div className="flex-1 overflow-y-auto rounded-2xl bg-white/70 p-2 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.18)] custom-scrollbar dark:bg-[#18181b] dark:shadow-none">
+                    <div className="flex items-center justify-between px-1 py-2 border-b border-slate-100 dark:border-white/[0.05]">
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">提供商</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                            <button onClick={handleImportPreset} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5 dark:hover:text-slate-300" title={t('modelSettings.import')}>
+                                <Upload size={12} />
+                            </button>
+                            <button onClick={handleExportPreset} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5 dark:hover:text-slate-300" title={t('modelSettings.export')}>
+                                <Download size={12} />
+                            </button>
+                            <button onClick={handleAddProvider} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-indigo-500 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10 dark:text-indigo-400" title={t('modelSettings.addProvider')}>
+                                <Plus size={12} />
+                            </button>
+                        </div>
+                    </div>
                     <div className="space-y-1.5 pr-1">
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: CustomProviderIcon, label: key, desc: t('modelSettings.custom') };
@@ -374,22 +358,19 @@ export function ModelSettings() {
                                         : "bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-white/5"
                                 )} onClick={() => setSelectedProvider(key)}>
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                        <div className="w-8 h-8 flex items-center justify-center shrink-0 rounded-xl bg-slate-50 dark:bg-white/[0.04]">
-                                            <meta.icon className="w-5 h-5" />
+                                        <div className="w-7 h-7 flex items-center justify-center shrink-0 rounded-lg bg-slate-50 dark:bg-white/[0.04]">
+                                            <meta.icon className="w-4 h-4" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <span className={clsx("text-[14px] font-semibold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                            <span className={clsx("text-[13px] font-semibold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                                 {config.label || meta.label}
-                                            </span>
-                                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
-                                                {meta.desc}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                                         <span
                                             className={clsx(
-                                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold",
+                                                "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                                                 config?.enabled
                                                     ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
                                                     : "bg-slate-100 text-slate-400 dark:bg-white/[0.05] dark:text-zinc-500"
@@ -408,20 +389,20 @@ export function ModelSettings() {
             </div>
 
             {/* Right Box: Detailed Configuration */}
-            <div className="flex-1 flex min-w-0 flex-col pt-8">
-                <div className="bg-white dark:bg-[#18181b] rounded-[28px] flex-1 flex flex-col shadow-[0_18px_48px_-36px_rgba(15,23,42,0.22)] overflow-hidden dark:shadow-none">
+            <div className="flex-1 flex min-w-0 flex-col">
+                <div className="bg-white dark:bg-[#18181b] rounded-2xl flex-1 flex flex-col shadow-[0_18px_48px_-36px_rgba(15,23,42,0.22)] overflow-hidden dark:shadow-none">
                     {/* Detail Header */}
-                    <div className="px-7 py-5 border-b border-slate-100 dark:border-white/[0.05] bg-white dark:bg-[#18181b] flex min-h-[76px] items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-white/[0.04] flex items-center justify-center shrink-0">
+                    <div className="px-5 py-2 border-b border-slate-100 dark:border-white/[0.05] bg-white dark:bg-[#18181b] flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded bg-slate-50 dark:bg-white/[0.04] flex items-center justify-center shrink-0">
                                 {(() => {
                                     const Icon = PROVIDER_META[selectedProvider]?.icon || CustomProviderIcon;
-                                    return <Icon className="w-7 h-7" />;
+                                    return <Icon className="w-4 h-4" />;
                                 })()}
                             </div>
                             <div>
                                 <div className="flex items-center gap-2.5">
-                                    <h2 className="text-[20px] font-bold text-slate-800 dark:text-white leading-none">{currentProviderConfig.label || PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
+                                    <h2 className="text-[13px] font-bold text-slate-800 dark:text-white leading-none">{currentProviderConfig.label || PROVIDER_META[selectedProvider]?.label || selectedProvider}</h2>
                                     {currentProviderConfig.enabled && (
                                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20">
                                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -455,10 +436,10 @@ export function ModelSettings() {
                         </div>
                     </div>
 
-                    <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar bg-[#FCFCFD] dark:bg-[#18181b]">
+                    <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar bg-[#FCFCFD] dark:bg-[#18181b]">
                         {/* Provider Info (For Custom) */}
                         {selectedProvider.startsWith('custom-') && (
-                            <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                            <section className="rounded-3xl border border-slate-200/80 bg-white p-4 dark:border-white/[0.06] dark:bg-white/[0.02]">
                                 <div className="space-y-4">
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Edit2 size={12} /> {t('modelSettings.providerName', 'Provider Name')}
@@ -475,18 +456,13 @@ export function ModelSettings() {
                         )}
 
                         {/* API Config Section */}
-                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    < Globe size={12} /> {t('modelSettings.apiConfig', 'API Configuration')}
-                                </label>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                        <section className="rounded-3xl bg-white p-3 dark:bg-white/[0.02]">
+                        <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiKey')}</label>
                                     <div className="relative">
-                                        <input type={showApiKey ? "text" : "password"} value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                        <input type={showApiKey ? "text" : "password"} value={apiKeyInput} onChange={(e) => handleConfigChange('apiKey', e.target.value)} placeholder="sk-..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 pr-10 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                         <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                                             {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                                         </button>
@@ -494,15 +470,15 @@ export function ModelSettings() {
                                 </div>
                                 <div className="space-y-2 col-span-2">
                                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400">{t('modelSettings.apiUrl')}</label>
-                                    <input type="text" value={baseUrlInput} onChange={(e) => handleConfigChange('baseUrl', e.target.value)} placeholder="https://api..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                    <input type="text" value={baseUrlInput} onChange={(e) => handleConfigChange('baseUrl', e.target.value)} placeholder="https://api..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                 </div>
                             </div>
                         </div>
                         </section>
 
                         {/* Model Management Section */}
-                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                        <div className="space-y-4">
+                        <section className="rounded-3xl bg-white p-3 dark:bg-white/[0.02]">
+                        <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Cpu size={12} /> {t('modelSettings.models')}
@@ -510,11 +486,11 @@ export function ModelSettings() {
                                 <div className="flex gap-2">
                                     <button onClick={handleFetchModels} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
                                         <RefreshCw size={12} className={clsx(isFetchingModels && "animate-spin")} />
-                                        {t('modelSettings.autoDiscover')}
+                                        {t('modelSettings.discover')}
                                     </button>
                                     <button onClick={() => openModelEditor()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
                                         <Plus size={12} />
-                                        {t('modelSettings.addModel')}
+                                        {t('modelSettings.add')}
                                     </button>
                                 </div>
                             </div>
@@ -537,36 +513,30 @@ export function ModelSettings() {
                             )}
 
                             {/* Configured Models List */}
-                            <div className="grid grid-cols-1 gap-3">
+                            <div className="grid grid-cols-1 gap-2">
                                 {currentProviderConfig.models?.map((model, idx) => (
-                                    <div key={model.id} className="group rounded-3xl border border-slate-200/80 bg-[#FCFCFD] px-4 py-3.5 transition-all duration-300 dark:border-white/[0.06] dark:bg-[#1A1A1C] hover:border-slate-300 dark:hover:border-white/10">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0 space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[15px] font-semibold text-slate-800 dark:text-white">{model.label}</span>
+                                    <div key={model.id} className="group rounded-xl border border-slate-200/80 bg-[#FCFCFD] px-3 py-2 transition-all duration-300 dark:border-white/[0.06] dark:bg-[#1A1A1C] hover:border-slate-300 dark:hover:border-white/10">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                <span className="text-xs font-semibold text-slate-800 dark:text-white truncate">{model.label}</span>
+                                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
+                                                    {model.model}
+                                                </span>
+                                                <div className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-medium">
+                                                    {model.temperature}
                                                 </div>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-[10px] font-mono px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[180px] border border-slate-200/60 dark:border-white/5">
-                                                        {model.model}
-                                                    </span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="px-2 py-0.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-medium border border-indigo-100 dark:border-indigo-500/10">
-                                                            Temp {model.temperature}
-                                                        </div>
-                                                        {model.supportVision && (
-                                                            <div className="px-2 py-0.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-medium border border-amber-100 dark:border-amber-500/10">
-                                                                Vision
-                                                            </div>
-                                                        )}
+                                                {model.supportVision && (
+                                                    <div className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-medium">
+                                                        Vision
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openModelEditor(idx)} className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-white/5 rounded-xl transition-all">
-                                                    <Edit2 size={14} />
+                                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                                <button onClick={() => openModelEditor(idx)} className="p-1 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-white/5 rounded-lg transition-all">
+                                                    <Edit2 size={12} />
                                                 </button>
-                                                <button onClick={() => removeModelInstance(idx)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all">
-                                                    <Trash2 size={14} />
+                                                <button onClick={() => removeModelInstance(idx)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all">
+                                                    <Trash2 size={12} />
                                                 </button>
                                             </div>
                                         </div>
@@ -585,35 +555,38 @@ export function ModelSettings() {
                         </section>
 
                         {/* Connection Test Footer */}
-                        <section className="rounded-3xl border border-slate-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                            <div className="flex items-center justify-between p-4 bg-slate-50/60 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl group">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-9 h-9 rounded-full bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 text-slate-500 dark:text-zinc-300">
-                                        <ShieldCheck size={18} />
+                        <section className="rounded-3xl bg-white p-3 dark:bg-white/[0.02]">
+                            <div className="flex items-center justify-between p-2.5 bg-slate-50/60 dark:bg-white/[0.02] rounded-xl group">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-7 h-7 rounded-full bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/5 text-slate-500 dark:text-zinc-300">
+                                        <ShieldCheck size={14} />
                                     </div>
                                     <div className="space-y-0.5">
-                                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('modelSettings.connectivity', 'Connectivity Status')}</h4>
-                                        <p className="text-xs text-slate-400 dark:text-gray-500">{t('modelSettings.connectivityDesc', 'Verify your API keys and endpoint settings.')}</p>
+                                        <h4 className={clsx(
+                                            "text-xs font-semibold",
+                                            testResult
+                                                ? testResult.success
+                                                    ? "text-emerald-600 dark:text-emerald-400"
+                                                    : "text-red-600 dark:text-red-400"
+                                                : "text-slate-700 dark:text-slate-200"
+                                        )}>
+                                            {testResult
+                                                ? testResult.success
+                                                    ? t('modelSettings.connectSuccess')
+                                                    : t('modelSettings.connectFailed')
+                                                : t('modelSettings.connectivity', 'Connectivity Status')
+                                            }
+                                        </h4>
                                     </div>
                                 </div>
                                 
                                 <div className="flex items-center gap-4">
-                                    {testResult && (
-                                        <div className={clsx(
-                                            "text-xs font-bold px-4 py-2 rounded-xl animate-in fade-in slide-in-from-right-2 duration-300",
-                                            testResult.success 
-                                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20" 
-                                                : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20"
-                                        )}>
-                                            {testResult.message}
-                                        </div>
-                                    )}
-                                    <button 
-                                        onClick={handleTestConnection} 
-                                        disabled={isTesting} 
-                                        className="px-5 py-2.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                                    <button
+                                        onClick={handleTestConnection}
+                                        disabled={isTesting}
+                                        className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
                                     >
-                                        {isTesting ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="currentColor" />}
+                                        {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} fill="currentColor" />}
                                         <span>{t('imSettings.testConnection')}</span>
                                     </button>
                                 </div>
