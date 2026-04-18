@@ -158,7 +158,6 @@ export function PersonaSettings() {
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
-                    <h2 className="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-1">{t('personaSettings.title')}</h2>
                     <p className="text-sm text-slate-500 dark:text-gray-400">{t('personaSettings.desc')}</p>
                 </div>
                 <div className="flex items-center gap-2">

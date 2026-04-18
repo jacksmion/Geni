@@ -3,7 +3,7 @@ import { AppSettings, DEFAULT_PROVIDER_CONFIGS, ProviderConfig, ModelInstance } 
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { clsx } from 'clsx';
 import {
-    Cpu, Zap, Search, Loader2, Plus, X, Globe,
+    Cpu, Zap, Loader2, Plus, X, Globe,
     Download, Upload, RefreshCw, Trash2, Edit2, ShieldCheck,
     Eye, EyeOff
 } from 'lucide-react';
@@ -334,40 +334,31 @@ export function ModelSettings() {
     });
 
     return (
-        <div className="flex h-full gap-5 animate-in fade-in duration-500 relative">
-            {/* Left Box: Provider List */}
-            <div className="w-72 shrink-0 flex flex-col gap-3 pt-1">
-                <div className="flex min-h-[76px] items-center gap-2 rounded-[24px] border border-slate-200/80 bg-white/80 px-3 py-3 shadow-[0_10px_30px_-24px_rgba(15,23,42,0.16)] dark:border-white/[0.06] dark:bg-[#18181b] dark:shadow-none">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
-                        <input
-                            type="text"
-                            placeholder={t('modelSettings.search')}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-transparent py-2 pl-9 pr-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-slate-100 dark:placeholder:text-zinc-500"
-                        />
-                    </div>
-                    <div className="flex items-center justify-end gap-2 shrink-0">
-                        <div className="flex items-center rounded-xl overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/[0.06]">
-                            <button onClick={handleImportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors border-r border-slate-200/80 dark:border-white/[0.06]" title={t('modelSettings.import')}>
-                                <Upload size={15} />
-                            </button>
-                            <button onClick={handleExportPreset} className="p-2.5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors" title={t('modelSettings.export')}>
-                                <Download size={15} />
-                            </button>
-                        </div>
-                        <button onClick={handleAddProvider} className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20" title={t('modelSettings.addProvider')}>
-                            <Plus size={14} />
-                            {t('modelSettings.addProvider')}
-                        </button>
-                    </div>
+        <div className="flex h-full flex-col gap-5 animate-in fade-in duration-500 relative">
+            <div className="flex items-center justify-between gap-4">
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    提供商
                 </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    <button onClick={handleImportPreset} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-white/[0.06] dark:bg-[#18181b] dark:text-slate-400 dark:hover:bg-white/5" title={t('modelSettings.import')}>
+                        <Upload size={14} />
+                        {t('modelSettings.import')}
+                    </button>
+                    <button onClick={handleExportPreset} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-50 dark:border-white/[0.06] dark:bg-[#18181b] dark:text-slate-400 dark:hover:bg-white/5" title={t('modelSettings.export')}>
+                        <Download size={14} />
+                        {t('modelSettings.export')}
+                    </button>
+                    <button onClick={handleAddProvider} className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20" title={t('modelSettings.addProvider')}>
+                        <Plus size={14} />
+                        {t('modelSettings.addProvider')}
+                    </button>
+                </div>
+            </div>
 
-                <div className="flex-1 overflow-y-auto rounded-[24px] border border-slate-200/80 bg-white/70 p-2 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.18)] custom-scrollbar dark:border-white/[0.06] dark:bg-[#18181b] dark:shadow-none">
-                    <div className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-zinc-500">
-                        {filteredProviders.length} Providers
-                    </div>
+            <div className="flex min-h-0 flex-1 gap-5">
+            {/* Left Box: Provider List */}
+            <div className="w-72 shrink-0 flex flex-col gap-3">
+                <div className="flex-1 overflow-y-auto rounded-[24px] bg-white/70 p-2 shadow-[0_16px_40px_-32px_rgba(15,23,42,0.18)] custom-scrollbar dark:bg-[#18181b] dark:shadow-none">
                     <div className="space-y-1.5 pr-1">
                     {filteredProviders.map(key => {
                         const meta = PROVIDER_META[key] || { icon: CustomProviderIcon, label: key, desc: t('modelSettings.custom') };
@@ -417,8 +408,8 @@ export function ModelSettings() {
             </div>
 
             {/* Right Box: Detailed Configuration */}
-            <div className="flex-1 flex flex-col min-w-0">
-                <div className="bg-white dark:bg-[#18181b] border border-slate-200/80 dark:border-white/[0.06] rounded-[28px] flex-1 flex flex-col shadow-[0_18px_48px_-36px_rgba(15,23,42,0.22)] overflow-hidden dark:shadow-none">
+            <div className="flex-1 flex min-w-0 flex-col pt-8">
+                <div className="bg-white dark:bg-[#18181b] rounded-[28px] flex-1 flex flex-col shadow-[0_18px_48px_-36px_rgba(15,23,42,0.22)] overflow-hidden dark:shadow-none">
                     {/* Detail Header */}
                     <div className="px-7 py-5 border-b border-slate-100 dark:border-white/[0.05] bg-white dark:bg-[#18181b] flex min-h-[76px] items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -630,6 +621,7 @@ export function ModelSettings() {
                         </section>
                     </div>
                 </div>
+            </div>
             </div>
 
             {/* Model Editor Modal */}

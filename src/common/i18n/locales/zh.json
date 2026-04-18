@@ -20,7 +20,7 @@
         "save": "保存"
     },
     "shortcuts": {
-        "title": "快捷键配置",
+        "title": "快捷键",
         "desc": "设置常用功能的组合快捷键，提升操作效率。",
         "new_task": "新建任务",
         "search_task": "搜索任务",

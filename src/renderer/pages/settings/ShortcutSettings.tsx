@@ -87,8 +87,7 @@ export function ShortcutSettings() {
         <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500" ref={containerRef}>
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-gray-100">{t('shortcuts.title')}</h2>
-                    <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">{t('shortcuts.desc')}</p>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">{t('shortcuts.desc')}</p>
                 </div>
                 <button
                     onClick={handleReset}

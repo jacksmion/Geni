@@ -69,9 +69,6 @@ export function CoreToolSettings() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
-                        {t('coreToolSettings.title')}
-                    </h2>
                     <p className="text-sm text-slate-500 dark:text-gray-400">{t('coreToolSettings.desc')}</p>
                 </div>
 

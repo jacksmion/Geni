@@ -73,21 +73,6 @@ export function UsageSettings() {
 
     return (
         <div className="max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header / Summary Cards */}
-            <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    <BarChart3 className="text-indigo-500" />
-                    {t('usageSettings.title')}
-                </h2>
-                <button
-                    onClick={fetchStats}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-colors text-slate-400 hover:text-indigo-500"
-                    title="Refresh"
-                >
-                    <TrendingUp size={20} className={loading ? "animate-spin" : ""} />
-                </button>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-indigo-500/10 to-purple-600/10 dark:from-indigo-500/20 dark:to-purple-600/20 border border-indigo-100 dark:border-indigo-500/30 rounded-2xl p-6 shadow-sm relative overflow-hidden group">
                     <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">

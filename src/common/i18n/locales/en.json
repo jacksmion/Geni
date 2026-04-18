@@ -20,7 +20,7 @@
         "save": "Save"
     },
     "shortcuts": {
-        "title": "Shortcuts Configuration",
+        "title": "Shortcuts",
         "desc": "Set keyboard shortcuts for common functions to improve operation efficiency.",
         "new_task": "New Task",
         "search_task": "Search Task",
