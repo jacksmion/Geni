@@ -181,7 +181,7 @@ export function ImSettings() {
     };
 
     return (
-        <div className="flex h-full gap-6 animate-in fade-in duration-500 relative">
+        <div className="flex h-full gap-5 animate-in fade-in duration-500 relative">
             {/* Left Box: IM Provider List */}
             <div className="w-56 shrink-0 flex flex-col gap-4">
                 <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
@@ -200,17 +200,17 @@ export function ImSettings() {
                                     setTestResult(null);
                                 }}
                                 className={clsx(
-                                    "p-3 rounded-2xl border transition-all cursor-pointer group flex items-center justify-between",
+                                    "p-2.5 rounded-2xl transition-all cursor-pointer group flex items-center justify-between",
                                     isSelected
-                                        ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-500/30 shadow-sm"
-                                        : "bg-white dark:bg-[#18181b] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                                        ? "bg-indigo-50/50 dark:bg-indigo-500/10"
+                                        : "hover:bg-slate-50 dark:hover:bg-white/5"
                                 )}
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                                        <img src={provider.icon} alt={provider.label} className="w-7 h-7 object-contain" />
+                                    <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                                        <img src={provider.icon} alt={provider.label} className="w-5 h-5 object-contain" />
                                     </div>
-                                    <span className={clsx("text-sm font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                    <span className={clsx("text-[13px] font-bold truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                         {provider.label}
                                     </span>
                                 </div>
@@ -232,20 +232,20 @@ export function ImSettings() {
 
             {/* Right Box: Configuration Panel */}
             <div className="flex-1 flex flex-col min-w-0">
-                <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-3xl flex-1 flex flex-col shadow-sm overflow-hidden">
-                    <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                <div className="bg-white dark:bg-[#18181b] rounded-2xl flex-1 flex flex-col overflow-hidden">
+                    <div className="px-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between h-[30px]">
                         {(() => {
                             const current = IM_PROVIDERS.find(p => p.id === selectedIM);
                             const isConnected = selectedIM === 'wechat' ? wechatConnected : !!testResult?.success;
                             return (
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 rounded-2xl shadow-sm transition-colors"
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1 rounded transition-colors"
                                         style={{ backgroundColor: `${current?.color || '#6366f1'}1a`, color: current?.color || '#6366f1' }}>
-                                        {current && <img src={current.icon} alt={current.label} className="w-6 h-6 object-contain" />}
+                                        {current && <img src={current.icon} alt={current.label} className="w-4 h-4 object-contain" />}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-3">
-                                            <h2 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
+                                            <h2 className="text-xs font-bold text-slate-800 dark:text-white">
                                                 {current?.label}
                                             </h2>
                                             <div className={clsx(
@@ -258,41 +258,38 @@ export function ImSettings() {
                                                 {isConnected ? t('modelSettings.connected') : t('mcpSettings.notConnected')}
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                            {current?.desc}
-                                        </p>
                                     </div>
                                 </div>
                             );
                         })()}
                     </div>
 
-                    <div className="p-10 space-y-10 overflow-y-auto custom-scrollbar flex-1">
+                    <div className="p-5 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                         {selectedIM === 'telegram' && (
                             <>
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Key size={14} className="text-indigo-500/70" /> {t('imSettings.tokenLabel')}
+                                        <Key size={12} className="text-indigo-500/70" /> {t('imSettings.tokenLabel')}
                                     </label>
                                     <input
                                         type="password"
                                         value={tgDraft.token}
                                         onChange={(e) => setTgDraft({ ...tgDraft, token: e.target.value })}
                                         placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
 
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Globe size={14} className="text-indigo-500/70" /> {t('imSettings.proxyLabel')}
+                                        <Globe size={12} className="text-indigo-500/70" /> {t('imSettings.proxyLabel')}
                                     </label>
                                     <input
                                         type="text"
                                         value={tgDraft.proxyUrl || ''}
                                         onChange={(e) => setTgDraft({ ...tgDraft, proxyUrl: e.target.value })}
                                         placeholder="http://127.0.0.1:7890"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
                             </>
@@ -302,27 +299,27 @@ export function ImSettings() {
                             <>
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Zap size={14} className="text-indigo-500/70" /> {t('imSettings.wecomBotIdLabel')}
+                                        <Zap size={12} className="text-indigo-500/70" /> {t('imSettings.wecomBotIdLabel')}
                                     </label>
                                     <input
                                         type="text"
                                         value={wecomDraft.botId}
                                         onChange={(e) => setWecomDraft({ ...wecomDraft, botId: e.target.value })}
                                         placeholder="Enter Bot ID"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
 
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Key size={14} className="text-indigo-500/70" /> {t('imSettings.wecomSecretLabel')}
+                                        <Key size={12} className="text-indigo-500/70" /> {t('imSettings.wecomSecretLabel')}
                                     </label>
                                     <input
                                         type="password"
                                         value={wecomDraft.secret}
                                         onChange={(e) => setWecomDraft({ ...wecomDraft, secret: e.target.value })}
                                         placeholder="Enter Bot Secret"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
                             </>
@@ -332,27 +329,27 @@ export function ImSettings() {
                             <>
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Zap size={14} className="text-indigo-500/70" /> {t('imSettings.larkAppIdLabel')}
+                                        <Zap size={12} className="text-indigo-500/70" /> {t('imSettings.larkAppIdLabel')}
                                     </label>
                                     <input
                                         type="text"
                                         value={larkDraft.appId}
                                         onChange={(e) => setLarkDraft({ ...larkDraft, appId: e.target.value })}
                                         placeholder="cli_a1b2c3d4e5f6g7h8"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
 
                                 <div className="space-y-4">
                                     <label className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-2 px-1">
-                                        <Key size={14} className="text-indigo-500/70" /> {t('imSettings.larkAppSecretLabel')}
+                                        <Key size={12} className="text-indigo-500/70" /> {t('imSettings.larkAppSecretLabel')}
                                     </label>
                                     <input
                                         type="password"
                                         value={larkDraft.appSecret}
                                         onChange={(e) => setLarkDraft({ ...larkDraft, appSecret: e.target.value })}
                                         placeholder="Enter App Secret"
-                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all text-slate-700 dark:text-gray-200 placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                     />
                                 </div>
                             </>
@@ -362,11 +359,11 @@ export function ImSettings() {
                             <div className="space-y-4">
 
                                 {wechatConnected && (
-                                    <div className="flex flex-col items-center justify-center p-8 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
-                                        <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
-                                            <img src="./IM/weixin.png" alt="WeChat" className="w-9 h-9 object-contain" />
+                                    <div className="flex flex-col items-center justify-center p-5 border border-emerald-200 dark:border-emerald-800/30 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 text-center shadow-sm">
+                                        <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-800/40 rounded-full flex items-center justify-center mb-4 text-emerald-600 dark:text-emerald-400 ring-4 ring-emerald-50 dark:ring-emerald-900/20">
+                                            <img src="./IM/weixin.png" alt="WeChat" className="w-7 h-7 object-contain" />
                                         </div>
-                                        <p className="text-emerald-800 dark:text-emerald-400 font-bold text-lg flex items-center gap-2">
+                                        <p className="text-emerald-800 dark:text-emerald-400 font-bold text-sm flex items-center gap-2">
                                             <span className="relative flex h-3 w-3">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
@@ -379,7 +376,7 @@ export function ImSettings() {
                                     </div>
                                 )}
                                 {!wechatConnected && wechatQrUrl && (
-                                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 text-center">
+                                    <div className="flex flex-col items-center justify-center p-5 border border-slate-200 dark:border-white/10 rounded-2xl bg-white dark:bg-black/20 text-center">
                                         <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-100">
                                             <QRCodeSVG value={wechatQrUrl} size={200} />
                                         </div>
@@ -392,12 +389,12 @@ export function ImSettings() {
                                     </div>
                                 )}
                                 {!wechatConnected && !wechatQrUrl && (
-                                    <div className="flex flex-col items-center justify-center p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-black/20 text-center">
+                                    <div className="flex flex-col items-center justify-center p-5 border border-slate-200 dark:border-white/10 rounded-2xl bg-slate-50 dark:bg-black/20 text-center">
                                         <button
                                             onClick={handleWechatScan}
-                                            className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/10"
+                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/10"
                                         >
-                                            <img src="./IM/weixin.png" alt="WeChat" className="w-[18px] h-[18px] object-contain brightness-0 invert" />
+                                            <img src="./IM/weixin.png" alt="WeChat" className="w-4 h-4 object-contain brightness-0 invert" />
                                             扫码连接微信
                                         </button>
                                         <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
@@ -413,28 +410,28 @@ export function ImSettings() {
                                 <button
                                     onClick={handleTestConnection}
                                     disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
-                                    className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-2xl py-4 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
+                                    className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
                                 >
                                     {isTesting ? (
-                                        <Loader2 size={18} className="animate-spin" />
+                                        <Loader2 size={14} className="animate-spin" />
                                     ) : (
-                                        <ShieldCheck size={18} />
+                                        <ShieldCheck size={14} />
                                     )}
-                                    <span className="text-sm tracking-tight">{t('imSettings.testConnection')}</span>
+                                    <span className="text-xs tracking-tight">{t('imSettings.testConnection')}</span>
                                 </button>
 
                                 {testResult && (
                                     <div className={clsx(
-                                        "mt-4 p-5 rounded-2xl flex items-start gap-4 animate-in slide-in-from-top-2 duration-300",
+                                        "mt-4 p-3 rounded-xl flex items-start gap-3 animate-in slide-in-from-top-2 duration-300",
                                         testResult.success
                                             ? "bg-emerald-50/50 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20"
                                             : "bg-red-50/50 dark:bg-red-500/5 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20"
                                     )}>
                                         <div className={clsx("mt-0.5", testResult.success ? "text-emerald-500" : "text-red-500")}>
-                                            {testResult.success ? <CheckCircle2 size={18} /> : <X size={18} />}
+                                            {testResult.success ? <CheckCircle2 size={14} /> : <X size={14} />}
                                         </div>
                                         <div className="flex-1 flex flex-col gap-1">
-                                            <span className="text-sm font-bold">{testResult.success ? t('modelSettings.connected') : t('modelSettings.testFailed')}</span>
+                                            <span className="text-xs font-bold">{testResult.success ? t('modelSettings.connected') : t('modelSettings.testFailed')}</span>
                                             <span className="text-xs opacity-80 leading-relaxed font-medium">{testResult.message}</span>
                                         </div>
                                     </div>

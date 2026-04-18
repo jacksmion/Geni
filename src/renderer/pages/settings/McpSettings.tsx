@@ -265,9 +265,9 @@ export function McpSettings() {
     const serverTools = selectedServer ? tools.filter(t => t.name.startsWith(`mcp__${selectedServer.id.replace(/[^a-zA-Z0-9_]/g, '_')}__`)) : [];
 
     return (
-        <div className="flex h-full gap-6 animate-in fade-in duration-500 relative">
+        <div className="flex h-full gap-5 animate-in fade-in duration-500 relative">
             {/* Left: Server List */}
-            <div className="w-64 shrink-0 flex flex-col gap-4">
+            <div className="w-56 shrink-0 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500" size={14} />
@@ -276,7 +276,7 @@ export function McpSettings() {
                             placeholder={t('mcpSettings.search')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                            className="w-full bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl py-1.5 pl-9 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                         />
                     </div>
                     <button
@@ -284,7 +284,7 @@ export function McpSettings() {
                         className="p-2 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 transition-colors"
                         title={t('mcpSettings.addServer')}
                     >
-                        <Plus size={16} />
+                        <Plus size={14} />
                     </button>
                 </div>
 
@@ -308,13 +308,13 @@ export function McpSettings() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2.5 min-w-0">
                                         <div className={clsx(
-                                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                                            "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 transition-all",
                                             isSelected ? "bg-indigo-500 text-white shadow-sm" : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-gray-400 group-hover:bg-slate-200 dark:group-hover:bg-white/10"
                                         )}>
-                                            <Server size={18} />
+                                            <Server size={14} />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <span className={clsx("font-bold text-sm truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
+                                            <span className={clsx("font-semibold text-[13px] truncate", isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300")}>
                                                 {server.name || server.id || t('mcpSettings.unnamed')}
                                             </span>
                                             <div className="flex items-center gap-1.5 mt-0.5">
@@ -346,23 +346,23 @@ export function McpSettings() {
 
             {/* Right: Detailed Config */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
-                <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl flex-1 flex flex-col shadow-sm">
+                <div className="bg-white dark:bg-[#18181b] rounded-2xl flex-1 flex flex-col shadow-sm">
                     {selectedServer ? (
                         <>
                             <div className="border-b border-slate-100 dark:border-white/5 bg-white dark:bg-[#18181b] z-10 shrink-0">
-                                <div className="px-6 py-5 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
+                                <div className="px-5 flex items-center justify-between h-[30px]">
+                                    <div className="flex items-center gap-3">
                                         <div className={clsx(
-                                            "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
+                                            "w-5 h-5 rounded flex items-center justify-center shrink-0 transition-colors",
                                             status[selectedServer.id] === 'connected' ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 dark:bg-white/5 text-slate-400"
                                         )}>
-                                            <Server size={24} />
+                                            <Server size={14} />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2.5">
-                                                <h2 className="text-xl font-bold text-slate-800 dark:text-white leading-none">{selectedServer.name || selectedServer.id}</h2>
+                                                <h2 className="text-xs font-bold text-slate-800 dark:text-white leading-none">{selectedServer.name || selectedServer.id}</h2>
                                                 <div className={clsx(
-                                                    "w-2.5 h-2.5 rounded-full",
+                                                    "w-2 h-2 rounded-full",
                                                     status[selectedServer.id] === 'connected' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : 
                                                     status[selectedServer.id] === 'connecting' ? "bg-indigo-500 animate-pulse" : "bg-slate-300 dark:bg-slate-700"
                                                 )} />
@@ -370,21 +370,21 @@ export function McpSettings() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button 
-                                            onClick={() => removeServerDraft(selectedIdx!)} 
-                                            className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
+                                        <button
+                                            onClick={() => removeServerDraft(selectedIdx!)}
+                                            className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
                                             title={t('mcpSettings.deleteServer')}
                                         >
-                                            <Trash2 size={20} />
+                                            <Trash2 size={14} />
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <div className="px-6 flex gap-8">
+                                <div className="px-6 flex gap-6">
                                     <button 
                                         onClick={() => setActiveTab('general')} 
                                         className={clsx(
-                                            "pb-3 text-sm font-bold transition-all relative",
+                                            "pb-2 text-xs font-bold transition-all relative",
                                             activeTab === 'general' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                                         )}
                                     >
@@ -394,7 +394,7 @@ export function McpSettings() {
                                     <button 
                                         onClick={() => setActiveTab('tools')} 
                                         className={clsx(
-                                            "pb-3 text-sm font-bold transition-all relative flex items-center gap-2",
+                                            "pb-2 text-xs font-bold transition-all relative flex items-center gap-2",
                                             activeTab === 'tools' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                                         )}
                                     >
@@ -407,7 +407,7 @@ export function McpSettings() {
 
                             <div className="flex-1 overflow-hidden relative">
                                 {activeTab === 'general' ? (
-                                    <div className="absolute inset-0 overflow-y-auto p-6 space-y-6">
+                                    <div className="absolute inset-0 overflow-y-auto p-5 space-y-4">
                                         {status[selectedServer.id] === 'error' && (
                                             <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3">
                                                 <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={16} />
@@ -420,14 +420,14 @@ export function McpSettings() {
 
                                         {/* Server Name */}
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={14} /> {t('mcpSettings.name')}</label>
-                                            <input type="text" value={selectedServer.name || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'name', e.target.value)} placeholder={t('mcpSettings.namePlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Server size={12} /> {t('mcpSettings.name')}</label>
+                                            <input type="text" value={selectedServer.name || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'name', e.target.value)} placeholder={t('mcpSettings.namePlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-medium focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200" />
                                         </div>
 
                                         {/* Transport Type */}
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Settings2 size={14} /> {t('mcpSettings.transport')}</label>
-                                            <select value={selectedServer.type || 'stdio'} onChange={(e) => updateServerDraftRow(selectedIdx!, 'type', e.target.value as any)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none">
+                                            <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Settings2 size={12} /> {t('mcpSettings.transport')}</label>
+                                            <select value={selectedServer.type || 'stdio'} onChange={(e) => updateServerDraftRow(selectedIdx!, 'type', e.target.value as any)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none">
                                                 <option value="stdio">{t('mcpSettings.typeStdio')}</option>
                                                 <option value="sse">{t('mcpSettings.typeSse')}</option>
                                             </select>
@@ -436,22 +436,22 @@ export function McpSettings() {
                                         {selectedServer.type === 'sse' ? (
                                             <>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Globe size={14} /> {t('mcpSettings.url')}</label>
-                                                    <input type="text" value={selectedServer.url || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'url', e.target.value)} placeholder="http://..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> {t('mcpSettings.url')}</label>
+                                                    <input type="text" value={selectedServer.url || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'url', e.target.value)} placeholder="http://..." className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Key size={14} /> {t('mcpSettings.apiKey')}</label>
-                                                    <input type="password" value={selectedServer.apiKey || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'apiKey', e.target.value)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Key size={12} /> {t('mcpSettings.apiKey')}</label>
+                                                    <input type="password" value={selectedServer.apiKey || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'apiKey', e.target.value)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><TerminalSquare size={14} /> {t('mcpSettings.command')}</label>
-                                                    <input type="text" value={selectedServer.command || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'command', e.target.value)} placeholder={t('mcpSettings.commandPlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200" />
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><TerminalSquare size={12} /> {t('mcpSettings.command')}</label>
+                                                    <input type="text" value={selectedServer.command || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'command', e.target.value)} placeholder={t('mcpSettings.commandPlaceholder')} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200" />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Command size={14} /> {t('mcpSettings.args')}</label>
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Command size={12} /> {t('mcpSettings.args')}</label>
                                                     <textarea 
                                                         value={rawArgsText} 
                                                         onChange={(e) => {
@@ -460,7 +460,7 @@ export function McpSettings() {
                                                             updateServerDraftRow(selectedIdx!, 'args', val);
                                                         }} 
                                                         placeholder={t('mcpSettings.argsPlaceholder')}
-                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-slate-700 dark:text-gray-200 min-h-[100px] resize-y focus:outline-none focus:border-indigo-500/50 transition-all" 
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200 min-h-[100px] resize-y focus:outline-none focus:border-indigo-500/50 transition-all"
                                                     />
                                                 </div>
                                             </>
@@ -469,24 +469,24 @@ export function McpSettings() {
                                         <div className="pt-2">
                                             <button 
                                                 onClick={() => handleConnectTest(selectedServer)} 
-                                                className="w-full py-3 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-sm font-semibold transition-all flex items-center justify-center gap-2 border border-indigo-100 dark:border-indigo-500/20 group"
+                                                className="w-full py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold transition-all flex items-center justify-center gap-2 border border-indigo-100 dark:border-indigo-500/20 group"
                                             >
-                                                <TerminalSquare size={16} className="group-hover:scale-110 transition-transform" />
+                                                <TerminalSquare size={14} className="group-hover:scale-110 transition-transform" />
                                                 {t('mcpSettings.testConnection')}
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="absolute inset-0 overflow-y-auto p-6">
+                                    <div className="absolute inset-0 overflow-y-auto p-5">
                                         <div className="space-y-4">
                                             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('mcpSettings.toolsList')}</h3>
                                             <div className="border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
                                                 <table className="w-full text-left text-xs">
                                                     <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                                                         <tr>
-                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.tool')}</th>
-                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.enabled')}</th>
-                                                            <th className="px-4 py-3 font-bold uppercase">{t('mcpSettings.columns.trust')}</th>
+                                                            <th className="px-3 py-2 font-bold uppercase">{t('mcpSettings.columns.tool')}</th>
+                                                            <th className="px-3 py-2 font-bold uppercase">{t('mcpSettings.columns.enabled')}</th>
+                                                            <th className="px-3 py-2 font-bold uppercase">{t('mcpSettings.columns.trust')}</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
@@ -497,15 +497,15 @@ export function McpSettings() {
 
                                                             return (
                                                                 <tr key={tIdx} className={clsx("hover:bg-slate-50 dark:hover:bg-white/5", !tSetting.enabled && "opacity-60")}>
-                                                                    <td className="px-4 py-3 font-mono text-indigo-500">{originalName}</td>
-                                                                    <td className="px-4 py-3">
+                                                                    <td className="px-3 py-2 font-mono text-indigo-500">{originalName}</td>
+                                                                    <td className="px-3 py-2">
                                                                         <Switch 
                                                                             checked={!!tSetting.enabled}
                                                                             onChange={() => handleToggleToolDraft(selectedServer.id, originalName)}
                                                                             size="sm"
                                                                         />
                                                                     </td>
-                                                                    <td className="px-4 py-3">
+                                                                    <td className="px-3 py-2">
                                                                         <select value={tSetting.trustLevel} onChange={(e) => handleSetToolTrustLevelDraft(selectedServer.id, originalName, e.target.value as any)} className="bg-transparent border-none outline-none font-bold text-emerald-500">
                                                                             <option value="Ask">Ask</option>
                                                                             <option value="Auto">Auto</option>
@@ -525,7 +525,7 @@ export function McpSettings() {
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
                             <Box size={48} className="opacity-10" />
-                            <p className="text-sm">{t('mcpSettings.noServerTitle')}</p>
+                            <p className="text-xs">{t('mcpSettings.noServerTitle')}</p>
                         </div>
                     )}
                 </div>

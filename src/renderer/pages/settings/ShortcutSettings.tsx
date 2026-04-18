@@ -84,10 +84,10 @@ export function ShortcutSettings() {
     };
 
     return (
-        <div className="max-w-3xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500" ref={containerRef}>
+        <div className="max-w-3xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" ref={containerRef}>
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <p className="text-sm text-slate-500 dark:text-gray-400">{t('shortcuts.desc')}</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t('shortcuts.desc')}</p>
                 </div>
                 <button
                     onClick={handleReset}
@@ -98,26 +98,26 @@ export function ShortcutSettings() {
                 </button>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3">
                 {items.map((item) => (
                     <div
                         key={item.id}
                         className={clsx(
-                            "flex items-center justify-between p-4 rounded-xl border transition-all duration-200",
-                            recording === item.id 
-                                ? "bg-indigo-50/50 border-indigo-200 dark:bg-indigo-500/10 dark:border-indigo-500/30 ring-2 ring-indigo-500/20" 
-                                : "bg-white dark:bg-[#18181b] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10"
+                            "flex items-center justify-between p-3 rounded-xl transition-all duration-200",
+                            recording === item.id
+                                ? "bg-indigo-50/50 dark:bg-indigo-500/10 ring-2 ring-indigo-500/20"
+                                : "hover:bg-slate-50 dark:hover:bg-white/5"
                         )}
                     >
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-semibold text-slate-700 dark:text-gray-200">{item.label}</span>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">{item.label}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => handleRecord(item.id)}
                                 className={clsx(
-                                    "min-w-[120px] px-4 py-2 rounded-lg text-sm font-mono transition-all flex items-center justify-center gap-2",
+                                    "min-w-[100px] px-3 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-2",
                                     recording === item.id
                                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 animate-pulse"
                                         : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-white/10"

@@ -148,7 +148,7 @@ export function PersonaSettings() {
     if (loading) {
         return (
             <div className="max-w-4xl h-full flex items-center justify-center">
-                <div className="text-sm text-slate-400">{t('skillSettings.loading')}</div>
+                <div className="text-xs text-slate-400">{t('skillSettings.loading')}</div>
             </div>
         );
     }
@@ -158,7 +158,7 @@ export function PersonaSettings() {
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
-                    <p className="text-sm text-slate-500 dark:text-gray-400">{t('personaSettings.desc')}</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t('personaSettings.desc')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -171,7 +171,7 @@ export function PersonaSettings() {
                     <button
                         disabled={!isDirty}
                         onClick={handleSave}
-                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${isDirty
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isDirty
                             ? "bg-indigo-600 text-white shadow-md hover:bg-indigo-700"
                             : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-zinc-600 cursor-not-allowed"
                             }`}
@@ -202,15 +202,15 @@ export function PersonaSettings() {
 
             {/* Editor */}
             <div className="flex-1 flex flex-col bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm min-h-0">
-                <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-200">{content.title}</h3>
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
+                    <h3 className="text-xs font-semibold text-slate-700 dark:text-gray-200">{content.title}</h3>
                     <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{content.desc}</p>
                 </div>
                 <textarea
                     value={content.value}
                     onChange={(e) => content.onChange(e.target.value)}
                     placeholder={content.placeholder}
-                    className="flex-1 w-full p-4 bg-transparent text-sm text-slate-700 dark:text-gray-300 font-mono leading-relaxed focus:outline-none resize-none min-h-0"
+                    className="flex-1 w-full p-3 bg-transparent text-xs text-slate-700 dark:text-gray-300 font-mono leading-relaxed focus:outline-none resize-none min-h-0"
                     spellCheck={false}
                 />
             </div>
