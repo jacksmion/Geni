@@ -10,6 +10,7 @@ export function Sidebar() {
     const setActiveTab = useChatStore(s => s.setActiveTab)
     const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
     const { t } = useTranslation()
+    const isChatActive = activeTab === 'chat'
 
     const navItems = [
         { id: 'skills', icon: Zap, label: t('sidebar.skills') },
@@ -18,7 +19,17 @@ export function Sidebar() {
     ] as const
 
     return (
-        <aside className="w-[50px] flex flex-col items-center py-4 bg-[#F7F7F8] dark:bg-[#111113]/50 backdrop-blur-xl border-r border-[#E5E7EB] dark:border-white/[0.03] shrink-0 z-[100] h-full transition-all duration-300">
+        <aside
+            className={clsx(
+                "w-[56px] flex flex-col items-center py-4 backdrop-blur-xl shrink-0 z-[100] h-full transition-all duration-300",
+                isChatActive
+                    ? "bg-[#F5F5F7] dark:bg-[#111111] border-r border-[#EDEDF0] dark:border-white/[0.02]"
+                    : "bg-[#F7F7F8] dark:bg-[#111113]/50 border-r border-[#E5E7EB] dark:border-white/[0.03]"
+            )}
+        >
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-white/80 text-[10px] font-semibold tracking-[0.18em] text-slate-500 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:bg-white/5 dark:text-zinc-400">
+                G
+            </div>
             {/* Navigation */}
             <nav className="flex-1 flex flex-col gap-1.5 w-full px-2">
                 <NavButton

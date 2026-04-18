@@ -304,12 +304,13 @@ export class WriteFileTool implements ITool {
         try {
             const raw = await fs.readFile(metaPath, 'utf-8');
             const parsed = JSON.parse(raw) as Partial<ChunkSessionState>;
-            if (!Number.isInteger(parsed.nextChunkIndex) || typeof parsed.relPath !== 'string') {
+            const { nextChunkIndex, relPath } = parsed;
+            if (!Number.isInteger(nextChunkIndex) || typeof relPath !== 'string') {
                 return null;
             }
             return {
-                nextChunkIndex: parsed.nextChunkIndex,
-                relPath: parsed.relPath
+                nextChunkIndex: Number(nextChunkIndex),
+                relPath
             };
         } catch {
             return null;

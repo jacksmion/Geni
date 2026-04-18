@@ -59,9 +59,9 @@ export const ArtifactPanel: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col bg-transparent overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0 h-14 px-5 border-b border-black/5 dark:border-white/5">
+            <div className="flex items-center justify-between shrink-0 h-16 px-5 border-b border-black/5 dark:border-white/5 bg-white/75 dark:bg-[#101214]/90 backdrop-blur-md">
                 <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 shadow-sm">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
                         {isBash ? (
                             <TerminalIcon size={16} className="text-emerald-500" />
                         ) : isPreview ? (
@@ -71,10 +71,10 @@ export const ArtifactPanel: React.FC = () => {
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[11px] font-bold text-slate-800 dark:text-zinc-100 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
                             {isPreview ? 'preview' : activeArtifact.toolName}
                         </span>
-                        <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono truncate max-w-[320px] lg:max-w-[450px]">
+                        <span className="text-[12px] text-slate-700 dark:text-zinc-200 font-mono truncate max-w-[320px] lg:max-w-[450px]">
                             {activeArtifact.path || 'Generating...'}
                         </span>
                     </div>
@@ -118,7 +118,7 @@ export const ArtifactPanel: React.FC = () => {
             </div>
 
             {/* Editor Body */}
-            <div className="flex-1 overflow-auto relative select-text scrollbar-thin shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-none" ref={scrollRef}>
+            <div className="flex-1 overflow-auto relative select-text scrollbar-thin shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-none bg-[linear-gradient(to_bottom,rgba(255,255,255,0.45),transparent_72px)] dark:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_72px)]" ref={scrollRef}>
                 {((isHtmlPreview && htmlViewMode === 'preview') || isPdfPreview) ? (
                     <div className="h-full min-h-full bg-white">
                         <iframe

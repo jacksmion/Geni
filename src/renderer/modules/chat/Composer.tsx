@@ -354,10 +354,10 @@ export function Composer() {
 
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-6 relative z-50 bg-transparent shrink-0">
+        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-6 pt-2 relative z-50 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
-                <div className="relative bg-[#F9FAFB] dark:bg-[#1a1a1a]/95 backdrop-blur-md rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_12px_48px_rgba(0,0,0,0.08)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-[#E5E7EB] dark:ring-white/10 focus-within:ring-[#D1D5DB] dark:focus-within:ring-white/20">
+                <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] dark:bg-[linear-gradient(180deg,rgba(31,31,35,0.98),rgba(24,24,27,0.96))] backdrop-blur-xl rounded-[28px] shadow-[0_18px_45px_-22px_rgba(15,23,42,0.28)] transition-all focus-within:shadow-[0_24px_60px_-24px_rgba(15,23,42,0.3)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-[#E5E7EB] dark:ring-white/10 focus-within:ring-[#D1D5DB] dark:focus-within:ring-white/20">
 
                     {/* Slash Command Menu - Primary */}
                     {showSlashMenu && !slashSubMenu && (
@@ -609,7 +609,7 @@ export function Composer() {
                             {pendingAttachments.map((path, idx) => {
                                 const fileName = path.split(/[\\/]/).pop()
                                 return (
-                                    <div key={`file-${idx}`} className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 shadow-sm rounded-lg px-2.5 py-1 font-medium text-[11.5px] text-slate-700 dark:text-zinc-300">
+                                    <div key={`file-${idx}`} className="flex items-center gap-1.5 bg-white/85 dark:bg-white/5 border border-slate-200/80 dark:border-white/5 shadow-sm rounded-lg px-2.5 py-1 font-medium text-[11.5px] text-slate-700 dark:text-zinc-300">
                                         <FileText size={12} className="text-indigo-500" />
                                         <span className="max-w-[150px] truncate">{fileName}</span>
                                         <button
@@ -629,7 +629,7 @@ export function Composer() {
                         {/* Staff - avatar only */}
                         {currentStaff && (
                             <div
-                                className="mt-[1px] w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/40 transition-all group relative"
+                                className="mt-[1px] w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 cursor-pointer shadow-sm hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/40 transition-all group relative"
                                 title={`与 ${currentStaff.name} 对话 · Backspace 移除`}
                                 onClick={() => {
                                     assignStaff(activeSessionId, undefined)
@@ -649,7 +649,7 @@ export function Composer() {
                         {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
                             const skill = skills.find(s => s.id === skillId)
                             return (
-                                <div key={`skill-${skillId}`} className="flex items-center gap-1.5 mt-[1px] bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-md px-2 py-0.5 font-medium text-[12.5px] text-violet-700 dark:text-violet-300 transition-all">
+                                <div key={`skill-${skillId}`} className="flex items-center gap-1.5 mt-[1px] bg-violet-50/90 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-md px-2 py-0.5 font-medium text-[12.5px] text-violet-700 dark:text-violet-300 transition-all">
                                     <Sparkles size={12} className="text-violet-500" />
                                     <span>{skill?.name || skillId}</span>
                                     <button
@@ -752,7 +752,7 @@ export function Composer() {
                         />
                     </div>
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
-                    <div className="flex items-center justify-between px-3 pb-3 pt-1">
+                    <div className="flex items-center justify-between px-3 pb-3 pt-1.5 border-t border-slate-200/60 dark:border-white/[0.06]">
                         {/* Left Tools */}
                         <div className="flex items-center gap-1.5 flex-wrap">
                             {/* Add / Attach Button */}

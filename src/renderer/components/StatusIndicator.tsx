@@ -99,9 +99,10 @@ export function StatusIndicator() {
     return (
         <div className="w-full flex justify-center px-4 py-2 shrink-0">
             <div className={cn(
-                "inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all duration-300 animate-in fade-in slide-in-from-bottom-2",
+                "inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 border shadow-[0_8px_24px_-18px_rgba(15,23,42,0.35)] backdrop-blur-sm",
                 meta.bgColor,
-                meta.color
+                meta.color,
+                "border-white/80 dark:border-white/[0.08]"
             )}>
                 <Icon size={13} className={cn(meta.pulse && "animate-spin")} style={meta.pulse ? { animationDuration: '2s' } : undefined} />
 

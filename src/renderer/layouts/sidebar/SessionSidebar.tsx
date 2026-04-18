@@ -4,7 +4,7 @@ import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
-import { Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin, Search, Sparkles, Clock3, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { StaffAvatar } from '../../components/StaffAvatar';
@@ -18,6 +18,8 @@ export function SessionSidebar() {
     );
 
     const activeSessionId = useChatStore(s => s.activeSessionId)
+    const activeTab = useChatStore(s => s.activeTab)
+    const setActiveTab = useChatStore(s => s.setActiveTab)
     const switchSession = useChatStore(s => s.switchSession)
     const createSession = useChatStore(s => s.createSession)
     const deleteSession = useChatStore(s => s.deleteSession)
@@ -28,7 +30,10 @@ export function SessionSidebar() {
     const sidebarCollapsed = useLayoutStore(s => s.sidebarCollapsed)
     const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
     const sidebarWidth = useLayoutStore(s => s.sidebarWidth)
+    const setSidebarWidth = useLayoutStore(s => s.setSidebarWidth)
+    const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
     const { isMobile } = useBreakpoint();
+    const isResizing = React.useRef(false);
 
     const [searchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -144,6 +149,35 @@ export function SessionSidebar() {
         });
     };
 
+    const startResizing = React.useCallback((e: React.MouseEvent) => {
+        if (isMobile || sidebarCollapsed) return;
+
+        isResizing.current = true;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+
+        const initialX = e.clientX;
+        const initialWidth = Math.max(sidebarWidth, 280);
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            if (!isResizing.current) return;
+            const deltaX = moveEvent.clientX - initialX;
+            const nextWidth = Math.max(240, Math.min(420, initialWidth + deltaX));
+            setSidebarWidth(nextWidth);
+        };
+
+        const onMouseUp = () => {
+            isResizing.current = false;
+            document.body.style.cursor = 'default';
+            document.body.style.userSelect = 'auto';
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }, [isMobile, setSidebarWidth, sidebarCollapsed, sidebarWidth]);
+
     return (
         <>
             {/* Mobile Backdrop */}
@@ -156,45 +190,81 @@ export function SessionSidebar() {
 
             <div
                 className={clsx(
-                    "shrink-0 flex flex-col h-full bg-[#F5F5F7] dark:bg-transparent backdrop-blur-xl border-r border-[#EDEDF0] dark:border-white/[0.03] transition-all duration-300 ease-in-out",
+                    "shrink-0 flex flex-col h-full bg-[#F7F7F8] dark:bg-[#111111] border-r border-[#E5E7EB] dark:border-white/[0.05] transition-all duration-300 ease-in-out",
                     sidebarCollapsed ? "w-0 opacity-0 -translate-x-full" : "translate-x-0",
-                    isMobile && !sidebarCollapsed && "fixed left-[50px] top-0 bottom-0 z-30 shadow-2xl",
+                    isMobile && !sidebarCollapsed && "fixed left-0 top-0 bottom-0 z-30 shadow-2xl",
                 )}
                 style={{
-                    width: sidebarCollapsed ? 0 : isMobile ? 280 : sidebarWidth,
+                    width: sidebarCollapsed ? 0 : isMobile ? 280 : Math.max(sidebarWidth, 280),
                     visibility: sidebarCollapsed ? 'hidden' : 'visible'
                 }}
             >
-                {/* Header: Title + Actions — 与 ChatLayout header 对齐 (h-11) */}
-                <div className="h-11 flex items-center justify-between px-4 shrink-0 pt-2 overflow-hidden min-w-[200px]">
-                    <h2 className="text-xs font-semibold text-slate-600 dark:text-zinc-500 select-none">
-                        {t('sessionSidebar.title')}
-                    </h2>
-                    <div className="flex items-center gap-1">
-                        {sessionMetas.length > 0 && (
-                            <button
-                                onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
-                                className={clsx(
-                                    "p-1.5 rounded-lg transition-colors",
-                                    selectMode
-                                        ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
-                                        : "text-slate-400 hover:text-indigo-600 hover:bg-white/60 dark:hover:text-indigo-400 dark:hover:bg-white/5"
-                                )}
-                                title={t('sessionSidebar.actions.manage')}
-                            >
-                                <ListChecks size={14} />
-                            </button>
-                        )}
-                        <button
-                            onClick={() => createSession()}
-                            className="p-1.5 -mr-1 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-white/60 dark:hover:text-indigo-400 dark:hover:bg-white/5 transition-colors"
-                            title={t('sessionSidebar.actions.new')}
-                        >
-                            <Plus size={16} strokeWidth={2.5} />
-                        </button>
+                {!isMobile && !sidebarCollapsed && (
+                    <div
+                        onMouseDown={startResizing}
+                        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize z-20 group"
+                    >
+                        <div className="absolute inset-y-0 right-0 w-px bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/[0.16] transition-colors" />
                     </div>
+                )}
+
+                <div className="flex flex-col gap-0 px-3 pt-2.5 pb-2 shrink-0">
+                    <ActionRow
+                        icon={Plus}
+                        label="新建任务"
+                        active={false}
+                        onClick={() => createSession()}
+                    />
+                    <ActionRow
+                        icon={Search}
+                        label={t('sidebar.search', { defaultValue: '搜索' })}
+                        active={false}
+                        onClick={() => setPaletteOpen(true)}
+                    />
+                    <ActionRow
+                        icon={Sparkles}
+                        label={t('sidebar.skills')}
+                        active={activeTab === 'skills'}
+                        onClick={() => setActiveTab('skills')}
+                    />
+                    <ActionRow
+                        icon={Clock3}
+                        label="自动化"
+                        active={activeTab === 'scheduler'}
+                        onClick={() => setActiveTab('scheduler')}
+                    />
                 </div>
 
+                <div className="px-4 pt-2.5 pb-2 shrink-0">
+                    <div className="flex items-center justify-between">
+                        <div className="text-[13px] font-medium text-slate-400 dark:text-zinc-500 select-none">
+                            任务
+                        </div>
+                        <div className="flex items-center gap-1">
+                            {sessionMetas.length > 0 && (
+                                <button
+                                    onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+                                    className={clsx(
+                                        "p-1.5 rounded-md transition-colors",
+                                        selectMode
+                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
+                                            : "text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5"
+                                    )}
+                                    title={t('sessionSidebar.actions.manage')}
+                                >
+                                    <ListChecks size={14} />
+                                </button>
+                            )}
+                            <button
+                                onClick={() => createSession()}
+                                className="p-1.5 -mr-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors"
+                                title="新建任务"
+                            >
+                                <Plus size={16} strokeWidth={2.5} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* List */}
                 <div className="flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin overflow-x-hidden">
@@ -216,13 +286,13 @@ export function SessionSidebar() {
                                         }
                                     }}
                                     className={clsx(
-                                        "group relative flex items-center px-3 py-2.5 rounded-lg text-sm transition-all",
+                                        "group relative flex items-center px-3 py-1.5 rounded-xl text-sm transition-all",
                                         selectMode && !isRunning ? "cursor-pointer" : selectMode ? "cursor-not-allowed" : "cursor-pointer",
                                         isSelected
-                                            ? "bg-indigo-50 dark:bg-indigo-500/10"
+                                            ? "bg-slate-100 dark:bg-white/[0.06]"
                                             : isActive && !selectMode
-                                                ? "bg-white/70 dark:bg-indigo-500/10 text-slate-900 dark:text-white font-medium shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-                                                : "text-slate-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5"
+                                                ? "bg-white text-slate-900 dark:bg-white/[0.07] dark:text-white font-medium"
+                                                : "text-slate-600 dark:text-gray-400 hover:bg-white/40 dark:hover:bg-white/4"
                                     )}
                                 >
                                     {/* Checkbox in select mode */}
@@ -240,7 +310,7 @@ export function SessionSidebar() {
 
                                     {/* Active accent bar */}
                                     {isActive && !selectMode && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-indigo-500 rounded-r-full" />
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-slate-300 dark:bg-zinc-500 rounded-r-full" />
                                     )}
 
                                                 {(() => {
@@ -292,14 +362,14 @@ export function SessionSidebar() {
                                                             {session.pinned && (
                                                                 <Pin size={10} className="shrink-0 text-indigo-400 dark:text-indigo-500 rotate-45" />
                                                             )}
-                                                            <span className={clsx("truncate select-none text-[13px]", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
+                                                            <span className={clsx("truncate select-none text-[12.5px]", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
                                                                 {session.title || t('sessionSidebar.defaultTitle')}
                                                             </span>
                                                         </div>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
                                                             "text-[10px] shrink-0 tabular-nums group-hover:hidden transition-opacity",
-                                                            isActive && !selectMode ? "text-indigo-400/70 dark:text-indigo-400/50" : "text-slate-300 dark:text-zinc-600"
+                                                            isActive && !selectMode ? "text-slate-400 dark:text-zinc-500" : "text-slate-300 dark:text-zinc-600"
                                                         )}>
                                                             {getRelativeTime(session.updatedAt)}
                                                         </span>
@@ -314,16 +384,16 @@ export function SessionSidebar() {
                                                             className={clsx(
                                                                 "p-1 rounded transition-colors",
                                                                 session.pinned
-                                                                    ? "text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
-                                                                    : "text-slate-400 hover:text-indigo-500 hover:bg-white/60 dark:hover:bg-white/10"
+                                                                    ? "text-slate-500 hover:bg-slate-100 dark:text-zinc-400 dark:hover:bg-white/5"
+                                                                    : "text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/10"
                                                             )}
                                                             title={session.pinned ? t('sessionSidebar.actions.unpin') : t('sessionSidebar.actions.pin')}
                                                         >
                                                             <Pin size={12} />
                                                         </button>
                                                         <button
-                                                            onClick={(e) => handleStartEdit(e, session.id, session.title)}
-                                                            className="p-1 text-slate-400 hover:text-indigo-500 rounded hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                                                            onClick={(e) => handleStartEdit(e, session.id, session.title || t('sessionSidebar.defaultTitle'))}
+                                                            className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/10 transition-colors"
                                                             title={t('sessionSidebar.actions.rename')}
                                                         >
                                                             <Edit2 size={12} />
@@ -385,11 +455,47 @@ export function SessionSidebar() {
                         </div>
                     </div>
                 ) : (
-                    <div className="px-4 py-3 border-t border-[#EDEDF0] dark:border-white/[0.02] text-[10px] text-center text-slate-400 dark:text-zinc-600 font-medium select-none min-w-[200px]">
-                        {t('sessionSidebar.activeSessions', { count: sessionMetas.length })}
+                    <div className="mt-auto px-3 py-3 min-w-[200px]">
+                        <ActionRow
+                            icon={Settings}
+                            label={t('sidebar.settings')}
+                            active={activeTab === 'settings'}
+                            compact
+                            onClick={() => setActiveTab('settings')}
+                        />
                     </div>
                 )}
             </div>
         </>
+    );
+}
+
+function ActionRow({
+    icon: Icon,
+    label,
+    active,
+    compact = false,
+    onClick
+}: {
+    icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+    label: string;
+    active: boolean;
+    compact?: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={clsx(
+                "flex items-center rounded-xl text-sm transition-all text-left",
+                compact ? "gap-2.5 px-3 py-1 text-[12.5px]" : "gap-3 px-3 py-1.5",
+                active
+                    ? "bg-white/80 text-slate-900 dark:bg-white/[0.06] dark:text-white"
+                    : "text-slate-600 hover:bg-white/45 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-zinc-100"
+            )}
+        >
+            <Icon size={compact ? 15 : 16} strokeWidth={1.8} className={active ? "text-slate-700 dark:text-zinc-200" : "text-slate-400 dark:text-zinc-500"} />
+            <span className="font-normal">{label}</span>
+        </button>
     );
 }

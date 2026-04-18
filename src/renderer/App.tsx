@@ -77,7 +77,7 @@ function App() {
 
     return (
         <div className="flex h-screen w-full bg-transparent text-slate-900 dark:text-gray-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-            <Sidebar />
+            {activeTab !== 'chat' && <Sidebar />}
 
             <PageTransition pageKey={activeTab}>
                 {activeTab === 'chat' ? (

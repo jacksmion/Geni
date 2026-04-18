@@ -140,7 +140,8 @@ export class SystemController {
                 try {
                     wins[0].setTitleBarOverlay({
                         color: isDark ? '#141414' : '#ffffff',
-                        symbolColor: isDark ? '#a1a1aa' : '#71717a'
+                        symbolColor: isDark ? '#a1a1aa' : '#71717a',
+                        height: 40
                     });
                 } catch (e) {
                     // Ignore on non-Windows/Mac platforms

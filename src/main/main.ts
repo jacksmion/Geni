@@ -51,7 +51,7 @@ function createWindow(isDark: boolean) {
         titleBarOverlay: {
             color: isDark ? '#141414' : '#ffffff',
             symbolColor: isDark ? '#a1a1aa' : '#71717a',
-            height: 44 // h-11 = 44px, synced with header height
+            height: 40 // h-10 = 40px, synced with current chat header height
         },
     })
 
