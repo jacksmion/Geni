@@ -64,7 +64,10 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
     const [mode, setMode] = useState<'preview' | 'source'>('preview');
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/15 dark:bg-black/30"
+            onClick={onClose}
+        >
             <div
                 className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl w-full max-w-2xl max-h-[80vh] mx-4 flex flex-col animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
@@ -263,43 +266,6 @@ const ConflictDialog: React.FC<ConflictDialogProps> = ({ skillName, onAction, on
     );
 };
 
-interface DeleteConfirmDialogProps {
-    skillName: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-}
-
-const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({ skillName, onConfirm, onCancel }) => {
-    const { t } = useTranslation();
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-2">
-                    {t('skillSettings.delete.confirmTitle')}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mb-5">
-                    {t('skillSettings.delete.confirmDesc', { name: skillName })}
-                </p>
-                <div className="flex gap-2 justify-end">
-                    <button
-                        onClick={onCancel}
-                        className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
-                    >
-                        {t('skillSettings.import.skip')}
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="px-4 py-2 rounded-xl text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
-                    >
-                        {t('skillSettings.delete.button')}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const SkillSettings: React.FC = () => {
     const { t } = useTranslation();
     const [skills, setSkills] = useState<Skill[]>([]);
@@ -308,7 +274,6 @@ const SkillSettings: React.FC = () => {
     const [importing, setImporting] = useState(false);
     const [conflict, setConflict] = useState<{ skillName: string; targetPath: string; sourceTempDir?: string; originalPath: string } | null>(null);
     const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
     const [importMenuOpen, setImportMenuOpen] = useState(false);
     const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
     const importMenuRef = useRef<HTMLDivElement>(null);
@@ -410,20 +375,17 @@ const SkillSettings: React.FC = () => {
         }
     };
 
-    const handleDeleteConfirm = async () => {
-        if (!deleteTarget) return;
+    const handleDelete = async (skill: Skill) => {
         try {
-            const result = await window.electronAPI.tools.deleteSkill(deleteTarget.id);
+            const result = await window.electronAPI.tools.deleteSkill(skill.id);
             if (result.success) {
                 fetchSkills();
-                showImportMessage('success', t('skillSettings.delete.success', { name: deleteTarget.name }));
+                showImportMessage('success', t('skillSettings.delete.success', { name: skill.name }));
             } else {
                 showImportMessage('error', result.error || t('skillSettings.delete.error'));
             }
         } catch (error: any) {
             showImportMessage('error', error?.message || t('skillSettings.delete.error'));
-        } finally {
-            setDeleteTarget(null);
         }
     };
 
@@ -564,18 +526,14 @@ const SkillSettings: React.FC = () => {
                     onCancel={() => setConflict(null)}
                 />
             )}
-            {deleteTarget && (
-                <DeleteConfirmDialog
-                    skillName={deleteTarget.name}
-                    onConfirm={handleDeleteConfirm}
-                    onCancel={() => setDeleteTarget(null)}
-                />
-            )}
             {detailSkill && (
                 <SkillDetailDialog
                     skill={detailSkill}
                     onToggle={(id) => { handleToggle(id); setDetailSkill(null); }}
-                    onDelete={(s) => setDeleteTarget(s)}
+                    onDelete={async (skill) => {
+                        setDetailSkill(null);
+                        await handleDelete(skill);
+                    }}
                     onClose={() => setDetailSkill(null)}
                 />
             )}

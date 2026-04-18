@@ -185,7 +185,7 @@ export function ChatLayout() {
     return (
         <div className="flex h-full w-full overflow-hidden bg-[#F5F5F7] dark:bg-[#111111]">
             <SessionSidebar />
-            <div className="flex-1 min-w-0 overflow-hidden pt-0 pr-1.5 pb-1.5 pl-0">
+            <div className="flex-1 min-w-0 overflow-hidden pt-0 pr-1.5 pb-0 pl-0">
                 <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border border-[#ECEDEF] bg-white shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:border-white/[0.05] dark:bg-[#141414] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]">
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/18 via-white/4 to-transparent dark:from-white/[0.012] dark:via-transparent" />
                     <main className="flex min-w-0 flex-1 flex-col overflow-hidden relative">
