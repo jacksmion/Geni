@@ -272,7 +272,7 @@ export function ChatLayout() {
                         isMobile ? (
                             <aside
                                 className={cn(
-                                    "absolute inset-y-4 right-4 z-50 w-[min(420px,calc(100vw-96px))] overflow-hidden rounded-[20px] border border-slate-200/80 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#0d1117]",
+                                    "absolute right-4 bottom-4 top-14 z-50 w-[min(420px,calc(100vw-96px))] overflow-hidden rounded-[20px] border border-slate-200/80 bg-white shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#0d1117]",
                                     panelExiting ? "panel-exit" : "panel-enter"
                                 )}
                             >
@@ -282,7 +282,7 @@ export function ChatLayout() {
                             <aside
                                 style={{ width: `${panelWidth}px` }}
                                 className={cn(
-                                    "relative flex h-full shrink-0 overflow-hidden border-l border-[#EDEDF0] bg-[#FBFBFC] dark:border-white/[0.05] dark:bg-[#101214] group",
+                                    "relative mt-10 flex h-[calc(100%-2.5rem)] shrink-0 self-end overflow-hidden border-l border-t border-[#EDEDF0] bg-[#FBFBFC] dark:border-white/[0.05] dark:bg-[#101214] group",
                                     panelExiting ? "panel-exit" : "panel-enter"
                                 )}
                             >

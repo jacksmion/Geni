@@ -82,6 +82,19 @@ const PANEL_EXTENSIONS = new Set([
 ]);
 
 const EXTERNAL_EXTENSIONS = new Set(['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx']);
+const ARTIFACT_EXTENSIONS = [...PANEL_EXTENSIONS, ...EXTERNAL_EXTENSIONS];
+const BASH_DISCOVERABLE_EXTENSIONS = new Set(['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'pdf', 'html', 'htm']);
+const PATH_LIKE_ARTIFACT_PATTERN = new RegExp(
+    `(?:file:\\/\\/\\/)?(?:[A-Za-z]:[\\\\/]|\\.\\.?[\\\\/]|\\/)?[^\\s"'<>|]+?\\.(?:${ARTIFACT_EXTENSIONS.join('|')})(?![\\w-])`,
+    'gi'
+);
+
+interface ArtifactStepLike {
+    tool?: string;
+    toolInput?: string;
+    observation?: string;
+    streamingObservation?: string;
+}
 
 export function getFileExtension(path: string): string {
     const cleaned = path.replace(/^file:\/\/\//, '').replace(/^file:\/\//, '');
@@ -98,4 +111,68 @@ export function getArtifactName(path: string): string {
     const normalized = path.replace(/\\/g, '/');
     const segments = normalized.split('/');
     return segments[segments.length - 1] || path;
+}
+
+function normalizeArtifactPath(rawPath: string): string {
+    return rawPath
+        .trim()
+        .replace(/^['"`]+|['"`]+$/g, '')
+        .replace(/\\\\/g, '\\')
+        .replace(/[),.;:]+$/g, '');
+}
+
+function extractArtifactPathsFromText(text: string, allowedExtensions?: Set<string>): string[] {
+    if (!text) return [];
+
+    const matches = text.match(PATH_LIKE_ARTIFACT_PATTERN) || [];
+    const unique = new Set<string>();
+
+    for (const match of matches) {
+        const normalized = normalizeArtifactPath(match);
+        if (!normalized) continue;
+        if (/^https?:\/\//i.test(normalized)) continue;
+
+        const ext = getFileExtension(normalized);
+        if (!getArtifactOpenMode(ext)) continue;
+        if (allowedExtensions && !allowedExtensions.has(ext)) continue;
+
+        unique.add(normalized);
+    }
+
+    return Array.from(unique);
+}
+
+export function extractArtifactsFromStep(step: ArtifactStepLike) {
+    const tool = step.tool?.toLowerCase();
+    const paths = new Set<string>();
+
+    if (tool === 'write') {
+        const { path } = extractPathAndContent(step.toolInput || '{}', step.tool);
+        if (path) {
+            const ext = getFileExtension(path);
+            if (getArtifactOpenMode(ext)) {
+                paths.add(path);
+            }
+        }
+    }
+
+    if (tool === 'bash') {
+        for (const candidate of extractArtifactPathsFromText(step.toolInput || '', BASH_DISCOVERABLE_EXTENSIONS)) {
+            paths.add(candidate);
+        }
+        for (const candidate of extractArtifactPathsFromText(step.observation || step.streamingObservation || '', BASH_DISCOVERABLE_EXTENSIONS)) {
+            paths.add(candidate);
+        }
+    }
+
+    return Array.from(paths).map(path => {
+        const ext = getFileExtension(path);
+        return {
+            path,
+            name: getArtifactName(path),
+            ext,
+            openMode: getArtifactOpenMode(ext)!,
+            sourceTool: step.tool,
+        };
+    });
 }

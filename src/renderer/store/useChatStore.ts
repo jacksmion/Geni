@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { ChatMessage, ChatSession, MessageArtifact } from '../../common/types/chat'
-import { extractPathAndContent, getArtifactName, getArtifactOpenMode, getFileExtension } from '../utils/artifact'
+import { extractArtifactsFromStep, extractPathAndContent } from '../utils/artifact'
 import { useSettingsStore } from './useSettingsStore'
 import type { ArtifactPreviewResult } from '../electron-api.d'
 
@@ -646,19 +646,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const collectArtifactsFromSteps = (steps: any[]): MessageArtifact[] => {
             const artifacts: MessageArtifact[] = [];
             for (const step of steps) {
-                if (step.tool !== 'write') continue;
-                const { path } = extractPathAndContent(step.toolInput || '{}', step.tool);
-                if (!path) continue;
-                const ext = getFileExtension(path);
-                const openMode = getArtifactOpenMode(ext);
-                if (!openMode) continue;
-                artifacts.push({
-                    path,
-                    name: getArtifactName(path),
-                    ext,
-                    openMode,
-                    sourceTool: step.tool,
-                });
+                artifacts.push(...extractArtifactsFromStep(step));
             }
             return artifacts;
         };

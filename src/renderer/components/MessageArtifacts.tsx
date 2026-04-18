@@ -10,6 +10,17 @@ interface MessageArtifactsProps {
 export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
     if (artifacts.length === 0) return null;
 
+    const sortedArtifacts = [...artifacts].sort((a, b) => {
+        const score = (artifact: MessageArtifact) => {
+            const isOffice = ['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx'].includes(artifact.ext.toLowerCase());
+            if (isOffice) return 0;
+            if (artifact.openMode === 'external') return 1;
+            return 2;
+        };
+
+        return score(a) - score(b);
+    });
+
     const resolveArtifactPath = (filePath: string): string => {
         const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(filePath);
         if (isAbsolute) return filePath;
@@ -64,7 +75,7 @@ export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
 
     return (
         <div className="mt-4 flex flex-col gap-2">
-            {artifacts.map((artifact) => (
+            {sortedArtifacts.map((artifact) => (
                 <button
                     key={artifact.path}
                     onClick={() => handleOpen(artifact)}
