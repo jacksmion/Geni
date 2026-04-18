@@ -183,13 +183,12 @@ export function ChatLayout() {
     const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     return (
-        <div className="flex h-full w-full overflow-hidden bg-[#F5F5F7] dark:bg-[#111111]">
+        <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-shell-bg)]">
             <SessionSidebar />
             <div className="flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
-                <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border border-[#ECEDEF] bg-white shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:border-white/[0.05] dark:bg-[#141414] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]">
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/18 via-white/4 to-transparent dark:from-white/[0.012] dark:via-transparent" />
+                <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]" style={{ borderColor: 'var(--workspace-content-border)' }}>
                     <main className="flex min-w-0 flex-1 flex-col overflow-hidden relative">
-                        <header className={`h-10 flex items-center justify-between px-4 draggable shrink-0 z-10 ${!hasMessages ? 'absolute top-0 w-full bg-white dark:bg-[#141414]' : 'bg-white/92 dark:bg-[#141414]/92 backdrop-blur-md border-b border-[#F0F1F3] dark:border-white/[0.04]'}`}>
+                        <header className={`h-10 flex items-center justify-between px-4 draggable shrink-0 z-10 ${!hasMessages ? 'absolute top-0 w-full bg-[var(--workspace-content-bg)]' : 'bg-[var(--workspace-content-bg)] border-b border-[#F0F1F3] dark:border-white/[0.04]'}`}>
                             <div className="flex items-center gap-2.5 overflow-hidden">
                                 <button
                                     onClick={toggleSidebar}
@@ -245,15 +244,12 @@ export function ChatLayout() {
 
                                 <StatusIndicator />
 
-                                <div className="shrink-0 relative z-20 bg-gradient-to-t from-white via-white to-white/96 dark:from-[#141414] dark:via-[#141414] dark:to-[#141414]/96">
+                                <div className="shrink-0 relative z-20 bg-[var(--workspace-content-bg)]">
                                     <Composer />
                                 </div>
                             </>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto w-full h-full animate-in fade-in zoom-in-95 duration-500" style={{ marginTop: '-9vh' }}>
-                                <div className="mb-3 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-500">
-                                    New Workspace
-                                </div>
                                 <h1 className="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight mb-1">
                                     {t('chatLayout.greetingTitle')}
                                 </h1>

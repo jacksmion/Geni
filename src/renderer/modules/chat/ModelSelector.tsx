@@ -91,8 +91,8 @@ export function ModelSelector() {
                     setSearch('')
                 }}
                 className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all text-slate-500 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5",
-                    isOpen && "text-indigo-600 dark:text-indigo-400 bg-slate-100 dark:bg-white/5"
+                    "flex h-8 items-center gap-1.5 px-3 rounded-full text-[12px] font-medium transition-all bg-transparent border-none text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-[#2a2e34]",
+                    isOpen && "text-slate-800 dark:text-zinc-100 bg-white dark:bg-[#2a2e34]"
                 )}
             >
                 <span className="max-w-[150px] truncate">{activeDisplayName}</span>
@@ -136,15 +136,15 @@ export function ModelSelector() {
                                         key={`${providerKey}-${model.id}`}
                                         onClick={() => handleSelectModel(providerKey, model.id)}
                                         className={cn(
-                                            "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors",
-                                            isActive
-                                                ? "bg-indigo-50/50 dark:bg-indigo-500/5"
-                                                : "hover:bg-slate-50 dark:hover:bg-white/5"
-                                        )}
+                                        "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors",
+                                        isActive
+                                            ? "bg-slate-100 dark:bg-white/[0.07]"
+                                            : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                    )}
                                     >
                                         <span className={cn(
                                             "text-[12px] font-semibold shrink-0",
-                                            isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-800 dark:text-zinc-100"
+                                            isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100"
                                         )}>
                                             {model.label}
                                         </span>
@@ -152,7 +152,7 @@ export function ModelSelector() {
                                             {meta.label}
                                         </span>
                                         <span className="flex-1" />
-                                        {isActive && <Check size={14} className="text-indigo-500 shrink-0" />}
+                                        {isActive && <Check size={14} className="text-slate-500 dark:text-zinc-300 shrink-0" />}
                                     </button>
                                 )
                             })

@@ -44,14 +44,14 @@ export function SkillSelector() {
                     if (next) setSearch('')
                 }}
                 className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-lg text-[12px] font-medium transition-all max-w-[200px]",
-                    "hover:bg-slate-100 dark:hover:bg-white/5",
+                    "flex h-8 items-center gap-1.5 px-3 rounded-full text-[12px] font-medium transition-all max-w-[200px] bg-transparent border-none",
+                    "hover:bg-white dark:hover:bg-[#2a2e34]",
                     selectedCount > 0
-                        ? "text-violet-600 dark:text-violet-400"
-                        : "text-slate-500 dark:text-zinc-400"
+                        ? "text-slate-700 dark:text-zinc-200"
+                        : "text-slate-600 dark:text-zinc-400"
                 )}
             >
-                <Sparkles size={12} className="shrink-0" />
+                    <Sparkles size={12} className="shrink-0 opacity-80" />
                 <span className="truncate">
                     {skills.length === 0 ? 'Skills' : `${selectedCount} Skills`}
                 </span>
@@ -97,14 +97,14 @@ export function SkillSelector() {
                                         className={cn(
                                             "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
                                             isChecked
-                                                ? "bg-violet-50 dark:bg-violet-500/10"
+                                                ? "bg-slate-100 dark:bg-white/[0.07]"
                                                 : "hover:bg-slate-50 dark:hover:bg-white/5"
                                         )}
                                     >
                                         <div className={cn(
                                             "w-4 h-4 rounded border-[1.5px] flex items-center justify-center shrink-0 transition-colors",
                                             isChecked
-                                                ? "bg-violet-500 border-violet-500"
+                                                ? "bg-slate-700 border-slate-700 dark:bg-zinc-200 dark:border-zinc-200"
                                                 : "border-slate-300 dark:border-zinc-600"
                                         )}>
                                             {isChecked && <Check size={10} className="text-white" strokeWidth={3} />}

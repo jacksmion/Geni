@@ -21,13 +21,13 @@ export function Sidebar() {
     return (
         <aside
             className={clsx(
-                "w-[56px] flex flex-col items-center py-4 backdrop-blur-xl shrink-0 z-[100] h-full transition-all duration-300",
+                "w-[56px] flex flex-col items-center py-4 shrink-0 z-[100] h-full transition-all duration-300 glass-sidebar border-r relative overflow-hidden",
                 isChatActive
-                    ? "bg-[#F5F5F7] dark:bg-[#111111] border-r border-[#EDEDF0] dark:border-white/[0.02]"
-                    : "bg-[#F7F7F8] dark:bg-[#111113]/50 border-r border-[#E5E7EB] dark:border-white/[0.03]"
+                    ? "before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_58%)] dark:before:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.05),transparent_58%)] before:pointer-events-none before:content-['']"
+                    : "opacity-[0.98]"
             )}
         >
-            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl bg-white/80 text-[10px] font-semibold tracking-[0.18em] text-slate-500 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:bg-white/5 dark:text-zinc-400">
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-white/50 bg-white/38 text-[10px] font-semibold tracking-[0.18em] text-slate-500 shadow-[0_10px_22px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.04] dark:text-zinc-400 dark:shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
                 G
             </div>
             {/* Navigation */}
@@ -47,7 +47,7 @@ export function Sidebar() {
                     label={t('sidebar.search', { defaultValue: '全局搜索' })}
                 />
 
-                <div className="w-6 h-[1px] bg-[#E5E7EB] dark:bg-white/[0.05] mx-auto my-1" />
+                <div className="w-7 h-px bg-gradient-to-r from-transparent via-slate-400/50 to-transparent dark:via-white/[0.1] mx-auto my-1.5" />
 
                 {navItems.map((item) => (
                     <NavButton
@@ -84,7 +84,7 @@ function ThemeToggle() {
     return (
         <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/5 group relative"
+            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-500 hover:bg-white/34 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/4 group relative"
         >
             {isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
             
@@ -104,8 +104,8 @@ function NavButton({ isActive, onClick, icon: Icon, label }: { isActive: boolean
             className={clsx(
                 "w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 group relative",
                 isActive
-                    ? "bg-white/80 text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.06)] dark:bg-white/10 dark:text-zinc-200"
-                    : "text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/5"
+                    ? "border border-white/55 bg-white/50 text-slate-800 shadow-[0_10px_22px_rgba(90,105,120,0.13)] dark:border-white/8 dark:bg-white/[0.07] dark:text-zinc-200 dark:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                    : "border border-transparent text-slate-500 hover:border-white/42 hover:bg-white/30 hover:text-slate-700 dark:text-zinc-500 dark:hover:border-white/[0.05] dark:hover:text-zinc-300 dark:hover:bg-white/[0.04]"
             )}
         >
             <Icon size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-105" />

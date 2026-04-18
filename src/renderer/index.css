@@ -55,23 +55,41 @@
 
   /* ─── Light Mode Backgrounds ─── */
   --bg-color: #ffffff;
-  --bg-elevated: #f7f7f8;       /* 第二层：侧边栏/面板 */
-  --bg-sunken: #f0f0f2;         /* 第三层：凹陷区域 */
+  --bg-elevated: #f3f4f6;       /* 第二层：侧边栏/面板 */
+  --bg-sunken: #ebedf0;         /* 第三层：凹陷区域 */
   --text-color: #1a1a1a;
   --text-secondary: #6b7280;    /* Gray-500 */
-  --sidebar-bg: #f5f5f7;        /* 侧边栏专用 */
-  --sidebar-border: #ededf0;    /* 柔和边框 */
+  --sidebar-bg: #eef1f4;        /* 侧边栏专用 */
+  --sidebar-border: #dde2e8;    /* 柔和边框 */
+  --workspace-shell-bg: #f8f9fb;
+  --workspace-content-bg: #ffffff;
+  --workspace-content-border: #e8ebef;
+  --glass-sidebar-bg: rgba(237, 240, 244, 0.84);
+  --glass-sidebar-bg-strong: rgba(231, 235, 240, 0.92);
+  --glass-sidebar-border: rgba(255, 255, 255, 0.58);
+  --glass-sidebar-highlight: rgba(255, 255, 255, 0.55);
+  --glass-sidebar-shadow: 0 14px 36px rgba(90, 105, 120, 0.14);
+  --glass-sidebar-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 :root.dark {
   /* ─── Dark Mode Backgrounds (三层背景系统) - Linear/Cursor Style ─── */
   --bg-color: #141414;          /* 深灰：主背景（最深） */
-  --bg-elevated: #1c1c1e;       /* 第二层：侧边栏/面板 */
-  --bg-sunken: #262626;         /* 第三层：输入框/代码块 */
+  --bg-elevated: #1b1d20;       /* 第二层：侧边栏/面板 */
+  --bg-sunken: #23262b;         /* 第三层：输入框/代码块 */
   --text-color: #f4f4f5;        /* Zinc-100 */
   --text-secondary: #a1a1aa;    /* Zinc-400 */
-  --sidebar-bg: #111111;        
+  --sidebar-bg: #171a1e;        
   --sidebar-border: rgba(255, 255, 255, 0.05);
+  --workspace-shell-bg: #121418;
+  --workspace-content-bg: #17191d;
+  --workspace-content-border: rgba(255, 255, 255, 0.06);
+  --glass-sidebar-bg: rgba(25, 28, 32, 0.86);
+  --glass-sidebar-bg-strong: rgba(28, 31, 36, 0.94);
+  --glass-sidebar-border: rgba(255, 255, 255, 0.06);
+  --glass-sidebar-highlight: rgba(255, 255, 255, 0.08);
+  --glass-sidebar-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
+  --glass-sidebar-inset: inset 0 1px 0 rgba(255, 255, 255, 0.045);
 
   /* 阴影在极黑背景下改用极细微的 white glow 或消除阴影 */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
@@ -198,6 +216,28 @@ input {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.glass-sidebar {
+  background:
+    linear-gradient(180deg, var(--glass-sidebar-highlight), rgba(255, 255, 255, 0) 20%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    var(--glass-sidebar-bg);
+  border-color: var(--glass-sidebar-border);
+  box-shadow: var(--glass-sidebar-shadow), var(--glass-sidebar-inset);
+  backdrop-filter: blur(22px) saturate(120%);
+  -webkit-backdrop-filter: blur(22px) saturate(120%);
+}
+
+.glass-sidebar-strong {
+  background:
+    linear-gradient(180deg, var(--glass-sidebar-highlight), rgba(255, 255, 255, 0) 22%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    var(--glass-sidebar-bg-strong);
+  border-color: var(--glass-sidebar-border);
+  box-shadow: var(--glass-sidebar-shadow), var(--glass-sidebar-inset);
+  backdrop-filter: blur(24px) saturate(118%);
+  -webkit-backdrop-filter: blur(24px) saturate(118%);
 }
 
 @keyframes pulse-glow {

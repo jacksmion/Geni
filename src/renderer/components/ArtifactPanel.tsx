@@ -59,7 +59,7 @@ export const ArtifactPanel: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col bg-transparent overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0 h-16 px-5 border-b border-black/5 dark:border-white/5 bg-white/75 dark:bg-[#101214]/90 backdrop-blur-md">
+            <div className="flex items-center justify-between shrink-0 h-16 px-5 border-b border-black/5 dark:border-white/5 bg-white dark:bg-[#101214]">
                 <div className="flex items-center gap-3 overflow-hidden">
                     <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
                         {isBash ? (

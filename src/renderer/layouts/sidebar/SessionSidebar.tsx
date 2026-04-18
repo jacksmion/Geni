@@ -194,7 +194,7 @@ export function SessionSidebar() {
 
             <div
                 className={clsx(
-                    "shrink-0 flex flex-col h-full bg-[#F7F7F8] dark:bg-[#111111] border-r border-[#E5E7EB] dark:border-white/[0.05] transition-all duration-300 ease-in-out",
+                    "shrink-0 flex flex-col h-full glass-sidebar-strong border-r transition-all duration-300 ease-in-out relative overflow-hidden",
                     sidebarCollapsed ? "w-0 opacity-0 -translate-x-full" : "translate-x-0",
                     isMobile && !sidebarCollapsed && "fixed left-0 top-0 bottom-0 z-30 shadow-2xl",
                 )}
@@ -211,6 +211,8 @@ export function SessionSidebar() {
                         <div className="absolute inset-y-0 right-0 w-px bg-transparent group-hover:bg-slate-300 dark:group-hover:bg-white/[0.16] transition-colors" />
                     </div>
                 )}
+
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_68%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.05),transparent_68%)]" />
 
                 <div className="flex flex-col gap-0 px-3 pt-2.5 pb-2 shrink-0">
                     {isSettingsTab ? (
@@ -268,8 +270,8 @@ export function SessionSidebar() {
                                     className={clsx(
                                         "p-1.5 rounded-md transition-colors",
                                         selectMode
-                                            ? "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10"
-                                            : "text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5"
+                                            ? "text-indigo-600 bg-white/42 border border-white/55 dark:text-indigo-400 dark:bg-white/[0.06] dark:border-white/8"
+                                            : "text-slate-500 hover:text-slate-700 hover:bg-white/32 hover:border-white/42 border border-transparent dark:hover:text-zinc-300 dark:hover:bg-white/4 dark:hover:border-white/[0.05]"
                                     )}
                                     title={t('sessionSidebar.actions.manage')}
                                 >
@@ -279,7 +281,7 @@ export function SessionSidebar() {
                             {!isSettingsTab && (
                                 <button
                                     onClick={() => createSession()}
-                                    className="p-1.5 -mr-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-white/60 dark:hover:text-zinc-300 dark:hover:bg-white/5 transition-colors"
+                                    className="p-1.5 -mr-1 rounded-md text-slate-500 hover:text-slate-700 hover:bg-white/32 hover:border-white/42 border border-transparent dark:hover:text-zinc-300 dark:hover:bg-white/4 dark:hover:border-white/[0.05] transition-colors"
                                     title="新建任务"
                                 >
                                     <Plus size={16} strokeWidth={2.5} />
@@ -325,10 +327,10 @@ export function SessionSidebar() {
                                         "group relative flex items-center px-3 py-1.5 rounded-xl text-sm transition-all",
                                         selectMode && !isRunning ? "cursor-pointer" : selectMode ? "cursor-not-allowed" : "cursor-pointer",
                                         isSelected
-                                            ? "bg-slate-100 dark:bg-white/[0.06]"
+                                            ? "border border-white/55 bg-white/50 shadow-[0_10px_24px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.07] dark:shadow-[0_10px_28px_rgba(0,0,0,0.2)]"
                                             : isActive && !selectMode
-                                                ? "bg-white text-slate-900 dark:bg-white/[0.07] dark:text-white font-medium"
-                                                : "text-slate-600 dark:text-gray-400 hover:bg-white/40 dark:hover:bg-white/4"
+                                                ? "border border-white/58 bg-white/58 text-slate-900 shadow-[0_12px_26px_rgba(90,105,120,0.13)] dark:border-white/8 dark:bg-white/[0.08] dark:text-white dark:shadow-[0_10px_26px_rgba(0,0,0,0.22)] font-medium"
+                                                : "border border-transparent text-slate-600 dark:text-gray-400 hover:border-white/[0.04] hover:bg-white/26 dark:hover:border-white/[0.05] dark:hover:bg-white/4"
                                     )}
                                 >
                                     {/* Checkbox in select mode */}
@@ -458,7 +460,7 @@ export function SessionSidebar() {
 
                 {/* Bottom bar: batch actions or session count */}
                 {!isSettingsTab && selectMode ? (
-                    <div className="px-3 py-2.5 border-t border-[#EDEDF0] dark:border-white/[0.02] flex items-center justify-between min-w-[200px]">
+                    <div className="px-3 py-2.5 border-t border-white/40 dark:border-white/[0.05] flex items-center justify-between min-w-[200px] bg-white/12 dark:bg-white/[0.012]">
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSelectAll}
@@ -492,7 +494,7 @@ export function SessionSidebar() {
                         </div>
                     </div>
                 ) : !isSettingsTab ? (
-                    <div className="mt-auto px-3 py-3 min-w-[200px]">
+                    <div className="mt-auto px-3 pb-2 pt-1.5 min-w-[200px]">
                         <ActionRow
                             icon={Settings}
                             label={t('sidebar.settings')}
@@ -526,10 +528,10 @@ function ActionRow({
             onClick={onClick}
             className={clsx(
                 "flex items-center rounded-xl text-sm transition-all text-left",
-                compact ? "gap-2.5 px-3 py-1 text-[12.5px]" : "gap-3 px-3 py-1.5",
+                compact ? "gap-2.5 px-3 py-1 text-[12px]" : "gap-3 px-3 py-1.5",
                 active
-                    ? "bg-white/80 text-slate-900 dark:bg-white/[0.06] dark:text-white"
-                    : "text-slate-600 hover:bg-white/45 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-zinc-100"
+                    ? "border border-white/58 bg-white/54 text-slate-900 shadow-[0_10px_22px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.07] dark:text-white dark:shadow-[0_10px_28px_rgba(0,0,0,0.2)]"
+                    : "border border-transparent text-slate-600 hover:border-white/42 hover:bg-white/28 hover:text-slate-900 dark:text-zinc-400 dark:hover:border-white/[0.05] dark:hover:bg-white/[0.04] dark:hover:text-zinc-100"
             )}
         >
             <Icon size={compact ? 15 : 16} strokeWidth={1.8} className={active ? "text-slate-700 dark:text-zinc-200" : "text-slate-400 dark:text-zinc-500"} />

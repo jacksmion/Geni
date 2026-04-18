@@ -74,10 +74,10 @@ function AccessIndicator() {
         <button
             onClick={handleToggle}
             className={cn(
-                "flex items-center gap-1.5 text-[11px] transition-colors",
+                "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[11px] transition-colors bg-transparent text-slate-500 hover:bg-white hover:text-slate-700 dark:text-zinc-400 dark:hover:bg-[#2a2e34] dark:hover:text-zinc-200",
                 isFullAccess
-                    ? "text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
-                    : "text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-amber-600 dark:text-amber-400"
             )}
             title={isFullAccess ? "Full access mode: tools run automatically" : "Ask mode: tools require authorization"}
         >
@@ -357,7 +357,7 @@ export function Composer() {
         <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-6 pt-2 relative z-50 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
-                <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] dark:bg-[linear-gradient(180deg,rgba(31,31,35,0.98),rgba(24,24,27,0.96))] backdrop-blur-xl rounded-[28px] shadow-[0_18px_45px_-22px_rgba(15,23,42,0.28)] transition-all focus-within:shadow-[0_24px_60px_-24px_rgba(15,23,42,0.3)] dark:focus-within:bg-[#1e1e1e] ring-1 ring-[#E5E7EB] dark:ring-white/10 focus-within:ring-[#D1D5DB] dark:focus-within:ring-white/20">
+                <div className="relative rounded-[28px] bg-white dark:bg-[#1b1d21] shadow-[0_18px_45px_-22px_rgba(15,23,42,0.14)] transition-all focus-within:shadow-[0_22px_52px_-24px_rgba(15,23,42,0.18)] ring-1 ring-[#E5E7EB] dark:ring-white/[0.08] focus-within:ring-[#D7DCE3] dark:focus-within:ring-white/[0.12]">
 
                     {/* Slash Command Menu - Primary */}
                     {showSlashMenu && !slashSubMenu && (
@@ -625,7 +625,7 @@ export function Composer() {
                     )}
 
                     {/* Input Area with Inline Staff & Skills */}
-                    <div className={cn("flex flex-wrap items-start px-5 py-4 gap-2", pendingAttachments.length > 0 ? "pt-2" : "")}>
+                    <div className={cn("flex flex-wrap items-start px-5 pt-4 pb-2 gap-2", pendingAttachments.length > 0 ? "pt-2" : "")}>
                         {/* Staff - avatar only */}
                         {currentStaff && (
                             <div
@@ -752,13 +752,13 @@ export function Composer() {
                         />
                     </div>
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
-                    <div className="flex items-center justify-between px-3 pb-3 pt-1.5 border-t border-slate-200/60 dark:border-white/[0.06]">
+                    <div className="flex items-center justify-between px-4 pb-4 pt-1 gap-3">
                         {/* Left Tools */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1 flex-wrap rounded-full bg-white px-1.5 py-1 dark:bg-[#1b1d21]">
                             {/* Add / Attach Button */}
                             <button
                                 onClick={handleSelectFile}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-zinc-200 transition-all"
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-white hover:text-slate-700 dark:hover:bg-[#2a2e34] dark:hover:text-zinc-200 transition-all"
                                 title="Add Attachment"
                             >
                                 <Plus size={16} strokeWidth={2} />
@@ -772,12 +772,12 @@ export function Composer() {
                             onClick={() => isSending ? window.electronAPI.agent.stop(activeSessionId ?? undefined) : handleSend()}
                             disabled={!isSending && !input.trim()}
                             className={cn(
-                                "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200",
+                                "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200",
                                 isSending
-                                    ? "bg-slate-100 dark:bg-white/10 text-red-500 dark:text-red-400 border-2 border-red-200 dark:border-red-500/30 hover:bg-red-50 dark:hover:bg-red-500/10"
+                                    ? "bg-slate-100 text-red-500 hover:bg-red-50 dark:bg-[#23262b] dark:text-red-400 dark:hover:bg-red-500/10"
                                     : input.trim()
-                                        ? "bg-slate-900 dark:bg-white text-white dark:text-black shadow-md hover:scale-[1.02] active:scale-95"
-                                        : "bg-slate-200/80 text-slate-400 dark:bg-white/10 dark:text-zinc-500 opacity-60 cursor-not-allowed"
+                                        ? "bg-slate-900 text-white shadow-[0_8px_20px_-14px_rgba(15,23,42,0.25)] hover:bg-slate-800 active:scale-95 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                                        : "bg-slate-100 text-slate-400 opacity-70 cursor-not-allowed dark:bg-[#23262b] dark:text-zinc-500"
                             )}
                         >
                             {isSending ? <Square size={10} fill="currentColor" /> : <ArrowUp size={16} strokeWidth={2.5} />}
@@ -786,9 +786,11 @@ export function Composer() {
                 </div>
 
                 {/* Sub-context bar */}
-                <div className="flex items-center justify-center gap-4 mt-2.5 opacity-60 hover:opacity-100 transition-opacity">
+                <div className="mt-2.5 flex items-center justify-center">
+                    <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1 dark:bg-[#1b1d21]">
                     <WorkspaceSelector />
                     <AccessIndicator />
+                    </div>
                 </div>
             </div>
         </div>
