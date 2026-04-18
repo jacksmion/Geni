@@ -161,12 +161,12 @@ export function SessionSidebar() {
         document.body.style.userSelect = 'none';
 
         const initialX = e.clientX;
-        const initialWidth = Math.max(sidebarWidth, 280);
+        const initialWidth = Math.max(sidebarWidth, 252);
 
         const onMouseMove = (moveEvent: MouseEvent) => {
             if (!isResizing.current) return;
             const deltaX = moveEvent.clientX - initialX;
-            const nextWidth = Math.max(240, Math.min(420, initialWidth + deltaX));
+            const nextWidth = Math.max(220, Math.min(420, initialWidth + deltaX));
             setSidebarWidth(nextWidth);
         };
 
@@ -199,7 +199,7 @@ export function SessionSidebar() {
                     isMobile && !sidebarCollapsed && "fixed left-0 top-0 bottom-0 z-30 shadow-2xl",
                 )}
                 style={{
-                    width: sidebarCollapsed ? 0 : isMobile ? 280 : Math.max(sidebarWidth, 280),
+                    width: sidebarCollapsed ? 0 : isMobile ? 264 : Math.max(sidebarWidth, 252),
                     visibility: sidebarCollapsed ? 'hidden' : 'visible'
                 }}
             >

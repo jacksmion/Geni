@@ -21,7 +21,7 @@ export const useLayoutStore = create<LayoutState>()(
     persist(
         (set) => ({
             sidebarCollapsed: false,
-            sidebarWidth: 260,
+            sidebarWidth: 236,
             paletteOpen: false,
             pendingCreatePlan: false,
             activeSettingsSection: 'models',

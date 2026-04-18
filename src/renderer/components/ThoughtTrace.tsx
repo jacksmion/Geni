@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 import { extractPathAndContent } from '../utils/artifact';
@@ -94,9 +94,9 @@ const TodoCard = React.memo(function TodoCard({ observation }: { observation: st
     const { items, completed, total, pct } = parsed;
 
     return (
-        <div className="mt-2 rounded-xl border border-indigo-200/60 dark:border-indigo-500/15 bg-white dark:bg-white/[0.02] overflow-hidden">
+        <div className="mt-2 rounded-xl border border-indigo-200 dark:border-indigo-500/15 bg-white dark:bg-[#17191d] overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-50/50 dark:bg-indigo-500/5 border-b border-indigo-100/60 dark:border-indigo-500/10">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-50 dark:bg-[#1d2128] border-b border-indigo-100 dark:border-indigo-500/10">
                 <div className="flex items-center gap-2">
                     <ListChecks size={14} className="text-indigo-500 dark:text-indigo-400" />
                     <span className="text-xs font-semibold text-slate-700 dark:text-zinc-200">Task Progress</span>
@@ -442,8 +442,8 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                 <div
                     className={cn(
                         "relative z-10 flex items-center gap-2 py-0.5 cursor-pointer group/compact",
-                        "hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors rounded-md -mx-2 px-2",
-                        isArtifactTool && "hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5"
+                        "hover:bg-slate-50 dark:hover:bg-[#1c2026] transition-colors rounded-md -mx-2 px-2",
+                        isArtifactTool && "hover:bg-indigo-50 dark:hover:bg-[#1f232b]"
                     )}
                     onClick={(e) => {
                         if (isArtifactTool) {
@@ -505,7 +505,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
             <div
                 className={cn(
                     "relative z-10 flex items-start gap-2.5",
-                    !isTodoTool && "cursor-pointer group/card hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors rounded -mx-2 px-2 py-1"
+                    !isTodoTool && "cursor-pointer group/card hover:bg-slate-50 dark:hover:bg-[#1c2026] transition-colors rounded -mx-2 px-2 py-1"
                 )}
                 onClick={(e) => {
                     if (isTodoTool) return;
@@ -586,11 +586,11 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
             {/* Expanded Content View */}
             {!isTodoTool && isExpanded && (
                 <div className="pl-[29px] mt-1.5 pr-1 pb-3">
-                    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#0d1117]">
+                    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#101317]">
                         {/* Input parameters */}
                         {step.toolInput && (
                             <>
-                                <div className="flex items-center px-3 py-1.5 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                                <div className="flex items-center px-3 py-1.5 bg-slate-50 dark:bg-[#1b1f25] border-b border-slate-100 dark:border-white/5">
                                     <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
                                         Input
                                     </span>
@@ -604,7 +604,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                         {/* Output */}
                         {(step.observation || step.streamingObservation) && (
                             <>
-                                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-white/5 border-b border-slate-100 dark:border-white/5">
+                                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-[#1b1f25] border-b border-slate-100 dark:border-white/5">
                                     <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
                                         Output{step.isComplete ? '' : ' (Streaming...)'}
                                     </span>
@@ -686,11 +686,15 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
         [visibleSteps]
     );
     const [isCollapsed, setIsCollapsed] = useState(() => !hasActiveSteps);
+    const prevHasActiveStepsRef = useRef(hasActiveSteps);
 
     React.useEffect(() => {
         if (hasActiveSteps) {
             setIsCollapsed(false);
+        } else if (prevHasActiveStepsRef.current) {
+            setIsCollapsed(true);
         }
+        prevHasActiveStepsRef.current = hasActiveSteps;
     }, [hasActiveSteps]);
 
     const canCollapse = visibleSteps.length > 0;
@@ -699,7 +703,7 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
         <div className="flex flex-col mb-0.5">
             <button
                 type="button"
-                className="mb-0.5 ml-[2px] inline-flex w-full items-center gap-1.5 rounded-md border-l border-slate-200/80 px-2 py-1 text-[10.5px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/8 dark:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-zinc-300"
+                className="mb-0.5 ml-[2px] inline-flex w-full items-center gap-1.5 rounded-md border-l border-slate-200 px-2 py-1 text-[10.5px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/8 dark:text-zinc-500 dark:hover:bg-[#1c2026] dark:hover:text-zinc-300"
                 onClick={() => {
                     if (!canCollapse) return;
                     setIsCollapsed(value => !value);
