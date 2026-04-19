@@ -20,7 +20,7 @@ export default function Settings() {
         <div className="flex h-full flex-col overflow-hidden bg-white dark:bg-[#141414]">
             <header className="h-10 flex items-center justify-between px-4 draggable shrink-0 z-10 bg-white dark:bg-[#141414] border-b border-slate-100 dark:border-white/[0.05]">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-sm font-semibold text-slate-800 dark:text-gray-100">
+                    <h1 className="ui-text-body font-semibold text-slate-800 dark:text-gray-100">
                         {activeSectionConfig ? t(activeSectionConfig.labelKey) : t('settings.title')}
                     </h1>
                 </div>
@@ -56,7 +56,7 @@ export default function Settings() {
                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Geni</h2>
                         <p className="text-slate-500 dark:text-gray-400">{t('settings.about.slogan')}</p>
 
-                        <div className="pt-8 text-xs text-slate-400">
+                        <div className="ui-text-meta pt-8 text-slate-400">
                             © 2026 Geni Inc.
                         </div>
                     </div>

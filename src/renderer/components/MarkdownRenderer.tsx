@@ -50,7 +50,7 @@ export const ThinkingBlock = React.memo(function ThinkingBlock({ content, isComp
                 onClick={handleToggle}
             >
                 <Brain size={14} className={cn("text-slate-500 dark:text-zinc-500", !isComplete && "animate-pulse")} />
-                <span className="text-[13px] text-slate-500 dark:text-zinc-500 font-medium">
+                <span className="ui-text-label text-slate-500 dark:text-zinc-500 font-medium">
                     {isComplete ? '思考过程' : '正在思考'}
                 </span>
                 {isExpanded ? (
@@ -61,7 +61,7 @@ export const ThinkingBlock = React.memo(function ThinkingBlock({ content, isComp
             </div>
             {isExpanded && (
                 <div className="mt-2 border-l-2 border-slate-200 dark:border-white/10 pl-4 py-1 overflow-hidden">
-                    <div className="text-[13.5px] leading-[1.7] text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
+                    <div className="ui-text-body-tight text-slate-600 dark:text-zinc-400 whitespace-pre-wrap select-text">
                         {trimmedContent}
                         {!isComplete && (
                             <span className="inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/40 streaming-cursor" />
@@ -79,9 +79,9 @@ function StreamingCodePlaceholder({ label, code, animated }: { label: string; co
     return (
         <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
             <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{label}</span>
+                <span className="ui-text-caption font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{label}</span>
             </div>
-            <pre className="m-0 p-5 overflow-x-auto font-mono text-[12.5px] leading-[1.65] text-slate-800 dark:text-zinc-300">
+            <pre className="ui-text-code m-0 overflow-x-auto p-5 text-slate-800 dark:text-zinc-300">
                 <code>{code}</code>
                 <span className={cn(
                     "inline-block w-1.5 h-3.5 ml-1 align-middle bg-indigo-500/50",
@@ -154,7 +154,7 @@ const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, c
     return isBlock ? (
         <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
             <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
-                <span className="text-[10px] font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{lang || 'code'}</span>
+                <span className="ui-text-caption font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{lang || 'code'}</span>
                 <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
                     <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
                 </div>
@@ -167,8 +167,9 @@ const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, c
                     margin: 0,
                     padding: '1.25rem',
                     background: 'transparent',
-                    fontSize: '12.5px',
-                    lineHeight: '1.65',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--font-size-sm)',
+                    lineHeight: 'var(--line-height-normal)',
                     letterSpacing: '-0.01em'
                 }}
                 {...props}
@@ -177,7 +178,7 @@ const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, c
             </SyntaxHighlighter>
         </div>
     ) : (
-        <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[0.85em] font-medium", className)} {...props}>
+        <code className={cn("bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono ui-text-meta font-medium", className)} {...props}>
             {children}
         </code>
     )
@@ -330,24 +331,24 @@ function MarkdownLink({ href, children, ...props }: any) {
 
 const PROSE_CLASS = `select-text prose prose-slate dark:prose-invert max-w-none
 text-slate-900 dark:text-zinc-100
-prose-p:text-[14px] prose-p:leading-[1.78] prose-p:my-3 prose-p:last:mb-0
+prose-p:text-[14px] prose-p:leading-[1.75] prose-p:my-3 prose-p:last:mb-0
 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-950 dark:prose-headings:text-white
-prose-h1:text-[1.15rem] prose-h1:mt-6 prose-h1:mb-3
-prose-h2:text-[1.02rem] prose-h2:mt-5 prose-h2:mb-2.5
+prose-h1:text-[20px] prose-h1:mt-6 prose-h1:mb-3
+prose-h2:text-[16px] prose-h2:mt-5 prose-h2:mb-2.5
 prose-h3:text-[14px] prose-h3:mt-4 prose-h3:mb-2
-prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14px] prose-ul:leading-[1.78]
-prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14px] prose-ol:leading-[1.78]
+prose-ul:my-3 prose-ul:list-disc prose-ul:pl-6 prose-ul:text-[14px] prose-ul:leading-[1.75]
+prose-ol:my-3 prose-ol:list-decimal prose-ol:pl-6 prose-ol:text-[14px] prose-ol:leading-[1.75]
 prose-li:my-1.5 prose-li:pl-1
 prose-li:prose-p:my-0
 prose-li:marker:text-indigo-500 dark:prose-li:marker:text-indigo-400
 prose-strong:text-slate-900 dark:prose-strong:text-zinc-100 prose-strong:font-bold
 prose-hr:border-slate-200 dark:prose-hr:border-white/10 prose-hr:my-8
-prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-[13.5px] prose-blockquote:leading-[1.75] prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
+prose-blockquote:border-l-4 prose-blockquote:border-indigo-500/20 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-[13px] prose-blockquote:leading-[1.75] prose-blockquote:text-slate-600 dark:prose-blockquote:text-zinc-400 prose-blockquote:my-4
 prose-code:text-indigo-700 dark:prose-code:text-indigo-300 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-500/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none
 prose-pre:p-0 prose-pre:bg-transparent prose-pre:m-0
 prose-table:my-4 prose-table:w-full prose-table:border-collapse
 prose-th:border prose-th:border-slate-200 dark:prose-th:border-white/10 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[13px] prose-th:font-semibold prose-th:bg-slate-50 dark:prose-th:bg-white/5 prose-th:text-slate-700 dark:prose-th:text-zinc-300
-prose-td:border prose-td:border-slate-200 dark:prose-td:border-white/10 prose-td:px-3 prose-td:py-2 prose-td:text-[13.5px] prose-td:text-slate-600 dark:prose-td:text-zinc-400`
+prose-td:border prose-td:border-slate-200 dark:prose-td:border-white/10 prose-td:px-3 prose-td:py-2 prose-td:text-[13px] prose-td:text-slate-600 dark:prose-td:text-zinc-400`
 
 const MarkdownComponents: any = {
     p: ({ children }: any) => <p>{children}</p>,

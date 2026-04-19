@@ -87,11 +87,11 @@ export function ShortcutSettings() {
         <div className="max-w-3xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500" ref={containerRef}>
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">{t('shortcuts.desc')}</p>
+                    <p className="ui-text-meta text-slate-500 dark:text-gray-400">{t('shortcuts.desc')}</p>
                 </div>
                 <button
                     onClick={handleReset}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    className="ui-text-meta flex items-center gap-2 px-3 py-1.5 font-medium text-slate-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                 >
                     <RotateCcw size={14} />
                     {t('personaSettings.reset')}
@@ -110,14 +110,14 @@ export function ShortcutSettings() {
                         )}
                     >
                         <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-semibold text-slate-700 dark:text-gray-200">{item.label}</span>
+                            <span className="ui-text-meta font-semibold text-slate-700 dark:text-gray-200">{item.label}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => handleRecord(item.id)}
                                 className={clsx(
-                                    "min-w-[100px] px-3 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-2",
+                                    "ui-text-meta flex min-w-[100px] items-center justify-center gap-2 rounded-lg px-3 py-1.5 font-mono transition-all",
                                     recording === item.id
                                         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 animate-pulse"
                                         : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-white/10"

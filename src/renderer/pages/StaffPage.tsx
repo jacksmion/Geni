@@ -14,7 +14,7 @@ function InlineToast({ message, type }: { message: string; type: 'error' | 'succ
     return (
         <div
             className={clsx(
-                "fixed top-4 right-4 z-[120] px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200",
+                "ui-text-body fixed top-4 right-4 z-[120] rounded-xl px-4 py-2.5 font-medium shadow-lg animate-in fade-in slide-in-from-top-2 duration-200",
                 type === 'error' && "bg-red-500 text-white",
                 type === 'success' && "bg-emerald-500 text-white",
                 type === 'info' && "bg-slate-800 text-white dark:bg-white dark:text-slate-800",
@@ -89,7 +89,7 @@ export default function StaffPage() {
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
+                        <h1 className="text-[16px] font-bold text-slate-800 dark:text-gray-100 tracking-tight">
                             {t('staffPage.title')}
                         </h1>
                         <div className="w-32" />
@@ -103,19 +103,19 @@ export default function StaffPage() {
                                 placeholder={t('staffPage.search', '搜索员工...')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                                className="ui-text-body w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-indigo-500/30 dark:placeholder:text-gray-600 placeholder:text-slate-400"
                             />
                         </div>
                         <button
                             onClick={handleImport}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all shrink-0"
+                            className="ui-text-meta flex items-center gap-1.5 rounded-lg border border-slate-200/50 bg-slate-100 px-3 py-2 font-medium text-slate-600 transition-all shrink-0 hover:bg-slate-200 dark:border-white/5 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
                         >
                             <Download size={12} />
                             {t('staffPage.import', '导入')}
                         </button>
                         <button
                             onClick={() => setEditingId('new')}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all shrink-0"
+                            className="ui-text-meta flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 font-medium text-white transition-all shrink-0 hover:bg-indigo-600"
                         >
                             <Plus size={12} />
                             {t('staffPage.create')}
@@ -133,7 +133,7 @@ export default function StaffPage() {
                         <div className="text-center py-20">
                             <User size={48} className="mx-auto mb-4 text-slate-300 dark:text-zinc-600" />
                             <h3 className="text-lg font-medium mb-2">{searchTerm ? (t('staffPage.noMatch', '无匹配结果')) : t('staffPage.empty')}</h3>
-                            <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{searchTerm ? (t('staffPage.noMatchDesc', '尝试其他关键词')) : t('staffPage.emptyDesc')}</p>
+                            <p className="ui-text-body text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{searchTerm ? (t('staffPage.noMatchDesc', '尝试其他关键词')) : t('staffPage.emptyDesc')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
@@ -196,11 +196,11 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                     />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 className="ui-text-body font-semibold truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {profile.name}
                     </h3>
                     {profile.description && (
-                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                        <p className="ui-text-meta text-slate-400 dark:text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
                             {profile.description}
                         </p>
                     )}
@@ -214,7 +214,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                     role="button"
                     tabIndex={0}
                     onClick={handleExport}
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    className="ui-text-meta inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
                     title="导出"
                 >
                     <Upload size={13} />
@@ -224,7 +224,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                     tabIndex={0}
                     onClick={handleUse}
                     onKeyDown={e => { if (e.key === 'Enter') handleUse(e as unknown as React.MouseEvent) }}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                    className="ui-text-meta inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
                 >
                     <MessageSquare size={12} />
                     {profile.name.length > 8 ? '' : '使用'}
@@ -247,10 +247,10 @@ function SkillList({ allSkills, skillSearch, skillIds, toggleSkill, t }: {
         : allSkills
 
     if (allSkills.length === 0) {
-        return <div className="px-3 py-4 text-xs text-slate-400 dark:text-zinc-500 text-center">{t('loading')}</div>
+        return <div className="ui-text-meta px-3 py-4 text-center text-slate-400 dark:text-zinc-500">{t('loading')}</div>
     }
     if (filtered.length === 0) {
-        return <div className="px-3 py-4 text-xs text-slate-400 dark:text-zinc-500 text-center">无匹配技能</div>
+        return <div className="ui-text-meta px-3 py-4 text-center text-slate-400 dark:text-zinc-500">无匹配技能</div>
     }
     return <>{filtered.map(skill => {
         const isSelected = skillIds.includes(skill.id)
@@ -259,7 +259,7 @@ function SkillList({ allSkills, skillSearch, skillIds, toggleSkill, t }: {
                 key={skill.id}
                 type="button"
                 onClick={() => toggleSkill(skill.id)}
-                className="w-full px-3 py-2 text-left text-sm flex items-center gap-2.5 hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors"
+                className="ui-text-body flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-zinc-700/50 transition-colors"
             >
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                     isSelected
@@ -271,7 +271,7 @@ function SkillList({ allSkills, skillSearch, skillIds, toggleSkill, t }: {
                 <div className="min-w-0 flex-1">
                     <div className="font-medium text-slate-700 dark:text-zinc-200 truncate">{skill.name}</div>
                     {skill.description && (
-                        <div className="text-xs text-slate-400 dark:text-zinc-500 truncate">{skill.description}</div>
+                        <div className="ui-text-meta text-slate-400 dark:text-zinc-500 truncate">{skill.description}</div>
                     )}
                 </div>
             </button>
@@ -423,7 +423,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
             {/* Draggable Header */}
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] draggable">
                 <div className="flex items-center justify-between px-4 h-12">
-                    <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+                    <button onClick={onBack} className="ui-text-body flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
                         <ArrowLeft size={16} /> {t('staffPage.back')}
                     </button>
                     <div className="w-32" />
@@ -435,7 +435,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                             key={tab}
                             onClick={() => setEditorTab(tab)}
                             className={clsx(
-                                "px-4 py-2 text-xs font-medium transition-colors relative",
+                                "ui-text-meta px-4 py-2 font-medium transition-colors relative",
                                 editorTab === tab
                                     ? "text-indigo-600 dark:text-indigo-400"
                                     : "text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
@@ -509,7 +509,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                                 <button
                                                     type="button"
                                                     onClick={() => { setAvatar(''); setAvatarPickerOpen(false) }}
-                                                    className="text-[11px] text-slate-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                                                    className="ui-text-meta text-slate-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                                 >
                                                     移除头像
                                                 </button>
@@ -520,34 +520,34 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <label className="block text-sm font-medium mb-1.5">{t('staffPage.name')}</label>
+                                <label className="ui-text-body block font-medium mb-1.5">{t('staffPage.name')}</label>
                                 <input
                                     value={name} onChange={e => setName(e.target.value)}
                                     placeholder={t('staffPage.namePlaceholder')}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                    className="ui-text-body w-full rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                                 />
                             </div>
                         </div>
 
                         {/* Description */}
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">{t('staffPage.description')}</label>
+                            <label className="ui-text-body block font-medium mb-1.5">{t('staffPage.description')}</label>
                             <input
                                 value={description} onChange={e => setDescription(e.target.value)}
                                 placeholder={t('staffPage.descriptionPlaceholder')}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                className="ui-text-body w-full rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                             />
                         </div>
 
                         {/* Persona */}
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-sm font-medium">{t('staffPage.persona')}</label>
+                                <label className="ui-text-body block font-medium">{t('staffPage.persona')}</label>
                                 <button
                                     type="button"
                                     onClick={handleGeneratePrompt}
                                     disabled={!name.trim() || generating}
-                                    className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    className="ui-text-meta flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {generating
                                         ? <><Loader2 size={12} className="animate-spin" /> 生成中...</>
@@ -559,17 +559,17 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                 value={persona} onChange={e => setPersona(e.target.value)}
                                 placeholder={t('staffPage.personaPlaceholder')}
                                 rows={8}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-y font-mono"
+                                className="ui-text-code w-full rounded-lg border border-slate-200 bg-white px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                             />
                         </div>
 
                         {/* Model */}
                         <div>
-                            <label className="block text-sm font-medium mb-1.5">{t('staffPage.model')}</label>
+                            <label className="ui-text-body block font-medium mb-1.5">{t('staffPage.model')}</label>
                             <select
                                 value={modelId}
                                 onChange={e => setModelId(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 appearance-none cursor-pointer"
+                                className="ui-text-body w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                             >
                                 <option value="">{t('staffPage.modelDefault') || '使用全局默认模型'}</option>
                                 {modelOptions.map(opt => (
@@ -592,7 +592,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                     return (
                                         <span
                                             key={sid}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                                            className="ui-text-meta inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"
                                         >
                                             {skill.name}
                                             <button
@@ -616,7 +616,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                 value={skillSearch}
                                 onChange={e => setSkillSearch(e.target.value)}
                                 placeholder={t('staffPage.skillSearch', '搜索技能...')}
-                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                                className="ui-text-body w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-indigo-500/30 dark:placeholder:text-gray-600 placeholder:text-slate-400"
                             />
                         </div>
 
@@ -628,10 +628,10 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                     ? allSkills.filter(s => s.name.toLowerCase().includes(keyword) || (s.description && s.description.toLowerCase().includes(keyword)))
                                     : allSkills
                                 if (allSkills.length === 0) {
-                                    return <div className="col-span-2 py-8 text-xs text-slate-400 dark:text-zinc-500 text-center">{t('loading')}</div>
+                                    return <div className="ui-text-meta col-span-2 py-8 text-center text-slate-400 dark:text-zinc-500">{t('loading')}</div>
                                 }
                                 if (filtered.length === 0) {
-                                    return <div className="col-span-2 py-8 text-xs text-slate-400 dark:text-zinc-500 text-center">{t('staffPage.noSkillMatch', '无匹配技能')}</div>
+                                    return <div className="ui-text-meta col-span-2 py-8 text-center text-slate-400 dark:text-zinc-500">{t('staffPage.noSkillMatch', '无匹配技能')}</div>
                                 }
                                 return filtered.map(skill => {
                                     const isSelected = skillIds.includes(skill.id)
@@ -641,7 +641,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                             type="button"
                                             onClick={() => toggleSkill(skill.id)}
                                             className={clsx(
-                                                "w-full px-3 py-2.5 text-left text-sm rounded-lg transition-all flex items-center gap-2.5",
+                                                "ui-text-body flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-all",
                                                 isSelected
                                                     ? "bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-indigo-200 dark:ring-indigo-500/30"
                                                     : "hover:bg-slate-50 dark:hover:bg-white/5"
@@ -656,9 +656,9 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                                 {isSelected && <Check size={10} strokeWidth={3} />}
                                             </span>
                                             <div className="min-w-0 flex-1">
-                                                <div className="font-medium text-slate-700 dark:text-zinc-200 truncate text-[13px]">{skill.name}</div>
+                                                <div className="ui-text-label font-medium text-slate-700 dark:text-zinc-200 truncate">{skill.name}</div>
                                                 {skill.description && (
-                                                    <div className="text-xs text-slate-400 dark:text-zinc-500 truncate mt-0.5">{skill.description}</div>
+                                                    <div className="ui-text-meta text-slate-400 dark:text-zinc-500 truncate mt-0.5">{skill.description}</div>
                                                 )}
                                             </div>
                                         </button>
@@ -675,11 +675,11 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                 <div className="flex items-center gap-3 max-w-2xl mx-auto">
                     <button
                         onClick={handleSave} disabled={!canSave || saving}
-                        className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium transition-colors"
+                        className="ui-text-body rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-40"
                     >
                         {saving ? '...' : t('staffPage.save')}
                     </button>
-                    <button onClick={onBack} className="px-5 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-sm hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                    <button onClick={onBack} className="ui-text-body rounded-lg border border-slate-200 px-5 py-2 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                         {t('staffPage.cancel')}
                     </button>
                     {!isNew && (

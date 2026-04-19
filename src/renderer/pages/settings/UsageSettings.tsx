@@ -80,34 +80,34 @@ export function UsageSettings() {
                     </div>
                     <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300 mb-2">
                         <TrendingUp size={14} />
-                        <span className="text-xs font-semibold uppercase tracking-wider">{t('usageSettings.todayTotal')}</span>
+                        <span className="ui-text-meta font-semibold uppercase tracking-wider">{t('usageSettings.todayTotal')}</span>
                     </div>
                     <div className="text-xl font-bold text-slate-900 dark:text-white">
                         {formatNumber(stats.today.total_tokens)}
                     </div>
-                    <div className="mt-2 text-xs text-indigo-500/60 dark:text-indigo-300/60 font-medium uppercase tracking-tight">{t('usageSettings.totalTokensToday')}</div>
+                    <div className="ui-text-meta mt-2 text-indigo-500/60 dark:text-indigo-300/60 font-medium uppercase tracking-tight">{t('usageSettings.totalTokensToday')}</div>
                 </div>
 
                 <div className="bg-white dark:bg-[#18181b]/50 border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-slate-500 dark:text-gray-400 mb-2">
                         <Hash size={14} />
-                        <span className="text-xs font-semibold uppercase tracking-wider">{t('usageSettings.promptTokens')}</span>
+                        <span className="ui-text-meta font-semibold uppercase tracking-wider">{t('usageSettings.promptTokens')}</span>
                     </div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">
                         {formatNumber(stats.today.prompt_tokens)}
                     </div>
-                    <div className="mt-2 text-xs text-slate-400 font-medium uppercase tracking-tight">{t('usageSettings.today')}</div>
+                    <div className="ui-text-meta mt-2 text-slate-400 font-medium uppercase tracking-tight">{t('usageSettings.today')}</div>
                 </div>
 
                 <div className="bg-white dark:bg-[#18181b]/50 border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-slate-500 dark:text-gray-400 mb-2">
                         <Cpu size={14} />
-                        <span className="text-xs font-semibold uppercase tracking-wider">{t('usageSettings.completionTokens')}</span>
+                        <span className="ui-text-meta font-semibold uppercase tracking-wider">{t('usageSettings.completionTokens')}</span>
                     </div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">
                         {formatNumber(stats.today.completion_tokens)}
                     </div>
-                    <div className="mt-2 text-xs text-slate-400 font-medium uppercase tracking-tight">{t('usageSettings.today')}</div>
+                    <div className="ui-text-meta mt-2 text-slate-400 font-medium uppercase tracking-tight">{t('usageSettings.today')}</div>
                 </div>
             </div>
 
@@ -118,20 +118,20 @@ export function UsageSettings() {
                         <BarChart3 size={16} />
                     </div>
                     <div>
-                        <div className="text-xs text-slate-500 dark:text-gray-400 uppercase font-bold tracking-tighter">{t('usageSettings.allTimeUsage')}</div>
-                        <div className="text-sm font-bold text-slate-800 dark:text-gray-200">{formatNumber(stats.total.total_tokens)} {t('usageSettings.tokens')}</div>
+                        <div className="ui-text-meta text-slate-500 dark:text-gray-400 uppercase font-bold tracking-tighter">{t('usageSettings.allTimeUsage')}</div>
+                        <div className="ui-text-body font-bold text-slate-800 dark:text-gray-200">{formatNumber(stats.total.total_tokens)} {t('usageSettings.tokens')}</div>
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-[10px] text-slate-400 dark:text-gray-500 uppercase font-bold">{t('usageSettings.accumulated')}</div>
-                    <div className="text-xs font-mono text-slate-500">{formatNumber(stats.total.prompt_tokens)} P / {formatNumber(stats.total.completion_tokens)} C</div>
+                    <div className="ui-text-caption text-slate-400 dark:text-gray-500 uppercase font-bold">{t('usageSettings.accumulated')}</div>
+                    <div className="ui-text-meta font-mono text-slate-500">{formatNumber(stats.total.prompt_tokens)} P / {formatNumber(stats.total.completion_tokens)} C</div>
                 </div>
             </div>
 
             {/* Usage by Model */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                    <h3 className="ui-text-label font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
                         <Cpu size={14} className="text-indigo-500" />
                         {t('usageSettings.byModel')}
                     </h3>
@@ -143,16 +143,16 @@ export function UsageSettings() {
                             <div key={modelId} className="p-3.5 bg-white dark:bg-[#18181b]/50 border border-slate-200 dark:border-white/5 rounded-2xl hover:border-indigo-500/30 transition-all group">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-slate-700 dark:text-gray-200 group-hover:text-indigo-500 transition-colors">{displayName}</span>
+                                        <span className="ui-text-meta font-bold text-slate-700 dark:text-gray-200 group-hover:text-indigo-500 transition-colors">{displayName}</span>
                                         {displayName !== modelId && (
-                                            <span className="text-[10px] text-slate-400 font-mono mt-0.5">{modelId}</span>
+                                            <span className="ui-text-caption text-slate-400 font-mono mt-0.5">{modelId}</span>
                                         )}
                                     </div>
                                     <div className="text-right">
                                         <div className="text-sm font-bold text-slate-900 dark:text-white">
                                             {formatNumber(usage.total_tokens)}
                                         </div>
-                                        <div className="text-[10px] text-slate-400 uppercase font-bold">{t('usageSettings.total')}</div>
+                                        <div className="ui-text-caption text-slate-400 uppercase font-bold">{t('usageSettings.total')}</div>
                                     </div>
                                 </div>
                                 
@@ -164,7 +164,7 @@ export function UsageSettings() {
                                     ></div>
                                 </div>
                                 
-                                <div className="flex justify-between items-center text-[11px]">
+                                <div className="ui-text-meta flex justify-between items-center">
                                     <span className="text-slate-500 dark:text-gray-400 flex items-center gap-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-gray-600" />
                                         {t('usageSettings.promptTokens')}: <span className="font-mono">{formatNumber(usage.prompt_tokens)}</span>
@@ -182,7 +182,7 @@ export function UsageSettings() {
 
             {/* Daily History */}
             <section className="space-y-4">
-                <h3 className="text-[13px] font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                <h3 className="ui-text-label font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
                     <Calendar size={14} className="text-purple-500" />
                     {t('usageSettings.dailyHistory')}
                 </h3>
@@ -192,28 +192,28 @@ export function UsageSettings() {
                             <div key={day.date} className="flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">
+                                        <span className="ui-text-caption font-bold text-slate-400 uppercase leading-none">
                                             {new Date(day.date + 'T00:00:00').toLocaleDateString(i18n.language, { month: 'short' })}
                                         </span>
-                                        <span className="text-xs font-bold text-slate-600 dark:text-gray-300 leading-none mt-1">{day.date.split('-')[2]}</span>
+                                        <span className="ui-text-meta font-bold text-slate-600 dark:text-gray-300 leading-none mt-1">{day.date.split('-')[2]}</span>
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold text-slate-700 dark:text-gray-200">{day.date === new Date().toISOString().split('T')[0] ? t('usageSettings.today') : day.date}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{day.recordCount} {t('usageSettings.requests')}</div>
+                                        <div className="ui-text-meta font-bold text-slate-700 dark:text-gray-200">{day.date === new Date().toISOString().split('T')[0] ? t('usageSettings.today') : day.date}</div>
+                                        <div className="ui-text-caption text-slate-400 font-bold uppercase tracking-tight">{day.recordCount} {t('usageSettings.requests')}</div>
                                     </div>
                                 </div>
                                 <div className="flex gap-8">
                                     <div className="text-right hidden sm:block">
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">{t('usageSettings.prompt')}</div>
-                                        <div className="text-xs font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.prompt_tokens)}</div>
+                                        <div className="ui-text-caption text-slate-400 font-bold uppercase">{t('usageSettings.prompt')}</div>
+                                        <div className="ui-text-meta font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.prompt_tokens)}</div>
                                     </div>
                                     <div className="text-right hidden sm:block">
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase">{t('usageSettings.completion')}</div>
-                                        <div className="text-xs font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.completion_tokens)}</div>
+                                        <div className="ui-text-caption text-slate-400 font-bold uppercase">{t('usageSettings.completion')}</div>
+                                        <div className="ui-text-meta font-medium text-slate-600 dark:text-gray-300 font-mono tracking-tighter">{formatNumber(day.completion_tokens)}</div>
                                     </div>
                                     <div className="text-right min-w-[100px]">
-                                        <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest mb-0.5">{t('usageSettings.totalUsage')}</div>
-                                        <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono tracking-tighter">{formatNumber(day.total_tokens)}</div>
+                                        <div className="ui-text-caption text-indigo-500 font-black uppercase tracking-widest mb-0.5">{t('usageSettings.totalUsage')}</div>
+                                        <div className="ui-text-meta font-bold text-indigo-600 dark:text-indigo-400 font-mono tracking-tighter">{formatNumber(day.total_tokens)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -224,7 +224,7 @@ export function UsageSettings() {
 
             {/* Maintenance Note */}
             <div className="text-center pt-5 border-t border-slate-100 dark:border-white/5">
-                <p className="text-[11px] text-slate-400 font-medium uppercase tracking-widest">
+                <p className="ui-text-meta text-slate-400 font-medium uppercase tracking-widest">
                     {t('usageSettings.maintenanceNote')}
                 </p>
             </div>

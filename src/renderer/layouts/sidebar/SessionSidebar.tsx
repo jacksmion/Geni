@@ -260,7 +260,7 @@ export function SessionSidebar() {
 
                 <div className={clsx("px-4 pb-2 shrink-0", isSettingsTab ? "pt-1" : "pt-2.5")}>
                     <div className="flex items-center justify-between">
-                        <div className="text-[13px] font-medium text-slate-400 dark:text-zinc-500 select-none">
+                        <div className="ui-text-label font-medium text-slate-400 dark:text-zinc-500 select-none">
                             {isSettingsTab ? '' : '任务'}
                         </div>
                         <div className="flex items-center gap-1">
@@ -388,7 +388,7 @@ export function SessionSidebar() {
                                                             onChange={(e) => setEditTitle(e.target.value)}
                                                             onClick={(e) => e.stopPropagation()}
                                                             onBlur={() => handleSaveEdit()}
-                                                            className="flex-1 min-w-0 bg-transparent border-b border-indigo-500 outline-none text-xs py-0.5"
+                                                            className="ui-text-meta flex-1 min-w-0 bg-transparent border-b border-indigo-500 outline-none py-0.5"
                                                         />
                                                     </form>
                                                 ) : (
@@ -400,13 +400,13 @@ export function SessionSidebar() {
                                                             {session.pinned && (
                                                                 <Pin size={10} className="shrink-0 text-indigo-400 dark:text-indigo-500 rotate-45" />
                                                             )}
-                                                            <span className={clsx("truncate select-none text-[12.5px]", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
+                                                            <span className={clsx("ui-text-meta truncate select-none", isRunning && selectMode && "opacity-40")} title={session.title || t('sessionSidebar.defaultTitle')}>
                                                                 {session.title || t('sessionSidebar.defaultTitle')}
                                                             </span>
                                                         </div>
                                                         {/* Time - visible by default, hidden on hover */}
                                                         <span className={clsx(
-                                                            "text-[10px] shrink-0 tabular-nums group-hover:hidden transition-opacity",
+                                                            "ui-text-caption shrink-0 tabular-nums group-hover:hidden transition-opacity",
                                                             isActive && !selectMode ? "text-slate-400 dark:text-zinc-500" : "text-slate-300 dark:text-zinc-600"
                                                         )}>
                                                             {getRelativeTime(session.updatedAt)}
@@ -453,7 +453,7 @@ export function SessionSidebar() {
 
                     {!isSettingsTab && filteredSessions.length === 0 && (
                         <div className="flex flex-col items-center justify-center pt-10 text-slate-400 dark:text-zinc-600 min-w-[200px]">
-                            <span className="text-xs">{t('sessionSidebar.noMatch')}</span>
+                            <span className="ui-text-meta">{t('sessionSidebar.noMatch')}</span>
                         </div>
                     )}
                 </div>
@@ -464,18 +464,18 @@ export function SessionSidebar() {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleSelectAll}
-                                className="text-[11px] text-slate-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 font-medium transition-colors"
+                                className="ui-text-meta text-slate-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 font-medium transition-colors"
                             >
                                 {selectedIds.size === allVisibleIds.length && allVisibleIds.length > 0 ? t('sessionSidebar.batch.deselectAll') : t('sessionSidebar.batch.selectAll')}
                             </button>
-                            <span className="text-[10px] text-slate-300 dark:text-zinc-600">
+                            <span className="ui-text-caption text-slate-300 dark:text-zinc-600">
                                 {t('sessionSidebar.batch.selected', { count: selectedIds.size })}
                             </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <button
                                 onClick={exitSelectMode}
-                                className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
+                                className="ui-text-meta px-2.5 py-1 rounded-lg font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-white/60 dark:hover:bg-white/5 transition-colors"
                             >
                                 {t('sessionSidebar.batch.cancel')}
                             </button>
@@ -483,7 +483,7 @@ export function SessionSidebar() {
                                 onClick={handleBatchDelete}
                                 disabled={selectedIds.size === 0}
                                 className={clsx(
-                                    "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
+                                    "ui-text-meta px-2.5 py-1 rounded-lg font-medium transition-colors",
                                     selectedIds.size > 0
                                         ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                                         : "text-slate-300 dark:text-zinc-700 cursor-not-allowed"
@@ -527,8 +527,8 @@ function ActionRow({
         <button
             onClick={onClick}
             className={clsx(
-                "flex items-center rounded-xl text-sm transition-all text-left",
-                compact ? "gap-2.5 px-3 py-1 text-[12px]" : "gap-3 px-3 py-1.5",
+                "ui-text-label flex w-full items-center rounded-xl transition-all text-left",
+                compact ? "gap-2.5 px-3 py-1" : "gap-3 px-3 py-1.5",
                 active
                     ? "border border-white/58 bg-white/54 text-slate-900 shadow-[0_10px_22px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.07] dark:text-white dark:shadow-[0_10px_28px_rgba(0,0,0,0.2)]"
                     : "border border-transparent text-slate-600 hover:border-white/44 hover:bg-white/40 hover:text-slate-900 dark:text-zinc-400 dark:hover:border-white/[0.08] dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"

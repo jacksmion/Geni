@@ -77,8 +77,8 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
                     <div className="flex items-center gap-2.5">
                         <span className="text-lg">{getSkillIcon(skill.id)}</span>
                         <div>
-                            <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100">{skill.name}</h3>
-                            <p className="text-[11px] text-slate-400 dark:text-gray-500">{skill.source}</p>
+                            <h3 className="ui-text-body font-bold text-slate-800 dark:text-gray-100">{skill.name}</h3>
+                            <p className="ui-text-meta text-slate-400 dark:text-gray-500">{skill.source}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
                             <button
                                 onClick={() => setMode('preview')}
                                 className={clsx(
-                                    "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                                    "ui-text-meta px-2.5 py-1 rounded-md font-medium transition-colors",
                                     mode === 'preview'
                                         ? "bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 shadow-sm"
                                         : "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-400"
@@ -98,7 +98,7 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
                             <button
                                 onClick={() => setMode('source')}
                                 className={clsx(
-                                    "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                                    "ui-text-meta px-2.5 py-1 rounded-md font-medium transition-colors",
                                     mode === 'source'
                                         ? "bg-white dark:bg-white/10 text-slate-800 dark:text-gray-200 shadow-sm"
                                         : "text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-400"
@@ -120,13 +120,13 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
                     {mode === 'preview' ? (
                         <MarkdownRenderer content={skill.content || ''} />
                     ) : (
-                        <pre className="text-xs leading-relaxed text-slate-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">{skill.rawContent || skill.content || ''}</pre>
+                        <pre className="ui-text-code whitespace-pre-wrap break-words text-slate-700 dark:text-gray-300">{skill.rawContent || skill.content || ''}</pre>
                     )}
                 </div>
                 {/* Footer: Enable/Disable + Delete */}
                 <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 dark:border-white/[0.06] shrink-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 dark:text-gray-400">{skill.enabled ? t('skillSettings.enabled', '已启用') : t('skillSettings.disabled', '已禁用')}</span>
+                        <span className="ui-text-meta text-slate-500 dark:text-gray-400">{skill.enabled ? t('skillSettings.enabled', '已启用') : t('skillSettings.disabled', '已禁用')}</span>
                         <Switch
                             checked={!!skill.enabled}
                             onChange={() => onToggle(skill.id)}
@@ -136,7 +136,7 @@ const SkillDetailDialog: React.FC<SkillDetailDialogProps> = ({ skill, onToggle, 
                     {onDelete && skill.source === 'global' && (
                         <button
                             onClick={() => onDelete(skill)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                            className="ui-text-meta flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
                         >
                             <Trash2 size={13} />
                             {t('skillSettings.delete.button')}
@@ -189,7 +189,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onClick }) => {
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <h3 className={clsx(
-                            "text-[13px] font-semibold leading-tight truncate",
+                            "ui-text-label font-semibold leading-tight truncate",
                             skill.enabled
                                 ? "text-slate-800 dark:text-gray-100"
                                 : "text-slate-500 dark:text-gray-500"
@@ -197,7 +197,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onClick }) => {
                             {skill.name}
                         </h3>
                         <span className={clsx(
-                            "shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none",
+                            "ui-text-caption shrink-0 px-1.5 py-0.5 rounded font-medium leading-none",
                             skill.source === 'builtin' && "bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400",
                             skill.source === 'global' && "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400",
                             skill.source === 'project' && "bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400",
@@ -207,7 +207,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, palette, onClick }) => {
                         </span>
                     </div>
                     <p className={clsx(
-                        "text-[11px] leading-relaxed mt-1 line-clamp-2",
+                        "ui-text-meta leading-relaxed mt-1 line-clamp-2",
                         skill.enabled
                             ? "text-slate-400 dark:text-gray-500"
                             : "text-slate-300 dark:text-gray-600"
@@ -232,33 +232,33 @@ const ConflictDialog: React.FC<ConflictDialogProps> = ({ skillName, onAction, on
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 max-w-sm w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-100 mb-2">
+                <h3 className="ui-text-body font-bold text-slate-800 dark:text-gray-100 mb-2">
                     {t('skillSettings.import.conflictTitle')}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mb-5">
+                <p className="ui-text-meta text-slate-500 dark:text-gray-400 mb-5">
                     {t('skillSettings.import.conflictDesc', { name: skillName })}
                 </p>
                 <div className="flex flex-col gap-2">
                     <button
                         onClick={() => onAction('overwrite')}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors text-left"
+                        className="ui-text-meta w-full rounded-xl bg-red-500/10 px-4 py-2.5 text-left font-medium text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
                     >
                         <span className="font-semibold">{t('skillSettings.import.overwrite')}</span>
-                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.overwriteDesc')}</span>
+                        <span className="ui-text-caption mt-0.5 block opacity-60">{t('skillSettings.import.overwriteDesc')}</span>
                     </button>
                     <button
                         onClick={() => onAction('rename')}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors text-left"
+                        className="ui-text-meta w-full rounded-xl bg-indigo-500/10 px-4 py-2.5 text-left font-medium text-indigo-600 transition-colors hover:bg-indigo-500/20 dark:text-indigo-400"
                     >
                         <span className="font-semibold">{t('skillSettings.import.rename')}</span>
-                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.renameDesc')}</span>
+                        <span className="ui-text-caption mt-0.5 block opacity-60">{t('skillSettings.import.renameDesc')}</span>
                     </button>
                     <button
                         onClick={() => onAction('skip')}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-left"
+                        className="ui-text-meta w-full rounded-xl bg-slate-100 px-4 py-2.5 text-left font-medium text-slate-600 transition-colors hover:bg-slate-200 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
                     >
                         <span className="font-semibold">{t('skillSettings.import.skip')}</span>
-                        <span className="block text-[10px] opacity-60 mt-0.5">{t('skillSettings.import.skipDesc')}</span>
+                        <span className="ui-text-caption mt-0.5 block opacity-60">{t('skillSettings.import.skipDesc')}</span>
                     </button>
                 </div>
             </div>
@@ -401,7 +401,7 @@ const SkillSettings: React.FC = () => {
         return (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-4">
                 <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-                <span className="text-sm font-medium">{t('skillSettings.loading')}</span>
+                <span className="ui-text-body font-medium">{t('skillSettings.loading')}</span>
             </div>
         );
     }
@@ -412,7 +412,7 @@ const SkillSettings: React.FC = () => {
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
+                        <h1 className="text-[16px] font-bold text-slate-800 dark:text-gray-100 tracking-tight">
                             {t('skillSettings.title')}
                         </h1>
                     </div>
@@ -426,14 +426,14 @@ const SkillSettings: React.FC = () => {
                                 placeholder={t('skillSettings.search')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                                className="ui-text-body w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-indigo-500/30 dark:placeholder:text-gray-600 placeholder:text-slate-400"
                             />
                         </div>
                         <div className="relative" ref={importMenuRef}>
                             <button
                                 onClick={() => setImportMenuOpen(!importMenuOpen)}
                                 disabled={importing}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-slate-100 dark:bg-white/5 border border-slate-200/50 dark:border-white/5 text-slate-600 dark:text-gray-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-50 shrink-0"
+                                className="ui-text-meta flex items-center gap-1.5 rounded-lg border border-slate-200/50 bg-slate-100 px-3 py-2 font-medium text-slate-600 transition-all disabled:opacity-50 shrink-0 hover:bg-slate-200 dark:border-white/5 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
                             >
                                 {importing ? (
                                     <Loader2 size={12} className="animate-spin" />
@@ -447,14 +447,14 @@ const SkillSettings: React.FC = () => {
                                 <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-200/50 dark:shadow-black/30 py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
                                     <button
                                         onClick={() => { setImportMenuOpen(false); handleImport(); }}
-                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                        className="ui-text-meta flex w-full items-center gap-2.5 px-3 py-2 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                                     >
                                         <FileArchive size={13} className="text-slate-400 dark:text-gray-500" />
                                         <span>{t('skillSettings.import.fromFile')}</span>
                                     </button>
                                     <button
                                         onClick={() => { setImportMenuOpen(false); handleImportFolder(); }}
-                                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                        className="ui-text-meta flex w-full items-center gap-2.5 px-3 py-2 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                                     >
                                         <FolderOpen size={13} className="text-slate-400 dark:text-gray-500" />
                                         <span>{t('skillSettings.import.fromFolder')}</span>
@@ -467,7 +467,7 @@ const SkillSettings: React.FC = () => {
                                 useChatStore.getState().createSession();
                                 useChatStore.getState().setSelectedSkillIds(['skill-creator']);
                             }}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all shrink-0"
+                            className="ui-text-meta flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 font-medium text-white transition-all shrink-0 hover:bg-indigo-600"
                         >
                             <Plus size={12} />
                             {t('skillSettings.createSkill', '创建技能')}
@@ -479,7 +479,7 @@ const SkillSettings: React.FC = () => {
             {/* 导入反馈提示 */}
             {importMessage && (
                 <div className={clsx(
-                    "mx-4 mt-3 px-4 py-2.5 rounded-xl text-xs font-medium animate-in fade-in slide-in-from-top-2 duration-200",
+                    "ui-text-meta mx-4 mt-3 rounded-xl px-4 py-2.5 font-medium animate-in fade-in slide-in-from-top-2 duration-200",
                     importMessage.type === 'success'
                         ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
                         : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"
@@ -507,10 +507,10 @@ const SkillSettings: React.FC = () => {
                             <div className="w-14 h-14 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-slate-200 dark:border-white/5">
                                 <Box size={28} className="text-slate-300 dark:text-gray-700" />
                             </div>
-                            <h3 className="text-sm font-bold text-slate-600 dark:text-gray-300 mb-1">
+                            <h3 className="ui-text-body font-bold text-slate-600 dark:text-gray-300 mb-1">
                                 {searchTerm ? t('skillSettings.noMatchTitle') : t('skillSettings.emptyTitle')}
                             </h3>
-                            <p className="text-xs text-slate-400 dark:text-gray-500 max-w-xs text-center">
+                            <p className="ui-text-meta text-slate-400 dark:text-gray-500 max-w-xs text-center">
                                 {searchTerm
                                     ? t('skillSettings.noMatchDesc')
                                     : t('skillSettings.emptyDesc')}

@@ -349,7 +349,7 @@ const SchedulerPage: React.FC = () => {
                 {/* Draggable Header */}
                 <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] draggable">
                     <div className="flex items-center justify-between px-4 h-12">
-                        <button onClick={handleBackToList} className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
+                        <button onClick={handleBackToList} className="ui-text-body flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors">
                             <ArrowLeft size={16} /> 返回
                         </button>
                         <div className="w-32" />
@@ -365,7 +365,7 @@ const SchedulerPage: React.FC = () => {
                                         if (tab === 'logs' && editingTask) loadTaskLogs(editingTask.id);
                                     }}
                                     className={clsx(
-                                        "px-4 py-2 text-xs font-medium transition-colors relative",
+                                        "ui-text-meta px-4 py-2 font-medium transition-colors relative",
                                         editorTab === tab
                                             ? "text-indigo-600 dark:text-indigo-400"
                                             : "text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300"
@@ -388,10 +388,10 @@ const SchedulerPage: React.FC = () => {
                             {/* Name + Enable */}
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
-                                    <label className="block text-sm font-medium">计划名称</label>
+                                    <label className="ui-text-body block font-medium">计划名称</label>
                                     {!isCreating && (
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <span className="text-xs text-slate-500 dark:text-zinc-400">{editingTask.enabled ? '已启用' : '已停用'}</span>
+                                            <span className="ui-text-meta text-slate-500 dark:text-zinc-400">{editingTask.enabled ? '已启用' : '已停用'}</span>
                                             <Switch
                                                 size="sm"
                                                 checked={editingTask.enabled}
@@ -404,19 +404,19 @@ const SchedulerPage: React.FC = () => {
                                     value={editingTask.name}
                                     onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
                                     placeholder="输入计划名称..."
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                    className="ui-text-body w-full rounded-lg border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                                 />
                             </div>
 
                             {/* Prompt */}
                             <div>
-                                <label className="block text-sm font-medium mb-1.5">任务指令</label>
+                                <label className="ui-text-body block font-medium mb-1.5">任务指令</label>
                                 <textarea
                                     value={editingTask.prompt}
                                     onChange={e => setEditingTask({ ...editingTask, prompt: e.target.value })}
                                     placeholder="明确告诉 AI 需要完成什么任务..."
                                     rows={5}
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 resize-none font-mono"
+                                    className="ui-text-code w-full rounded-lg border border-slate-200 bg-white px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 dark:border-zinc-700 dark:bg-zinc-800"
                                 />
                             </div>
 
@@ -424,7 +424,7 @@ const SchedulerPage: React.FC = () => {
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <Clock size={16} className="text-indigo-500" />
-                                    <label className="text-sm font-medium">调度规则</label>
+                                    <label className="ui-text-body font-medium">调度规则</label>
                                 </div>
                                 <CronGenerator
                                     value={editingTask.cronExpression}
@@ -441,7 +441,7 @@ const SchedulerPage: React.FC = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Bell size={16} className="text-indigo-500" />
-                                        <label className="text-sm font-medium">结果通知 (IM)</label>
+                                        <label className="ui-text-body font-medium">结果通知 (IM)</label>
                                     </div>
                                     <Switch
                                         size="sm"
@@ -464,7 +464,7 @@ const SchedulerPage: React.FC = () => {
                                             notification: { ...editingTask.notification!, imSessionId: e.target.value }
                                         })}
                                         placeholder="Session ID (例如: tg_12345678)..."
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+                                        className="ui-text-meta w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
                                     />
                                 )}
                             </div>
@@ -475,9 +475,9 @@ const SchedulerPage: React.FC = () => {
                             {/* 执行历史 */}
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">执行历史</h3>
+                                    <h3 className="ui-text-body font-bold text-slate-800 dark:text-white">执行历史</h3>
                                     {selectedLogIds.size > 0 && (
-                                        <span className="text-xs text-slate-500 dark:text-gray-400">
+                                        <span className="ui-text-meta text-slate-500 dark:text-gray-400">
                                             已选 {selectedLogIds.size} 条
                                         </span>
                                     )}
@@ -486,20 +486,20 @@ const SchedulerPage: React.FC = () => {
                                     {selectedLogIds.size > 0 && (
                                         <button
                                             onClick={handleDeleteSelectedLogs}
-                                            className="px-3 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-red-600 dark:text-red-400 flex items-center gap-1.5"
+                                            className="ui-text-meta flex items-center gap-1.5 rounded-md bg-red-50 px-3 py-1 font-semibold text-red-600 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
                                         >
                                             <Trash2 size={12} /> 删除选中
                                         </button>
                                     )}
                                     <button
                                         onClick={() => loadTaskLogs(editingTask.id)}
-                                        className="px-3 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-md text-xs font-semibold transition-colors text-slate-600 dark:text-gray-300 flex items-center gap-1.5"
+                                        className="ui-text-meta flex items-center gap-1.5 rounded-md bg-slate-50 px-3 py-1 font-semibold text-slate-600 transition-colors hover:bg-slate-100 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
                                     >
                                         <History size={12} /> 刷新
                                     </button>
                                     <button
                                         onClick={handleDeleteAllLogs}
-                                        className="px-3 py-1 bg-slate-50 hover:bg-red-100 dark:bg-white/5 dark:hover:bg-red-500/20 rounded-md text-xs font-semibold transition-colors text-slate-600 hover:text-red-600 dark:text-gray-300 dark:hover:text-red-400 flex items-center gap-1.5"
+                                        className="ui-text-meta flex items-center gap-1.5 rounded-md bg-slate-50 px-3 py-1 font-semibold text-slate-600 transition-colors hover:bg-red-100 hover:text-red-600 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-red-500/20 dark:hover:text-red-400"
                                     >
                                         <Trash2 size={12} /> 清空
                                     </button>
@@ -508,7 +508,7 @@ const SchedulerPage: React.FC = () => {
 
                             <div className="space-y-4">
                                 {triggerResult && triggerResult.taskId === editingTask.id && (
-                                    <div className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 border ${triggerResult.success
+                                    <div className={`ui-text-body p-3 rounded-lg font-medium flex items-center gap-2 border ${triggerResult.success
                                         ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/20 dark:text-green-400'
                                         : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
                                         }`}>
@@ -518,14 +518,14 @@ const SchedulerPage: React.FC = () => {
                                 )}
 
                                 {loadingLogs === editingTask.id ? (
-                                    <div className="text-center py-10 text-slate-400 text-sm">加载中...</div>
+                                    <div className="ui-text-body text-center py-10 text-slate-400">加载中...</div>
                                 ) : (() => {
                                     const logs = taskLogs.get(editingTask.id);
                                     if (!logs || logs.length === 0) {
                                         return (
                                             <div className="text-center py-16 text-slate-400">
                                                 <History size={24} className="mx-auto opacity-30 mb-3" />
-                                                <p className="text-sm">暂无记录</p>
+                                                <p className="ui-text-body">暂无记录</p>
                                             </div>
                                         );
                                     }
@@ -540,7 +540,7 @@ const SchedulerPage: React.FC = () => {
                                                 >
                                                     {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                                                 </button>
-                                                <span className="text-xs text-slate-400 dark:text-gray-500">
+                                                <span className="ui-text-meta text-slate-400 dark:text-gray-500">
                                                     {allSelected ? "取消全选" : "全选"}
                                                 </span>
                                             </div>
@@ -567,12 +567,12 @@ const SchedulerPage: React.FC = () => {
                         <button
                             onClick={handleSaveTask}
                             disabled={!editingTask.name.trim() || !editingTask.prompt.trim() || (cronValidation !== null && !cronValidation.valid)}
-                            className="px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="ui-text-body flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white transition-all hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Save size={16} />
                             {isCreating ? '创建计划' : '保存'}
                         </button>
-                        <button onClick={handleBackToList} className="px-5 py-2 rounded-lg border border-slate-200 dark:border-zinc-700 text-sm hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                        <button onClick={handleBackToList} className="ui-text-body rounded-lg border border-slate-200 px-5 py-2 transition-colors hover:bg-slate-50 dark:border-zinc-700 dark:hover:bg-zinc-800">
                             取消
                         </button>
                         {!isCreating && (
@@ -593,7 +593,7 @@ const SchedulerPage: React.FC = () => {
             <header className="relative z-50 shrink-0 bg-white dark:bg-[#141414] backdrop-blur-xl draggable">
                 <div className="px-4 py-4 max-w-5xl mx-auto">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-base font-bold text-slate-800 dark:text-gray-100 tracking-tight">
+                        <h1 className="text-[16px] font-bold text-slate-800 dark:text-gray-100 tracking-tight">
                             自动化
                         </h1>
                         <div className="w-32" />
@@ -607,12 +607,12 @@ const SchedulerPage: React.FC = () => {
                                 placeholder="搜索计划..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500/30 transition-all text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-gray-600"
+                                className="ui-text-body w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-slate-900 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:border-indigo-500/30 dark:placeholder:text-gray-600 placeholder:text-slate-400"
                             />
                         </div>
                         <button
                             onClick={handleAddTask}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-all shrink-0"
+                            className="ui-text-meta flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 font-medium text-white transition-all shrink-0 hover:bg-indigo-600"
                         >
                             <Plus size={12} />
                             新建计划
@@ -628,7 +628,7 @@ const SchedulerPage: React.FC = () => {
                         <div className="text-center py-20">
                             <Clock size={48} className="mx-auto mb-4 text-slate-300 dark:text-zinc-600" />
                             <h3 className="text-lg font-medium mb-2">{searchTerm ? '无匹配结果' : '暂无计划'}</h3>
-                            <p className="text-sm text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{searchTerm ? '尝试其他关键词' : '点击右上角"新建计划"创建你的第一个定时任务'}</p>
+                            <p className="ui-text-body text-slate-400 dark:text-zinc-500 max-w-md mx-auto">{searchTerm ? '尝试其他关键词' : '点击右上角"新建计划"创建你的第一个定时任务'}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
@@ -672,10 +672,10 @@ function TaskCard({ task, status, onClick, onTrigger }: {
                     <Clock size={18} className="text-slate-500 dark:text-zinc-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 className="ui-text-body font-semibold truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {task.name || '未命名'}
                     </h3>
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
+                    <p className="ui-text-meta text-slate-400 dark:text-zinc-500 mt-1">
                         {getCronHumanSummary(task.cronExpression)}
                     </p>
                 </div>
@@ -683,17 +683,17 @@ function TaskCard({ task, status, onClick, onTrigger }: {
 
             <div className="flex items-center gap-2 mt-3">
                 <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", task.enabled ? "bg-green-500" : "bg-slate-300 dark:bg-gray-600")} />
-                <span className="text-[11px] text-slate-400 dark:text-gray-500 font-medium">
+                <span className="ui-text-meta text-slate-400 dark:text-gray-500 font-medium">
                     {task.enabled ? '已启用' : '已停用'}
                 </span>
                 {status?.isRunning && (
                     <div className="flex items-center gap-1 shrink-0">
                         <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping" />
-                        <span className="text-[9px] text-amber-500/80 font-bold uppercase tracking-tighter">Running</span>
+                        <span className="ui-text-caption text-amber-500/80 font-bold uppercase tracking-tighter">Running</span>
                     </div>
                 )}
                 {!status?.isRunning && status?.lastRunStatus === 'error' && (
-                    <span className="text-[10px] text-red-500">Error</span>
+                    <span className="ui-text-caption text-red-500">Error</span>
                 )}
             </div>
 
@@ -704,7 +704,7 @@ function TaskCard({ task, status, onClick, onTrigger }: {
                     tabIndex={0}
                     onClick={(e) => { e.stopPropagation(); onTrigger(); }}
                     onKeyDown={e => { if (e.key === 'Enter') onTrigger(); }}
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-md text-xs bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                    className="ui-text-meta inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
                     title="立即运行"
                 >
                     <Play size={13} className="fill-current" />
@@ -751,10 +751,10 @@ function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
                 </div>
                 <div className="flex-1 min-w-0 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-slate-800 dark:text-gray-200">
+                        <span className="ui-text-body font-medium text-slate-800 dark:text-gray-200">
                             {new Date(log.startedAt).toLocaleString()}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="ui-text-meta text-slate-400">
                             {(log.durationMs / 1000).toFixed(1)}s
                         </span>
                     </div>
@@ -777,21 +777,21 @@ function LogEntry({ log, selected, onToggleSelect, onDelete }: LogEntryProps) {
             {expanded && (log.output || log.error) && (
                 <div className="px-4 pb-4 pt-2 border-t border-slate-100 dark:border-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
                     {log.error ? (
-                        <pre className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap word-break">
+                        <pre className="ui-text-code text-red-600 dark:text-red-400 whitespace-pre-wrap word-break">
                             {log.error}
                         </pre>
                     ) : log.output ? (
                         <MarkdownRenderer
                             content={preprocessMarkdown(log.output)}
-                            className="prose-p:text-[13px] prose-p:leading-relaxed prose-p:my-2
+                            className="prose-p:text-[13px] prose-p:leading-[1.65] prose-p:my-2
                                 prose-headings:text-slate-950 dark:prose-headings:text-white
-                                prose-h1:text-lg prose-h1:mt-4 prose-h1:mb-2
-                                prose-h2:text-base prose-h2:mt-3 prose-h2:mb-1.5
-                                prose-h3:text-sm prose-h3:mt-2 prose-h3:mb-1
+                                prose-h1:text-[20px] prose-h1:mt-4 prose-h1:mb-2
+                                prose-h2:text-[16px] prose-h2:mt-3 prose-h2:mb-1.5
+                                prose-h3:text-[14px] prose-h3:mt-2 prose-h3:mb-1
                                 prose-ul:my-2 prose-ul:pl-5 prose-ul:text-[13px]
                                 prose-ol:my-2 prose-ol:pl-5 prose-ol:text-[13px]
                                 prose-li:my-0.5
-                                prose-code:text-xs prose-code:font-mono prose-code:px-1"
+                                prose-code:text-[12px] prose-code:font-mono prose-code:px-1"
                         />
                     ) : null}
                 </div>
@@ -873,7 +873,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                         key={tab.id}
                         onClick={() => setMode(tab.id)}
                         className={clsx(
-                            "px-4 py-1.5 rounded-md text-xs font-semibold transition-all",
+                            "ui-text-meta px-4 py-1.5 rounded-md font-semibold transition-all",
                             mode === tab.id
                                 ? "bg-white dark:bg-[#18181b] text-slate-900 dark:text-white shadow-sm"
                                 : "text-slate-500 hover:text-slate-700 dark:hover:text-gray-300 font-medium"
@@ -886,7 +886,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
 
             <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl space-y-4">
                 {mode === 'hour' && (
-                    <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                    <div className="ui-text-body flex items-center gap-3 text-slate-700 dark:text-gray-300 font-medium">
                         <span>每</span>
                         <select
                             value={hourInterval}
@@ -900,7 +900,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                 )}
 
                 {mode === 'day' && (
-                    <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                    <div className="ui-text-body flex items-center gap-3 text-slate-700 dark:text-gray-300 font-medium">
                         <span>每天</span>
                         <input
                             type="time"
@@ -914,7 +914,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
 
                 {mode === 'week' && (
                     <div className="space-y-4">
-                        <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                        <div className="ui-text-body flex items-center gap-3 text-slate-700 dark:text-gray-300 font-medium">
                             <span>每周</span>
                             <div className="flex gap-1.5">
                                 {[1, 2, 3, 4, 5, 6, 0].map(day => (
@@ -928,7 +928,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                                             }
                                         }}
                                         className={clsx(
-                                            "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-colors border",
+                                            "ui-text-meta flex h-8 w-8 items-center justify-center rounded-lg font-bold transition-colors border",
                                             weekDays.includes(day)
                                                 ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300"
                                                 : "bg-white border-slate-200 text-slate-600 dark:bg-[#0c0c0e] dark:border-white/10 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-white/10"
@@ -939,7 +939,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                                 ))}
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-gray-300 font-medium">
+                        <div className="ui-text-body flex items-center gap-3 text-slate-700 dark:text-gray-300 font-medium">
                             <span>的</span>
                             <input
                                 type="time"
@@ -959,9 +959,9 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                             value={value}
                             onChange={(e) => onChange(e.target.value)}
                             placeholder="0 * * * *"
-                            className="w-full p-3 bg-white dark:bg-[#0c0c0e] border border-slate-200 dark:border-white/10 rounded-lg text-sm font-mono focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500/30 text-slate-800 dark:text-gray-100 transition-all font-medium"
+                            className="ui-text-code w-full rounded-lg border border-slate-200 bg-white p-3 font-medium text-slate-800 transition-all focus:outline-none focus:border-indigo-400 dark:border-white/10 dark:bg-[#0c0c0e] dark:text-gray-100 dark:focus:border-indigo-500/30"
                         />
-                        <div className="text-xs text-slate-500 flex gap-4 font-mono font-medium opacity-80 pl-1">
+                        <div className="ui-text-meta flex gap-4 pl-1 font-mono font-medium text-slate-500 opacity-80">
                             <span><span className="text-slate-400">分</span> (0-59)</span>
                             <span><span className="text-slate-400">时</span> (0-23)</span>
                             <span><span className="text-slate-400">日</span> (1-31)</span>
@@ -974,7 +974,7 @@ function CronGenerator({ value, onChange, validation }: CronGeneratorProps) {
                 {/* Validation and Preview Area */}
                 {validation && !validation.valid && (
                     <div className="pt-4 mt-2 border-t border-slate-200/60 dark:border-white/5">
-                        <div className="text-xs text-red-500">
+                        <div className="ui-text-meta text-red-500">
                             <span className="flex items-center gap-1.5 font-medium">
                                 <AlertCircle size={14} /> 无效表达式: {validation.error}
                             </span>

@@ -27,7 +27,7 @@ export function Sidebar() {
                     : "opacity-[0.98]"
             )}
         >
-            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-white/50 bg-white/38 text-[10px] font-semibold tracking-[0.18em] text-slate-500 shadow-[0_10px_22px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.04] dark:text-zinc-400 dark:shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
+            <div className="ui-text-caption mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-white/50 bg-white/38 font-semibold tracking-[0.18em] text-slate-500 shadow-[0_10px_22px_rgba(90,105,120,0.12)] dark:border-white/8 dark:bg-white/[0.04] dark:text-zinc-400 dark:shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
                 G
             </div>
             {/* Navigation */}
@@ -85,12 +85,12 @@ function ThemeToggle() {
     return (
         <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-500 hover:bg-white/46 hover:text-slate-700 hover:border-white/40 border border-transparent dark:text-zinc-500 dark:hover:text-zinc-200 dark:hover:bg-white/[0.07] dark:hover:border-white/[0.08] group relative"
+            className="w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 text-slate-500 hover:bg-[rgba(99,102,241,0.10)] hover:text-indigo-600 hover:border-[rgba(99,102,241,0.18)] border border-transparent dark:text-zinc-500 dark:hover:text-indigo-300 dark:hover:bg-[rgba(129,140,248,0.14)] dark:hover:border-[rgba(129,140,248,0.22)] group relative"
         >
             {isDark ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
             
             {/* Tooltip */}
-            <div className="absolute left-[calc(100%+8px)] px-2 py-1.5 bg-slate-800 dark:bg-zinc-800 text-white text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-[60] shadow-xl border border-white/5">
+            <div className="ui-text-meta absolute left-[calc(100%+8px)] rounded-md border border-white/5 bg-slate-800 px-2 py-1.5 font-medium text-white opacity-0 translate-x-[-4px] transition-all duration-200 pointer-events-none whitespace-nowrap z-[60] shadow-xl group-hover:opacity-100 group-hover:translate-x-0 dark:bg-zinc-800">
                 {theme === 'system'
                     ? t('generalSettings.themeSystem')
                     : (isDark ? t('sidebar.lightMode') : t('sidebar.darkMode'))}
@@ -108,13 +108,13 @@ function NavButton({ isActive, onClick, icon: Icon, label }: { isActive: boolean
                 "w-full aspect-square flex items-center justify-center rounded-lg transition-all duration-200 group relative",
                 isActive
                     ? "border border-white/55 bg-white/50 text-slate-800 shadow-[0_10px_22px_rgba(90,105,120,0.13)] dark:border-white/8 dark:bg-white/[0.07] dark:text-zinc-200 dark:shadow-[0_12px_28px_rgba(0,0,0,0.22)] glass-active-item"
-                    : "border border-transparent text-slate-500 hover:border-white/46 hover:bg-white/42 hover:text-slate-700 dark:text-zinc-500 dark:hover:border-white/[0.08] dark:hover:text-zinc-200 dark:hover:bg-white/[0.07]"
+                    : "border border-transparent text-slate-500 hover:border-[rgba(99,102,241,0.18)] hover:bg-[rgba(99,102,241,0.10)] hover:text-indigo-600 dark:text-zinc-500 dark:hover:border-[rgba(129,140,248,0.22)] dark:hover:text-indigo-300 dark:hover:bg-[rgba(129,140,248,0.14)]"
             )}
         >
             <Icon size={20} strokeWidth={1.5} className="transition-transform duration-200 group-hover:scale-105" />
             
             {/* Tooltip */}
-            <div className="absolute left-[calc(100%+8px)] px-2 py-1.5 bg-slate-800 dark:bg-zinc-800 text-white text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-[60] shadow-xl border border-white/5">
+            <div className="ui-text-meta absolute left-[calc(100%+8px)] rounded-md border border-white/5 bg-slate-800 px-2 py-1.5 font-medium text-white opacity-0 translate-x-[-4px] transition-all duration-200 pointer-events-none whitespace-nowrap z-[60] shadow-xl group-hover:opacity-100 group-hover:translate-x-0 dark:bg-zinc-800">
                 {label}
                 <div className="absolute right-full top-1/2 -translate-y-1/2 border-[4px] border-transparent border-r-slate-800 dark:border-r-zinc-800" />
             </div>

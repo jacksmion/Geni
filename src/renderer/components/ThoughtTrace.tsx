@@ -101,7 +101,7 @@ const TodoCard = React.memo(function TodoCard({ observation }: { observation: st
                     <ListChecks size={14} className="text-indigo-500 dark:text-indigo-400" />
                     <span className="text-xs font-semibold text-slate-700 dark:text-zinc-200">Task Progress</span>
                 </div>
-                <span className="text-[11px] font-mono font-medium text-indigo-600 dark:text-indigo-400">
+                <span className="ui-text-meta font-mono font-medium text-indigo-600 dark:text-indigo-400">
                     {completed}/{total}
                 </span>
             </div>
@@ -146,7 +146,7 @@ const TodoCard = React.memo(function TodoCard({ observation }: { observation: st
                         {/* Priority badge */}
                         {item.priority && (
                             <span className={cn(
-                                "ml-auto shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full",
+                                "ui-text-caption ml-auto shrink-0 font-bold uppercase px-1.5 py-0.5 rounded-full",
                                 item.priority === 'high' && "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400",
                                 item.priority === 'medium' && "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400",
                                 item.priority === 'low' && "bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-500"
@@ -201,26 +201,26 @@ const InlineAuthorizationUI = React.memo(function InlineAuthorizationUI({ reason
                 <div className="flex flex-wrap gap-2 pt-1 border-t border-amber-500/10 mt-1">
                     <button
                         onClick={() => onAuthorize(false)}
-                        className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 rounded text-[11px] font-medium hover:bg-red-50 hover:text-red-500 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/20 transition-all"
+                        className="ui-text-meta flex items-center gap-1 rounded border border-slate-200 bg-white px-3 py-1 font-medium text-slate-600 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500 dark:border-white/10 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-red-500/20 dark:hover:bg-red-500/10 dark:hover:text-red-400"
                     >
                         <X className="w-3 h-3" />
                         拒绝
-                        <kbd className="ml-0.5 text-[9px] text-slate-400 dark:text-zinc-600 font-normal">Esc</kbd>
+                        <kbd className="ui-text-caption ml-0.5 font-normal text-slate-400 dark:text-zinc-600">Esc</kbd>
                     </button>
                     <button
                         onClick={() => onAuthorize(true, true)}
-                        className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-zinc-800 border border-amber-200/50 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 rounded text-[11px] font-medium hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all"
+                        className="ui-text-meta flex items-center gap-1 rounded border border-amber-200/50 bg-white px-3 py-1 font-medium text-amber-600 transition-all hover:bg-amber-50 dark:border-amber-500/20 dark:bg-zinc-800 dark:text-amber-400 dark:hover:bg-amber-500/10"
                     >
                         <Clock className="w-3 h-3" />
                         允许并记住 (1h)
                     </button>
                     <button
                         onClick={() => onAuthorize(true)}
-                        className="flex items-center gap-1 px-3.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-[11px] font-semibold shadow-sm shadow-amber-500/20 transition-all active:scale-95"
+                        className="ui-text-meta flex items-center gap-1 rounded bg-amber-500 px-3.5 py-1 font-semibold text-white shadow-sm shadow-amber-500/20 transition-all hover:bg-amber-600 active:scale-95"
                     >
                         <Check className="w-3 h-3" />
                         确认允许
-                        <kbd className="ml-0.5 text-[9px] text-white/60 font-normal">↵</kbd>
+                        <kbd className="ui-text-caption ml-0.5 font-normal text-white/60">↵</kbd>
                     </button>
                 </div>
             </div>
@@ -481,26 +481,26 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                     </div>
                 )}
 
-                <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
+                <span className="ui-text-meta min-w-0 flex-1 truncate font-medium text-slate-700 dark:text-zinc-300">
                     {compactLabel}
                 </span>
 
-                <span className="shrink-0 rounded-sm bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-zinc-500">
+                <span className="ui-text-caption shrink-0 rounded-sm bg-slate-100 px-1.5 py-[1px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-zinc-500">
                     {displayName}
                 </span>
 
-                <span className="shrink-0 text-[10px] text-slate-400 dark:text-zinc-500">
+                <span className="ui-text-caption shrink-0 text-slate-400 dark:text-zinc-500">
                     {outStats}
                 </span>
 
                 {formattedDuration && (
-                    <span className="shrink-0 text-[10px] text-slate-300/80 dark:text-zinc-700 tabular-nums">
+                    <span className="ui-text-caption shrink-0 tabular-nums text-slate-300/80 dark:text-zinc-700">
                         {formattedDuration}
                     </span>
                 )}
 
                 {!isTodoTool && (
-                    <span className="opacity-0 group-hover/card:opacity-100 text-[10px] text-slate-300 dark:text-zinc-600 transition-opacity shrink-0">
+                    <span className="ui-text-caption shrink-0 text-slate-300 opacity-0 transition-opacity group-hover/card:opacity-100 dark:text-zinc-600">
                         {isArtifactTool ? '↗' : '···'}
                     </span>
                 )}
@@ -529,11 +529,11 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                         {step.toolInput && (
                             <>
                                 <div className="flex items-center px-3 pt-2 pb-1 border-b border-slate-200/50 dark:border-white/6">
-                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
+                                    <span className="ui-text-caption font-sans font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                                         Input
                                     </span>
                                 </div>
-                                <pre className="py-2 px-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/6 max-h-[200px] overflow-auto">
+                                <pre className="ui-text-code max-h-[200px] overflow-auto border-b border-slate-200/60 px-3 py-2 whitespace-pre-wrap break-all text-slate-700 dark:border-white/6 dark:text-slate-300">
                                     {formattedToolInput}
                                 </pre>
                             </>
@@ -543,7 +543,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                         {(step.observation || step.streamingObservation) && (
                             <>
                                 <div className="flex items-center justify-between px-3 pt-2 pb-1 border-b border-slate-200/50 dark:border-white/6">
-                                    <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
+                                    <span className="ui-text-caption font-sans font-medium uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                                         Output{step.isComplete ? '' : ' (Streaming...)'}
                                     </span>
                                     <button
@@ -555,7 +555,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                                     </button>
                                 </div>
                                 <pre className={cn(
-                                    "flex flex-col-reverse max-h-[400px] overflow-auto py-2 px-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all",
+                                    "ui-text-code flex max-h-[400px] flex-col-reverse overflow-auto whitespace-pre-wrap break-all px-3 py-2",
                                     step.isError
                                         ? "text-red-500 dark:text-red-400/90"
                                         : "text-slate-700 dark:text-slate-300"
@@ -641,7 +641,7 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
         <div className="flex flex-col mb-0.5">
             <button
                 type="button"
-                className="mb-0.5 inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] font-medium text-slate-400 transition-colors hover:bg-slate-50/70 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-white/[0.03] dark:hover:text-zinc-300"
+                className="ui-text-caption mb-0.5 inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 font-medium text-slate-400 transition-colors hover:bg-slate-50/70 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-white/[0.03] dark:hover:text-zinc-300"
                 onClick={() => {
                     if (!canCollapse) return;
                     setIsCollapsed(value => !value);
@@ -651,7 +651,7 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
                 <span className="text-slate-400 dark:text-zinc-500">
                     {summary}
                 </span>
-                <span className="ml-auto text-[9.5px] text-slate-300 dark:text-zinc-600">
+                <span className="ml-auto text-slate-300 dark:text-zinc-600">
                     {getSummaryActionLabel(isCollapsed)}
                 </span>
             </button>

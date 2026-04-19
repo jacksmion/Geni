@@ -58,16 +58,16 @@ export function ResultItem({ item, isSelected, onClick, onHover }: ResultItemPro
                 <Icon size={14} strokeWidth={1.5} />
             </div>
             <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium text-slate-900 dark:text-zinc-100 truncate">
+                <div className="ui-text-label font-medium text-slate-900 dark:text-zinc-100 truncate">
                     {item.label}
                 </div>
                 {item.description && (
-                    <div className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
+                    <div className="ui-text-meta text-slate-400 dark:text-zinc-500 truncate">
                         {item.description}
                     </div>
                 )}
             </div>
-            <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0">
+            <span className="ui-text-caption text-slate-300 dark:text-zinc-600 shrink-0">
                 {typeLabels[item.type]}
             </span>
         </button>

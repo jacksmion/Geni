@@ -148,7 +148,7 @@ export function PersonaSettings() {
     if (loading) {
         return (
             <div className="max-w-4xl h-full flex items-center justify-center">
-                <div className="text-xs text-slate-400">{t('skillSettings.loading')}</div>
+                <div className="ui-text-meta text-slate-400">{t('skillSettings.loading')}</div>
             </div>
         );
     }
@@ -158,12 +158,12 @@ export function PersonaSettings() {
             {/* Header */}
             <div className="flex items-center justify-between shrink-0">
                 <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">{t('personaSettings.desc')}</p>
+                    <p className="ui-text-meta text-slate-500 dark:text-gray-400">{t('personaSettings.desc')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={handleReset}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                        className="ui-text-meta flex items-center gap-1.5 px-3 py-1.5 font-medium text-slate-500 hover:text-slate-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                     >
                         <RotateCcw size={14} />
                         {t('personaSettings.reset')}
@@ -171,7 +171,7 @@ export function PersonaSettings() {
                     <button
                         disabled={!isDirty}
                         onClick={handleSave}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isDirty
+                        className={`ui-text-meta px-3 py-1.5 rounded-lg font-semibold transition-all ${isDirty
                             ? "bg-indigo-600 text-white shadow-md hover:bg-indigo-700"
                             : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-zinc-600 cursor-not-allowed"
                             }`}
@@ -188,7 +188,7 @@ export function PersonaSettings() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={clsx(
-                            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-1 justify-center",
+                            "ui-text-meta flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-medium transition-all",
                             activeTab === tab.id
                                 ? "bg-white dark:bg-white/10 text-slate-800 dark:text-white shadow-sm"
                                 : "text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200"
@@ -203,14 +203,14 @@ export function PersonaSettings() {
             {/* Editor */}
             <div className="flex-1 flex flex-col bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden shadow-sm min-h-0">
                 <div className="px-3 py-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
-                    <h3 className="text-xs font-semibold text-slate-700 dark:text-gray-200">{content.title}</h3>
-                    <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">{content.desc}</p>
+                    <h3 className="ui-text-meta font-semibold text-slate-700 dark:text-gray-200">{content.title}</h3>
+                    <p className="ui-text-meta mt-0.5 text-slate-400 dark:text-gray-500">{content.desc}</p>
                 </div>
                 <textarea
                     value={content.value}
                     onChange={(e) => content.onChange(e.target.value)}
                     placeholder={content.placeholder}
-                    className="flex-1 w-full p-3 bg-transparent text-xs text-slate-700 dark:text-gray-300 font-mono leading-relaxed focus:outline-none resize-none min-h-0"
+                    className="ui-text-code flex-1 min-h-0 w-full resize-none bg-transparent p-3 text-slate-700 focus:outline-none dark:text-gray-300"
                     spellCheck={false}
                 />
             </div>

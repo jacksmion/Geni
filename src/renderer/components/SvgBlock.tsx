@@ -174,7 +174,7 @@ export function SvgBlock({ code }: SvgBlockProps) {
             {mode === 'preview' && (
                 <>
                     <button onClick={() => setZoom(z => Math.min(5, z + 0.15))} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="放大"><ZoomIn size={13} /></button>
-                    <button onClick={resetView} className="px-1.5 py-0.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-[10px] font-mono text-slate-500 dark:text-zinc-400 min-w-[36px] text-center" title="重置">{zoomPercent}%</button>
+                    <button onClick={resetView} className="ui-text-caption min-w-[36px] rounded-md px-1.5 py-0.5 text-center font-mono text-slate-500 hover:bg-black/10 dark:text-zinc-400 dark:hover:bg-white/10" title="重置">{zoomPercent}%</button>
                     <button onClick={() => setZoom(z => Math.max(0.1, z - 0.15))} className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 dark:text-zinc-500" title="缩小"><ZoomOut size={13} /></button>
                     <div className="w-px h-3 bg-slate-200 dark:bg-white/10 mx-0.5" />
                     {!isFullscreen && (
@@ -204,7 +204,7 @@ export function SvgBlock({ code }: SvgBlockProps) {
                     error ? (
                         <div className="flex items-center justify-center gap-2 py-5 text-center">
                             <AlertTriangle size={14} className="text-slate-400 dark:text-zinc-500 shrink-0" />
-                            <span className="text-xs text-slate-400 dark:text-zinc-500">SVG 内容无效，无法生成图形</span>
+                            <span className="ui-text-meta text-slate-400 dark:text-zinc-500">SVG 内容无效，无法生成图形</span>
                         </div>
                     ) : (
                         <div
@@ -217,7 +217,7 @@ export function SvgBlock({ code }: SvgBlockProps) {
                     )
                 ) : (
                     <div className="overflow-auto max-h-[500px]">
-                        <pre className="p-5 text-[13px] font-mono text-slate-800 dark:text-zinc-200 whitespace-pre-wrap break-all">{code}</pre>
+                        <pre className="ui-text-code whitespace-pre-wrap break-all p-5 text-slate-800 dark:text-zinc-200">{code}</pre>
                     </div>
                 )}
             </div>
@@ -232,16 +232,16 @@ export function SvgBlock({ code }: SvgBlockProps) {
                 >
                     <div className="flex items-center justify-between pl-6 pr-[150px] py-3 border-b border-black/5 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
                         <div className="flex items-center gap-3">
-                            <span className="text-sm font-semibold text-slate-700 dark:text-zinc-200">SVG 预览</span>
+                            <span className="ui-text-body font-semibold text-slate-700 dark:text-zinc-200">SVG 预览</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setIsFullscreen(false)} className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-white/10 hover:bg-red-500 hover:text-white text-slate-700 dark:text-zinc-200 text-xs font-semibold transition-all outline-none mr-2">
+                            <button onClick={() => setIsFullscreen(false)} className="ui-text-meta mr-2 rounded-lg bg-slate-200 px-4 py-2 font-semibold text-slate-700 outline-none transition-all hover:bg-red-500 hover:text-white dark:bg-white/10 dark:text-zinc-200">
                                 <span className="flex items-center gap-2"><X size={15} />退出预览 (ESC)</span>
                             </button>
                             <div className="w-px h-6 bg-black/10 dark:bg-white/10 mx-1" />
                             <div className="flex items-center border border-black/10 dark:border-white/10 rounded-lg overflow-hidden bg-white dark:bg-zinc-800">
                                 <button onClick={() => setZoom(z => Math.min(5, z + 0.15))} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 dark:text-zinc-400"><ZoomIn size={16} /></button>
-                                <button onClick={resetView} className="px-3 py-1 font-mono text-xs text-slate-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 border-x border-black/5 dark:border-white/5">{zoomPercent}%</button>
+                                <button onClick={resetView} className="ui-text-meta border-x border-black/5 px-3 py-1 font-mono text-slate-500 hover:bg-black/5 dark:border-white/5 dark:text-zinc-400 dark:hover:bg-white/5">{zoomPercent}%</button>
                                 <button onClick={() => setZoom(z => Math.max(0.1, z - 0.15))} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 dark:text-zinc-400"><ZoomOut size={16} /></button>
                             </div>
                             <button onClick={resetView} className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-500 dark:text-zinc-400" title="复位"><RotateCcw size={16} /></button>

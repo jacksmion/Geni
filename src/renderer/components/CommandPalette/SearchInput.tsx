@@ -27,14 +27,14 @@ export function SearchInput({ query, onQueryChange, onKeyDown, inputRef, filterT
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder={placeholder}
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none border-none"
+                className="ui-text-body flex-1 bg-transparent text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none border-none"
                 style={{ boxShadow: 'none' }}
                 spellCheck={false}
             />
             {!query && !filterType && (
-                <span className="text-[11px] text-slate-400 dark:text-zinc-600 shrink-0">
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[10px]">&gt;</kbd> 命令{' '}
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[10px]">@</kbd> 任务
+                <span className="ui-text-meta text-slate-400 dark:text-zinc-600 shrink-0">
+                    <kbd className="ui-text-caption px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5">&gt;</kbd> 命令{' '}
+                    <kbd className="ui-text-caption px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5">@</kbd> 任务
                 </span>
             )}
         </div>

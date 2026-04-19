@@ -69,7 +69,7 @@ export function CoreToolSettings() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <p className="text-sm text-slate-500 dark:text-gray-400">{t('coreToolSettings.desc')}</p>
+                    <p className="ui-text-body text-slate-500 dark:text-gray-400">{t('coreToolSettings.desc')}</p>
                 </div>
 
                 <div className="relative group">
@@ -77,7 +77,7 @@ export function CoreToolSettings() {
                     <input
                         type="text"
                         placeholder={t('coreToolSettings.search')}
-                        className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-slate-700 dark:text-gray-200 focus:outline-none focus:border-indigo-500/50 focus:bg-white dark:focus:bg-black/30 transition-all w-64"
+                        className="ui-text-body w-64 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-slate-700 transition-all focus:outline-none focus:border-indigo-500/50 focus:bg-white dark:border-white/10 dark:bg-black/20 dark:text-gray-200 dark:focus:bg-black/30"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -88,10 +88,10 @@ export function CoreToolSettings() {
                 <table className="w-full text-left">
                     <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                         <tr>
-                            <th className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.tool')}</th>
-                            <th className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.status')}</th>
-                            <th className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.auth')}</th>
-                            <th className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.desc')}</th>
+                            <th className="ui-text-meta px-3 py-2 font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.tool')}</th>
+                            <th className="ui-text-meta px-3 py-2 font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.status')}</th>
+                            <th className="ui-text-meta px-3 py-2 font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.auth')}</th>
+                            <th className="ui-text-meta px-3 py-2 font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider">{t('coreToolSettings.columns.desc')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#18181b]">
@@ -101,7 +101,7 @@ export function CoreToolSettings() {
                                 !tool.enabled && "opacity-60"
                             )}>
                                 <td className="px-3 py-2">
-                                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 font-mono">
+                                    <span className="ui-text-meta font-semibold text-indigo-600 dark:text-indigo-400 font-mono">
                                         {tool.name}
                                     </span>
                                 </td>
@@ -125,7 +125,7 @@ export function CoreToolSettings() {
                                         onChange={(e) => handleSetTrustLevel(tool.name, e.target.value as 'Ask' | 'Auto')}
                                         disabled={!tool.enabled}
                                         className={clsx(
-                                            "text-[10px] font-medium rounded px-1.5 py-0.5 outline-none border transition-all appearance-none pr-5 relative bg-no-repeat bg-[right_0.2rem_center] bg-[length:0.6rem]",
+                                            "ui-text-caption relative appearance-none rounded border px-1.5 py-0.5 pr-5 font-medium outline-none transition-all bg-no-repeat bg-[right_0.2rem_center] bg-[length:0.6rem]",
                                             tool.trustLevel === 'Auto'
                                                 ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
                                                 : "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400",
@@ -137,7 +137,7 @@ export function CoreToolSettings() {
                                         <option value="Auto">{t('coreToolSettings.auto')}</option>
                                     </select>
                                 </td>
-                                <td className="px-3 py-2 text-[11px] text-slate-400 dark:text-gray-500 truncate max-w-[280px]">
+                                <td className="ui-text-meta px-3 py-2 text-slate-400 dark:text-gray-500 truncate max-w-[280px]">
                                     {tool.description || <span className="italic opacity-50">{t('coreToolSettings.noDesc')}</span>}
                                 </td>
                             </tr>
@@ -145,7 +145,7 @@ export function CoreToolSettings() {
                     </tbody>
                 </table>
                 {filteredTools.length === 0 && (
-                    <div className="px-6 py-8 text-center text-slate-400 italic text-xs">
+                    <div className="ui-text-meta px-6 py-8 text-center text-slate-400 italic">
                         <div className="flex flex-col items-center gap-2">
                             <Database className="opacity-20" size={24} />
                             {t('coreToolSettings.noMatch')}
@@ -157,8 +157,8 @@ export function CoreToolSettings() {
             <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-3 border border-slate-200 dark:border-white/5 flex items-start gap-2.5">
                 <Shield className="text-indigo-500 dark:text-indigo-400 mt-0.5 shrink-0" size={14} />
                 <div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-white mb-0.5">{t('coreToolSettings.authNoteTitle')}</h4>
-                    <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                    <h4 className="ui-text-meta mb-0.5 font-bold text-slate-800 dark:text-white">{t('coreToolSettings.authNoteTitle')}</h4>
+                    <p className="ui-text-meta text-slate-500 dark:text-gray-400 leading-relaxed">
                         {t('coreToolSettings.authNoteDesc')}
                     </p>
                 </div>

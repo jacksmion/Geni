@@ -52,7 +52,7 @@ export const AuthorizationModal: React.FC = () => {
                         <h3 id="auth-modal-title" className="text-lg font-semibold text-white">
                             工具执行确认
                         </h3>
-                        <p className="text-xs text-amber-500/80 font-medium uppercase tracking-wider">
+                        <p className="ui-text-meta text-amber-500/80 font-medium uppercase tracking-wider">
                             高风险操作拦截
                         </p>
                     </div>
@@ -61,28 +61,28 @@ export const AuthorizationModal: React.FC = () => {
                 {/* Content */}
                 <div className="p-6 space-y-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">
+                        <label className="ui-text-meta font-semibold text-gray-500 uppercase">
                             请求执行工具
                         </label>
-                        <div className="px-3 py-2 bg-white/5 rounded-lg border border-white/5 font-mono text-sm text-indigo-400">
+                        <div className="ui-text-code rounded-lg border border-white/5 bg-white/5 px-3 py-2 text-indigo-400">
                             {authRequest.toolName}
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase">
+                        <label className="ui-text-meta font-semibold text-gray-500 uppercase">
                             执行参数
                         </label>
-                        <div className="max-h-40 overflow-auto p-3 bg-black/40 rounded-lg border border-white/5 font-mono text-xs text-gray-300">
+                        <div className="ui-text-code max-h-40 overflow-auto rounded-lg border border-white/5 bg-black/40 p-3 text-gray-300">
                             <pre>{JSON.stringify(authRequest.args, null, 2)}</pre>
                         </div>
                     </div>
 
                     <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex gap-3">
                         <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                        <div className="text-sm">
-                            <p className="text-amber-200 font-medium">安全提示</p>
-                            <p className="text-amber-200/60 leading-relaxed mt-1">
+                        <div className="ui-text-body">
+                            <p className="font-medium text-amber-200">安全提示</p>
+                            <p className="mt-1 leading-relaxed text-amber-200/60">
                                 {authRequest.reason}
                             </p>
                         </div>
@@ -93,7 +93,7 @@ export const AuthorizationModal: React.FC = () => {
                 <div className="px-6 py-5 bg-white/[0.02] border-t border-white/5 flex flex-wrap gap-3 items-center justify-between">
                     <button
                         onClick={handleDeny}
-                        className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors rounded-lg"
+                        className="ui-text-body rounded-lg px-4 py-2 font-medium text-gray-400 transition-colors hover:text-white"
                     >
                         拒绝执行
                     </button>
@@ -101,7 +101,7 @@ export const AuthorizationModal: React.FC = () => {
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleAction(true, true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-sm font-medium border border-indigo-500/20 transition-all active:scale-95"
+                            className="ui-text-body flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 font-medium text-indigo-400 transition-all hover:bg-indigo-500/20 active:scale-95"
                         >
                             <Clock className="w-4 h-4" />
                             允许并记住 (1h)
@@ -109,7 +109,7 @@ export const AuthorizationModal: React.FC = () => {
                         <button
                             onClick={() => handleAction(true)}
                             autoFocus
-                            className="flex items-center gap-2 px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                            className="ui-text-body flex items-center gap-2 rounded-xl bg-indigo-500 px-6 py-2 font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-600 active:scale-95"
                         >
                             <Check className="w-4 h-4" />
                             确认允许

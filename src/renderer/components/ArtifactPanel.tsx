@@ -71,10 +71,10 @@ export const ArtifactPanel: React.FC = () => {
                         )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
+                        <span className="ui-text-caption font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-[0.18em]">
                             {isPreview ? 'preview' : activeArtifact.toolName}
                         </span>
-                        <span className="text-[12px] text-slate-700 dark:text-zinc-200 font-mono truncate max-w-[320px] lg:max-w-[450px]">
+                        <span className="ui-text-meta text-slate-700 dark:text-zinc-200 font-mono truncate max-w-[320px] lg:max-w-[450px]">
                             {activeArtifact.path || 'Generating...'}
                         </span>
                     </div>
@@ -84,7 +84,7 @@ export const ArtifactPanel: React.FC = () => {
                         <div className="mr-2 flex items-center rounded-lg border border-black/5 dark:border-white/10 bg-slate-100 dark:bg-white/5 p-0.5">
                             <button
                                 onClick={() => setHtmlViewMode('preview')}
-                                className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${htmlViewMode === 'preview'
+                                className={`ui-text-meta px-2.5 py-1 rounded-md transition-colors ${htmlViewMode === 'preview'
                                     ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
                                     : 'text-slate-500 dark:text-zinc-400'}`}
                             >
@@ -92,7 +92,7 @@ export const ArtifactPanel: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setHtmlViewMode('source')}
-                                className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${htmlViewMode === 'source'
+                                className={`ui-text-meta px-2.5 py-1 rounded-md transition-colors ${htmlViewMode === 'source'
                                     ? 'bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 shadow-sm'
                                     : 'text-slate-500 dark:text-zinc-400'}`}
                             >
@@ -145,9 +145,9 @@ export const ArtifactPanel: React.FC = () => {
                             margin: 0,
                             padding: '1.5rem',
                             background: 'transparent',
-                            fontSize: '13.5px',
-                            lineHeight: '1.7',
-                            fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                            fontSize: 'var(--font-size-sm)',
+                            lineHeight: 'var(--line-height-normal)',
+                            fontFamily: 'var(--font-mono)',
                         }}
                         showLineNumbers={true}
                         lineNumberStyle={{

@@ -84,7 +84,7 @@ function StaffPicker() {
                             iconClassName={isActive ? "text-indigo-500 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"}
                         />
                         <span className={cn(
-                            "text-[12.5px] truncate transition-colors leading-none",
+                            "ui-text-meta truncate transition-colors leading-none",
                             isActive ? "font-medium" : ""
                         )}>
                             {opt.name}
@@ -208,23 +208,23 @@ export function ChatLayout() {
                                                 iconClassName="text-slate-500 dark:text-zinc-400"
                                             />
                                         </div>
-                                        <h1 className="text-[13px] font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
+                                        <h1 className="ui-text-label font-semibold text-slate-700 dark:text-zinc-200 truncate max-w-md">
                                             {currentSessionMeta.title || '新任务'}
                                         </h1>
                                         {hasMessages && (
                                             <>
-                                                <span className="text-[10px] text-slate-300 dark:text-zinc-600 shrink-0">·</span>
-                                                <span className="text-[11px] text-slate-400 dark:text-zinc-500 shrink-0 truncate max-w-[120px] hidden md:inline">
+                                                <span className="ui-text-caption text-slate-300 dark:text-zinc-600 shrink-0">·</span>
+                                                <span className="ui-text-meta text-slate-400 dark:text-zinc-500 shrink-0 truncate max-w-[120px] hidden md:inline">
                                                     {headerStaffName}
                                                 </span>
                                             </>
                                         )}
-                                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 shrink-0 tabular-nums hidden lg:inline">
+                                        <span className="ui-text-meta text-slate-400 dark:text-zinc-500 shrink-0 tabular-nums hidden lg:inline">
                                             {new Date(currentSessionMeta.updatedAt).toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 ) : (
-                                    <div className="text-xs text-slate-400 dark:text-zinc-600">新任务</div>
+                                    <div className="ui-text-meta text-slate-400 dark:text-zinc-600">新任务</div>
                                 )}
                             </div>
 
@@ -234,7 +234,7 @@ export function ChatLayout() {
                         {isActiveSessionLoading ? (
                             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-zinc-500">
                                 <Loader2 size={18} className="animate-spin" />
-                                <div className="text-[13px]">正在加载任务内容...</div>
+                                <div className="ui-text-label">正在加载任务内容...</div>
                             </div>
                         ) : hasMessages ? (
                             <>
@@ -253,7 +253,7 @@ export function ChatLayout() {
                                 <h1 className="text-2xl font-semibold text-slate-900 dark:text-zinc-100 tracking-tight mb-1">
                                     {t('chatLayout.greetingTitle')}
                                 </h1>
-                                <p className="text-[13px] text-slate-400 dark:text-zinc-500 mb-6 text-center max-w-md leading-6">
+                                <p className="ui-text-label text-slate-400 dark:text-zinc-500 mb-6 text-center max-w-md leading-6">
                                     {t('chatLayout.assistantDesc')}
                                 </p>
 
