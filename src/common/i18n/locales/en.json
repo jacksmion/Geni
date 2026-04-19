@@ -13,7 +13,8 @@
             "about": "About"
         },
         "about": {
-            "slogan": "Your personal spark for creativity & code"
+            "slogan": "Your personal spark for creativity & code",
+            "copyright": "© 2026 Geni Inc. All rights reserved."
         },
         "unsavedChanges": "Unsaved changes",
         "reset": "Discard",
@@ -73,6 +74,27 @@
         "assistantDesc": "A 24/7 personal assistant agent that gets work done for you",
         "placeholderDraft": "Assign a task or ask directly, or type / to select staff & skills...",
         "placeholderContinue": "Continue asking..."
+    },
+    "composer": {
+        "fullAccess": "Full access",
+        "askMode": "Ask mode",
+        "fullAccessTitle": "Full access mode: tools run automatically",
+        "askModeTitle": "Ask mode: tools require authorization",
+        "addAttachment": "Add Attachment",
+        "staffTooltip": "Chat with {{name}} · Backspace to remove",
+        "slashMenu": {
+            "switchModel": "Switch Model",
+            "switchModelDesc": "Switch model for this session",
+            "staff": "Staff",
+            "staffBadge": "Staff",
+            "skills": "Skills",
+            "sourceBuiltin": "Built-in",
+            "sourceProject": "Project",
+            "sourcePersonal": "Personal",
+            "noMatch": "No matching results",
+            "searchModel": "Search models...",
+            "noModelMatch": "No matching models found"
+        }
     },
     "skillSettings": {
         "title": "Skill Store",

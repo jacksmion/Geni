@@ -91,8 +91,8 @@ export function ModelSelector() {
                     setSearch('')
                 }}
                 className={cn(
-                    "flex h-8 items-center gap-1.5 px-3 rounded-full text-[12px] font-medium transition-all bg-transparent border-none text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-[#2a2e34]",
-                    isOpen && "text-slate-800 dark:text-zinc-100 bg-white dark:bg-[#2a2e34]"
+                    "flex h-7 items-center gap-1 px-2.5 rounded-full text-[11px] font-medium transition-all bg-transparent border-none text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]",
+                    isOpen && "text-slate-600 dark:text-zinc-200 bg-slate-100 dark:bg-white/[0.06]"
                 )}
             >
                 <span className="max-w-[150px] truncate">{activeDisplayName}</span>

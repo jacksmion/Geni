@@ -47,11 +47,11 @@ export function WorkspaceSelector() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={cn(
-                    "flex h-8 items-center gap-1.5 px-2.5 rounded-full text-[11px] transition-all bg-transparent border-none",
-                    isOpen ? "bg-white dark:bg-[#2a2e34] text-slate-800 dark:text-zinc-200" : "hover:bg-white dark:hover:bg-[#2a2e34]",
+                    "flex h-7 items-center gap-1 px-2 rounded-full text-[11px] transition-all bg-transparent border-none",
+                    isOpen ? "bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-zinc-200" : "hover:bg-slate-100 dark:hover:bg-white/[0.06]",
                     workspacePath
-                        ? (!isOpen && "text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200")
-                        : (!isOpen && hasMessages ? "text-slate-500 dark:text-zinc-500" : !isOpen && "text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200")
+                        ? (!isOpen && "text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300")
+                        : (!isOpen && hasMessages ? "text-slate-400 dark:text-zinc-500" : !isOpen && "text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300")
                 )}
                 title={workspacePath || !hasMessages ? (workspacePath ? "工作目录" : "请选择工作目录") : "未设置工作目录"}
             >

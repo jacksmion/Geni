@@ -44,11 +44,11 @@ export function SkillSelector() {
                     if (next) setSearch('')
                 }}
                 className={cn(
-                    "flex h-8 items-center gap-1.5 px-3 rounded-full text-[12px] font-medium transition-all max-w-[200px] bg-transparent border-none",
-                    "hover:bg-white dark:hover:bg-[#2a2e34]",
+                    "flex h-7 items-center gap-1 px-2.5 rounded-full text-[11px] font-medium transition-all max-w-[200px] bg-transparent border-none",
+                    "hover:bg-slate-100 dark:hover:bg-white/[0.06]",
                     selectedCount > 0
-                        ? "text-slate-700 dark:text-zinc-200"
-                        : "text-slate-600 dark:text-zinc-400"
+                        ? "text-slate-500 dark:text-zinc-300"
+                        : "text-slate-400 dark:text-zinc-500"
                 )}
             >
                     <Sparkles size={12} className="shrink-0 opacity-80" />

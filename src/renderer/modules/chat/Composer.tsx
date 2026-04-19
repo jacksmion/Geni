@@ -56,9 +56,10 @@ function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
 function AccessIndicator() {
     const coreToolSettings = useSettingsStore(s => s.settings.coreToolSettings)
     const updateSettings = useSettingsStore(s => s.updateSettings)
+    const { t } = useTranslation()
 
     const toolEntries = Object.values(coreToolSettings || {})
-    const autoCount = toolEntries.filter((t: any) => t.trustLevel === 'Auto').length
+    const autoCount = toolEntries.filter((tool: any) => tool.trustLevel === 'Auto').length
     const isFullAccess = toolEntries.length > 0 && autoCount >= toolEntries.length / 2
 
     const handleToggle = async () => {
@@ -74,18 +75,18 @@ function AccessIndicator() {
         <button
             onClick={handleToggle}
             className={cn(
-                "flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[11px] transition-colors bg-transparent text-slate-500 hover:bg-white hover:text-slate-700 dark:text-zinc-400 dark:hover:bg-[#2a2e34] dark:hover:text-zinc-200",
+                "flex h-7 items-center gap-1 px-2 rounded-full text-[11px] transition-colors bg-transparent hover:bg-slate-100 dark:hover:bg-white/[0.06]",
                 isFullAccess
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-amber-600 dark:text-amber-400"
+                    ? "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+                    : "text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
             )}
-            title={isFullAccess ? "Full access mode: tools run automatically" : "Ask mode: tools require authorization"}
+            title={isFullAccess ? t('composer.fullAccessTitle') : t('composer.askModeTitle')}
         >
             {isFullAccess
                 ? <ShieldCheck size={12} />
                 : <Shield size={12} />
             }
-            <span className="font-medium">{isFullAccess ? 'Full access' : 'Ask mode'}</span>
+            <span className="font-medium">{isFullAccess ? t('composer.fullAccess') : t('composer.askMode')}</span>
         </button>
     )
 }
@@ -354,7 +355,7 @@ export function Composer() {
 
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-6 pt-2 relative z-50 bg-transparent shrink-0">
+        <div className="w-full max-w-3xl mx-auto px-4 md:px-8 pb-3 pt-2 relative z-50 bg-transparent shrink-0">
             <div className="relative w-full">
                 {/* Main Composer Box */}
                 <div className="relative rounded-[28px] bg-white dark:bg-[#1b1d21] shadow-[0_18px_45px_-22px_rgba(15,23,42,0.14)] transition-all focus-within:shadow-[0_22px_52px_-24px_rgba(15,23,42,0.18)] ring-1 ring-[#E5E7EB] dark:ring-white/[0.08] focus-within:ring-[#D7DCE3] dark:focus-within:ring-white/[0.12]">
@@ -387,10 +388,10 @@ export function Composer() {
                                         >
                                             <Zap size={12} className="shrink-0 text-indigo-500 dark:text-indigo-400" />
                                             <span className={cn("text-[12px] font-semibold shrink-0", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-zinc-100")}>
-                                                切换模型
+                                                {t('composer.slashMenu.switchModel')}
                                             </span>
                                             <span className="text-[11px] text-slate-400 dark:text-zinc-500 truncate flex-1 min-w-0">
-                                                Switch model for this session
+                                                {t('composer.slashMenu.switchModelDesc')}
                                             </span>
                                             <ChevronRight size={12} className="shrink-0 text-slate-300 dark:text-zinc-600" />
                                         </button>
@@ -404,7 +405,7 @@ export function Composer() {
                                             "px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
                                             showModelItem ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
                                         )}>
-                                            数字员工
+                                            {t('composer.slashMenu.staff')}
                                         </div>
                                         {filteredStaff.map((item, idx) => {
                                             const staff = item.data
@@ -437,7 +438,7 @@ export function Composer() {
                                                             {staff.description}
                                                         </span>
                                                     )}
-                                                    <span className="shrink-0 text-[10px] text-slate-400 dark:text-zinc-500 ml-2">员工</span>
+                                                    <span className="shrink-0 text-[10px] text-slate-400 dark:text-zinc-500 ml-2">{t('composer.slashMenu.staffBadge')}</span>
                                                 </button>
                                             )
                                         })}
@@ -451,15 +452,15 @@ export function Composer() {
                                             "px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 select-none",
                                             (showModelItem || filteredStaff.length > 0) ? "pt-1.5 mt-0.5 border-t border-slate-100 dark:border-white/[0.05]" : "pt-1"
                                         )}>
-                                            技能
+                                            {t('composer.slashMenu.skills')}
                                         </div>
                                         {filteredSkillItems.map((item, idx) => {
                                             const skill = item.data
                                             const globalIdx = (showModelItem ? 1 : 0) + filteredStaff.length + idx
                                             const isActive = globalIdx === selectedIndex
-                                            const sourceLabel = (skill as any).source === 'builtin' ? '内置'
-                                                : (skill as any).source === 'project' ? '项目'
-                                                : '个人'
+                                            const sourceLabel = (skill as any).source === 'builtin' ? t('composer.slashMenu.sourceBuiltin')
+                                                : (skill as any).source === 'project' ? t('composer.slashMenu.sourceProject')
+                                                : t('composer.slashMenu.sourcePersonal')
                                             return (
                                                 <button
                                                     key={`skill-${skill.id}`}
@@ -491,7 +492,7 @@ export function Composer() {
 
                                 {menuItems.length === 0 && (
                                     <div className="px-3 py-6 text-center text-[13px] text-slate-400 dark:text-zinc-500">
-                                        没有匹配的结果
+                                        {t('composer.slashMenu.noMatch')}
                                     </div>
                                 )}
                             </div>
@@ -517,7 +518,7 @@ export function Composer() {
                                             if (el) setTimeout(() => el.focus(), 0)
                                         }}
                                         type="text"
-                                        placeholder="搜索模型..."
+                                        placeholder={t('composer.slashMenu.searchModel')}
                                         value={modelSearchText}
                                         onChange={e => setModelSearchText(e.target.value)}
                                         onKeyDown={(e) => {
@@ -558,7 +559,7 @@ export function Composer() {
                             <div className="max-h-[240px] overflow-y-auto custom-scrollbar">
                                 {filteredModels.length === 0 ? (
                                     <div className="px-4 py-8 text-center">
-                                        <p className="text-xs text-slate-400 dark:text-zinc-500">未找到匹配模型</p>
+                                        <p className="text-xs text-slate-400 dark:text-zinc-500">{t('composer.slashMenu.noModelMatch')}</p>
                                     </div>
                                 ) : (
                                     filteredModels.map(({ providerKey, model, isActive }, index) => {
@@ -630,7 +631,7 @@ export function Composer() {
                         {currentStaff && (
                             <div
                                 className="mt-[1px] w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0 cursor-pointer shadow-sm hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/40 transition-all group relative"
-                                title={`与 ${currentStaff.name} 对话 · Backspace 移除`}
+                                title={t('composer.staffTooltip', { name: currentStaff.name })}
                                 onClick={() => {
                                     assignStaff(activeSessionId, undefined)
                                     textareaRef.current?.focus()
@@ -752,16 +753,15 @@ export function Composer() {
                         />
                     </div>
                     {/* Inner Toolbar: Attach + Model Selector + Send */}
-                    <div className="flex items-center justify-between px-4 pb-4 pt-1 gap-3">
+                    <div className="flex items-center justify-between px-4 pb-3 pt-1 gap-3">
                         {/* Left Tools */}
-                        <div className="flex items-center gap-1 flex-wrap rounded-full bg-white px-1.5 py-1 dark:bg-[#1b1d21]">
-                            {/* Add / Attach Button */}
+                        <div className="flex items-center gap-0.5">
                             <button
                                 onClick={handleSelectFile}
-                                className="flex h-8 w-8 items-center justify-center rounded-full bg-transparent text-slate-500 dark:text-zinc-400 hover:bg-white hover:text-slate-700 dark:hover:bg-[#2a2e34] dark:hover:text-zinc-200 transition-all"
-                                title="Add Attachment"
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-white/[0.06] transition-all"
+                                title={t('composer.addAttachment')}
                             >
-                                <Plus size={16} strokeWidth={2} />
+                                <Plus size={15} strokeWidth={2} />
                             </button>
                             <ModelSelector />
                             <SkillSelector />
@@ -786,8 +786,8 @@ export function Composer() {
                 </div>
 
                 {/* Sub-context bar */}
-                <div className="mt-2.5 flex items-center justify-center">
-                    <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1 dark:bg-[#1b1d21]">
+                <div className="mt-2 flex items-center justify-center">
+                    <div className="flex items-center gap-1">
                     <WorkspaceSelector />
                     <AccessIndicator />
                     </div>

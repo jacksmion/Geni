@@ -57,7 +57,7 @@ export default function Settings() {
                         <p className="text-slate-500 dark:text-gray-400">{t('settings.about.slogan')}</p>
 
                         <div className="ui-text-meta pt-8 text-slate-400">
-                            © 2026 Geni Inc.
+                            {t('settings.about.copyright')}
                         </div>
                     </div>
                 )}

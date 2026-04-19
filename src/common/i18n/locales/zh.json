@@ -13,7 +13,8 @@
             "about": "关于我们"
         },
         "about": {
-            "slogan": "Your personal spark for creativity & code"
+            "slogan": "你的创意与代码灵感火花",
+            "copyright": "© 2026 Geni Inc. 保留所有权利。"
         },
         "unsavedChanges": "未保存的更改",
         "reset": "放弃",
@@ -73,6 +74,27 @@
         "assistantDesc": "你的 24/7 全天候私人智能体助理，随时为你完成工作",
         "placeholderDraft": "分配任务或直接提问，或输入 / 选择数字员工和技能...",
         "placeholderContinue": "继续提问..."
+    },
+    "composer": {
+        "fullAccess": "完全访问",
+        "askMode": "需确认",
+        "fullAccessTitle": "完全访问模式：工具自动执行",
+        "askModeTitle": "需确认模式：工具执行前需授权",
+        "addAttachment": "添加附件",
+        "staffTooltip": "与 {{name}} 对话 · Backspace 移除",
+        "slashMenu": {
+            "switchModel": "切换模型",
+            "switchModelDesc": "为当前会话切换模型",
+            "staff": "数字员工",
+            "staffBadge": "员工",
+            "skills": "技能",
+            "sourceBuiltin": "内置",
+            "sourceProject": "项目",
+            "sourcePersonal": "个人",
+            "noMatch": "没有匹配的结果",
+            "searchModel": "搜索模型...",
+            "noModelMatch": "未找到匹配模型"
+        }
     },
     "skillSettings": {
         "title": "技能商店",

@@ -519,9 +519,6 @@ export function ModelSettings() {
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
                                                 <span className="text-xs font-semibold text-slate-800 dark:text-white truncate">{model.label}</span>
-                                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
-                                                    {model.model}
-                                                </span>
                                                 <div className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[10px] font-medium">
                                                     {model.temperature}
                                                 </div>
