@@ -650,8 +650,7 @@ export function Composer() {
                         {selectedSkillIds !== null && selectedSkillIds.map((skillId) => {
                             const skill = skills.find(s => s.id === skillId)
                             return (
-                                <div key={`skill-${skillId}`} className="flex items-center gap-1.5 mt-[1px] bg-violet-50/90 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 shadow-sm rounded-md px-2 py-0.5 font-medium text-[12.5px] text-violet-700 dark:text-violet-300 transition-all">
-                                    <Sparkles size={12} className="text-violet-500" />
+                                <div key={`skill-${skillId}`} className="group flex items-center gap-1 rounded bg-indigo-500/[0.06] dark:bg-indigo-400/[0.08] px-1.5 py-px text-[11px] font-medium text-indigo-600 dark:text-indigo-300 transition-colors hover:bg-indigo-500/[0.12] dark:hover:bg-indigo-400/[0.14]">
                                     <span>{skill?.name || skillId}</span>
                                     <button
                                         onClick={() => {
@@ -659,9 +658,9 @@ export function Composer() {
                                             setSelectedSkillIds(newIds.length === 0 ? [] : newIds);
                                             textareaRef.current?.focus();
                                         }}
-                                        className="ml-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
                                     >
-                                        <X size={12} />
+                                        <X size={10} />
                                     </button>
                                 </div>
                             )

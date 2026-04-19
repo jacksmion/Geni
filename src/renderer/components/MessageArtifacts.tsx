@@ -74,32 +74,20 @@ export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
     };
 
     return (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-1.5">
             {sortedArtifacts.map((artifact) => (
                 <button
                     key={artifact.path}
                     onClick={() => handleOpen(artifact)}
-                    className="w-full text-left rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/80 dark:bg-[#111214] px-4 py-3 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-100/80 dark:hover:bg-[#15161a] transition-colors"
+                    className="group w-full text-left rounded-lg border border-slate-200/80 dark:border-white/[0.06] bg-slate-50/50 dark:bg-white/[0.02] px-3 py-2 hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/60 dark:hover:bg-white/[0.04] transition-colors"
                     title={artifact.path}
                 >
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                                <FileText size={16} className="text-blue-500" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="truncate text-[13px] font-medium text-slate-800 dark:text-zinc-100">
-                                    {artifact.name}
-                                </div>
-                                <div className="truncate text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
-                                    {artifact.path}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-2.5 py-1.5 text-[11px] text-slate-600 dark:text-zinc-300">
-                            <span>{artifact.openMode === 'external' ? 'Open' : 'Preview'}</span>
-                            <ExternalLink size={12} />
-                        </div>
+                    <div className="flex items-center gap-2">
+                        <FileText size={14} className="shrink-0 text-slate-400 dark:text-zinc-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
+                        <span className="truncate text-[12px] font-medium text-slate-700 dark:text-zinc-200">
+                            {artifact.name}
+                        </span>
+                        <ExternalLink size={12} className="shrink-0 ml-auto text-slate-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </button>
             ))}
