@@ -8,6 +8,15 @@
 </head>
 
 <body>
+  <!-- SVG filters for glass effects -->
+  <svg style="position:absolute;width:0;height:0" aria-hidden="true">
+    <defs>
+      <filter id="glass-noise-filter">
+        <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="4" stitchTiles="stitch" result="noise" />
+        <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise" />
+      </filter>
+    </defs>
+  </svg>
   <div id="root"></div>
   <script type="module" src="/src/renderer/main.tsx"></script>
 </body>

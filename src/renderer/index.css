@@ -61,14 +61,21 @@
   --text-secondary: #6b7280;    /* Gray-500 */
   --sidebar-bg: #eef1f4;        /* 侧边栏专用 */
   --sidebar-border: #dde2e8;    /* 柔和边框 */
-  --workspace-shell-bg: #f8f9fb;
+  --workspace-shell-bg: #f5f6fa;
   --workspace-content-bg: #ffffff;
   --workspace-content-border: #e8ebef;
-  --glass-sidebar-bg: rgba(237, 240, 244, 0.84);
-  --glass-sidebar-bg-strong: rgba(231, 235, 240, 0.92);
+
+  /* ─── Mesh Gradient Background (behind glass) ─── */
+  --mesh-spot-1: rgba(180, 160, 130, 0.08);
+  --mesh-spot-2: rgba(140, 130, 160, 0.05);
+  --mesh-spot-3: rgba(160, 140, 120, 0.06);
+
+  /* ─── Glass Sidebar Colors (lowered opacity for translucency) ─── */
+  --glass-sidebar-bg: rgba(244, 245, 248, 0.68);
+  --glass-sidebar-bg-strong: rgba(240, 242, 245, 0.78);
   --glass-sidebar-border: rgba(255, 255, 255, 0.58);
   --glass-sidebar-highlight: rgba(255, 255, 255, 0.55);
-  --glass-sidebar-shadow: 0 14px 36px rgba(90, 105, 120, 0.14);
+  --glass-sidebar-shadow: 0 14px 36px rgba(90, 105, 120, 0.12);
   --glass-sidebar-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
@@ -79,16 +86,23 @@
   --bg-sunken: #23262b;         /* 第三层：输入框/代码块 */
   --text-color: #f4f4f5;        /* Zinc-100 */
   --text-secondary: #a1a1aa;    /* Zinc-400 */
-  --sidebar-bg: #171a1e;        
+  --sidebar-bg: #171a1e;
   --sidebar-border: rgba(255, 255, 255, 0.05);
-  --workspace-shell-bg: #121418;
+  --workspace-shell-bg: #101216;
   --workspace-content-bg: #17191d;
   --workspace-content-border: rgba(255, 255, 255, 0.06);
-  --glass-sidebar-bg: rgba(25, 28, 32, 0.86);
-  --glass-sidebar-bg-strong: rgba(28, 31, 36, 0.94);
+
+  /* ─── Mesh Gradient Background (behind glass) ─── */
+  --mesh-spot-1: rgba(120, 100, 80, 0.10);
+  --mesh-spot-2: rgba(80, 80, 100, 0.07);
+  --mesh-spot-3: rgba(100, 90, 70, 0.06);
+
+  /* ─── Glass Sidebar Colors (lowered opacity for translucency) ─── */
+  --glass-sidebar-bg: rgba(22, 23, 26, 0.72);
+  --glass-sidebar-bg-strong: rgba(24, 25, 28, 0.80);
   --glass-sidebar-border: rgba(255, 255, 255, 0.06);
   --glass-sidebar-highlight: rgba(255, 255, 255, 0.08);
-  --glass-sidebar-shadow: 0 20px 42px rgba(0, 0, 0, 0.3);
+  --glass-sidebar-shadow: 0 20px 42px rgba(0, 0, 0, 0.28);
   --glass-sidebar-inset: inset 0 1px 0 rgba(255, 255, 255, 0.045);
 
   /* 阴影在极黑背景下改用极细微的 white glow 或消除阴影 */
@@ -209,6 +223,39 @@ input {
 }
 
 
+/* ─── Glass-themed Scrollbar (for sidebars) ─── */
+.glass-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.glass-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+:root.dark .glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:root.dark .glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
@@ -216,6 +263,47 @@ input {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ─── Mesh Gradient Background (behind glass sidebars) ─── */
+/* Subtle colored light spots that bleed through translucent glass */
+.glass-mesh-bg {
+  position: relative;
+}
+
+.glass-mesh-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 40%, var(--mesh-spot-1), transparent),
+    radial-gradient(ellipse 60% 80% at 50% 90%, var(--mesh-spot-2), transparent),
+    radial-gradient(ellipse 50% 60% at 85% 20%, var(--mesh-spot-3), transparent);
+}
+
+/* ─── SVG Noise Filter for Frosted Glass ─── */
+.glass-noise {
+  position: relative;
+}
+
+.glass-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+  opacity: 0.28;
+  filter: url(#glass-noise-filter);
+  background: rgba(255, 255, 255, 0.035);
+  mix-blend-mode: overlay;
+}
+
+:root.dark .glass-noise::after {
+  opacity: 0.18;
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .glass-sidebar {
@@ -227,6 +315,7 @@ input {
   box-shadow: var(--glass-sidebar-shadow), var(--glass-sidebar-inset);
   backdrop-filter: blur(22px) saturate(120%);
   -webkit-backdrop-filter: blur(22px) saturate(120%);
+  transition: background 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
 .glass-sidebar-strong {
@@ -238,6 +327,47 @@ input {
   box-shadow: var(--glass-sidebar-shadow), var(--glass-sidebar-inset);
   backdrop-filter: blur(24px) saturate(118%);
   -webkit-backdrop-filter: blur(24px) saturate(118%);
+  transition: background 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+/* ─── Glass Edge Refraction ─── */
+/* Gradient highlight line at sidebar boundary to simulate glass edge refraction */
+.glass-edge-refraction {
+  position: relative;
+}
+
+.glass-edge-refraction::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  right: auto;
+  width: 1px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.2) 30%,
+    rgba(255, 255, 255, 0.08) 60%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+}
+
+:root.dark .glass-edge-refraction::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+}
+
+/* ─── Glass Active State ─── */
+/* Floating glass effect for active navigation items */
+.glass-active-item {
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
 }
 
 @keyframes pulse-glow {
