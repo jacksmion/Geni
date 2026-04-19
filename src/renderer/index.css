@@ -72,6 +72,7 @@
   --sidebar-bg: #eef1f4;        /* 侧边栏专用 */
   --sidebar-border: #dde2e8;    /* 柔和边框 */
   --workspace-shell-bg: #f5f6fa;
+  --workspace-gap-bg: #f3f5f7;
   --workspace-content-bg: #ffffff;
   --workspace-content-border: #e8ebef;
 
@@ -99,6 +100,7 @@
   --sidebar-bg: #171a1e;
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --workspace-shell-bg: #101216;
+  --workspace-gap-bg: #181b20;
   --workspace-content-bg: #17191d;
   --workspace-content-border: rgba(255, 255, 255, 0.06);
 

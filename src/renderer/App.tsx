@@ -86,10 +86,16 @@ function App() {
                 {activeTab === 'chat' ? (
                     <ChatLayout />
                 ) : useUnifiedWorkspaceShell ? (
-                    <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-shell-bg)] glass-mesh-bg">
+                    <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-gap-bg)]">
                         <SessionSidebar />
                         <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
-                            <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]" style={{ borderColor: 'var(--workspace-content-border)' }}>
+                            <div
+                                className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]"
+                                style={{
+                                    borderColor: 'var(--workspace-content-border)',
+                                    borderLeftColor: 'transparent',
+                                }}
+                            >
                                 <main className="flex-1 h-full overflow-hidden bg-[var(--workspace-content-bg)]">
                                     {activeTab === 'skills' && <SkillSettings />}
                                     {activeTab === 'scheduler' && <SchedulerPage />}
