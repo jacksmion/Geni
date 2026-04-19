@@ -183,7 +183,7 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
     return (
         <button
             onClick={onClick}
-            className="relative w-full h-full text-left p-5 rounded-xl bg-white dark:bg-white/[0.02] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.04] transition-all duration-200 group flex flex-col"
+            className="relative w-full h-full text-left p-5 pr-14 pb-12 rounded-xl bg-white dark:bg-white/[0.02] hover:bg-[#F5F5F7] dark:hover:bg-white/[0.04] transition-all duration-200 group flex flex-col"
         >
             <div className="flex items-start gap-4">
                 {/* Avatar */}
@@ -207,29 +207,25 @@ function StaffCard({ profile, onClick }: { profile: StaffProfile; onClick: () =>
                 </div>
             </div>
             {/* Hover actions */}
-            <div
-                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+            <span
+                role="button"
+                tabIndex={0}
+                onClick={handleExport}
+                className="ui-text-meta absolute top-3 right-3 inline-flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-500 opacity-0 transition-all group-hover:opacity-100 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10"
+                title="导出"
             >
-                <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleExport}
-                    className="ui-text-meta inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
-                    title="导出"
-                >
-                    <Upload size={13} />
-                </span>
-                <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleUse}
-                    onKeyDown={e => { if (e.key === 'Enter') handleUse(e as unknown as React.MouseEvent) }}
-                    className="ui-text-meta inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-                >
-                    <MessageSquare size={12} />
-                    {profile.name.length > 8 ? '' : '使用'}
-                </span>
-            </div>
+                <Upload size={13} />
+            </span>
+            <span
+                role="button"
+                tabIndex={0}
+                onClick={handleUse}
+                onKeyDown={e => { if (e.key === 'Enter') handleUse(e as unknown as React.MouseEvent) }}
+                className="ui-text-meta absolute bottom-2.5 right-3 inline-flex items-center gap-0.5 rounded-md bg-indigo-50 px-2 py-1 font-medium text-indigo-600 opacity-0 transition-all group-hover:opacity-100 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+            >
+                <MessageSquare size={12} />
+                {profile.name.length > 8 ? '' : '使用'}
+            </span>
         </button>
     )
 }
