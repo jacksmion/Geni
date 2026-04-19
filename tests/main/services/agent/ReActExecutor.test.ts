@@ -96,6 +96,44 @@ describe('ReActExecutor', () => {
             expect(errorSteps.length).toBeGreaterThanOrEqual(1);
             expect(errorSteps[0].tool).toBe('nonexistent_tool');
         });
+
+        it('should drop malformed tool calls before persistence and avoid orphan tool messages', async () => {
+            const mockStream = async function* () {
+                yield { type: 'tool_call_delta', index: 0, id: 'call_bad', name: 'read', arguments_delta: '{"path":"broken"' };
+                yield { type: 'message_end', usage: { prompt_tokens: 100, completion_tokens: 10 } };
+            };
+
+            const mockChatModel = { stream: mockStream };
+            const llmFactory = vi.fn().mockReturnValue(mockChatModel);
+            const settings = { llm: { providers: {} } } as any;
+            const executor = new ReActExecutor(llmFactory, settings);
+
+            const mockTools = {
+                getTools: vi.fn().mockReturnValue([]),
+                getDefinitions: vi.fn().mockReturnValue([]),
+                executeTool: vi.fn(),
+            };
+
+            const context = createMockContext(mockTools);
+            const request: AgentRunRequest = { prompt: 'Test message' };
+
+            const { result } = await collectGenerator(executor.execute(context, request));
+
+            expect(result.finalAnswer).toContain('malformed tool arguments');
+
+            const assistantWithToolCalls = result.newMessages.find(
+                m => m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0
+            );
+            expect(assistantWithToolCalls).toBeUndefined();
+
+            const toolMessages = result.newMessages.filter(m => m.role === 'tool');
+            expect(toolMessages).toHaveLength(0);
+
+            const errorSteps = result.steps.filter(s => s.isError);
+            expect(errorSteps).toHaveLength(1);
+            expect(errorSteps[0].tool).toBe('read');
+            expect(errorSteps[0].observation).toContain('malformed JSON arguments');
+        });
     });
 
     describe('stuck detection', () => {

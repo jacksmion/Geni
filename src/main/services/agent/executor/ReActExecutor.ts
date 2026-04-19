@@ -49,6 +49,11 @@ interface ExecutedToolCall {
     step: AgentStep;
 }
 
+interface ToolCallPartition {
+    valid: ToolCall[];
+    invalid: ToolCall[];
+}
+
 /** LLM turn result with real token usage */
 interface LlmTurnResult {
     content: string;
@@ -224,22 +229,36 @@ export class ReActExecutor implements AgentExecutor {
                     totalCompletionTokens += llmResult.completionTokens;
                 }
 
+                const { valid: validToolCalls, invalid: invalidToolCalls } =
+                    this.partitionMalformedToolCalls(llmResult.toolCalls);
+                const fallbackContent =
+                    !llmResult.content && invalidToolCalls.length > 0 && validToolCalls.length === 0
+                        ? 'The model produced malformed tool arguments, so this turn was stopped before any tool could run.'
+                        : null;
                 const assistantMsg: ChatMessage = {
                     role: 'assistant',
-                    content: llmResult.content || null,
-                    tool_calls: llmResult.toolCalls.length > 0 ? llmResult.toolCalls : undefined
+                    content: llmResult.content || fallbackContent,
+                    tool_calls: validToolCalls.length > 0 ? validToolCalls : undefined
                 };
                 messages.push(assistantMsg);
                 newMessages.push(assistantMsg);
 
-                if (llmResult.toolCalls.length === 0) {
+                this.recordMalformedToolCalls(invalidToolCalls, steps, llmResult.reasoning || llmResult.content);
+
+                if (validToolCalls.length === 0) {
                     terminationReason = TerminationReason.NormalEnd;
                     yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
-                    return { finalAnswer: llmResult.content, steps, newMessages, promptTokens: totalPromptTokens, completionTokens: totalCompletionTokens };
+                    return {
+                        finalAnswer: llmResult.content || fallbackContent || undefined,
+                        steps,
+                        newMessages,
+                        promptTokens: totalPromptTokens,
+                        completionTokens: totalCompletionTokens
+                    };
                 }
 
                 yield* this.handleToolCalls(
-                    llmResult.toolCalls,
+                    validToolCalls,
                     tools,
                     messages,
                     newMessages,
@@ -707,6 +726,45 @@ export class ReActExecutor implements AgentExecutor {
         const msg: ChatMessage = { role: 'tool', tool_call_id: id, content };
         messages.push(msg);
         newMessages.push(msg);
+    }
+
+    private partitionMalformedToolCalls(toolCalls: ToolCall[]): ToolCallPartition {
+        const valid: ToolCall[] = [];
+        const invalid: ToolCall[] = [];
+
+        for (const toolCall of toolCalls) {
+            if (this.isValidToolCallArguments(toolCall.function.arguments)) {
+                valid.push(toolCall);
+            } else {
+                invalid.push(toolCall);
+            }
+        }
+
+        return { valid, invalid };
+    }
+
+    private recordMalformedToolCalls(toolCalls: ToolCall[], steps: AgentStep[], thought: string) {
+        for (const tc of toolCalls) {
+            const error = `[Error] "${tc.function.name}" tool call had malformed JSON arguments and was dropped before execution.`;
+            console.warn(`[ReActExecutor] Dropping malformed tool call "${tc.function.name}" (${tc.id}) before persistence.`);
+            steps.push({
+                thought,
+                tool: tc.function.name,
+                toolInput: tc.function.arguments,
+                observation: error,
+                isComplete: true,
+                isError: true,
+            });
+        }
+    }
+
+    private isValidToolCallArguments(raw: string): boolean {
+        try {
+            JSON.parse(raw);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**

@@ -309,7 +309,10 @@ export class OpenAIAdapter implements IChatModel {
      * 转换消息格式
      */
     private convertMessages(messages: ChatMessage[]): OpenAI.ChatCompletionMessageParam[] {
-        return messages.map(msg => {
+        const openaiMessages: OpenAI.ChatCompletionMessageParam[] = [];
+        const pendingToolCallIds = new Set<string>();
+
+        for (const msg of messages) {
             const base: any = {
                 role: msg.role,
                 content: msg.content || '',
@@ -317,23 +320,55 @@ export class OpenAIAdapter implements IChatModel {
 
             // 处理工具调用 (assistant 消息)
             if (msg.role === 'assistant' && msg.tool_calls) {
-                base.tool_calls = msg.tool_calls.map(tc => ({
-                    id: tc.id,
-                    type: tc.type,
-                    function: {
-                        name: tc.function.name,
-                        arguments: tc.function.arguments,
-                    },
-                }));
+                const validToolCalls = msg.tool_calls.filter(tc => {
+                    if (this.isValidToolCallArguments(tc.function.arguments)) {
+                        pendingToolCallIds.add(tc.id);
+                        return true;
+                    }
+
+                    console.warn(
+                        `[OpenAIAdapter] Dropping malformed tool call "${tc.function.name}" (${tc.id}) before request send.`
+                    );
+                    return false;
+                });
+
+                if (validToolCalls.length > 0) {
+                    base.tool_calls = validToolCalls.map(tc => ({
+                        id: tc.id,
+                        type: tc.type,
+                        function: {
+                            name: tc.function.name,
+                            arguments: tc.function.arguments,
+                        },
+                    }));
+                }
             }
 
             // 处理工具结果 (tool 消息)
             if (msg.role === 'tool' && msg.tool_call_id) {
+                if (!pendingToolCallIds.has(msg.tool_call_id)) {
+                    console.warn(
+                        `[OpenAIAdapter] Dropping orphan tool message for "${msg.tool_call_id}" because its tool call is missing or malformed.`
+                    );
+                    continue;
+                }
+                pendingToolCallIds.delete(msg.tool_call_id);
                 base.tool_call_id = msg.tool_call_id;
             }
 
-            return base;
-        });
+            openaiMessages.push(base);
+        }
+
+        return openaiMessages;
+    }
+
+    private isValidToolCallArguments(raw: string): boolean {
+        try {
+            JSON.parse(raw);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**
