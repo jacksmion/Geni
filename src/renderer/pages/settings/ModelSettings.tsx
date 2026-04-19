@@ -416,7 +416,7 @@ export function ModelSettings() {
                             <button
                                 onClick={() => handleToggleProvider(selectedProvider)}
                                 className={clsx(
-                                    "rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors",
+                                    "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors",
                                     currentProviderConfig.enabled
                                         ? "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/[0.05] dark:text-zinc-300 dark:hover:bg-white/[0.08]"
                                         : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
@@ -425,12 +425,12 @@ export function ModelSettings() {
                                 {currentProviderConfig.enabled ? '停用' : '启用'}
                             </button>
                             {!DEFAULT_PROVIDER_CONFIGS[selectedProvider] && (
-                                <button 
-                                    onClick={() => handleDeleteProvider(selectedProvider)} 
-                                    className="text-slate-400 hover:text-red-500 p-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all active:scale-95"
+                                <button
+                                    onClick={() => handleDeleteProvider(selectedProvider)}
+                                    className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all active:scale-95"
                                     title={t('modelSettings.deleteProvider')}
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={14} />
                                 </button>
                             )}
                         </div>
@@ -483,12 +483,12 @@ export function ModelSettings() {
                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Cpu size={12} /> {t('modelSettings.models')}
                                 </label>
-                                <div className="flex gap-2">
-                                    <button onClick={handleFetchModels} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
-                                        <RefreshCw size={12} className={clsx(isFetchingModels && "animate-spin")} />
+                                <div className="flex gap-1.5">
+                                    <button onClick={handleFetchModels} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
+                                        <RefreshCw size={11} className={clsx(isFetchingModels && "animate-spin")} />
                                         {t('modelSettings.discover')}
                                     </button>
-                                    <button onClick={() => openModelEditor()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-xs font-semibold hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
+                                    <button onClick={() => openModelEditor()} className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 text-[11px] font-semibold hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
                                         <Plus size={12} />
                                         {t('modelSettings.add')}
                                     </button>
@@ -581,9 +581,9 @@ export function ModelSettings() {
                                     <button
                                         onClick={handleTestConnection}
                                         disabled={isTesting}
-                                        className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
+                                        className="px-2.5 py-1 rounded-lg border border-indigo-500/40 bg-transparent text-indigo-600 dark:text-indigo-400 text-[11px] font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
                                     >
-                                        {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} fill="currentColor" />}
+                                        {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                                         <span>{t('imSettings.testConnection')}</span>
                                     </button>
                                 </div>

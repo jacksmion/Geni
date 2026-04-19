@@ -408,7 +408,7 @@
     "staffPage": {
         "title": "Digital Employees",
         "subtitle": "Manage your virtual team members",
-        "create": "Create Employee",
+        "create": "Create",
         "empty": "No digital employees yet",
         "emptyDesc": "Create your first digital employee with unique personality, skills, and memory.",
         "name": "Name",

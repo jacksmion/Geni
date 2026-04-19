@@ -410,14 +410,14 @@ export function ImSettings() {
                                 <button
                                     onClick={handleTestConnection}
                                     disabled={isTesting || (selectedIM === 'telegram' ? !tgDraft.token : (selectedIM === 'wecom' ? (!wecomDraft.botId || !wecomDraft.secret) : (!larkDraft.appId || !larkDraft.appSecret)))}
-                                    className="w-full bg-indigo-500 hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
+                                    className="w-full border border-indigo-500/40 bg-transparent text-indigo-600 dark:text-indigo-400 rounded-lg py-1.5 flex items-center justify-center gap-1.5 font-semibold transition-all active:scale-[0.98] hover:bg-indigo-50 dark:hover:bg-indigo-500/10 disabled:opacity-30 disabled:pointer-events-none"
                                 >
                                     {isTesting ? (
-                                        <Loader2 size={14} className="animate-spin" />
+                                        <Loader2 size={13} className="animate-spin" />
                                     ) : (
-                                        <ShieldCheck size={14} />
+                                        <ShieldCheck size={13} />
                                     )}
-                                    <span className="text-xs tracking-tight">{t('imSettings.testConnection')}</span>
+                                    <span className="text-[11px] tracking-tight">{t('imSettings.testConnection')}</span>
                                 </button>
 
                                 {testResult && (

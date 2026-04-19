@@ -408,7 +408,7 @@
     "staffPage": {
         "title": "数字员工",
         "subtitle": "管理你的虚拟团队成员",
-        "create": "创建员工",
+        "create": "创建",
         "empty": "还没有数字员工",
         "emptyDesc": "创建你的第一个数字员工，赋予它独特的人格、技能和记忆。",
         "name": "名称",
