@@ -15,7 +15,7 @@ export function ShortcutSettings() {
         'new_task': 'Ctrl+N',
         'open_settings': 'Ctrl+,',
         'toggle_sidebar': 'Ctrl+B',
-        'command_palette': 'Ctrl+K'
+        'command_palette': 'Ctrl+G'
     };
 
     const handleRecord = (id: string) => {
@@ -72,7 +72,7 @@ export function ShortcutSettings() {
                 'new_task': 'Ctrl+N',
                 'open_settings': 'Ctrl+,',
                 'toggle_sidebar': 'Ctrl+B',
-                'command_palette': 'Ctrl+K'
+                'command_palette': 'Ctrl+G'
             }
         });
     };

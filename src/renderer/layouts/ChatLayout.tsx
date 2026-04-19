@@ -185,8 +185,8 @@ export function ChatLayout() {
     return (
         <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-shell-bg)] glass-mesh-bg">
             <SessionSidebar />
-            <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
-                <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]" style={{ borderColor: 'var(--workspace-content-border)' }}>
+            <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0" style={{ background: 'linear-gradient(180deg, var(--glass-sidebar-highlight), rgba(255,255,255,0) 22%), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)), var(--glass-sidebar-bg-strong)', backdropFilter: 'blur(24px) saturate(118%)', WebkitBackdropFilter: 'blur(24px) saturate(118%)' }}>
+                <div className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]" style={{ borderColor: 'var(--workspace-content-border)', borderLeftColor: 'transparent' }}>
                     <main className="flex min-w-0 flex-1 flex-col overflow-hidden relative">
                         <header className={`h-10 flex items-center justify-between px-4 draggable shrink-0 z-10 ${!hasMessages ? 'absolute top-0 w-full bg-[var(--workspace-content-bg)]' : 'bg-[var(--workspace-content-bg)] border-b border-[#F0F1F3] dark:border-white/[0.04]'}`}>
                             <div className="flex items-center gap-2.5 overflow-hidden">

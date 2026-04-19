@@ -53,9 +53,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                 };
 
                 // Merge shortcuts so new defaults are available
+                const userShortcuts = data.shortcuts || {};
+                // Migrate: if user still has old default Ctrl+K, upgrade to Ctrl+G
+                if (userShortcuts['command_palette'] === 'Ctrl+K') {
+                    userShortcuts['command_palette'] = 'Ctrl+G';
+                }
                 const mergedShortcuts = {
                     ...DEFAULT_SETTINGS.shortcuts,
-                    ...(data.shortcuts || {}),
+                    ...userShortcuts,
                 };
 
                 const finalSettings = {

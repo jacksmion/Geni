@@ -3,6 +3,7 @@ import { useChatStore } from '../../store/useChatStore';
 import { useLayoutStore } from '../../store/useLayoutStore';
 import { useModalStore } from '../../store/useModalStore';
 import { useStaffStore } from '../../store/useStaffStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { ArrowLeft, Plus, MessageSquare, Trash2, Edit2, ListChecks, Square, Pin, Search, Sparkles, Clock3, Settings, Users } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -35,6 +36,7 @@ export function SessionSidebar() {
     const setPaletteOpen = useLayoutStore(s => s.setPaletteOpen)
     const activeSettingsSection = useLayoutStore(s => s.activeSettingsSection)
     const setActiveSettingsSection = useLayoutStore(s => s.setActiveSettingsSection)
+    const shortcuts = useSettingsStore(s => s.settings.shortcuts)
     const { isMobile } = useBreakpoint();
     const isResizing = React.useRef(false);
 
@@ -228,12 +230,14 @@ export function SessionSidebar() {
                                 icon={Plus}
                                 label="新建任务"
                                 active={false}
+                                shortcut={shortcuts?.['new_task']}
                                 onClick={() => createSession()}
                             />
                             <ActionRow
                                 icon={Search}
                                 label={t('sidebar.search', { defaultValue: '搜索' })}
                                 active={false}
+                                shortcut={shortcuts?.['command_palette']}
                                 onClick={() => setPaletteOpen(true)}
                             />
                             <ActionRow
@@ -510,19 +514,21 @@ function ActionRow({
     label,
     active,
     compact = false,
+    shortcut,
     onClick
 }: {
     icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
     label: string;
     active: boolean;
     compact?: boolean;
+    shortcut?: string;
     onClick: () => void;
 }) {
     return (
         <button
             onClick={onClick}
             className={clsx(
-                "ui-text-label flex w-full items-center rounded-xl transition-all text-left relative border-0 outline-none",
+                "ui-text-label flex w-full items-center rounded-xl transition-all text-left relative border-0 outline-none group",
                 compact ? "gap-2.5 px-3 py-1" : "gap-3 px-3 py-1.5",
                 active
                     ? "bg-indigo-500/[0.06] text-slate-900 dark:bg-indigo-400/[0.08] dark:text-white"
@@ -531,6 +537,11 @@ function ActionRow({
         >
             <Icon size={compact ? 15 : 16} strokeWidth={1.8} className={active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-zinc-500"} />
             <span className="font-normal">{label}</span>
+            {shortcut && (
+                <span className="ml-auto ui-text-meta text-slate-300 dark:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {shortcut}
+                </span>
+            )}
         </button>
     );
 }
