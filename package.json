@@ -1,6 +1,6 @@
 {
   "name": "geni",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "AI-powered collaborative workspace assistant",
   "main": "dist-electron/main.js",
   "scripts": {

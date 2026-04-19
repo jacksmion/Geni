@@ -44,7 +44,8 @@
       "Bash(git show:*)",
       "Bash(cd D:/workspace/Geni && npm run build 2>&1 | tail -5)",
       "Bash(cd D:/workspace/Geni && npm run build 2>&1 | tail -15)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(find . -name \"*.json\" -type f -exec grep -l \"template\\\\|preset\\\\|default\" {})"
     ]
   }
 }
