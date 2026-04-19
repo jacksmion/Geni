@@ -3,7 +3,6 @@ import Settings from './pages/Settings'
 import SkillSettings from './pages/settings/SkillSettings'
 import SchedulerPage from './pages/SchedulerPage'
 import StaffPage from './pages/StaffPage'
-import { Sidebar } from './layouts/sidebar/Sidebar'
 import { ChatLayout } from './layouts/ChatLayout'
 import { SessionSidebar } from './layouts/sidebar/SessionSidebar'
 import { PageTransition } from './components/PageTransition'
@@ -22,7 +21,6 @@ function App() {
     const loadSettings = useSettingsStore(s => s.loadSettings)
     const loadHistory = useChatStore(s => s.loadHistory)
 
-    const toggleSidebar = useLayoutStore(s => s.toggleSidebar)
     const setSidebarCollapsed = useLayoutStore(s => s.setSidebarCollapsed)
 
     const { isMobile } = useBreakpoint()
@@ -80,12 +78,10 @@ function App() {
 
     return (
         <div className="flex h-screen w-full bg-transparent text-slate-900 dark:text-gray-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-            {!useUnifiedWorkspaceShell && <Sidebar />}
-
             <PageTransition pageKey={pageTransitionKey}>
                 {activeTab === 'chat' ? (
                     <ChatLayout />
-                ) : useUnifiedWorkspaceShell ? (
+                ) : (
                     <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-gap-bg)]">
                         <SessionSidebar />
                         <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
@@ -105,7 +101,7 @@ function App() {
                             </div>
                         </div>
                     </div>
-                ) : null}
+                )}
             </PageTransition>
 
             <ConfirmDialog />
