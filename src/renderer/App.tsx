@@ -5,7 +5,6 @@ import SchedulerPage from './pages/SchedulerPage'
 import StaffPage from './pages/StaffPage'
 import { ChatLayout } from './layouts/ChatLayout'
 import { SessionSidebar } from './layouts/sidebar/SessionSidebar'
-import { PageTransition } from './components/PageTransition'
 
 import { useChatStore } from './store/useChatStore'
 import { useSettingsStore } from './store/useSettingsStore'
@@ -24,8 +23,6 @@ function App() {
     const setSidebarCollapsed = useLayoutStore(s => s.setSidebarCollapsed)
 
     const { isMobile } = useBreakpoint()
-    const useUnifiedWorkspaceShell = activeTab === 'chat' || activeTab === 'skills' || activeTab === 'scheduler' || activeTab === 'settings' || activeTab === 'staff'
-    const pageTransitionKey = useUnifiedWorkspaceShell ? 'workspace-shell' : activeTab
 
     // Register global shortcuts
     useShortcuts()
@@ -78,31 +75,29 @@ function App() {
 
     return (
         <div className="flex h-screen w-full bg-transparent text-slate-900 dark:text-gray-100 font-sans overflow-hidden selection:bg-indigo-500/30">
-            <PageTransition pageKey={pageTransitionKey}>
-                {activeTab === 'chat' ? (
-                    <ChatLayout />
-                ) : (
-                    <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-gap-bg)]">
-                        <SessionSidebar />
-                        <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
-                            <div
-                                className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]"
-                                style={{
-                                    borderColor: 'var(--workspace-content-border)',
-                                    borderLeftColor: 'transparent',
-                                }}
-                            >
-                                <main className="flex-1 h-full overflow-hidden bg-[var(--workspace-content-bg)]">
-                                    {activeTab === 'skills' && <SkillSettings />}
-                                    {activeTab === 'scheduler' && <SchedulerPage />}
-                                    {activeTab === 'staff' && <StaffPage />}
-                                    {activeTab === 'settings' && <Settings />}
-                                </main>
-                            </div>
+            {activeTab === 'chat' ? (
+                <ChatLayout />
+            ) : (
+                <div className="flex h-full w-full overflow-hidden bg-[var(--workspace-gap-bg)]">
+                    <SessionSidebar />
+                    <div className="relative z-[1] flex-1 min-w-0 overflow-hidden pt-0 pr-0 pb-0 pl-0">
+                        <div
+                            className="relative flex h-full min-w-0 overflow-hidden rounded-[18px] border bg-[var(--workspace-content-bg)] shadow-[0_8px_24px_-20px_rgba(15,23,42,0.16)] dark:shadow-[0_18px_50px_-38px_rgba(0,0,0,0.58)]"
+                            style={{
+                                borderColor: 'var(--workspace-content-border)',
+                                borderLeftColor: 'transparent',
+                            }}
+                        >
+                            <main className="flex-1 h-full overflow-hidden bg-[var(--workspace-content-bg)]">
+                                {activeTab === 'skills' && <SkillSettings />}
+                                {activeTab === 'scheduler' && <SchedulerPage />}
+                                {activeTab === 'staff' && <StaffPage />}
+                                {activeTab === 'settings' && <Settings />}
+                            </main>
                         </div>
                     </div>
-                )}
-            </PageTransition>
+                </div>
+            )}
 
             <ConfirmDialog />
             <CommandPalette />

@@ -434,23 +434,7 @@ input {
   animation: cursor-blink 1s step-end infinite;
 }
 
-/* ─── Page Transition Animations ─── */
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes page-exit {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
+/* ─── Panel Transition Animations ─── */
 @keyframes slide-in-right {
   from {
     opacity: 0;
@@ -471,14 +455,6 @@ input {
     opacity: 0;
     transform: translateX(16px);
   }
-}
-
-.page-enter {
-  animation: page-enter var(--duration-slow, 300ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)) both;
-}
-
-.page-exit {
-  animation: page-exit var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
 
 .panel-enter {
