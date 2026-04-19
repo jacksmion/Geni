@@ -99,6 +99,21 @@ export class AgentController {
                     state.activeSteps.push(event.payload);
                     this.sendToSender(sender, AGENT_EVENTS.STEP_UPDATE, { steps: [...state.activeSteps], sessionId });
                     break;
+                case 'tool_stream': {
+                    const idx = state.activeSteps.findIndex(
+                        s => s.tool === event.payload.tool
+                            && s.toolInput === event.payload.toolInput
+                            && !s.isComplete
+                    );
+                    if (idx >= 0) {
+                        state.activeSteps[idx] = {
+                            ...state.activeSteps[idx],
+                            streamingObservation: event.payload.streamingObservation,
+                        };
+                        this.sendToSender(sender, AGENT_EVENTS.STEP_UPDATE, { steps: [...state.activeSteps], sessionId });
+                    }
+                    break;
+                }
                 case 'tool_end': {
                     const idx = state.activeSteps.findIndex(
                         s => s.tool === event.payload.tool && !s.isComplete

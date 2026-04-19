@@ -137,7 +137,7 @@ export default function MermaidBlock({ code }: MermaidBlockProps) {
     const dragStartRef = useRef({ x: 0, y: 0 })
 
     const { settings } = useSettingsStore()
-    const isDark = settings.theme === 'dark'
+    const isDark = useSettingsStore(s => s.resolvedTheme === 'dark')
 
     // Track render version to discard stale results
     const renderVersionRef = useRef(0)

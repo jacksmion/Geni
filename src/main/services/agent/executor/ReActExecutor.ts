@@ -243,6 +243,7 @@ export class ReActExecutor implements AgentExecutor {
                     tools,
                     messages,
                     newMessages,
+                    request.emit,
                     steps,
                     llmResult.reasoning || llmResult.content,
                     stateManager,
@@ -432,6 +433,7 @@ export class ReActExecutor implements AgentExecutor {
         tools: any,
         messages: ChatMessage[],
         newMessages: ChatMessage[],
+        emit: ((event: AgentEvent) => void) | undefined,
         steps: AgentStep[],
         thought: string,
         stateManager: AgentStateManager,
@@ -496,7 +498,7 @@ export class ReActExecutor implements AgentExecutor {
                 const startStep: AgentStep = { thought, tool: current.fnName, toolInput: JSON.stringify(current.args), isComplete: false };
                 yield { type: 'tool_start', payload: startStep };
 
-                const executed = await this.executePreparedToolCall(current, tools, thought, stateManager, signal);
+                const executed = await this.executePreparedToolCall(current, tools, thought, stateManager, emit, signal);
                 yield* this.flushStateEvents(pendingStateEvents);
                 yield { type: 'tool_end', payload: executed.step };
                 this.recordToolResult(current.tc.id, executed.observation, messages, newMessages);
@@ -543,7 +545,7 @@ export class ReActExecutor implements AgentExecutor {
             }
 
             const results = await Promise.all(
-                authorizedBatch.map(prepared => this.executePreparedToolCall(prepared, tools, thought, stateManager, signal))
+                authorizedBatch.map(prepared => this.executePreparedToolCall(prepared, tools, thought, stateManager, emit, signal))
             );
             yield* this.flushStateEvents(pendingStateEvents);
 
@@ -564,16 +566,36 @@ export class ReActExecutor implements AgentExecutor {
         tools: any,
         thought: string,
         stateManager: AgentStateManager,
+        emit?: (event: AgentEvent) => void,
         signal?: AbortSignal
     ): Promise<ExecutedToolCall> {
         const startTime = Date.now();
         let result;
+        let streamingObservation = '';
+        const toolInput = JSON.stringify(prepared.args);
 
         try {
             result = await withRetry(
                 async () => {
+                    const onStream = prepared.fnName === 'bash'
+                        ? (chunk: string) => {
+                            if (!chunk) return;
+                            streamingObservation += chunk;
+                            emit?.({
+                                type: 'tool_stream',
+                                payload: {
+                                    thought,
+                                    tool: prepared.fnName,
+                                    toolInput,
+                                    streamingObservation,
+                                    isComplete: false,
+                                }
+                            });
+                        }
+                        : undefined;
+
                     if (signal) {
-                        const executePromise = tools.executeTool(prepared.fnName, prepared.args, signal);
+                        const executePromise = tools.executeTool(prepared.fnName, prepared.args, signal, onStream);
                         return await new Promise<any>((resolve, reject) => {
                             const onAbort = () => reject(new Error('Agent execution aborted by user.'));
                             if (signal.aborted) return onAbort();
@@ -584,7 +606,7 @@ export class ReActExecutor implements AgentExecutor {
                         });
                     }
 
-                    return await tools.executeTool(prepared.fnName, prepared.args);
+                    return await tools.executeTool(prepared.fnName, prepared.args, undefined, onStream);
                 },
                 DEFAULT_TOOL_RETRY,
                 (attempt, error) => {
@@ -610,7 +632,7 @@ export class ReActExecutor implements AgentExecutor {
             step: {
                 thought,
                 tool: prepared.fnName,
-                toolInput: JSON.stringify(prepared.args),
+                toolInput,
                 observation: obs,
                 isComplete: true,
                 duration,

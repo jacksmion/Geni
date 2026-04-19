@@ -102,7 +102,7 @@ const MarkdownContext = React.createContext<{ isStreaming: boolean; rawContent: 
 
 const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, className, children, ...props }: any) {
     const { isStreaming, rawContent } = React.useContext(MarkdownContext);
-    const theme = useSettingsStore(s => s.settings.theme);
+    const theme = useSettingsStore(s => s.resolvedTheme);
     const syntaxTheme = useMemo(() => (theme === 'dark' ? vscDarkPlus : oneLight), [theme]);
     const codeString = useMemo(() => String(children).replace(/\n$/, ''), [children]);
     const isBlock = useMemo(() => !!className || codeString.includes('\n'), [className, codeString]);

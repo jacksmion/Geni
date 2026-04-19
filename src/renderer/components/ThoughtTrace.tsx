@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 import { extractPathAndContent } from '../utils/artifact';
 import { useChatStore } from '../store/useChatStore';
@@ -121,7 +121,7 @@ const TodoCard = React.memo(function TodoCard({ observation }: { observation: st
                         {/* Status icon */}
                         <div className="mt-0.5 shrink-0">
                             {item.status === 'completed' && (
-                                <CheckCircle2 size={14} className="text-emerald-500" />
+                                <Circle size={14} className="fill-emerald-500/90 text-emerald-500/90" />
                             )}
                             {item.status === 'in_progress' && (
                                 <RotateCw size={14} className="text-amber-500 animate-spin" style={{ animationDuration: '2s' }} />
@@ -431,67 +431,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
         });
     }, [step.observation, step.streamingObservation, step.tool, step.toolInput]);
 
-    // ─── Compact single-line view for completed steps ───
-    if (step.isComplete && !isExpanded && !isTodoTool) {
-        return (
-            <div className="relative font-mono pl-4">
-                {/* Timeline Connecting Line */}
-                {!isLast && (
-                    <div className="absolute left-[12px] top-[16px] bottom-[-4px] w-px bg-slate-200/50 dark:bg-zinc-800/50 z-0" />
-                )}
-                <div
-                    className={cn(
-                        "relative z-10 flex items-center gap-2 py-0.5 cursor-pointer group/compact",
-                        "hover:bg-slate-50 dark:hover:bg-[#1c2026] transition-colors rounded-md -mx-2 px-2",
-                        isArtifactTool && "hover:bg-indigo-50 dark:hover:bg-[#1f232b]"
-                    )}
-                    onClick={(e) => {
-                        if (isArtifactTool) {
-                            handleOpenArtifact(e);
-                        } else {
-                            setIsExpanded(true);
-                        }
-                    }}
-                >
-                    {/* Status dot */}
-                    {step.isError ? (
-                        <X size={11} className="shrink-0 text-red-400" strokeWidth={2.5} />
-                    ) : (
-                        <CheckCircle2 size={11} className="shrink-0 text-emerald-400" strokeWidth={2.5} />
-                    )}
-
-                    {/* Key info (path / command) */}
-                    {inlineInput && (
-                        <span className="min-w-0 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
-                            {inlineInput}
-                        </span>
-                    )}
-                    {!inlineInput && (
-                        <span className="min-w-0 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
-                            {displayName}
-                        </span>
-                    )}
-
-                    {/* Tool name */}
-                    <span className="shrink-0 rounded-sm bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-zinc-500">
-                        {displayName}
-                    </span>
-
-                    {/* Duration */}
-                    {formattedDuration && (
-                        <span className="ml-auto shrink-0 text-[10px] text-slate-300/80 dark:text-zinc-700 tabular-nums">
-                            {formattedDuration}
-                        </span>
-                    )}
-
-                    {/* Hover hint */}
-                    <span className="opacity-0 group-hover/compact:opacity-100 text-[10px] text-slate-300 dark:text-zinc-600 transition-opacity shrink-0">
-                        {isArtifactTool ? '↗' : '···'}
-                    </span>
-                </div>
-            </div>
-        );
-    }
+    const compactLabel = inlineInput || displayName;
 
     // ─── Full card view (running / expanded / todo) ───
     return (
@@ -504,7 +444,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
             {/* Inline Header */}
             <div
                 className={cn(
-                    "relative z-10 flex items-start gap-2.5",
+                    "relative z-10 flex items-center gap-2 py-0.5",
                     !isTodoTool && "cursor-pointer group/card hover:bg-slate-50 dark:hover:bg-[#1c2026] transition-colors rounded -mx-2 px-2 py-1"
                 )}
                 onClick={(e) => {
@@ -517,55 +457,53 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                 }}
             >
                 {/* Icon Indicator */}
-                <div className={cn(
-                    "mt-[2px] w-[18px] h-[18px] flex items-center justify-center rounded-md shrink-0 border shadow-sm",
-                    step.isError
-                        ? "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
-                        : step.isComplete
-                            ? "bg-emerald-50 border-emerald-200/50 text-emerald-500 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400"
+                {step.isComplete && !step.isError ? (
+                    <div className="mt-[2px] w-[18px] h-[18px] flex items-center justify-center shrink-0">
+                        <span className="block h-1.5 w-1.5 rounded-full bg-emerald-400/75 dark:bg-emerald-500/45" />
+                    </div>
+                ) : (
+                    <div className={cn(
+                        "mt-[2px] w-[18px] h-[18px] flex items-center justify-center rounded-md shrink-0 border shadow-sm",
+                        step.isError
+                            ? "bg-red-50 border-red-200/50 text-red-500 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
                             : step.isWaitingAuthorization
                                 ? "bg-amber-50 border-amber-200/50 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 animate-pulse"
                                 : "bg-indigo-50 border-indigo-200/50 text-indigo-500 dark:bg-indigo-500/10 dark:border-indigo-500/20 dark:text-indigo-400 animate-pulse"
-                )}>
-                    {React.createElement(getToolIcon(step.tool || ''), {
-                        className: "w-2.5 h-2.5",
-                        strokeWidth: 2.5
-                    })}
-                </div>
-
-                {/* Content Container */}
-                <div className="flex-1 min-w-0 flex flex-col pt-[1px]">
-                    {/* Top line: Tool + Input */}
-                    <div className="flex items-start justify-between">
-                        <div className="flex flex-col gap-0.5 leading-[1.4] pr-2">
-                            <span className="text-[13px] font-bold text-slate-700 dark:text-zinc-300 tracking-tight">
-                                {displayName}
-                            </span>
-                            {inlineInput && (
-                                <span className="text-[12.5px] text-slate-400 dark:text-zinc-500 break-all select-text font-normal pt-0.5 line-clamp-2">
-                                    {inlineInput}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Bottom line: Stats */}
-                    <div className="flex items-center gap-2 mt-0.5 opacity-80">
-                        <span className="text-[11px] text-slate-400 dark:text-zinc-500">
-                            {outStats}
-                        </span>
-                        {step.isComplete && step.duration != null && (
-                            <span className="text-[11px] text-slate-400/80 dark:text-zinc-600/90">
-                                · {step.duration}ms
-                            </span>
-                        )}
-                        {!isTodoTool && (
-                            <span className="opacity-0 group-hover/card:opacity-100 text-[10.5px] text-slate-400/70 dark:text-zinc-600/70 transition-opacity flex items-center gap-0.5">
-                                · {isArtifactTool ? '点击预览 ↗' : '点击查看'}
-                            </span>
+                    )}>
+                        {step.isError ? (
+                            <X className="w-2.5 h-2.5" strokeWidth={2.5} />
+                        ) : (
+                            React.createElement(getToolIcon(step.tool || ''), {
+                                className: "w-2.5 h-2.5",
+                                strokeWidth: 2.5
+                            })
                         )}
                     </div>
-                </div>
+                )}
+
+                <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-slate-700 dark:text-zinc-300">
+                    {compactLabel}
+                </span>
+
+                <span className="shrink-0 rounded-sm bg-slate-100 px-1.5 py-[1px] text-[9px] font-semibold uppercase tracking-wide text-slate-500 dark:bg-white/5 dark:text-zinc-500">
+                    {displayName}
+                </span>
+
+                <span className="shrink-0 text-[10px] text-slate-400 dark:text-zinc-500">
+                    {outStats}
+                </span>
+
+                {formattedDuration && (
+                    <span className="shrink-0 text-[10px] text-slate-300/80 dark:text-zinc-700 tabular-nums">
+                        {formattedDuration}
+                    </span>
+                )}
+
+                {!isTodoTool && (
+                    <span className="opacity-0 group-hover/card:opacity-100 text-[10px] text-slate-300 dark:text-zinc-600 transition-opacity shrink-0">
+                        {isArtifactTool ? '↗' : '···'}
+                    </span>
+                )}
             </div>
 
             {/* Todo Tool Card - Keep existing feature */}
@@ -585,17 +523,17 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
 
             {/* Expanded Content View */}
             {!isTodoTool && isExpanded && (
-                <div className="pl-[29px] mt-1.5 pr-1 pb-3">
-                    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 shadow-sm bg-white dark:bg-[#101317]">
+                <div className="pl-[22px] mt-1 pr-1 pb-2">
+                    <div className="overflow-hidden rounded-md border border-slate-200/70 dark:border-white/8 bg-slate-50/65 dark:bg-white/[0.03]">
                         {/* Input parameters */}
                         {step.toolInput && (
                             <>
-                                <div className="flex items-center px-3 py-1.5 bg-slate-50 dark:bg-[#1b1f25] border-b border-slate-100 dark:border-white/5">
+                                <div className="flex items-center px-3 pt-2 pb-1 border-b border-slate-200/50 dark:border-white/6">
                                     <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
                                         Input
                                     </span>
                                 </div>
-                                <pre className="py-2.5 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-white/5 max-h-[200px] overflow-auto">
+                                <pre className="py-2 px-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all text-slate-700 dark:text-slate-300 border-b border-slate-200/60 dark:border-white/6 max-h-[200px] overflow-auto">
                                     {formattedToolInput}
                                 </pre>
                             </>
@@ -604,7 +542,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                         {/* Output */}
                         {(step.observation || step.streamingObservation) && (
                             <>
-                                <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-[#1b1f25] border-b border-slate-100 dark:border-white/5">
+                                <div className="flex items-center justify-between px-3 pt-2 pb-1 border-b border-slate-200/50 dark:border-white/6">
                                     <span className="text-[9px] uppercase tracking-wider text-slate-400 dark:text-zinc-500 font-sans font-medium">
                                         Output{step.isComplete ? '' : ' (Streaming...)'}
                                     </span>
@@ -617,7 +555,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
                                     </button>
                                 </div>
                                 <pre className={cn(
-                                    "flex flex-col-reverse max-h-[400px] overflow-auto py-2.5 px-3.5 text-[11.5px] leading-relaxed font-mono whitespace-pre-wrap break-all",
+                                    "flex flex-col-reverse max-h-[400px] overflow-auto py-2 px-3 text-[11px] leading-relaxed font-mono whitespace-pre-wrap break-all",
                                     step.isError
                                         ? "text-red-500 dark:text-red-400/90"
                                         : "text-slate-700 dark:text-slate-300"
@@ -703,17 +641,17 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
         <div className="flex flex-col mb-0.5">
             <button
                 type="button"
-                className="mb-0.5 ml-[2px] inline-flex w-full items-center gap-1.5 rounded-md border-l border-slate-200 px-2 py-1 text-[10.5px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-white/8 dark:text-zinc-500 dark:hover:bg-[#1c2026] dark:hover:text-zinc-300"
+                className="mb-0.5 inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-[10px] font-medium text-slate-400 transition-colors hover:bg-slate-50/70 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-white/[0.03] dark:hover:text-zinc-300"
                 onClick={() => {
                     if (!canCollapse) return;
                     setIsCollapsed(value => !value);
                 }}
             >
-                {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                <span className="text-slate-500 dark:text-zinc-400">
+                {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+                <span className="text-slate-400 dark:text-zinc-500">
                     {summary}
                 </span>
-                <span className="ml-auto text-[10px] text-slate-400 dark:text-zinc-600">
+                <span className="ml-auto text-[9.5px] text-slate-300 dark:text-zinc-600">
                     {getSummaryActionLabel(isCollapsed)}
                 </span>
             </button>

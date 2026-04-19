@@ -3,19 +3,43 @@ import { AppSettings, DEFAULT_SETTINGS } from '../../common/types/settings';
 import { applyTheme } from '../utils/theme';
 import i18n from '../../common/i18n';
 
+type ThemePreference = AppSettings['theme'];
+type ResolvedTheme = 'light' | 'dark';
+
+function resolveTheme(theme: ThemePreference): ResolvedTheme {
+    if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return theme;
+}
+
+function applyResolvedTheme(theme: ThemePreference) {
+    const resolvedTheme = resolveTheme(theme);
+    if (resolvedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    return resolvedTheme;
+}
+
 interface SettingsState {
     settings: AppSettings;
+    resolvedTheme: ResolvedTheme;
     isLoading: boolean;
 
     // Actions
     loadSettings: () => Promise<void>;
-    setTheme: (theme: 'light' | 'dark') => Promise<void>;
+    setTheme: (theme: ThemePreference) => Promise<void>;
     setAccentColor: (color: AppSettings['accentColor']) => Promise<void>;
     updateSettings: (newSettings: Partial<AppSettings>) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
     settings: DEFAULT_SETTINGS,
+    resolvedTheme: resolveTheme(DEFAULT_SETTINGS.theme),
     isLoading: true,
 
     loadSettings: async () => {
@@ -43,17 +67,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
                     shortcuts: mergedShortcuts,
                 };
                 
-                set({ settings: finalSettings, isLoading: false });
+                set({
+                    settings: finalSettings,
+                    resolvedTheme: resolveTheme(finalSettings.theme),
+                    isLoading: false
+                });
 
                 // Apply visual effects
                 applyTheme(finalSettings.accentColor);
-                if (finalSettings.theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                } else {
-                    document.documentElement.classList.remove('dark');
-                    document.documentElement.setAttribute('data-theme', 'light');
-                }
+                applyResolvedTheme(finalSettings.theme);
 
                 if (finalSettings.language) {
                     i18n.changeLanguage(finalSettings.language);
@@ -70,16 +92,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const newSettings = { ...settings, theme };
 
         // Optimistic update
-        set({ settings: newSettings });
+        set({
+            settings: newSettings,
+            resolvedTheme: resolveTheme(theme)
+        });
 
         // Apply visual effects
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
+        applyResolvedTheme(theme);
 
         // Persist
         await window.electronAPI.system.saveSettings(newSettings);
@@ -99,32 +118,52 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         const { settings } = get();
         const newSettings = { ...settings, ...partial };
 
-        set({ settings: newSettings });
+        set({
+            settings: newSettings,
+            resolvedTheme: resolveTheme(newSettings.theme)
+        });
 
         if (partial.language && partial.language !== settings.language) {
             i18n.changeLanguage(partial.language);
+        }
+
+        if (partial.theme !== undefined) {
+            applyResolvedTheme(newSettings.theme);
         }
 
         await window.electronAPI.system.saveSettings(newSettings);
     }
 }));
 
+if (typeof window !== 'undefined') {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+        const state = useSettingsStore.getState();
+        if (state.settings.theme !== 'system') return;
+        useSettingsStore.setState({ resolvedTheme: resolveTheme('system') });
+        applyResolvedTheme('system');
+    };
+
+    if (typeof media.addEventListener === 'function') {
+        media.addEventListener('change', handleSystemThemeChange);
+    } else if (typeof media.addListener === 'function') {
+        media.addListener(handleSystemThemeChange);
+    }
+}
+
 // 监听来自后台的设置变更推送 (例如 CronTool 创建了任务)
 if (typeof window !== 'undefined' && window.electronAPI?.system?.onSettingsChanged) {
     window.electronAPI.system.onSettingsChanged((newSettings: AppSettings) => {
         console.log('[SettingsStore] Received background settings update');
-        useSettingsStore.setState({ settings: newSettings });
+        useSettingsStore.setState({
+            settings: newSettings,
+            resolvedTheme: resolveTheme(newSettings.theme)
+        });
 
         // 同步应用视觉效果和语言
         if (newSettings.language) {
             i18n.changeLanguage(newSettings.language);
         }
-        if (newSettings.theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
+        applyResolvedTheme(newSettings.theme);
     });
 }

@@ -77,9 +77,10 @@ export function Sidebar() {
 
 function ThemeToggle() {
     const theme = useSettingsStore(s => s.settings.theme)
+    const resolvedTheme = useSettingsStore(s => s.resolvedTheme)
     const setTheme = useSettingsStore(s => s.setTheme)
     const { t } = useTranslation()
-    const isDark = theme === 'dark'
+    const isDark = resolvedTheme === 'dark'
 
     return (
         <button
@@ -90,7 +91,9 @@ function ThemeToggle() {
             
             {/* Tooltip */}
             <div className="absolute left-[calc(100%+8px)] px-2 py-1.5 bg-slate-800 dark:bg-zinc-800 text-white text-[11px] font-medium rounded-md opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-200 pointer-events-none whitespace-nowrap z-[60] shadow-xl border border-white/5">
-                {isDark ? t('sidebar.lightMode') : t('sidebar.darkMode')}
+                {theme === 'system'
+                    ? t('generalSettings.themeSystem')
+                    : (isDark ? t('sidebar.lightMode') : t('sidebar.darkMode'))}
                 <div className="absolute right-full top-1/2 -translate-y-1/2 border-[4px] border-transparent border-r-slate-800 dark:border-r-zinc-800" />
             </div>
         </button>

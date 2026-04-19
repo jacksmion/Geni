@@ -119,6 +119,10 @@
     },
     "generalSettings": {
         "language": "Language",
+        "appearance": "Appearance",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System",
         "zh": "中文",
         "en": "English",
         "autoStart": "Auto Start",

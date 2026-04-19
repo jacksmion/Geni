@@ -16,6 +16,7 @@ export type AgentEvent =
     | { type: 'message_delta'; payload: { delta: string } }
     | { type: 'reasoning_delta'; payload: { delta: string } }
     | { type: 'tool_start'; payload: AgentStep }
+    | { type: 'tool_stream'; payload: AgentStep }
     | { type: 'tool_end'; payload: AgentStep }
     | { type: 'auth_request'; payload: { runId: string; requestId: string; toolName: string; args: any; reason: string } }
     | { type: 'agent_end'; payload: { totalSteps: number; newMessages: ChatMessage[] } }

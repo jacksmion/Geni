@@ -490,7 +490,7 @@ function StaffEditor({ id, onBack }: { id: string; onBack: () => void }) {
                                                 searchPlaceholder="搜索 Emoji..."
                                                 previewConfig={{ showPreview: false }}
                                                 skinTonesDisabled
-                                                theme={settings.theme === 'dark' ? Theme.DARK : Theme.LIGHT}
+                                                theme={useSettingsStore.getState().resolvedTheme === 'dark' ? Theme.DARK : Theme.LIGHT}
                                                 categories={[
                                                     { category: Categories.SUGGESTED, name: '最近使用' },
                                                     { category: Categories.SMILEYS_PEOPLE, name: '人物' },

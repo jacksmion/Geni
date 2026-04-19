@@ -5,6 +5,7 @@ import { Switch } from '../../components/Switch';
 
 export function GeneralSettings() {
     const language = useSettingsStore(s => s.settings.language);
+    const theme = useSettingsStore(s => s.settings.theme);
     const autoStart = useSettingsStore(s => s.settings.autoStart);
     const autoOpenArtifact = useSettingsStore(s => s.settings.autoOpenArtifact);
     const allowFullDiskAccess = useSettingsStore(s => s.settings.allowFullDiskAccess);
@@ -82,6 +83,19 @@ export function GeneralSettings() {
                     >
                         <option value="zh">{t('generalSettings.zh')}</option>
                         <option value="en">{t('generalSettings.en')}</option>
+                    </select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-slate-700 dark:text-gray-300">{t('generalSettings.appearance')}</span>
+                    <select
+                        value={theme || 'system'}
+                        onChange={(e) => updateSettings({ theme: e.target.value as 'light' | 'dark' | 'system' })}
+                        className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32"
+                    >
+                        <option value="light">{t('generalSettings.themeLight')}</option>
+                        <option value="dark">{t('generalSettings.themeDark')}</option>
+                        <option value="system">{t('generalSettings.themeSystem')}</option>
                     </select>
                 </div>
 
