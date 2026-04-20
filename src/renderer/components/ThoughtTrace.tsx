@@ -1,9 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
 
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { extractPathAndContent } from '../utils/artifact';
 import { useChatStore } from '../store/useChatStore';
 import { cn } from '../utils/cn';
+import { preprocessMarkdown } from '../utils/markdown';
 
 interface ThoughtStep {
     thought?: string;
@@ -305,6 +307,21 @@ function formatOutputLines(output: string) {
     });
 }
 
+const ThoughtText = React.memo(function ThoughtText({ thought }: { thought: string }) {
+    const normalizedThought = useMemo(() => thought.trim(), [thought]);
+    const displayThought = useMemo(() => preprocessMarkdown(normalizedThought), [normalizedThought]);
+
+    if (!displayThought) return null;
+
+    return (
+        <div className="mb-0.5 w-full text-slate-600 dark:text-zinc-300">
+            <div className="px-0.5 py-0.5">
+                <MarkdownRenderer content={displayThought} rawContent={normalizedThought} />
+            </div>
+        </div>
+    );
+});
+
 // Tool Call Card Component
 const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: ThoughtStep; isLast?: boolean }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -435,7 +452,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
 
     // ─── Full card view (running / expanded / todo) ───
     return (
-        <div className="relative font-mono my-1 pl-1.5">
+        <div className="relative font-mono my-0.5 pl-1.5">
             {/* Timeline Connecting Line */}
             {!isLast && (
                 <div className="absolute left-[14px] top-[24px] bottom-[-14px] w-px bg-slate-200/60 dark:bg-zinc-800/60 z-0" />
@@ -583,29 +600,34 @@ function classifyTool(toolName?: string): 'read' | 'search' | 'create' | 'edit' 
     return 'other';
 }
 
-function buildTraceSummary(steps: ThoughtStep[]) {
+function buildProcessedSummary(steps: ThoughtStep[]) {
     const counts = { read: 0, search: 0, create: 0, edit: 0, command: 0, other: 0 };
-    let waiting = 0;
 
     for (const step of steps) {
         if (!step.tool) continue;
-        if (step.isWaitingAuthorization) {
-            waiting++;
-            continue;
-        }
         counts[classifyTool(step.tool)]++;
     }
 
     const labels: string[] = [];
-    if (counts.read > 0) labels.push(`查看 ${counts.read} 项`);
-    if (counts.search > 0) labels.push(`搜索 ${counts.search} 项`);
-    if (counts.create > 0) labels.push(`创建 ${counts.create} 项`);
-    if (counts.edit > 0) labels.push(`修改 ${counts.edit} 项`);
-    if (counts.command > 0) labels.push(`执行 ${counts.command} 个命令`);
-    if (counts.other > 0) labels.push(`处理 ${counts.other} 项`);
-    if (waiting > 0) labels.push(`待确认 ${waiting} 项`);
+    if (counts.command > 0) labels.push(`${counts.command} 个命令`);
+    if (counts.read > 0) labels.push(`${counts.read} 次查看`);
+    if (counts.search > 0) labels.push(`${counts.search} 次搜索`);
+    if (counts.create > 0) labels.push(`${counts.create} 次创建`);
+    if (counts.edit > 0) labels.push(`${counts.edit} 次修改`);
+    if (counts.other > 0) labels.push(`${counts.other} 项操作`);
 
-    return labels.join(' · ') || `已执行 ${steps.length} 个操作`;
+    if (labels.length === 0) return `${steps.length} 项`;
+    if (labels.length === 1) return `已处理 ${labels[0]}`;
+    return `已处理 ${steps.length} 项`;
+}
+
+function getTraceStatus(steps: ThoughtStep[]) {
+    if (steps.some(step => !step.isComplete)) return '处理中';
+    return '已处理';
+}
+
+function getProcessedLabel(steps: ThoughtStep[]) {
+    return getTraceStatus(steps);
 }
 
 function getSummaryActionLabel(isCollapsed: boolean) {
@@ -613,53 +635,145 @@ function getSummaryActionLabel(isCollapsed: boolean) {
 }
 
 const HIDDEN_TOOLS = new Set(['memorize']);
+const AUTO_COLLAPSE_STEP_THRESHOLD = 3;
+
+interface ThoughtStepGroup {
+    thought?: string;
+    steps: ThoughtStep[];
+}
+
+const ToolStepGroup = React.memo(function ToolStepGroup({ steps }: { steps: ThoughtStep[] }) {
+    const toolSteps = useMemo(() => steps.filter(step => step.tool), [steps]);
+    const hasImportantSteps = useMemo(
+        () => toolSteps.some(step => step.isWaitingAuthorization || step.isError || !step.isComplete),
+        [toolSteps]
+    );
+    const shouldCollapse = toolSteps.length > 1 && !hasImportantSteps;
+    const [isCollapsed, setIsCollapsed] = useState(shouldCollapse);
+
+    React.useEffect(() => {
+        setIsCollapsed(shouldCollapse);
+    }, [shouldCollapse]);
+
+    if (toolSteps.length === 0) return null;
+
+    if (toolSteps.length === 1) {
+        return <ToolCallCard step={toolSteps[0]} isLast />;
+    }
+
+    const title = buildProcessedSummary(toolSteps);
+
+    return (
+        <div className="mb-0.5">
+            <button
+                type="button"
+                className="mb-0.5 inline-flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
+                onClick={() => setIsCollapsed(value => !value)}
+            >
+                <span className="mt-0.5 text-slate-400 dark:text-zinc-500">
+                    {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="ui-text-caption text-slate-500 dark:text-zinc-400">
+                            {title}
+                        </span>
+                    </div>
+                </div>
+                <span className="ui-text-caption mt-0.5 shrink-0 text-slate-300 dark:text-zinc-600">
+                    {getSummaryActionLabel(isCollapsed)}
+                </span>
+            </button>
+
+            {!isCollapsed && (
+                <div>
+                    {toolSteps.map((step, idx) => (
+                        <ToolCallCard key={idx} step={step} isLast={idx === toolSteps.length - 1} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+});
 
 const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _contextContent }: ThoughtTraceProps) {
     const visibleSteps = useMemo(() => steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool)), [steps]);
-    if (visibleSteps.length === 0) return null;
+    const stepGroups = useMemo<ThoughtStepGroup[]>(() => {
+        const groups: ThoughtStepGroup[] = [];
 
-    const summary = useMemo(() => buildTraceSummary(visibleSteps), [visibleSteps]);
-    const hasActiveSteps = useMemo(
-        () => visibleSteps.some(step => step.isWaitingAuthorization || !step.isComplete),
+        for (const step of visibleSteps) {
+            const normalizedThought = step.thought?.trim();
+            const lastGroup = groups[groups.length - 1];
+
+            if (!lastGroup || lastGroup.thought !== normalizedThought) {
+                groups.push({ thought: normalizedThought, steps: [step] });
+                continue;
+            }
+
+            lastGroup.steps.push(step);
+        }
+
+        return groups;
+    }, [visibleSteps]);
+    const processedLabel = useMemo(() => getProcessedLabel(visibleSteps), [visibleSteps]);
+    const hasImportantSteps = useMemo(
+        () => visibleSteps.some(step => step.isWaitingAuthorization || step.isError || !step.isComplete),
         [visibleSteps]
     );
-    const [isCollapsed, setIsCollapsed] = useState(() => !hasActiveSteps);
-    const prevHasActiveStepsRef = useRef(hasActiveSteps);
+    const shouldDefaultCollapse = useMemo(
+        () => !hasImportantSteps && visibleSteps.length >= AUTO_COLLAPSE_STEP_THRESHOLD,
+        [hasImportantSteps, visibleSteps.length]
+    );
+    const [isCollapsed, setIsCollapsed] = useState(shouldDefaultCollapse);
+    const prevShouldDefaultCollapseRef = useRef(shouldDefaultCollapse);
 
     React.useEffect(() => {
-        if (hasActiveSteps) {
+        if (!shouldDefaultCollapse) {
             setIsCollapsed(false);
-        } else if (prevHasActiveStepsRef.current) {
+        } else if (prevShouldDefaultCollapseRef.current !== shouldDefaultCollapse) {
             setIsCollapsed(true);
         }
-        prevHasActiveStepsRef.current = hasActiveSteps;
-    }, [hasActiveSteps]);
+        prevShouldDefaultCollapseRef.current = shouldDefaultCollapse;
+    }, [shouldDefaultCollapse]);
+
+    if (visibleSteps.length === 0) return null;
 
     const canCollapse = visibleSteps.length > 0;
+    const stepCountLabel = `${visibleSteps.length} 个步骤`;
 
     return (
         <div className="flex flex-col mb-0.5">
             <button
                 type="button"
-                className="ui-text-caption mb-0.5 inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 font-medium text-slate-400 transition-colors hover:bg-slate-50/70 hover:text-slate-600 dark:text-zinc-500 dark:hover:bg-white/[0.03] dark:hover:text-zinc-300"
+                className="mb-1 inline-flex w-full items-start gap-2 rounded-lg px-1.5 py-2 text-left transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
                 onClick={() => {
                     if (!canCollapse) return;
                     setIsCollapsed(value => !value);
                 }}
             >
-                {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-                <span className="text-slate-400 dark:text-zinc-500">
-                    {summary}
+                <span className="mt-0.5 text-slate-400 dark:text-zinc-500">
+                    {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
                 </span>
-                <span className="ml-auto text-slate-300 dark:text-zinc-600">
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="ui-text-caption shrink-0 font-semibold text-slate-500 dark:text-zinc-400">
+                            {processedLabel}
+                        </span>
+                        <span className="ui-text-caption text-slate-400 dark:text-zinc-500">
+                            {stepCountLabel}
+                        </span>
+                    </div>
+                </div>
+                <span className="ui-text-caption mt-0.5 shrink-0 text-slate-300 dark:text-zinc-600">
                     {getSummaryActionLabel(isCollapsed)}
                 </span>
             </button>
 
-            {!isCollapsed && visibleSteps.map((step, idx) => {
+            {!isCollapsed && stepGroups.map((group, idx) => {
                 return (
-                    <div key={idx} className="flex flex-col w-full">
-                        {step.tool && <ToolCallCard step={step} isLast={idx === visibleSteps.length - 1} />}
+                    <div key={idx} className="mb-0.5 flex flex-col w-full last:mb-0">
+                        {group.thought && <ThoughtText thought={group.thought} />}
+                        <ToolStepGroup steps={group.steps} />
                     </div>
                 );
             })}

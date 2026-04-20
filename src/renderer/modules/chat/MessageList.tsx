@@ -399,23 +399,6 @@ const MessageItem = React.memo(function MessageItem({
 
     const steps = React.useMemo(() => message.steps || [], [message.steps])
 
-    const stepGroups = React.useMemo(() => {
-        const groups: typeof steps[] = []
-        let lastThought: string | undefined
-
-        for (const step of steps) {
-            if (step.thought !== lastThought && groups.length > 0) {
-                groups.push([])
-            } else if (groups.length === 0) {
-                groups.push([])
-            }
-            groups[groups.length - 1].push(step)
-            lastThought = step.thought
-        }
-
-        return groups
-    }, [steps])
-
     const resolvedSkillNames = React.useMemo(() => (
         (skillIds || [])
             .map(id => ({ id, name: skillNameMap[id] }))
@@ -471,36 +454,24 @@ const MessageItem = React.memo(function MessageItem({
                 {/* Assistant Content - Editorial Style */}
                 {!isUser && (
                     <div className="w-full">
-                        {/* Interleave per turn: Tool Calls → Text */}
-                        {(() => {
-                            const totalTurns = stepGroups.length
-                            if (totalTurns === 0) return null
+                        {steps.length > 0 && (
+                            <div className="mb-1.5 w-full">
+                                <ThoughtTrace steps={steps} contextContent={textContent} />
+                            </div>
+                        )}
 
-                            return (<>
-                                {Array.from({ length: totalTurns }, (_, i) => (
-                                    <React.Fragment key={i}>
-                                        {stepGroups[i] && stepGroups[i].length > 0 && (
-                                            <div className="mb-1.5 w-full">
-                                                <ThoughtTrace steps={stepGroups[i]} contextContent={textContent} />
-                                            </div>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                                {/* TextBody：所有轮次结束后渲染最终回答 */}
-                                {displayContent && (
-                                    <MarkdownRenderer
-                                        content={displayContent}
-                                        isStreaming={!!isStreaming}
-                                        rawContent={textContent}
-                                    />
-                                )}
-                            </>);
-                        })()}
+                        {/* TextBody：最终答案始终独立展示在过程折叠之后 */}
+                        {displayContent && (
+                            <MarkdownRenderer
+                                content={displayContent}
+                                isStreaming={!!isStreaming}
+                                rawContent={textContent}
+                            />
+                        )}
 
                         {/* TextBody：无推理/工具时单独渲染 */}
                         {(() => {
-                            const hasTurns = stepGroups.length > 0
-                            if (hasTurns || !displayContent) return null
+                            if (steps.length > 0 || !displayContent) return null
                             return (
                                 <MarkdownRenderer
                                     content={displayContent}
