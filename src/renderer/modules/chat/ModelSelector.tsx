@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Search, ChevronDown, X, Check } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { useSettingsStore } from '../../store/useSettingsStore'
+import { useLayoutStore } from '../../store/useLayoutStore'
 import { DEFAULT_PROVIDER_CONFIGS } from '../../../common/types/settings'
 import { cn } from '../../utils/cn'
 import { PROVIDER_DISPLAY } from '../../utils/providers'
@@ -160,7 +161,11 @@ export function ModelSelector() {
                     </div>
 
                     <button
-                        onClick={() => setActiveTab('settings')}
+                        onClick={() => {
+                            setIsOpen(false)
+                            useLayoutStore.getState().setActiveSettingsSection('models')
+                            setActiveTab('settings')
+                        }}
                         className="px-3 py-2 bg-slate-50/50 dark:bg-black/5 border-t border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                     >
                         <p className="text-[9px] text-slate-400 dark:text-zinc-600 text-center uppercase tracking-wider font-medium">在设置中管理模型配置</p>

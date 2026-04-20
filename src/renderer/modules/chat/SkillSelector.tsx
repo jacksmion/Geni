@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Sparkles, ChevronDown, Search, Check } from 'lucide-react'
+import { Sparkles, Search, Check } from 'lucide-react'
 import { useChatStore } from '../../store/useChatStore'
 import { Skill } from '../../../common/types/skill'
 import { cn } from '../../utils/cn'
@@ -44,21 +44,15 @@ export function SkillSelector() {
                     if (next) setSearch('')
                 }}
                 className={cn(
-                    "flex h-7 items-center gap-1 px-2.5 rounded-full text-[11px] font-medium transition-all max-w-[200px] bg-transparent border-none",
+                    "flex h-7 w-7 items-center justify-center rounded-full transition-all bg-transparent border-none",
                     "hover:bg-slate-100 dark:hover:bg-white/[0.06]",
                     selectedCount > 0
-                        ? "text-slate-500 dark:text-zinc-300"
+                        ? "text-indigo-500 dark:text-indigo-400"
                         : "text-slate-400 dark:text-zinc-500"
                 )}
+                title={skills.length === 0 ? 'Skills' : `${selectedCount} Skills`}
             >
-                    <Sparkles size={12} className="shrink-0 opacity-80" />
-                <span className="truncate">
-                    {skills.length === 0 ? 'Skills' : `${selectedCount} Skills`}
-                </span>
-                <ChevronDown size={11} className={cn(
-                    "text-slate-400 dark:text-zinc-500 transition-transform shrink-0",
-                    isOpen && "rotate-180"
-                )} />
+                    <Sparkles size={14} className="shrink-0" />
             </button>
 
             {isOpen && (

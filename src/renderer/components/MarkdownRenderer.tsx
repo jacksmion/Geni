@@ -77,8 +77,8 @@ export const ThinkingBlock = React.memo(function ThinkingBlock({ content, isComp
 
 function StreamingCodePlaceholder({ label, code, animated }: { label: string; code: string; animated?: boolean }) {
     return (
-        <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-            <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+        <div className="not-prose group/code rounded-xl overflow-hidden my-3 bg-slate-50 dark:bg-[#0c0c0e]">
+            <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5">
                 <span className="ui-text-caption font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{label}</span>
             </div>
             <pre className="ui-text-code m-0 overflow-x-auto p-5 text-slate-800 dark:text-zinc-300">
@@ -152,8 +152,8 @@ const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, c
     }
 
     return isBlock ? (
-        <div className="not-prose group/code rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 shadow-sm bg-slate-50 dark:bg-[#0c0c0e]">
-            <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/5">
+        <div className="not-prose group/code rounded-xl overflow-hidden my-3 bg-slate-50 dark:bg-[#0c0c0e]">
+            <div className="flex items-center justify-between px-4 py-1.5 bg-slate-100/50 dark:bg-white/5">
                 <span className="ui-text-caption font-medium text-slate-500 dark:text-zinc-500 font-mono lowercase tracking-tight">{lang || 'code'}</span>
                 <div className="opacity-0 group-hover/code:opacity-100 transition-opacity duration-200">
                     <CopyButton text={codeString} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10" />
@@ -186,7 +186,7 @@ const MarkdownCodeBlock = React.memo(function MarkdownCodeBlock({ node: _node, c
 
 function LoadingFallback({ label }: { label: string }) {
     return (
-        <div className="not-prose rounded-xl overflow-hidden my-3 border border-slate-200 dark:border-zinc-800 p-8 flex items-center justify-center">
+        <div className="not-prose rounded-xl overflow-hidden my-3 bg-slate-50 dark:bg-[#0c0c0e] p-8 flex items-center justify-center">
             <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-500">
                 <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
                 <span>Loading {label}...</span>
