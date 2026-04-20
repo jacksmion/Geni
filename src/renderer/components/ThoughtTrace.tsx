@@ -609,16 +609,16 @@ function buildProcessedSummary(steps: ThoughtStep[]) {
     }
 
     const labels: string[] = [];
-    if (counts.command > 0) labels.push(`${counts.command} 个命令`);
-    if (counts.read > 0) labels.push(`${counts.read} 次查看`);
-    if (counts.search > 0) labels.push(`${counts.search} 次搜索`);
-    if (counts.create > 0) labels.push(`${counts.create} 次创建`);
-    if (counts.edit > 0) labels.push(`${counts.edit} 次修改`);
-    if (counts.other > 0) labels.push(`${counts.other} 项操作`);
+    if (counts.read > 0) labels.push(`查看 ${counts.read} 次`);
+    if (counts.search > 0) labels.push(`搜索 ${counts.search} 次`);
+    if (counts.create > 0) labels.push(`创建 ${counts.create} 次`);
+    if (counts.edit > 0) labels.push(`修改 ${counts.edit} 次`);
+    if (counts.command > 0) labels.push(`执行命令 ${counts.command} 次`);
+    if (counts.other > 0) labels.push(`处理 ${counts.other} 次`);
 
     if (labels.length === 0) return `${steps.length} 项`;
-    if (labels.length === 1) return `已处理 ${labels[0]}`;
-    return `已处理 ${steps.length} 项`;
+    if (labels.length === 1) return labels[0];
+    return `已处理 ${steps.length} 步`;
 }
 
 function getTraceStatus(steps: ThoughtStep[]) {
@@ -648,7 +648,7 @@ const ToolStepGroup = React.memo(function ToolStepGroup({ steps }: { steps: Thou
         () => toolSteps.some(step => step.isWaitingAuthorization || step.isError || !step.isComplete),
         [toolSteps]
     );
-    const shouldCollapse = toolSteps.length > 1 && !hasImportantSteps;
+    const shouldCollapse = !hasImportantSteps;
     const [isCollapsed, setIsCollapsed] = useState(shouldCollapse);
 
     React.useEffect(() => {
@@ -656,10 +656,6 @@ const ToolStepGroup = React.memo(function ToolStepGroup({ steps }: { steps: Thou
     }, [shouldCollapse]);
 
     if (toolSteps.length === 0) return null;
-
-    if (toolSteps.length === 1) {
-        return <ToolCallCard step={toolSteps[0]} isLast />;
-    }
 
     const title = buildProcessedSummary(toolSteps);
 
@@ -697,6 +693,9 @@ const ToolStepGroup = React.memo(function ToolStepGroup({ steps }: { steps: Thou
 });
 
 const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _contextContent }: ThoughtTraceProps) {
+    const isSessionRunning = useChatStore(state => (
+        state.activeSessionId ? state.runningSessions.has(state.activeSessionId) : false
+    ));
     const visibleSteps = useMemo(() => steps.filter(s => !s.tool || !HIDDEN_TOOLS.has(s.tool)), [steps]);
     const stepGroups = useMemo<ThoughtStepGroup[]>(() => {
         const groups: ThoughtStepGroup[] = [];
@@ -721,8 +720,8 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
         [visibleSteps]
     );
     const shouldDefaultCollapse = useMemo(
-        () => !hasImportantSteps && visibleSteps.length >= AUTO_COLLAPSE_STEP_THRESHOLD,
-        [hasImportantSteps, visibleSteps.length]
+        () => !isSessionRunning && !hasImportantSteps && visibleSteps.length >= AUTO_COLLAPSE_STEP_THRESHOLD,
+        [hasImportantSteps, isSessionRunning, visibleSteps.length]
     );
     const [isCollapsed, setIsCollapsed] = useState(shouldDefaultCollapse);
     const prevShouldDefaultCollapseRef = useRef(shouldDefaultCollapse);
@@ -739,7 +738,7 @@ const ThoughtTrace = React.memo(function ThoughtTrace({ steps, contextContent: _
     if (visibleSteps.length === 0) return null;
 
     const canCollapse = visibleSteps.length > 0;
-    const stepCountLabel = `${visibleSteps.length} 个步骤`;
+    const stepCountLabel = `${visibleSteps.length} 步`;
 
     return (
         <div className="flex flex-col mb-0.5">

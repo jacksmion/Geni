@@ -378,24 +378,25 @@ const MessageItem = React.memo(function MessageItem({
             : (message.content as string) || ''
     ), [contentParts, isArrayContent, message.content])
 
-    const processedContent = React.useMemo(
-        () => (!isUser ? preprocessMarkdown(textContent) : textContent),
-        [isUser, textContent]
-    )
-
     const displayContent = React.useMemo(() => {
-        if (isUser || !message.steps || message.steps.length === 0) return processedContent
+        if (isUser) return textContent
 
-        const firstThought = message.steps[0].thought?.trim() || ''
-        const cleanContent = processedContent.trim()
-        if (!firstThought || !cleanContent.startsWith(firstThought)) return processedContent
+        let remainingContent = textContent.trim()
+        const uniqueThoughts = Array.from(new Set(
+            (message.steps || [])
+                .map(step => step.thought?.trim())
+                .filter((thought): thought is string => !!thought)
+        ))
 
-        if (cleanContent.length <= firstThought.length + 10) {
-            return ''
+        for (const thought of uniqueThoughts) {
+            if (!remainingContent.startsWith(thought)) continue
+            remainingContent = remainingContent.slice(thought.length).trimStart()
         }
 
-        return cleanContent.substring(firstThought.length).trim()
-    }, [isUser, message.steps, processedContent])
+        if (!remainingContent) return ''
+
+        return preprocessMarkdown(remainingContent)
+    }, [isUser, message.steps, textContent])
 
     const steps = React.useMemo(() => message.steps || [], [message.steps])
 
@@ -461,7 +462,7 @@ const MessageItem = React.memo(function MessageItem({
                         )}
 
                         {/* TextBody：最终答案始终独立展示在过程折叠之后 */}
-                        {displayContent && (
+                        {steps.length > 0 && displayContent && (
                             <MarkdownRenderer
                                 content={displayContent}
                                 isStreaming={!!isStreaming}
