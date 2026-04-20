@@ -249,7 +249,7 @@ export class ReActExecutor implements AgentExecutor {
                     terminationReason = TerminationReason.NormalEnd;
                     yield { type: 'agent_end', payload: { totalSteps: steps.length, newMessages } };
                     return {
-                        finalAnswer: llmResult.content || fallbackContent || undefined,
+                        finalAnswer: llmResult.content || fallbackContent || '',
                         steps,
                         newMessages,
                         promptTokens: totalPromptTokens,
