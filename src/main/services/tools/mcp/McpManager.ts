@@ -20,11 +20,12 @@ export interface McpToolSetting {
 export interface McpServerConfig {
     id: string;
     name?: string;
-    type?: 'stdio' | 'sse';
+    type?: 'stdio' | 'sse' | 'streamableHttp';
     command?: string;
     args?: string[];
     url?: string;
     apiKey?: string;
+    headers?: Record<string, string>;
     env?: Record<string, string>;
     enabled?: boolean;
     toolSettings?: Record<string, McpToolSetting>;
@@ -123,6 +124,16 @@ export class McpManager {
         }
     }
 
+    private buildRemoteHeaders(config: McpServerConfig): Record<string, string> | undefined {
+        const headers: Record<string, string> = { ...(config.headers || {}) };
+
+        if (config.apiKey) {
+            headers.Authorization = `Bearer ${config.apiKey}`;
+        }
+
+        return Object.keys(headers).length > 0 ? headers : undefined;
+    }
+
     /**
      * Create appropriate transport based on config type
      */
@@ -134,15 +145,30 @@ export class McpManager {
 
             const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
 
-            // Construct EventSourceInit/RequestInit with headers if apiKey is present
+            // Construct EventSourceInit/RequestInit with custom headers for remote auth.
             const opts: any = {};
-            if (config.apiKey) {
-                opts.headers = {
-                    'Authorization': `Bearer ${config.apiKey}`
-                };
+            const headers = this.buildRemoteHeaders(config);
+            if (headers) {
+                opts.headers = headers;
             }
 
             return new SSEClientTransport(new URL(config.url), opts);
+        } else if (config.type === 'streamableHttp') {
+            if (!config.url) {
+                throw new Error('URL is required for Streamable HTTP transport');
+            }
+
+            const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+
+            const opts: any = {};
+            const headers = this.buildRemoteHeaders(config);
+            if (headers) {
+                opts.requestInit = {
+                    headers
+                };
+            }
+
+            return new StreamableHTTPClientTransport(new URL(config.url), opts);
         } else {
             // Default to stdio
             if (!config.command) {
@@ -168,8 +194,12 @@ export class McpManager {
             return `SSE Connection Failed: The server returned an invalid content type. Please check your URL (it should typically end with '/sse') and ensure the server is running. Original Error: ${originalMessage}`;
         }
 
+        if (config.type === 'streamableHttp' && originalMessage.includes('405')) {
+            return `Streamable HTTP Connection Failed: The server rejected the MCP request method. Please verify the endpoint is a Streamable HTTP MCP endpoint. Original Error: ${originalMessage}`;
+        }
+
         // Enhance error for command not found (stdio)
-        if (config.type !== 'sse' && (originalMessage.includes('ENOENT') || originalMessage.includes('spawn'))) {
+        if (config.type === 'stdio' && (originalMessage.includes('ENOENT') || originalMessage.includes('spawn'))) {
             return `Stdio Connection Failed: Command '${config.command}' not found. Please ensure the command is installed and accessible in PATH. Original Error: ${originalMessage}`;
         }
 

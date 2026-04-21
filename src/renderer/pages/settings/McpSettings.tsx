@@ -9,6 +9,36 @@ import { Switch } from '../../components/Switch';
 // Helper to split args string to array and vice versa
 const argsToString = (args: string[]) => args?.join('\n') || '';
 const stringToArgs = (str: string) => str.split(/\s+/).filter(s => s.trim().length > 0);
+const headersToString = (headers?: Record<string, string>) =>
+    Object.entries(headers || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
+const parseHeadersText = (str: string): { headers: Record<string, string>; invalidLines: string[] } => {
+    const invalidLines: string[] = [];
+    const headers = str
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .reduce<Record<string, string>>((acc, line) => {
+            const separatorIndex = line.indexOf(':');
+            if (separatorIndex <= 0) {
+                invalidLines.push(line);
+                return acc;
+            }
+
+            const key = line.slice(0, separatorIndex).trim();
+            const value = line.slice(separatorIndex + 1).trim();
+            if (key) {
+                acc[key] = value;
+            } else {
+                invalidLines.push(line);
+            }
+            return acc;
+        }, {});
+
+    return { headers, invalidLines };
+};
+
+const stringToHeaders = (str: string): Record<string, string> =>
+    parseHeadersText(str).headers;
 
 interface ToolDefinition {
     name: string;
@@ -35,6 +65,8 @@ export function McpSettings() {
 
     // Raw text for arguments to preserve formatting (newlines) while typing
     const [rawArgsText, setRawArgsText] = useState<string>('');
+    const [rawHeadersText, setRawHeadersText] = useState<string>('');
+    const [invalidHeaderLines, setInvalidHeaderLines] = useState<string[]>([]);
 
     // Sync rawArgsText when selected server or its content changes significantly
     useEffect(() => {
@@ -51,7 +83,27 @@ export function McpSettings() {
         }
     }, [selectedIdx, serversDraft]);
 
-    const isDirty = JSON.stringify(serversDraft) !== JSON.stringify(servers);
+    useEffect(() => {
+        if (selectedIdx !== null && serversDraft[selectedIdx]) {
+            const currentHeaders = serversDraft[selectedIdx].headers || {};
+            const canonicalFromRaw = stringToHeaders(rawHeadersText);
+
+            if (JSON.stringify(currentHeaders) !== JSON.stringify(canonicalFromRaw)) {
+                setRawHeadersText(headersToString(currentHeaders));
+            }
+            setInvalidHeaderLines(parseHeadersText(rawHeadersText).invalidLines);
+        } else {
+            setRawHeadersText('');
+            setInvalidHeaderLines([]);
+        }
+    }, [selectedIdx, serversDraft]);
+
+    const selectedServer = selectedIdx !== null ? serversDraft[selectedIdx] : null;
+    const headerEditorDirty = selectedServer
+        ? rawHeadersText !== headersToString(selectedServer.headers || {})
+        : false;
+    const isDirty = JSON.stringify(serversDraft) !== JSON.stringify(servers) || headerEditorDirty;
+    const hasInvalidHeaders = invalidHeaderLines.length > 0;
 
     // Function to fetch actual connection statuses from backend
     const fetchStatuses = async () => {
@@ -167,7 +219,8 @@ export function McpSettings() {
                 args: server.args || [],
                 type: server.type,
                 url: server.url,
-                apiKey: server.apiKey
+                apiKey: server.apiKey,
+                headers: server.headers || {}
             });
 
             if (res.success) {
@@ -212,6 +265,8 @@ export function McpSettings() {
         const newDraft = [...serversDraft];
         if (field === 'args') {
             newDraft[index] = { ...newDraft[index], args: stringToArgs(value) };
+        } else if (field === 'headers') {
+            newDraft[index] = { ...newDraft[index], headers: stringToHeaders(value) };
         } else {
             newDraft[index] = { ...newDraft[index], [field]: value };
         }
@@ -253,8 +308,6 @@ export function McpSettings() {
     };
 
     if (loading) return <div className="p-8 text-center text-slate-500">{t('loading')}</div>;
-
-    const selectedServer = selectedIdx !== null ? serversDraft[selectedIdx] : null;
 
     // Filter servers based on search term
     const filteredServers = serversDraft.filter(server =>
@@ -430,10 +483,11 @@ export function McpSettings() {
                                             <select value={selectedServer.type || 'stdio'} onChange={(e) => updateServerDraftRow(selectedIdx!, 'type', e.target.value as any)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500/50 transition-all text-slate-700 dark:text-gray-200 appearance-none">
                                                 <option value="stdio">{t('mcpSettings.typeStdio')}</option>
                                                 <option value="sse">{t('mcpSettings.typeSse')}</option>
+                                                <option value="streamableHttp">{t('mcpSettings.typeStreamableHttp')}</option>
                                             </select>
                                         </div>
 
-                                        {selectedServer.type === 'sse' ? (
+                                        {selectedServer.type === 'sse' || selectedServer.type === 'streamableHttp' ? (
                                             <>
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> {t('mcpSettings.url')}</label>
@@ -442,6 +496,25 @@ export function McpSettings() {
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Key size={12} /> {t('mcpSettings.apiKey')}</label>
                                                     <input type="password" value={selectedServer.apiKey || ''} onChange={(e) => updateServerDraftRow(selectedIdx!, 'apiKey', e.target.value)} className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider flex items-center gap-2"><Box size={12} /> {t('mcpSettings.headers')}</label>
+                                                    <textarea
+                                                        value={rawHeadersText}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setRawHeadersText(val);
+                                                            setInvalidHeaderLines(parseHeadersText(val).invalidLines);
+                                                            updateServerDraftRow(selectedIdx!, 'headers', val);
+                                                        }}
+                                                        placeholder={t('mcpSettings.headersPlaceholder')}
+                                                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-slate-700 dark:text-gray-200 min-h-[100px] resize-y focus:outline-none focus:border-indigo-500/50 transition-all"
+                                                    />
+                                                    {invalidHeaderLines.length > 0 && (
+                                                        <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                                                            {t('mcpSettings.headersFormatHint')}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </>
                                         ) : (
@@ -531,7 +604,14 @@ export function McpSettings() {
                 </div>
             </div>
 
-            <SaveStatusBar isDirty={isDirty} isSaving={isSaving} onSave={handleSave} onReset={handleReset} />
+            <SaveStatusBar
+                isDirty={isDirty}
+                isSaving={isSaving}
+                onSave={handleSave}
+                onReset={handleReset}
+                saveDisabled={hasInvalidHeaders}
+                message={hasInvalidHeaders ? t('mcpSettings.headersFixBeforeSave') : undefined}
+            />
         </div>
     );
 }

@@ -48,11 +48,12 @@ export interface McpToolSetting {
 export interface IMcpServerConfig {
     id: string;
     name: string;
-    type: 'stdio' | 'sse'; // Transport type
+    type: 'stdio' | 'sse' | 'streamableHttp'; // Transport type
     command?: string; // For stdio
     args?: string[];  // For stdio
-    url?: string;     // For sse
-    apiKey?: string;  // For sse auth
+    url?: string;     // For sse / streamableHttp
+    apiKey?: string;  // For remote HTTP auth
+    headers?: Record<string, string>; // For remote HTTP custom headers
     env?: Record<string, string>;
     enabled: boolean;
     toolSettings?: Record<string, McpToolSetting>; // [originalToolName] -> settings

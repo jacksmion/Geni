@@ -9,6 +9,7 @@ interface SaveStatusBarProps {
     onSave: () => void;
     onReset: () => void;
     message?: string;
+    saveDisabled?: boolean;
 }
 
 export const SaveStatusBar: React.FC<SaveStatusBarProps> = ({
@@ -16,7 +17,8 @@ export const SaveStatusBar: React.FC<SaveStatusBarProps> = ({
     isSaving,
     onSave,
     onReset,
-    message
+    message,
+    saveDisabled = false
 }) => {
     const { t } = useTranslation();
 
@@ -43,7 +45,7 @@ export const SaveStatusBar: React.FC<SaveStatusBarProps> = ({
                     </button>
                     <button
                         onClick={onSave}
-                        disabled={isSaving}
+                        disabled={isSaving || saveDisabled}
                         className="ui-text-meta flex min-w-[70px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-1.5 font-bold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:shadow-none"
                     >
                         {isSaving ? (
