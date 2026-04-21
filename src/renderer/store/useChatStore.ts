@@ -70,6 +70,7 @@ const DEFAULT_NEW_TASK_TITLE = '新任务';
 const buildNewTaskConfig = (session?: Pick<ChatSession, 'workspacePath' | 'modelId'>, title = DEFAULT_NEW_TASK_TITLE): NewTaskConfig => ({
     title,
     workspacePath: session?.workspacePath,
+    modelId: session?.modelId,
     staffId: undefined,
 });
 
