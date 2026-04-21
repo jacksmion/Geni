@@ -142,8 +142,8 @@ export class PromptBuilder {
         const base = context.basePrompt || this.config.defaultBasePrompt;
 
         const langInfo = context.language === 'en'
-            ? "Default user-facing language: English unless the user explicitly requests another language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers."
-            : "Default user-facing language: Chinese unless the user explicitly requests another language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers.";
+            ? "Prefer replying in the language used by the user's most recent message. If that language is ambiguous or cannot be inferred reliably, fall back to English as the default user-facing language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers."
+            : "Prefer replying in the language used by the user's most recent message. If that language is ambiguous or cannot be inferred reliably, fall back to Chinese as the default user-facing language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers.";
 
         if (base.includes('{{LANGUAGE_INFO}}')) {
             return base.replace('{{LANGUAGE_INFO}}', langInfo);

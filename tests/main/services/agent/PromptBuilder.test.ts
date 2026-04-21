@@ -105,13 +105,15 @@ describe('PromptBuilder', () => {
         const builder = new PromptBuilder();
 
         const zhPrompt = builder.buildSystemPrompt({ language: 'zh' });
-        expect(zhPrompt).toContain('Default user-facing language: Chinese');
+        expect(zhPrompt).toContain("Prefer replying in the language used by the user's most recent message.");
+        expect(zhPrompt).toContain('fall back to Chinese as the default user-facing language');
         expect(zhPrompt).toContain("Tool arguments and structured fields MUST follow each tool's schema exactly");
         expect(zhPrompt).not.toContain('All inner thoughts');
         expect(zhPrompt).not.toContain('{{LANGUAGE_INFO}}');
 
         const enPrompt = builder.buildSystemPrompt({ language: 'en' });
-        expect(enPrompt).toContain('Default user-facing language: English');
+        expect(enPrompt).toContain("Prefer replying in the language used by the user's most recent message.");
+        expect(enPrompt).toContain('fall back to English as the default user-facing language');
         expect(enPrompt).toContain("Tool arguments and structured fields MUST follow each tool's schema exactly");
         expect(enPrompt).not.toContain('All inner thoughts');
         expect(enPrompt).not.toContain('{{LANGUAGE_INFO}}');
