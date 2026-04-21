@@ -19,6 +19,11 @@ interface ArtifactPreviewResult {
     content?: string;
 }
 
+interface ArtifactPreviewRequest {
+    path: string;
+    workspacePath?: string;
+}
+
 export class SystemController {
     private pathManager: PathManager;
     private imServiceManager?: any; // To avoid circular/early load issues in some environments
@@ -59,7 +64,7 @@ export class SystemController {
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_DIRECTORY, () => this.handleSelectDirectory());
         ipcMain.handle(SYSTEM_CHANNELS.SELECT_FILE, (_, forAttachment?: boolean) => this.handleSelectFile(forAttachment));
         ipcMain.handle(SYSTEM_CHANNELS.OPEN_EXPLORER, (_, path) => this.handleOpenExplorer(path));
-        ipcMain.handle(SYSTEM_CHANNELS.CREATE_ARTIFACT_PREVIEW, (_, filePath: string) => this.handleCreateArtifactPreview(filePath));
+        ipcMain.handle(SYSTEM_CHANNELS.CREATE_ARTIFACT_PREVIEW, (_, payload: string | ArtifactPreviewRequest) => this.handleCreateArtifactPreview(payload));
         ipcMain.handle(SYSTEM_CHANNELS.TEST_LLM, (_, config) => this.handleTestLLM(config));
         ipcMain.handle(SYSTEM_CHANNELS.FETCH_PROVIDER_MODELS, (_, payload) => this.handleFetchProviderModels(payload));
         ipcMain.handle(SYSTEM_CHANNELS.GET_PATH_INFO, () => this.handleGetPathInfo());
@@ -314,7 +319,9 @@ export class SystemController {
         }
     }
 
-    private async handleCreateArtifactPreview(filePath: string): Promise<ArtifactPreviewResult | null> {
+    private async handleCreateArtifactPreview(payload: string | ArtifactPreviewRequest): Promise<ArtifactPreviewResult | null> {
+        const filePath = typeof payload === 'string' ? payload : payload.path;
+        const workspacePath = typeof payload === 'string' ? undefined : payload.workspacePath;
         const normalizedPath = path.resolve(filePath);
         const ext = path.extname(normalizedPath).toLowerCase();
         const isHtml = HTML_EXTENSIONS.has(ext);
@@ -323,7 +330,7 @@ export class SystemController {
         if (!isHtml && !isPdf) {
             return null;
         }
-        if (!this.isPathPreviewAllowed(normalizedPath)) {
+        if (!this.isPathPreviewAllowed(normalizedPath, workspacePath)) {
             return null;
         }
 
@@ -381,12 +388,15 @@ export class SystemController {
         return path.normalize(normalized);
     }
 
-    private isPathPreviewAllowed(targetPath: string): boolean {
+    private isPathPreviewAllowed(targetPath: string, workspacePathOverride?: string): boolean {
         const resolvedTarget = path.resolve(targetPath);
         const settings = this.configManager.load();
         const workspacePath = path.resolve(settings.workspacePath || process.cwd());
+        const overrideWorkspacePath = workspacePathOverride ? path.resolve(workspacePathOverride) : null;
         const allowedRoots = [
+            ...(overrideWorkspacePath ? [overrideWorkspacePath] : []),
             workspacePath,
+            ...(overrideWorkspacePath ? this.pathManager.getSkillsLoadPaths(overrideWorkspacePath).map(p => path.resolve(p)) : []),
             ...this.pathManager.getSkillsLoadPaths(workspacePath).map(p => path.resolve(p)),
             ...Array.from(this.previewAllowedDirectories),
         ];

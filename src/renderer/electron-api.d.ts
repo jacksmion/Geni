@@ -8,6 +8,11 @@ export interface ArtifactPreviewResult {
     content?: string;
 }
 
+export interface ArtifactPreviewRequest {
+    path: string;
+    workspacePath?: string;
+}
+
 export interface IElectronAPI {
     // Agent Namespace
     agent: {
@@ -43,7 +48,7 @@ export interface IElectronAPI {
         selectFile: (forAttachment?: boolean) => Promise<string | null>;
         selectDirectory: () => Promise<string | null>;
         openExplorer: (path: string) => Promise<void>;
-        createArtifactPreview: (path: string) => Promise<ArtifactPreviewResult | null>;
+        createArtifactPreview: (path: string, workspacePath?: string) => Promise<ArtifactPreviewResult | null>;
         testLLM: (config: { apiKey: string, baseUrl: string, model: string }) => Promise<{ success: boolean, message: string }>;
         fetchProviderModels: (payload: { providerId: string, config: { apiKey: string, baseUrl: string } }) => Promise<string[]>;
         testTelegram: (config: any) => Promise<{ success: boolean, message: string }>;

@@ -2,6 +2,7 @@ import React from 'react';
 import { FileText, ExternalLink } from 'lucide-react';
 import { MessageArtifact } from '../../common/types/chat';
 import { useChatStore } from '../store/useChatStore';
+import { useSettingsStore } from '../store/useSettingsStore';
 
 interface MessageArtifactsProps {
     artifacts: MessageArtifact[];
@@ -25,12 +26,21 @@ export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
         const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(filePath);
         if (isAbsolute) return filePath;
 
-        const sessionId = useChatStore.getState().activeSessionId;
-        const workspace = sessionId ? useChatStore.getState().sessions[sessionId]?.workspacePath : useChatStore.getState().newTaskConfig.workspacePath;
+        const workspace = getArtifactWorkspace();
         if (!workspace) return filePath;
 
         const base = workspace.replace(/\\/g, '/').replace(/\/+$/, '');
         return `${base}/${filePath.replace(/^\.\//, '')}`;
+    };
+
+    const getArtifactWorkspace = (): string | undefined => {
+        const chatState = useChatStore.getState();
+        const sessionId = chatState.activeSessionId;
+        return (
+            (sessionId ? chatState.sessions[sessionId]?.workspacePath : undefined) ||
+            chatState.newTaskConfig.workspacePath ||
+            useSettingsStore.getState().settings.workspacePath
+        );
     };
 
     const handleOpen = async (artifact: MessageArtifact) => {
@@ -50,27 +60,47 @@ export function MessageArtifacts({ artifacts }: MessageArtifactsProps) {
 
         const ext = artifact.ext.toLowerCase();
         if (ext === 'html' || ext === 'htm' || ext === 'pdf') {
-            window.electronAPI.system.createArtifactPreview(resolvedPath).then(result => {
-                if (result) {
-                    useChatStore.getState().setActiveArtifact({
-                        ...result,
-                        toolName: artifact.sourceTool || 'preview',
+            window.electronAPI.system.createArtifactPreview(resolvedPath, getArtifactWorkspace())
+                .then(result => {
+                    if (result) {
+                        useChatStore.getState().setActiveArtifact({
+                            ...result,
+                            toolName: artifact.sourceTool || 'preview',
+                        });
+                        return;
+                    }
+
+                    console.warn('[MessageArtifacts] Preview unavailable for artifact:', {
+                        originalPath: artifact.path,
+                        resolvedPath,
                     });
-                }
-            });
+                })
+                .catch(error => {
+                    console.error('[MessageArtifacts] Failed to preview artifact:', resolvedPath, error);
+                });
             return;
         }
 
-        window.electronAPI.system.readTextFile(resolvedPath).then(result => {
-            if (result) {
-                useChatStore.getState().setActiveArtifact({
-                    toolName: artifact.sourceTool || 'preview',
-                    path: result.path,
-                    kind: 'text',
-                    content: result.content,
+        window.electronAPI.system.readTextFile(resolvedPath)
+            .then(result => {
+                if (result) {
+                    useChatStore.getState().setActiveArtifact({
+                        toolName: artifact.sourceTool || 'preview',
+                        path: result.path,
+                        kind: 'text',
+                        content: result.content,
+                    });
+                    return;
+                }
+
+                console.warn('[MessageArtifacts] Text artifact unavailable:', {
+                    originalPath: artifact.path,
+                    resolvedPath,
                 });
-            }
-        });
+            })
+            .catch(error => {
+                console.error('[MessageArtifacts] Failed to open artifact:', resolvedPath, error);
+            });
     };
 
     return (

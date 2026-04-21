@@ -233,6 +233,27 @@ function resolveLocalHrefToPath(href: string): string {
     }
 }
 
+function resolvePathAgainstWorkspace(filePath: string): string {
+    const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(filePath)
+    if (isAbsolute) return filePath
+
+    const workspace = getCurrentWorkspacePath()
+    if (!workspace) return filePath
+
+    const base = workspace.replace(/\\/g, '/').replace(/\/+$/, '')
+    return base + '/' + filePath.replace(/^\.\//, '')
+}
+
+function getCurrentWorkspacePath(): string | undefined {
+    const chatState = useChatStore.getState()
+    const sessionId = chatState.activeSessionId
+    return (
+        (sessionId ? chatState.sessions[sessionId]?.workspacePath : undefined) ||
+        chatState.newTaskConfig.workspacePath ||
+        useSettingsStore.getState().settings.workspacePath
+    )
+}
+
 function MarkdownLink({ href, children, ...props }: any) {
     // HTTP links → open in external browser
     if (href && /^https?:\/\//.test(href)) {
@@ -254,19 +275,7 @@ function MarkdownLink({ href, children, ...props }: any) {
     if (href && isLocalFilePath(href)) {
         const handleClick = async (e: React.MouseEvent) => {
             e.preventDefault()
-            let resolvedPath = resolveLocalHrefToPath(href)
-
-            // Resolve relative paths against the current session's workspace
-            const isAbsolute = /^(?:[A-Za-z]:[\\/]|\/)/.test(resolvedPath)
-            if (!isAbsolute) {
-                const sessionId = useChatStore.getState().activeSessionId
-                const workspace = sessionId ? useChatStore.getState().sessions[sessionId]?.workspacePath : useChatStore.getState().newTaskConfig.workspacePath
-                if (workspace) {
-                    // Normalize to forward slashes and join
-                    const base = workspace.replace(/\\/g, '/').replace(/\/+$/, '')
-                    resolvedPath = base + '/' + resolvedPath.replace(/^\.\//, '')
-                }
-            }
+            const resolvedPath = resolvePathAgainstWorkspace(resolveLocalHrefToPath(href))
 
             if (/^(?:[A-Za-z]:[\\/]|\/)/.test(resolvedPath)) {
                 try {
@@ -282,26 +291,46 @@ function MarkdownLink({ href, children, ...props }: any) {
 
             if (openMode === 'panel') {
                 if (ext === 'html' || ext === 'htm' || ext === 'pdf') {
-                    window.electronAPI.system.createArtifactPreview(resolvedPath).then((result: ArtifactPreviewResult | null) => {
-                        if (result) {
-                            useChatStore.getState().setActiveArtifact({
-                                ...result,
-                                toolName: 'preview',
+                    window.electronAPI.system.createArtifactPreview(resolvedPath, getCurrentWorkspacePath())
+                        .then((result: ArtifactPreviewResult | null) => {
+                            if (result) {
+                                useChatStore.getState().setActiveArtifact({
+                                    ...result,
+                                    toolName: 'preview',
+                                })
+                                return
+                            }
+
+                            console.warn('[MarkdownRenderer] Preview unavailable for local link:', {
+                                href,
+                                resolvedPath,
                             })
-                        }
-                    })
+                        })
+                        .catch((error) => {
+                            console.error('[MarkdownRenderer] Failed to preview local link:', resolvedPath, error)
+                        })
                 } else {
                     // Read file and show in ArtifactPanel
-                    window.electronAPI.system.readTextFile(resolvedPath).then((result: { content: string; path: string } | null) => {
-                        if (result) {
-                            useChatStore.getState().setActiveArtifact({
-                                toolName: 'preview',
-                                path: result.path,
-                                kind: 'text',
-                                content: result.content,
+                    window.electronAPI.system.readTextFile(resolvedPath)
+                        .then((result: { content: string; path: string } | null) => {
+                            if (result) {
+                                useChatStore.getState().setActiveArtifact({
+                                    toolName: 'preview',
+                                    path: result.path,
+                                    kind: 'text',
+                                    content: result.content,
+                                })
+                                return
+                            }
+
+                            console.warn('[MarkdownRenderer] Text local link unavailable:', {
+                                href,
+                                resolvedPath,
                             })
-                        }
-                    })
+                        })
+                        .catch((error) => {
+                            console.error('[MarkdownRenderer] Failed to open local link:', resolvedPath, error)
+                        })
                 }
             } else if (openMode === 'external') {
                 window.electronAPI.system.openExplorer(resolvedPath)

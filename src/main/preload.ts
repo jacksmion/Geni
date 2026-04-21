@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         selectFile: (forAttachment?: boolean) => ipcRenderer.invoke('system:select-file', forAttachment),
         selectDirectory: () => ipcRenderer.invoke('system:select-directory'),
         openExplorer: (path: string) => ipcRenderer.invoke('system:open-explorer', path),
-        createArtifactPreview: (path: string) => ipcRenderer.invoke('system:create-artifact-preview', path),
+        createArtifactPreview: (path: string, workspacePath?: string) => ipcRenderer.invoke('system:create-artifact-preview', { path, workspacePath }),
         testLLM: (config: any) => ipcRenderer.invoke('system:test-llm', config),
         fetchProviderModels: (payload: any) => ipcRenderer.invoke('system:fetch-provider-models', payload),
         testTelegram: (config: any) => ipcRenderer.invoke('system:test-telegram', config),
