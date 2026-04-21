@@ -114,11 +114,18 @@ export function getArtifactName(path: string): string {
 }
 
 function normalizeArtifactPath(rawPath: string): string {
-    return rawPath
+    let normalized = rawPath
         .trim()
         .replace(/^['"`]+|['"`]+$/g, '')
         .replace(/\\\\/g, '\\')
-        .replace(/[),.;:]+$/g, '');
+        .replace(/[),.;:，。：；]+$/g, '');
+
+    const labeledPathMatch = normalized.match(/^(?![A-Za-z]:[\\/])[^\\/]*[：:]\s*(.+)$/);
+    if (labeledPathMatch) {
+        normalized = labeledPathMatch[1].trim();
+    }
+
+    return normalized;
 }
 
 function extractArtifactPathsFromText(text: string, allowedExtensions?: Set<string>): string[] {
@@ -131,6 +138,7 @@ function extractArtifactPathsFromText(text: string, allowedExtensions?: Set<stri
         const normalized = normalizeArtifactPath(match);
         if (!normalized) continue;
         if (/^https?:\/\//i.test(normalized)) continue;
+        if (/[*?]/.test(normalized)) continue;
 
         const ext = getFileExtension(normalized);
         if (!getArtifactOpenMode(ext)) continue;

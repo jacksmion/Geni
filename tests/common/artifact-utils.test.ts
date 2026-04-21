@@ -59,4 +59,26 @@ describe('extractArtifactsFromStep', () => {
             ext: 'docx',
         }));
     });
+
+    it('filters wildcard artifacts and strips status prefixes from labeled files', () => {
+        const artifacts = extractArtifactsFromStep({
+            tool: 'bash',
+            toolInput: JSON.stringify({
+                command: 'python create_essay.js --output "*.docx"'
+            }),
+            observation: [
+                '文档已创建：春日的午后.docx',
+                '*.docx',
+                'create_essay.js',
+                '春日的午后.docx'
+            ].join('\n')
+        });
+
+        expect(artifacts).toEqual([
+            expect.objectContaining({
+                path: '春日的午后.docx',
+                ext: 'docx',
+            }),
+        ]);
+    });
 });
