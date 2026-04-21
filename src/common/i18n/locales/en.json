@@ -81,6 +81,8 @@
         "fullAccessTitle": "Full access mode: tools run automatically",
         "askModeTitle": "Ask mode: tools require authorization",
         "addAttachment": "Add Attachment",
+        "modelRequiredMessage": "No usable model is configured yet. Enable and configure at least one model in Model Settings before sending a message.",
+        "openModelSettings": "Open Model Settings",
         "staffTooltip": "Chat with {{name}} · Backspace to remove",
         "slashMenu": {
             "switchModel": "Switch Model",

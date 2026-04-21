@@ -49,14 +49,32 @@ export function ModelSelector() {
     }
 
     const activeConfig = llm.providers?.[activeProvider] || DEFAULT_PROVIDER_CONFIGS[activeProvider]
+    const hasAvailableModels = availableProviders.some(providerKey => {
+        const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+        return (config?.models || []).some(model => model.enabled)
+    })
+    const activeProviderHasModels = availableProviders.includes(activeProvider) &&
+        (activeConfig?.models || []).some(model => model.enabled)
+    const fallbackProvider = activeProviderHasModels
+        ? activeProvider
+        : availableProviders.find(providerKey => {
+            const config = llm.providers?.[providerKey] || DEFAULT_PROVIDER_CONFIGS[providerKey]
+            return (config?.models || []).some(model => model.enabled)
+        })
+    const displayConfig = fallbackProvider
+        ? (llm.providers?.[fallbackProvider] || DEFAULT_PROVIDER_CONFIGS[fallbackProvider])
+        : activeConfig
 
     let activeDisplayName: string
     if (activeModelName) {
         const matched = activeConfig?.models?.find(m => m.model === activeModelName)
         activeDisplayName = matched?.label || activeModelName
+    } else if (!hasAvailableModels) {
+        activeDisplayName = ''
     } else {
-        const globalInstance = activeConfig?.models?.find(m => m.id === activeConfig.activeModelId)
-        activeDisplayName = globalInstance?.label || activeConfig?.model || 'Select Model'
+        const globalInstance = displayConfig?.models?.find(m => m.id === displayConfig.activeModelId && m.enabled)
+            || displayConfig?.models?.find(m => m.enabled)
+        activeDisplayName = globalInstance?.label || displayConfig?.model || 'Select Model'
     }
 
     const handleSelectModel = async (providerKey: string, modelId: string) => {
@@ -91,6 +109,7 @@ export function ModelSelector() {
                     setIsOpen(!isOpen)
                     setSearch('')
                 }}
+                title="选择模型"
                 className={cn(
                     "flex h-7 items-center gap-1 px-2.5 rounded-full text-[11px] font-medium transition-all bg-transparent border-none text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-100 dark:hover:bg-white/[0.06]",
                     isOpen && "text-slate-600 dark:text-zinc-200 bg-slate-100 dark:bg-white/[0.06]"

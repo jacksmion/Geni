@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { ChatMessage, ChatSession, MessageArtifact } from '../../common/types/chat'
+import { DEFAULT_PROVIDER_CONFIGS } from '../../common/types/settings'
+import i18n from '../../common/i18n'
 import { extractArtifactsFromStep, extractPathAndContent } from '../utils/artifact'
 import { useSettingsStore } from './useSettingsStore'
+import { useLayoutStore } from './useLayoutStore'
+import { useModalStore } from './useModalStore'
 import type { ArtifactPreviewResult } from '../electron-api.d'
 
 interface TextArtifact {
@@ -66,9 +70,93 @@ const DEFAULT_NEW_TASK_TITLE = '新任务';
 const buildNewTaskConfig = (session?: Pick<ChatSession, 'workspacePath' | 'modelId'>, title = DEFAULT_NEW_TASK_TITLE): NewTaskConfig => ({
     title,
     workspacePath: session?.workspacePath,
-    modelId: session?.modelId,
     staffId: undefined,
 });
+
+function findEnabledModel(
+    providers: Record<string, any>,
+    providerKey: string,
+    modelRef?: string
+) {
+    const config = providers[providerKey];
+    if (!config || config.enabled !== true) return null;
+
+    const enabledModels = (config.models || []).filter((model: any) => model.enabled);
+    if (enabledModels.length === 0) return null;
+    if (!modelRef) {
+        return enabledModels.find((model: any) => model.id === config.activeModelId) || enabledModels[0];
+    }
+
+    return enabledModels.find((model: any) => model.id === modelRef || model.model === modelRef) || null;
+}
+
+function resolveFallbackModel(
+    providers: Record<string, any>,
+    preferredProvider?: string
+): { providerKey: string; model: any } | null {
+    const providerKeys = [
+        ...(preferredProvider ? [preferredProvider] : []),
+        ...Object.keys(providers).filter(key => key !== preferredProvider)
+    ];
+
+    for (const providerKey of providerKeys) {
+        const model = findEnabledModel(providers, providerKey);
+        if (model) {
+            return { providerKey, model };
+        }
+    }
+
+    return null;
+}
+
+async function resolveUsableModelId(session?: ChatSession, newTaskConfig?: NewTaskConfig): Promise<string | null> {
+    const settings = useSettingsStore.getState().settings;
+    const providers = {
+        ...DEFAULT_PROVIDER_CONFIGS,
+        ...(settings.llm.providers || {})
+    };
+
+    const explicitModelId = session?.modelId || newTaskConfig?.modelId;
+    if (explicitModelId) {
+        const slashIdx = explicitModelId.indexOf('/');
+        const providerKey = slashIdx >= 0 ? explicitModelId.slice(0, slashIdx) : (settings.llm.activeProvider || 'OpenAI');
+        const modelRef = slashIdx >= 0 ? explicitModelId.slice(slashIdx + 1) : explicitModelId;
+        const model = findEnabledModel(providers, providerKey, modelRef);
+        if (model) {
+            return `${providerKey}/${model.model}`;
+        }
+    }
+
+    const staffId = session?.staffId || newTaskConfig?.staffId;
+    if (staffId) {
+        const { profiles } = await import('./useStaffStore').then(m => m.useStaffStore.getState());
+        const staff = profiles.find(profile => profile.id === staffId);
+        if (staff?.modelId) {
+            const slashIdx = staff.modelId.indexOf('/');
+            const providerKey = slashIdx >= 0 ? staff.modelId.slice(0, slashIdx) : (settings.llm.activeProvider || 'OpenAI');
+            const modelRef = slashIdx >= 0 ? staff.modelId.slice(slashIdx + 1) : staff.modelId;
+            const model = findEnabledModel(providers, providerKey, modelRef);
+            if (model) {
+                return `${providerKey}/${model.model}`;
+            }
+        }
+    }
+
+    const fallback = resolveFallbackModel(providers, settings.llm.activeProvider || 'OpenAI');
+    return fallback ? `${fallback.providerKey}/${fallback.model.model}` : null;
+}
+
+function promptConfigureModel() {
+    useModalStore.getState().showConfirm({
+        message: i18n.t('composer.modelRequiredMessage'),
+        confirmText: i18n.t('composer.openModelSettings'),
+        cancelText: i18n.t('modelSettings.cancel'),
+        onConfirm: () => {
+            useLayoutStore.getState().setActiveSettingsSection('models');
+            useChatStore.getState().setActiveTab('settings');
+        }
+    });
+}
 
 export const useChatStore = create<ChatState>((set, get) => ({
     sessions: {},
@@ -454,6 +542,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
         let activeSessionId = state.activeSessionId;
 
         if (!input.trim() || (activeSessionId ? get().runningSessions.has(activeSessionId) : false)) return;
+
+        const existingSession = activeSessionId ? state.sessions[activeSessionId] : undefined;
+        const resolvedModelId = await resolveUsableModelId(existingSession, state.newTaskConfig);
+        if (!resolvedModelId) {
+            promptConfigureModel();
+            return;
+        }
 
         let currentSession = activeSessionId ? state.sessions[activeSessionId] : undefined;
         if (!currentSession) {
@@ -905,7 +1000,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const options: any = {};
             if (skillIds !== null) options.skills = skillIds;
             if (currentSession.staffId) options.staffId = currentSession.staffId;
-            if (currentSession.modelId) options.model = currentSession.modelId;
+            if (currentSession.modelId) {
+                options.model = currentSession.modelId;
+            } else if (resolvedModelId) {
+                options.model = resolvedModelId;
+            }
             if (currentSession.workspacePath) options.workspacePath = currentSession.workspacePath;
 
             const result = await window.electronAPI.agent.start({

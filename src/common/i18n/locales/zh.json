@@ -81,6 +81,8 @@
         "fullAccessTitle": "完全访问模式：工具自动执行",
         "askModeTitle": "需确认模式：工具执行前需授权",
         "addAttachment": "添加附件",
+        "modelRequiredMessage": "当前还没有配置可用模型，请先到模型设置中启用并配置至少一个模型后再发送消息。",
+        "openModelSettings": "去配置模型",
         "staffTooltip": "与 {{name}} 对话 · Backspace 移除",
         "slashMenu": {
             "switchModel": "切换模型",

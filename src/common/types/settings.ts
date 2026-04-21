@@ -224,7 +224,21 @@ export const DEFAULT_SETTINGS: AppSettings = {
     },
     skillSettings: {}, // 技能状态默认为空，将在加载技能时填充
     mcpServers: [], // Default empty list
-    coreToolSettings: {}, // Default empty list
+    coreToolSettings: {
+        list: { enabled: true, trustLevel: 'Auto' },
+        read: { enabled: true, trustLevel: 'Auto' },
+        write: { enabled: true, trustLevel: 'Auto' },
+        bash: { enabled: true, trustLevel: 'Auto' },
+        edit: { enabled: true, trustLevel: 'Auto' },
+        glob: { enabled: true, trustLevel: 'Auto' },
+        grep: { enabled: true, trustLevel: 'Auto' },
+        todowrite: { enabled: true, trustLevel: 'Auto' },
+        todoread: { enabled: true, trustLevel: 'Auto' },
+        load_skill: { enabled: true, trustLevel: 'Auto' },
+        web_fetch: { enabled: true, trustLevel: 'Auto' },
+        memorize: { enabled: true, trustLevel: 'Auto' },
+        scheduled_task_manager: { enabled: true, trustLevel: 'Auto' }
+    },
     workspacePath: '', // 将在运行时初始化或由用户选择
     theme: 'light',
     accentColor: 'indigo',
@@ -256,7 +270,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
         'toggle_sidebar': 'Ctrl+B',
         'command_palette': 'Ctrl+G'
     },
-    autoOpenArtifact: true,
-    autoUpdate: true,
+    autoOpenArtifact: false,
+    autoUpdate: false,
     allowFullDiskAccess: false
 };

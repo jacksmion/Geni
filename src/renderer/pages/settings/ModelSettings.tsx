@@ -292,6 +292,8 @@ export function ModelSettings() {
         if (!modelForm.label || !modelForm.model) return;
 
         const updatedModels = [...(currentProviderConfig.models || [])];
+        let nextActiveModelId = currentProviderConfig.activeModelId || '';
+
         if (editingModelIndex !== null) {
             updatedModels[editingModelIndex] = {
                 ...updatedModels[editingModelIndex],
@@ -304,9 +306,22 @@ export function ModelSettings() {
                 enabled: true
             };
             updatedModels.push(newInstance);
+            nextActiveModelId = newInstance.id;
         }
 
-        updateProviderDraft({ models: updatedModels });
+        setLlmDraft({
+            ...llmDraft,
+            activeProvider: selectedProvider,
+            providers: {
+                ...llmDraft.providers,
+                [selectedProvider]: {
+                    ...currentProviderConfig,
+                    enabled: true,
+                    models: updatedModels,
+                    activeModelId: nextActiveModelId || updatedModels[0]?.id || ''
+                }
+            }
+        });
         setShowModelEditor(false);
     };
 
