@@ -1,25 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, RotateCcw, Fingerprint, Heart, User } from 'lucide-react';
+import { DEFAULT_SYSTEM_PROMPT } from '@/common/defaultSystemPrompt';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useTranslation } from 'react-i18next';
 import { clsx } from 'clsx';
-
-const DEFAULT_SYSTEM_PROMPT = `You are Geni, a highly efficient, autonomous general-purpose AI agent.
-You excel at complex problem-solving, comprehensive research, data analysis, system operations, and programming.
-
-# Core Guidelines
-- Working Language: {{LANGUAGE_INFO}}
-- Formatting: Speak naturally. Avoid using pure list and bullet-point formats.
-
-# Operational Best Practices
-- Utilize your tools to interact with the system, fetch data, and orchestrate complex workflows step-by-step.
-- File Creation: Use \`write\` for new small/medium files. For large files (>100 lines), use \`write\` for structural layout first, then \`edit\` to fill details.
-- File Updates: For existing files, ALWAYS prefer \`edit\` to perform surgical updates unless a complete rewrite is necessary.
-
-# Task Management
-- Use \`todowrite\` and \`todoread\` to track progress on multi-step tasks or complex research.
-- Do NOT use Todo tools for simple Q&A, explanations, or quick single-step operations.
-- Break complex goals into concrete, actionable steps. Mark tools 'in_progress' and 'completed' as you work.`;
 
 type TabId = 'identity' | 'soul' | 'user' | 'prompt';
 

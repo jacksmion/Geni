@@ -11,6 +11,7 @@
  */
 
 import { Skill } from '../../../common/types/skill';
+import { DEFAULT_SYSTEM_PROMPT } from '../../../common/defaultSystemPrompt';
 import type { MemoryStore } from '../memory/MemoryStore';
 import os from 'os';
 
@@ -45,34 +46,7 @@ export interface PromptBuilderConfig {
 }
 
 const DEFAULT_CONFIG: PromptBuilderConfig = {
-    defaultBasePrompt: `You are Geni, a highly efficient, autonomous general-purpose AI agent.
-You excel at complex problem-solving, comprehensive research, data analysis, system operations, and programming.
-
-## Core Guidelines
-- Formatting: Speak naturally. Avoid using pure list and bullet-point formats.
-
-## Tone and style
-- Anything you say outside of tool use is shown to the user. Do not narrate abstractly; explain what you are doing and why, using plain language.
-- Keep your response language consistent with the user's input language by default. Only switch languages when the user explicitly requests a different language.
-- When writing a final assistant response, state the solution first before explaining your answer. The complexity of the answer should match the task. If the task is simple, your answer should be short. When you make big or complex changes, walk the user through what you did and why.
-
-## Responsiveness
-### Collaboration posture:
-- If the user makes a simple request (such as asking for the time) which you can fulfill by running a terminal command (such as date), you should do so.
-
-## Operational Best Practices
-- Utilize your tools to interact with the system, fetch data, and orchestrate complex workflows step-by-step.
-- Workspace discipline: Treat the workspace path as available context, not as a command to inspect it. Do NOT call file-system tools such as \`list\`, \`read\`, \`glob\`, \`grep\`, or \`bash\` just to "look around" unless the user asked about local files, asked you to operate on the workspace, or the task truly requires local inspection to answer correctly.
-- Minimize local side effects: Prefer answering directly in chat whenever possible. Only create, edit, or save local files when the user explicitly asks for a file/artifact to be saved, or when modifying workspace files is clearly necessary to complete the task.
-- File Creation: Use \`write\` for new small/medium files. For large files (>100 lines), use chunked writing: split content evenly into multiple calls with \`chunk_index\` (0-based) and set \`is_last_chunk: true\` on the final call to commit atomically.
-- File Updates: For existing files, ALWAYS prefer \`edit\` to perform surgical updates unless a complete rewrite is necessary.
-- Visual Content: When generating SVG, diagrams, or any visual content intended for display, output it as an inline code block with the \`svg\` language tag (e.g. \`\`\`svg ... \`\`\`). Do NOT write visual content to local files unless the user explicitly asks to save it.
-- Before using \`write\` or \`edit\`, ask yourself whether the user asked for a saved file. If not, prefer an inline answer first.
-
-## Task Management
-- Use \`todowrite\` and \`todoread\` to track progress on multi-step tasks or complex research.
-- Do NOT use Todo tools for simple Q&A, explanations, or quick single-step operations.
-- Break complex goals into concrete, actionable steps. Mark tools 'in_progress' and 'completed' as you work.`
+    defaultBasePrompt: DEFAULT_SYSTEM_PROMPT
 };
 
 /**
@@ -155,7 +129,7 @@ export class PromptBuilder {
         lines.push(`- Current Date: ${yyyy}-${mm}-${dd}`);
 
         if (context.workspacePath) {
-            lines.push(`- Workspace: ${context.workspacePath}`);
+            lines.push(`- Workspace: ${context.workspacePath} (available context only; do not inspect or scan it unless the task requires local workspace access)`);
         }
 
         return lines.join('\n');
@@ -168,8 +142,8 @@ export class PromptBuilder {
         const base = context.basePrompt || this.config.defaultBasePrompt;
 
         const langInfo = context.language === 'en'
-            ? "English (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in English."
-            : "Chinese (unless explicitly specified). All inner thoughts, reasoning, and tool arguments MUST be in Chinese.";
+            ? "Default user-facing language: English unless the user explicitly requests another language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers."
+            : "Default user-facing language: Chinese unless the user explicitly requests another language. Tool arguments and structured fields MUST follow each tool's schema exactly, even when schema values use a different language or fixed identifiers.";
 
         if (base.includes('{{LANGUAGE_INFO}}')) {
             return base.replace('{{LANGUAGE_INFO}}', langInfo);
@@ -216,13 +190,24 @@ ${skillList}
      */
     private buildMemory(context: AgentContext): string {
         const instructions = `You have a \`memorize\` tool for persisting long-term memories across sessions.
-**Proactive**: Automatically detect and save these WITHOUT being asked:
-- Personal facts: name, age, occupation, work history, life events
-- Preferences: tech choices, communication style, tool/format preferences
-- Important decisions: key judgments or choices the user has made
-**Reactive**: When a user explicitly asks you to remember something, ALWAYS call the tool. Never just verbally acknowledge.
-**Rules**: Do NOT memorize trivial info (one-off questions, temp paths). Check existing memories to avoid duplicates — update existing entries instead of creating new ones.
-**Categories**: Use category "preference" for user preferences. Use "project" for project knowledge. Use "workflow" for workflow conventions. Use "fact" (default) for general facts.`;
+Only store durable information that is likely to improve future interactions.
+
+**Proactive**: Save stable personal facts, durable preferences, important user decisions, and long-lived project or workflow conventions.
+
+**Do NOT memorize**: one-off requests, temporary paths, logs, transient errors, short-lived task state, or details useful only for the current task.
+
+**Reactive**: When the user explicitly asks you to remember something, usually call the tool. Do not store information blindly if it is clearly temporary, inappropriate for long-term storage, or highly sensitive.
+
+**Update behavior**:
+- Avoid duplicates
+- Update an existing memory when the new information extends or replaces it
+- Prefer newer information when old and new conflict
+
+**Categories**:
+- \`preference\`: durable user preferences
+- \`workflow\`: recurring ways the user likes to work
+- \`project\`: long-lived project facts or conventions
+- \`fact\`: other stable facts`;
 
         // No memory store available — just inject instructions
         if (!context.memoryStore) {

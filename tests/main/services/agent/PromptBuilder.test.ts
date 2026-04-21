@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PromptBuilder, AgentContext } from '@/main/services/agent/PromptBuilder';
+import { DEFAULT_SYSTEM_PROMPT } from '@/common/defaultSystemPrompt';
 import { Skill } from '@/common/types/skill';
 import { MemoryStore } from '@/main/services/memory/MemoryStore';
 import fs from 'fs';
@@ -19,6 +20,16 @@ describe('PromptBuilder', () => {
         expect(prompt).not.toContain('<skills>');
     });
 
+    it('should use the shared default system prompt template', () => {
+        const builder = new PromptBuilder();
+
+        const prompt = builder.buildSystemPrompt({});
+
+        expect(DEFAULT_SYSTEM_PROMPT).toContain('{{LANGUAGE_INFO}}');
+        expect(prompt).toContain('For simple questions, prefer a natural and concise response.');
+        expect(prompt).toContain('Use lists when they make the answer clearer');
+    });
+
     it('should build prompt using provided base prompt in context', () => {
         const builder = new PromptBuilder();
         const context: AgentContext = {
@@ -30,6 +41,17 @@ describe('PromptBuilder', () => {
         expect(prompt).toContain('You are a Custom AI Assistant.');
         expect(prompt).toContain('[System Environment]');
         expect(prompt).not.toContain('You are Geni');
+    });
+
+    it('should clarify workspace is context only and not an instruction to inspect files', () => {
+        const builder = new PromptBuilder();
+
+        const prompt = builder.buildSystemPrompt({ workspacePath: '/mock/workspace' });
+
+        expect(prompt).toContain('Workspace: /mock/workspace');
+        expect(prompt).toContain('available context only');
+        expect(prompt).toContain('do not inspect or scan it unless the task requires local workspace access');
+        expect(prompt).toContain('The presence of a workspace does NOT mean you should scan files');
     });
 
     it('should not include <skills> block if skills array is empty or undefined', () => {
@@ -79,15 +101,20 @@ describe('PromptBuilder', () => {
         expect(prompt).toContain('[System Environment]');
     });
 
-    it('should append language instructions when the default prompt has no placeholder', () => {
+    it('should replace the language placeholder in the shared default prompt', () => {
         const builder = new PromptBuilder();
 
         const zhPrompt = builder.buildSystemPrompt({ language: 'zh' });
-        expect(zhPrompt).toContain('[Language Instruction]');
-        expect(zhPrompt).toContain('MUST be in Chinese');
+        expect(zhPrompt).toContain('Default user-facing language: Chinese');
+        expect(zhPrompt).toContain("Tool arguments and structured fields MUST follow each tool's schema exactly");
+        expect(zhPrompt).not.toContain('All inner thoughts');
+        expect(zhPrompt).not.toContain('{{LANGUAGE_INFO}}');
 
         const enPrompt = builder.buildSystemPrompt({ language: 'en' });
-        expect(enPrompt).toContain('MUST be in English');
+        expect(enPrompt).toContain('Default user-facing language: English');
+        expect(enPrompt).toContain("Tool arguments and structured fields MUST follow each tool's schema exactly");
+        expect(enPrompt).not.toContain('All inner thoughts');
+        expect(enPrompt).not.toContain('{{LANGUAGE_INFO}}');
     });
 
     describe('tiered memory injection', () => {

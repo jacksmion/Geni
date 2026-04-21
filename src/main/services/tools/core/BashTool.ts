@@ -147,11 +147,15 @@ export class BashTool implements ITool {
 
     getDefinition(): ToolDefinition {
         const isWindows = os.platform() === 'win32';
+        const shellInfo = isWindows
+            ? "On Windows, commands run in PowerShell 7 (`pwsh`) when available, otherwise Windows PowerShell, with `cmd.exe` as a final fallback. "
+            : "On non-Windows systems, commands run in `/bin/bash`. ";
 
         return {
             name: 'bash',
             description:
                 "Execute a shell command. " +
+                shellInfo +
                 "Working directory persists across calls (use cd to change). " +
                 "Output is truncated to fit context. For long output, pipe to head/tail or redirect to a file then read it. " +
                 "Default timeout is 60 seconds (set timeout param for longer commands). " +
