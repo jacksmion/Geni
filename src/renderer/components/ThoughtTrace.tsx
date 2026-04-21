@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Check, Terminal, FileText, Search, Code2, Wrench, ShieldAlert, ListChecks, Circle, RotateCw, Clock, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -326,6 +326,16 @@ const ThoughtText = React.memo(function ThoughtText({ thought }: { thought: stri
 const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: ThoughtStep; isLast?: boolean }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [authorizationDismissed, setAuthorizationDismissed] = useState(false);
+
+    useEffect(() => {
+        if (!step.isWaitingAuthorization) {
+            setAuthorizationDismissed(false);
+            return;
+        }
+
+        setAuthorizationDismissed(false);
+    }, [step.authRequestId, step.isWaitingAuthorization]);
 
     const parsedToolInput = useMemo<Record<string, unknown> | null>(() => {
         if (!step.toolInput) return null;
@@ -397,6 +407,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
 
     const handleAuthorization = useCallback((approved: boolean, remember: boolean = false) => {
         if (step.authRequestId) {
+            setAuthorizationDismissed(true);
             const activeSessionId = useChatStore.getState().activeSessionId;
             const runState = activeSessionId ? useChatStore.getState().runningSessions.get(activeSessionId) : undefined;
             const activeRunId = runState?.runId ?? null;
@@ -531,7 +542,7 @@ const ToolCallCard = React.memo(function ToolCallCard({ step, isLast }: { step: 
             )}
 
             {/* Inline Authorization UI */}
-            {step.isWaitingAuthorization && (
+            {step.isWaitingAuthorization && !authorizationDismissed && (
                 <InlineAuthorizationUI
                     reason={step.authReason}
                     onAuthorize={handleAuthorization}

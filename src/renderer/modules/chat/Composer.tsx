@@ -57,18 +57,49 @@ function AccessIndicator() {
     const coreToolSettings = useSettingsStore(s => s.settings.coreToolSettings)
     const updateSettings = useSettingsStore(s => s.updateSettings)
     const { t } = useTranslation()
+    const [coreTools, setCoreTools] = useState<Array<{ name: string; enabled: boolean; trustLevel: 'Ask' | 'Auto' }> | null>(null)
 
-    const toolEntries = Object.values(coreToolSettings || {})
+    useEffect(() => {
+        let cancelled = false
+
+        window.electronAPI.tools.coreToolList()
+            .then(list => {
+                if (!cancelled) {
+                    setCoreTools(list)
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load core tool metadata:', err)
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    const toolEntries = coreTools && coreTools.length > 0
+        ? coreTools
+        : Object.values(coreToolSettings || {})
     const autoCount = toolEntries.filter((tool: any) => tool.trustLevel === 'Auto').length
     const isFullAccess = toolEntries.length > 0 && autoCount >= toolEntries.length / 2
 
     const handleToggle = async () => {
         const newLevel = isFullAccess ? 'Ask' : 'Auto'
         const updated: Record<string, any> = {}
-        for (const [name, tool] of Object.entries(coreToolSettings || {})) {
-            updated[name] = { ...tool, trustLevel: newLevel }
+
+        const sourceTools = coreTools && coreTools.length > 0
+            ? coreTools
+            : Object.entries(coreToolSettings || {}).map(([name, tool]) => ({ name, ...(tool as any) }))
+
+        for (const tool of sourceTools) {
+            updated[tool.name] = {
+                enabled: tool.enabled ?? true,
+                trustLevel: newLevel
+            }
         }
+
         await updateSettings({ coreToolSettings: updated })
+        setCoreTools(prev => prev ? prev.map(tool => ({ ...tool, trustLevel: newLevel })) : prev)
     }
 
     return (

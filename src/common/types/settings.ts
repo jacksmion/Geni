@@ -226,7 +226,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     mcpServers: [], // Default empty list
     coreToolSettings: {}, // Default empty list
     workspacePath: '', // 将在运行时初始化或由用户选择
-    theme: 'dark',
+    theme: 'light',
     accentColor: 'indigo',
     language: 'zh',
     autoStart: false,
