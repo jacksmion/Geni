@@ -20,7 +20,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "BUSL-1.1",
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.73.0",
