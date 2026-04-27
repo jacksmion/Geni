@@ -6,31 +6,214 @@
 
 ## English
 
-> **Your AI-Powered Collaborative Workspace Assistant**
-> *Enabling inspiration through intelligence.*
+> **An AI collaborative workspace that can actually work with your local environment**
+> *Chat, tools, skills, MCP, digital staff, and automation in one desktop app.*
 
-Geni is a modern desktop application designed to bridge the gap between AI intelligence and your local workflow. Built with **Electron**, **React**, and **Model Context Protocol (MCP)**, Geni offers a seamless environment for AI-assisted coding, writing, and problem-solving.
+Geni is an Electron desktop app for people who want more than a browser chat box. It combines AI chat, local tools, MCP integrations, reusable skills, scheduled tasks, and customizable AI staff into one workspace, so you can move from asking to doing without constantly switching apps.
 
-## Features
+## Why Geni
 
-- **Intelligent Chat Interface**: Interact with advanced AI models (Claude, GPT-4, DeepSeek, Qwen, etc.) in a deeply integrated chat environment.
-- **Model Context Protocol (MCP)**: Extensible architecture supporting MCP servers for file system access, terminal execution, and more.
-- **Built-in Tools**:
-  - **FileSystem**: Read, write, edit, and search files directly from the chat.
-  - **Terminal**: Execute shell commands securely.
-  - **Web**: Fetch web pages and search the internet.
-  - **Memory**: Persistent memory storage across sessions.
-  - **Task**: Todo list management.
-  - **Cron**: Schedule automated tasks.
-- **Digital Staff**: Create and manage AI personas with customizable behaviors and specialties.
-- **Scheduler**: Cron-based automated task execution with IM notifications.
-- **Multi-Platform IM Integration**: Connect with Telegram, WeCom, Lark, and WeChat.
-- **Skill System**: Extensible knowledge capsules for specialized tasks (code review, git operations, etc.).
-- **Premium UI/UX**:
-  - Modern, responsive design with **Tailwind CSS v4**.
-  - Dark/Light mode support.
-  - Beautiful Markdown rendering with syntax highlighting, Mermaid diagrams, and code artifacts.
-- **High Performance**: Powered by Vite for lightning-fast HMR and build times.
+- **Works with your real workflow**: Read files, edit content, search code, run commands, fetch web pages, manage todos, and automate recurring work.
+- **Built for agentic use cases**: Geni uses a three-layer agent architecture with a ReAct loop at the core, making it suitable for assistants that think, act, observe, and continue.
+- **Extensible by design**: Add MCP servers, built-in tools, and markdown-based skills without changing the whole app.
+- **More than one assistant**: Create digital staff with different prompts, skills, and model choices for different jobs.
+- **Desktop-first experience**: Keep your workspace, settings, and local integrations close to the work you are doing.
+
+## Good Fits
+
+Geni is a strong fit if you want to:
+
+- Use AI on top of local files and tools, not only text chat
+- Build a personal AI workspace with reusable skills and automation
+- Experiment with MCP-powered workflows
+- Run multiple specialized AI personas for different tasks
+- Explore agent architecture inside a real desktop app
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Install
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://gitee.com/jacksmion/cowork.git
+   cd cowork
+   ```
+
+2. (Optional) Use an Electron mirror if downloads are slow, especially in mainland China:
+
+   - **Windows (PowerShell)**
+
+     ```powershell
+     $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+     ```
+
+   - **macOS / Linux**
+
+     ```bash
+     export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+     ```
+
+3. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+4. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+### First Run
+
+After the app opens, the shortest path to a working setup is:
+
+1. Open **Settings**.
+2. Go to **Model Settings**.
+3. Add at least one provider configuration with an API key.
+4. Select or enable a model.
+5. Return to chat and start a session.
+
+If you want deeper integrations after that:
+
+- Add MCP servers in **MCP Settings**
+- Enable or disable built-in tools in **Tool Settings**
+- Install or manage skills in **Skill Settings**
+- Create role-based assistants in **Digital Staff**
+
+## What You Can Do
+
+### 1. AI chat that can use tools
+
+Geni is designed for work that needs action, not just answers. The built-in tools cover file operations, shell execution, web access, memory, todos, and automation.
+
+### 2. MCP-powered extensions
+
+You can connect MCP servers to expand what the assistant can access and do, while keeping the tool model consistent with the rest of the app.
+
+### 3. Skills as reusable knowledge capsules
+
+Skills are markdown-based, lazily loaded knowledge packs. They help agents perform specialized tasks without hardcoding every workflow.
+
+### 4. Digital staff for specialized roles
+
+Instead of one general-purpose assistant, you can create staff profiles with different prompts, allowed tools, skills, and model settings.
+
+### 5. Scheduled and IM-connected workflows
+
+Geni supports cron-based automation and IM integrations including Telegram, WeCom, Lark, and WeChat for workflows that need notifications or remote triggers.
+
+## Screenshots
+
+### Chat Workspace
+
+The main workspace for conversations, tool use, and task execution.
+
+![Chat Workspace](docs/images/chat-home.png)
+
+### Settings
+
+Configure models, tools, MCP servers, and application behavior.
+
+![Settings](docs/images/setting.png)
+
+### Skills
+
+Manage specialized skill capsules that expand what agents can do.
+
+![Skills](docs/images/skills.png)
+
+### Digital Staff
+
+Create AI teammates with different roles, prompts, and capabilities.
+
+![Digital Staff](docs/images/agent.png)
+
+## Core Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the development app |
+| `npm run build` | Type-check and build for production |
+| `npm run test` | Run all Vitest tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Auto-fix ESLint issues |
+| `npm run pack` | Build unpacked Electron output |
+| `npm run dist` | Build distributable packages |
+| `npm run dist:win` | Build Windows packages |
+| `npm run dist:mac` | Build macOS packages |
+| `npm run dist:linux` | Build Linux packages |
+
+Run a single test file:
+
+```bash
+npx vitest run tests/path/to/test.test.ts
+```
+
+## Architecture At A Glance
+
+Geni uses a **Three-Layer Agent Architecture**:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Agent (Config Layer) - id, name, modelId, systemPrompt,    │
+│ skillIds, allowedTools                                     │
+├─────────────────────────────────────────────────────────────┤
+│ AgentRuntime - lifecycle, skill loading, tool filtering,   │
+│ history management, prompt assembly                        │
+├─────────────────────────────────────────────────────────────┤
+│ ReActExecutor - think/act/observe loop, LLM calls,         │
+│ tool execution, context compression                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+High-level system layers:
+
+- **Trigger Layer**: Scheduler and IM adapters
+- **Application Layer**: IPC controllers
+- **Agent Kernel**: Runtime, executor, prompt builder, tool guard
+- **Cognitive Layer**: Unified LLM interface
+- **Capability Layer**: Tools and skills
+- **Infrastructure Layer**: Storage, config, and system services
+
+## Project Structure
+
+```text
+geni/
+├── src/
+│   ├── common/                # Shared types, IPC channels, i18n
+│   ├── main/                  # Electron main process
+│   │   ├── controllers/       # IPC request handlers
+│   │   └── services/
+│   │       ├── agent/         # Agent runtime + executor
+│   │       ├── tools/         # Built-in tools and MCP adapters
+│   │       ├── skills/        # Skill loading and registry
+│   │       ├── llm/           # Provider adapters
+│   │       ├── staff/         # Digital staff
+│   │       ├── scheduler/     # Automation
+│   │       └── im/            # IM integrations
+│   └── renderer/              # React UI
+│       ├── modules/           # Feature modules
+│       ├── pages/             # Full pages
+│       └── store/             # Zustand stores
+├── skills/                    # Built-in skills
+│   ├── brainstorming/
+│   ├── frontend-design/
+│   ├── skill-creator/
+│   ├── systematic-debugging/
+│   ├── weather/
+│   └── writing-plans/
+├── docs/                      # Product, architecture, and planning docs
+└── tests/                     # Vitest tests
+```
 
 ## Tech Stack
 
@@ -43,202 +226,230 @@ Geni is a modern desktop application designed to bridge the gap between AI intel
 | AI Integration | MCP SDK, Anthropic SDK, OpenAI SDK |
 | Testing | Vitest |
 
-## Architecture
-
-Geni adopts a **Three-Layer Agent Architecture**:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Agent (Config Layer) - id, name, modelId, systemPrompt,    │
-│ skills                                                     │
-├─────────────────────────────────────────────────────────────┤
-│ Runtime - Lifecycle, Context Assembly, Events              │
-├─────────────────────────────────────────────────────────────┤
-│ Executor - ReAct Loop, LLM Calls, Tool Execution           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### System Layers
-
-- **Trigger Layer**: Scheduler, IM adapters (Telegram, WeCom, Lark, WeChat)
-- **Application Layer**: Controllers handling IPC requests
-- **Agent Kernel**: Runtime + Executor + PromptBuilder + ToolGuard
-- **Cognitive Layer**: Unified LLM interface (`IChatModel`)
-- **Capability Layer**: Tools (`ITool`) + Skills (Knowledge Capsules)
-- **Infrastructure Layer**: Storage, Config, System services
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher recommended)
-- npm or pnpm
-
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/yourusername/geni.git
-   cd geni
-   ```
-
-2. (Optional) Set Electron mirror for faster download (recommended for users in China):
-
-   - **Windows (PowerShell)**:
-
-     ```powershell
-     $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-     ```
-
-   - **macOS/Linux**:
-
-     ```bash
-     export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-     ```
-
-3. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-### Development
-
-Start the development server (runs both Electron main process and React renderer):
-
-```bash
-npm run dev
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run test` | Run unit tests |
-| `npm run lint` | Run ESLint |
-| `npm run dist:win` | Build Windows installer |
-| `npm run dist:mac` | Build macOS app |
-| `npm run dist:linux` | Build Linux package |
-
-## Screenshots
-
-### Chat Workspace
-
-![Chat Workspace](docs/images/chat-home.png)
-
-### Settings
-
-![Settings](docs/images/setting.png)
-
-### Skills
-
-![Skills](docs/images/skills.png)
-
-### Digital Staff
-
-![Digital Staff](docs/images/agent.png)
-
-## Project Structure
-
-```text
-geni/
-├── src/
-│   ├── common/                # Shared types and IPC definitions
-│   │   ├── types/             # TypeScript type definitions
-│   │   │   ├── agent.ts       # Agent interface
-│   │   │   ├── chat.ts        # ChatMessage, ToolCall, AgentStep
-│   │   │   ├── settings.ts    # AppSettings, ProviderConfig
-│   │   │   ├── skill.ts       # Skill types
-│   │   │   ├── tool.ts        # ITool interface
-│   │   │   └── ...
-│   │   ├── ipc/               # IPC channel constants
-│   │   └── i18n/              # Internationalization (en, zh)
-│   ├── main/                  # Electron main process
-│   │   ├── main.ts            # Entry point
-│   │   ├── preload.ts         # Context isolation bridge
-│   │   ├── router.ts          # DI container
-│   │   ├── controllers/       # IPC request handlers
-│   │   └── services/
-│   │       ├── agent/         # Agent Kernel (Three-Layer)
-│   │       │   ├── runtime/   # AgentRuntime
-│   │       │   ├── executor/  # ReActExecutor
-│   │       │   ├── state/     # AgentState
-│   │       │   └── ...
-│   │       ├── llm/           # LLM adapters
-│   │       │   └── providers/ # OpenAI, Anthropic
-│   │       ├── tools/         # Tool system
-│   │       │   ├── core/      # Built-in tools
-│   │       │   └── mcp/       # MCP integration
-│   │       ├── skills/        # Skill registry
-│   │       ├── session/       # Chat session management
-│   │       ├── scheduler/     # Cron task scheduler
-│   │       ├── im/            # IM adapters
-│   │       ├── staff/         # Digital staff
-│   │       ├── memory/        # Memory storage
-│   │       ├── usage/         # API usage tracking
-│   │       └── update/        # Auto-update
-│   └── renderer/              # React frontend
-│       ├── App.tsx            # Root component
-│       ├── components/        # UI components
-│       ├── layouts/           # Page layouts
-│       ├── pages/             # Full page components
-│       │   └── settings/      # Settings pages
-│       ├── modules/           # Feature modules
-│       │   └── chat/          # Chat components
-│       └── store/             # Zustand stores
-├── skills/                    # Built-in skills
-│   ├── find-skills/
-│   ├── skill-creator/
-│   └── web-search/
-├── build/                     # Icons and resources
-├── release/                   # Packaged output
-└── tests/                     # Unit tests (Vitest)
-```
-
 ## License
 
 This project is released under the [Business Source License 1.1](LICENSE).
 
-- Free of charge for personal use, academic research, teaching, evaluation, and internal use by non-profit organizations
+- Free for personal use, academic research, teaching, evaluation, and internal use by non-profit organizations
 - Commercial use requires a separate license
 - Commercial licensing contact: [@jacksmion on X](https://x.com/jacksmion)
 - Change Date: `2029-06-18`
 - Change License: `Apache License 2.0`
 
-This is a source-available license, not an OSI-approved open source license, until the Change Date takes effect.
+In short: you can study the source and use it in the allowed non-commercial scenarios today, but it is not an OSI-approved open source license before the change date.
 
 ---
 
 ## 中文
 
-> **你的 AI 协作工作台助手**
-> *让灵感借由智能高效落地。*
+> **真正能接入本地环境的 AI 协作工作台**
+> *把聊天、工具、技能、MCP、数字员工和自动化放进同一个桌面应用。*
 
-Geni 是一款现代桌面应用，致力于连接 AI 能力与本地工作流。它基于 **Electron**、**React** 和 **Model Context Protocol (MCP)** 构建，为 AI 辅助编程、写作和问题解决提供流畅的一体化环境。
+Geni 是一款面向本地工作流的 Electron 桌面应用，不只是一个浏览器里的 AI 聊天框。它把 AI 对话、系统工具、MCP 集成、可复用技能、定时任务和可定制的数字员工整合进同一个工作空间里，让你可以从“提问”自然走到“执行”。
 
-## 功能特性
+## 为什么用 Geni
 
-- **智能对话界面**：在深度集成的聊天环境中与 Claude、GPT-4、DeepSeek、Qwen 等先进模型协作。
-- **模型上下文协议（MCP）**：采用可扩展架构，支持通过 MCP Server 访问文件系统、执行终端命令等能力。
-- **内置工具**：
-  - **文件系统**：可直接在对话中读取、写入、编辑和搜索文件。
-  - **终端**：安全执行 Shell 命令。
-  - **网络**：抓取网页内容并进行联网搜索。
-  - **记忆**：跨会话持久化保存记忆。
-  - **任务**：管理待办事项列表。
-  - **定时任务**：支持自动化定时执行。
-- **数字员工**：创建和管理具备不同性格、行为与专长的 AI 角色。
-- **调度系统**：基于 Cron 的自动任务执行，并可结合 IM 通知。
-- **多平台 IM 集成**：支持 Telegram、企业微信、飞书和微信。
-- **技能系统**：通过知识胶囊扩展特定能力，例如代码评审、Git 操作等。
-- **优质 UI/UX**：
-  - 基于 **Tailwind CSS v4** 的现代响应式界面。
-  - 支持深色 / 浅色模式。
-  - 优秀的 Markdown 渲染体验，支持语法高亮、Mermaid 图表和代码工件展示。
-- **高性能体验**：由 Vite 驱动，提供极快的热更新与构建速度。
+- **贴近真实工作流**：可以围绕本地文件、代码、命令行、网页、待办和自动化任务开展协作，而不只是纯文本问答。
+- **天然适合 Agent 场景**：底层采用三层 Agent 架构，以 ReAct 循环为核心，适合需要思考、行动、观察和继续迭代的助手工作流。
+- **扩展能力强**：支持 MCP Server、内置工具和 markdown 技能体系，不需要推翻整体架构就能增加能力。
+- **不止一个助手**：你可以为不同任务创建不同的数字员工，分别配置提示词、技能和模型。
+- **桌面优先体验**：本地工作区、设置和系统集成都离你的真实工作更近。
+
+## 适合谁
+
+如果你有下面这些需求，Geni 会比较合适：
+
+- 希望 AI 能直接配合本地文件和工具工作
+- 想搭建一个带技能和自动化能力的个人 AI 工作台
+- 想尝试 MCP 驱动的工作流
+- 想让多个不同职责的 AI 角色分工协作
+- 想研究一个真实桌面应用中的 Agent 架构实现
+
+## 快速开始
+
+### 环境要求
+
+- Node.js 18+
+- npm
+
+### 安装
+
+1. 克隆仓库：
+
+   ```bash
+   git clone https://gitee.com/jacksmion/cowork.git
+   cd cowork
+   ```
+
+2. 如果 Electron 下载较慢，可选配置镜像，推荐中国大陆用户使用：
+
+   - **Windows（PowerShell）**
+
+     ```powershell
+     $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+     ```
+
+   - **macOS / Linux**
+
+     ```bash
+     export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+     ```
+
+3. 安装依赖：
+
+   ```bash
+   npm install
+   ```
+
+4. 启动应用：
+
+   ```bash
+   npm run dev
+   ```
+
+### 首次运行
+
+应用打开后，建议按这个最短路径完成可用配置：
+
+1. 打开 **Settings**
+2. 进入 **Model Settings**
+3. 添加至少一个模型提供商配置和 API Key
+4. 启用并选择一个模型
+5. 返回聊天页开始新会话
+
+如果你想继续扩展能力，可以再做这些事：
+
+- 在 **MCP Settings** 里添加 MCP Server
+- 在 **Tool Settings** 里启用或限制内置工具
+- 在 **Skill Settings** 里安装或管理技能
+- 在 **Digital Staff** 里创建分工明确的 AI 角色
+
+## 你可以用它做什么
+
+### 1. 让 AI 不只是聊天，而是真的动手
+
+Geni 的内置工具覆盖文件读写、命令执行、网页访问、记忆、待办和自动化，适合需要“边聊边做”的场景。
+
+### 2. 通过 MCP 接入更多能力
+
+你可以接入 MCP Server 扩展助手的能力边界，同时保持统一的工具调用方式。
+
+### 3. 用技能沉淀可复用工作方法
+
+技能是 markdown 形式的知识胶囊，按需加载，适合把代码评审、规划、调试等方法沉淀下来复用。
+
+### 4. 创建不同分工的数字员工
+
+你不必只维护一个通用助手，可以为写作、编码、调度、研究等不同任务创建专门角色。
+
+### 5. 做定时和 IM 联动的自动化
+
+Geni 支持基于 cron 的自动任务，以及 Telegram、企业微信、飞书、微信等 IM 集成，适合通知和远程触发类场景。
+
+## 界面预览
+
+### 聊天工作区
+
+主要工作界面，用于对话、工具调用和任务执行。
+
+![聊天工作区](docs/images/chat-home.png)
+
+### 设置
+
+统一配置模型、工具、MCP Server 和应用行为。
+
+![设置](docs/images/setting.png)
+
+### 技能
+
+管理用于扩展 Agent 能力的技能胶囊。
+
+![技能](docs/images/skills.png)
+
+### 数字员工
+
+创建具备不同职责、提示词和能力边界的 AI 协作者。
+
+![数字员工](docs/images/agent.png)
+
+## 常用命令
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发环境 |
+| `npm run build` | 类型检查并构建生产版本 |
+| `npm run test` | 运行全部 Vitest 测试 |
+| `npm run test:watch` | 监听模式运行测试 |
+| `npm run lint` | 执行 ESLint 检查 |
+| `npm run lint:fix` | 自动修复 ESLint 问题 |
+| `npm run pack` | 构建未打包 Electron 产物 |
+| `npm run dist` | 构建发行包 |
+| `npm run dist:win` | 构建 Windows 包 |
+| `npm run dist:mac` | 构建 macOS 包 |
+| `npm run dist:linux` | 构建 Linux 包 |
+
+单独运行某个测试文件：
+
+```bash
+npx vitest run tests/path/to/test.test.ts
+```
+
+## 架构概览
+
+Geni 采用 **三层 Agent 架构**：
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Agent（配置层）- id, name, modelId, systemPrompt,          │
+│ skillIds, allowedTools                                     │
+├─────────────────────────────────────────────────────────────┤
+│ AgentRuntime（运行时）- 生命周期、技能加载、工具过滤、     │
+│ 历史管理、提示词组装                                       │
+├─────────────────────────────────────────────────────────────┤
+│ ReActExecutor（执行器）- Think / Act / Observe 循环、      │
+│ LLM 调用、工具执行、上下文压缩                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+系统可粗略分为这些层次：
+
+- **触发层**：Scheduler 与 IM 适配器
+- **应用层**：IPC Controller
+- **Agent 内核**：Runtime、Executor、PromptBuilder、ToolGuard
+- **认知层**：统一的 LLM 抽象接口
+- **能力层**：Tools 与 Skills
+- **基础设施层**：存储、配置与系统服务
+
+## 项目结构
+
+```text
+geni/
+├── src/
+│   ├── common/                # 共享类型、IPC、i18n
+│   ├── main/                  # Electron 主进程
+│   │   ├── controllers/       # IPC 请求处理
+│   │   └── services/
+│   │       ├── agent/         # Agent runtime + executor
+│   │       ├── tools/         # 内置工具与 MCP 适配
+│   │       ├── skills/        # 技能加载与注册
+│   │       ├── llm/           # 模型适配层
+│   │       ├── staff/         # 数字员工
+│   │       ├── scheduler/     # 自动化调度
+│   │       └── im/            # IM 集成
+│   └── renderer/              # React 界面
+│       ├── modules/           # 功能模块
+│       ├── pages/             # 页面级组件
+│       └── store/             # Zustand 状态仓库
+├── skills/                    # 内置技能
+│   ├── brainstorming/
+│   ├── frontend-design/
+│   ├── skill-creator/
+│   ├── systematic-debugging/
+│   ├── weather/
+│   └── writing-plans/
+├── docs/                      # 产品、架构和规划文档
+└── tests/                     # Vitest 测试
+```
 
 ## 技术栈
 
@@ -251,168 +462,14 @@ Geni 是一款现代桌面应用，致力于连接 AI 能力与本地工作流�
 | AI 集成 | MCP SDK, Anthropic SDK, OpenAI SDK |
 | 测试 | Vitest |
 
-## 架构
-
-Geni 采用 **三层 Agent 架构**：
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Agent（配置层）- id, name, modelId, systemPrompt, skills   │
-├─────────────────────────────────────────────────────────────┤
-│ Runtime（运行时）- 生命周期、上下文组装、事件管理          │
-├─────────────────────────────────────────────────────────────┤
-│ Executor（执行器）- ReAct 循环、LLM 调用、工具执行         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 系统分层
-
-- **触发层**：Scheduler、IM 适配器（Telegram、企业微信、飞书、微信）
-- **应用层**：处理 IPC 请求的各类 Controller
-- **Agent 内核**：Runtime + Executor + PromptBuilder + ToolGuard
-- **认知层**：统一的 LLM 接口（`IChatModel`）
-- **能力层**：工具（`ITool`）与技能（知识胶囊）
-- **基础设施层**：存储、配置和系统服务
-
-## 快速开始
-
-### 环境要求
-
-- Node.js（推荐 v18 或更高版本）
-- npm 或 pnpm
-
-### 安装
-
-1. 克隆仓库：
-
-   ```bash
-   git clone https://github.com/yourusername/geni.git
-   cd geni
-   ```
-
-2. （可选）为 Electron 设置镜像源以加快下载速度，推荐中国大陆用户使用：
-
-   - **Windows（PowerShell）**：
-
-     ```powershell
-     $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-     ```
-
-   - **macOS / Linux**：
-
-     ```bash
-     export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
-     ```
-
-3. 安装依赖：
-
-   ```bash
-   npm install
-   ```
-
-### 开发
-
-启动开发环境（同时运行 Electron 主进程与 React 渲染进程）：
-
-```bash
-npm run dev
-```
-
-### 常用命令
-
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 启动开发环境 |
-| `npm run build` | 构建生产版本 |
-| `npm run test` | 运行单元测试 |
-| `npm run lint` | 执行 ESLint 检查 |
-| `npm run dist:win` | 构建 Windows 安装包 |
-| `npm run dist:mac` | 构建 macOS 应用 |
-| `npm run dist:linux` | 构建 Linux 安装包 |
-
-## 界面预览
-
-### 聊天工作区
-
-![聊天工作区](docs/images/chat-home.png)
-
-### 设置
-
-![设置](docs/images/setting.png)
-
-### 技能
-
-![技能](docs/images/skills.png)
-
-### 数字员工
-
-![数字员工](docs/images/agent.png)
-
-## 项目结构
-
-```text
-geni/
-├── src/
-│   ├── common/                # 共享类型与 IPC 定义
-│   │   ├── types/             # TypeScript 类型定义
-│   │   │   ├── agent.ts       # Agent 接口
-│   │   │   ├── chat.ts        # ChatMessage、ToolCall、AgentStep
-│   │   │   ├── settings.ts    # AppSettings、ProviderConfig
-│   │   │   ├── skill.ts       # Skill 类型
-│   │   │   ├── tool.ts        # ITool 接口
-│   │   │   └── ...
-│   │   ├── ipc/               # IPC 通道常量
-│   │   └── i18n/              # 国际化资源（en、zh）
-│   ├── main/                  # Electron 主进程
-│   │   ├── main.ts            # 应用入口
-│   │   ├── preload.ts         # 上下文隔离桥接层
-│   │   ├── router.ts          # 依赖注入组合根
-│   │   ├── controllers/       # IPC 请求处理器
-│   │   └── services/
-│   │       ├── agent/         # Agent 内核（三层架构）
-│   │       │   ├── runtime/   # AgentRuntime
-│   │       │   ├── executor/  # ReActExecutor
-│   │       │   ├── state/     # AgentState
-│   │       │   └── ...
-│   │       ├── llm/           # LLM 适配层
-│   │       │   └── providers/ # OpenAI、Anthropic
-│   │       ├── tools/         # 工具系统
-│   │       │   ├── core/      # 内置工具
-│   │       │   └── mcp/       # MCP 集成
-│   │       ├── skills/        # Skill 注册与加载
-│   │       ├── session/       # 会话管理
-│   │       ├── scheduler/     # Cron 调度器
-│   │       ├── im/            # IM 适配器
-│   │       ├── staff/         # 数字员工
-│   │       ├── memory/        # 记忆存储
-│   │       ├── usage/         # API 使用统计
-│   │       └── update/        # 自动更新
-│   └── renderer/              # React 渲染进程
-│       ├── App.tsx            # 根组件
-│       ├── components/        # UI 组件
-│       ├── layouts/           # 页面布局
-│       ├── pages/             # 完整页面组件
-│       │   └── settings/      # 设置页
-│       ├── modules/           # 功能模块
-│       │   └── chat/          # 聊天模块
-│       └── store/             # Zustand 状态仓库
-├── skills/                    # 内置技能
-│   ├── find-skills/
-│   ├── skill-creator/
-│   └── web-search/
-├── build/                     # 图标与资源文件
-├── release/                   # 打包产物
-└── tests/                     # 单元测试（Vitest）
-```
-
 ## 许可证
 
 本项目采用 [Business Source License 1.1](LICENSE)。
 
-- 个人使用、学术研究、教学评估、非营利组织内部使用：免费
-- 商业使用：需要单独商业授权
+- 个人使用、学术研究、教学评估、非营利组织内部使用免费
+- 商业使用需要单独授权
 - 商业授权联系：[@jacksmion on X](https://x.com/jacksmion)
 - 转换日期：`2029-06-18`
 - 转换后协议：`Apache License 2.0`
 
-在转换日期生效前，这是一种源码可见许可，不属于 OSI 认可的开源许可证。
+简单理解：你现在可以阅读源码并在许可允许的非商业场景下使用它，但在转换日期之前，它还不是 OSI 认可的开源许可证。
