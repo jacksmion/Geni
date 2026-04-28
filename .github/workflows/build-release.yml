@@ -29,11 +29,11 @@ jobs:
         include:
           - name: Windows
             os: windows-latest
-            build_command: npm run dist:win
+            build_command: npm run dist:win -- --publish never
             artifact_name: geni-windows
           - name: macOS
             os: macos-latest
-            build_command: npm run dist:mac
+            build_command: npm run dist:mac -- --publish never
             artifact_name: geni-macos
 
     permissions:
