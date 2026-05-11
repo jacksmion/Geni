@@ -238,6 +238,7 @@ export class ReActExecutor implements AgentExecutor {
                 const assistantMsg: ChatMessage = {
                     role: 'assistant',
                     content: llmResult.content || fallbackContent,
+                    reasoning_content: llmResult.reasoning || undefined,
                     tool_calls: validToolCalls.length > 0 ? validToolCalls : undefined
                 };
                 messages.push(assistantMsg);

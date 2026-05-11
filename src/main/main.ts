@@ -30,6 +30,12 @@ protocol.registerSchemesAsPrivileged([{
     }
 }]);
 
+// Fix: Packaged Electron exe auto-applies Windows system proxy via Chromium/WinHTTP,
+// causing LLM API requests to fail with auth errors. Disable proxy in production only.
+if (app.isPackaged) {
+    app.commandLine.appendSwitch('no-proxy-server');
+}
+
 let isQuitting = false;
 
 function createWindow(isDark: boolean) {

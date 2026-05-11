@@ -318,6 +318,11 @@ export class OpenAIAdapter implements IChatModel {
                 content: msg.content || '',
             };
 
+            // 某些兼容 DeepSeek 协议的 API（如火山引擎、硅基流动等）要求在上下文中必须回传 reasoning_content
+            if (msg.role === 'assistant' && msg.reasoning_content) {
+                base.reasoning_content = msg.reasoning_content;
+            }
+
             // 处理工具调用 (assistant 消息)
             if (msg.role === 'assistant' && msg.tool_calls) {
                 const validToolCalls = msg.tool_calls.filter(tc => {
