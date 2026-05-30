@@ -93,7 +93,7 @@ export class AppRouter {
         const llmFactory: LLMClientFactory = (agent: Agent) => {
             const [provider, ...rest] = agent.modelId.split('/');
             const model = rest.join('/') || 'gpt-4o';
-            const providers = settings.llm.providers || {};
+            const providers = this.configManager.load().llm.providers || {};
             const config = providers[provider] || DEFAULT_PROVIDER_CONFIGS[provider] || { apiKey: '', model };
             const temperature = agent.temperature ?? config.temperature ?? 0.7;
             return createChatModel(provider, {
